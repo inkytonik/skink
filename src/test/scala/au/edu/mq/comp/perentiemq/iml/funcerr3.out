@@ -1,0 +1,4 @@
+src/test/scala/au/edu/mq/comp/perentiemq/iml/funcerr3.iml:3:11: error: expression expected
+    a = f();
+          ^
+

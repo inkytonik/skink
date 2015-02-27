@@ -1,0 +1,51 @@
+def exprok1(a): (b) {
+
+    // Single operators
+    a = a + b;
+    a = a - b;
+    a = a * b;
+    a = a % b;
+    a = -b;
+
+    // Assignables
+    a = b;
+    a = b[1];
+    a = b[1][2];
+
+    // Literals
+    a = 100;
+
+    // Precedence
+    a = b + c * d;
+    a = b * c + d;
+    a = b - c * d;
+    a = b * c - d;
+    a = b + c / d;
+    a = b / c + d;
+    a = b - c / d;
+    a = b / c - d;
+    a = b + c % d;
+    a = b % c + d;
+    a = b - c % d;
+    a = b % c - d;
+
+    // Associativity
+    a = b + c + d;
+    a = b + c - d;
+    a = b - c + d;
+    a = b - c - d;
+    a = b * c * d;
+    a = b * c / d;
+    a = b * c % d;
+    a = b % c * d;
+    a = b / c / d;
+    a = b / c % d;
+    a = b % c / d;
+    a = b % c % d;
+
+    // Parenthesisation
+    a = (b + c) * d;
+    a = b * (c + d);
+    a = b + (c + d);
+
+}

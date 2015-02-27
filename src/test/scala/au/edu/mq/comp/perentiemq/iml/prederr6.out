@@ -1,0 +1,4 @@
+src/test/scala/au/edu/mq/comp/perentiemq/iml/prederr6.iml:3:19: error: ')' expected
+    assert (a > b > c);
+                  ^
+

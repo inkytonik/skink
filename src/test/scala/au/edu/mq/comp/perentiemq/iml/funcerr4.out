@@ -1,0 +1,4 @@
+src/test/scala/au/edu/mq/comp/perentiemq/iml/funcerr4.iml:2:18: error: type expected
+def funcerr4(a : Foo) : (b) {
+                 ^
+

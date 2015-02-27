@@ -1,0 +1,43 @@
+Program (
+    List (
+        FunDef (
+            "funcok2",
+            List (Arg ("x")),
+            List (Arg ("o")),
+            Block (List (Assign (List (Var ("o")), List (Var ("x")))))),
+        FunDef (
+            "foo",
+            List (TypedArg ("x", BoolType ()), TypedArg ("y", IntType ())),
+            List (TypedArg ("o1", ArrayType ()), Arg ("o2"), Arg ("o3")),
+            Block (
+                List (
+                    Assign (
+                        List (Var ("o1")),
+                        List (Add (Var ("x"), Var ("y")))),
+                    Assign (List (Var ("o2")), List (Var ("x"))),
+                    Assign (List (Var ("o3")), List (Var ("y")))))),
+        FunDef (
+            "bar",
+            List (Arg ("x"), Arg ("y"), Arg ("z")),
+            List (Arg ("o1"), Arg ("o2")),
+            Block (
+                List (
+                    Assign (
+                        List (Var ("o1")),
+                        List (Add (Var ("x"), Var ("y")))),
+                    Assign (List (Var ("o2")), List (Var ("z"))))))))
+def funcok2(x): (o) {
+    o = x;
+}
+
+def foo(x: Bool, y: Int): (o1: Array, o2, o3) {
+    o1 = x + y;
+    o2 = x;
+    o3 = y;
+}
+
+def bar(x, y, z): (o1, o2) {
+    o1 = x + y;
+    o2 = z;
+}
+

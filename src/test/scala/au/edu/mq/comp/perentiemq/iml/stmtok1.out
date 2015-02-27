@@ -1,0 +1,86 @@
+Program (
+    List (
+        FunDef (
+            "stmtok1",
+            List (Arg ("a")),
+            List (Arg ("b")),
+            Block (
+                List (
+                    Assert (EQ (Var ("a"), Var ("b"))),
+                    Assign (List (Var ("c")), List (IntLit (1))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("b"), Var ("c")))),
+                    Assign (List (Var ("a"), Var ("b")), List (IntLit (10))),
+                    Assign (
+                        List (Var ("a"), Var ("b")),
+                        List (Var ("c"), Var ("d"), Var ("e"))),
+                    Assume (EQ (Var ("a"), Var ("b"))),
+                    Call (List (Var ("a")), "f", List (Var ("a"))),
+                    Call (
+                        List (Var ("b")),
+                        "g",
+                        List (Var ("a"), Var ("b"))),
+                    If (
+                        EQ (Var ("a"), Var ("b")),
+                        Assign (List (Var ("a")), List (IntLit (1))),
+                        Assign (List (Var ("a")), List (IntLit (2)))),
+                    If (
+                        EQ (Var ("a"), Var ("b")),
+                        If (
+                            EQ (Var ("b"), IntLit (1)),
+                            Assign (List (Var ("a")), List (IntLit (1))),
+                            Assign (List (Var ("a")), List (IntLit (2)))),
+                        Assign (List (Var ("a")), List (IntLit (3)))),
+                    Goto ("label"),
+                    Label (
+                        "label",
+                        Assign (List (Var ("a")), List (IntLit (2)))),
+                    Skip (),
+                    While (
+                        NEQ (Var ("a"), Var ("b")),
+                        Assign (
+                            List (Var ("a")),
+                            List (Add (Var ("a"), IntLit (1))))),
+                    While (
+                        LTE (Var ("a"), IntLit (10)),
+                        Block (
+                            List (
+                                Assign (
+                                    List (Var ("a")),
+                                    List (Add (Var ("a"), IntLit (1)))),
+                                Assign (
+                                    List (Var ("b")),
+                                    List (Sub (Var ("b"), IntLit (1))))))))))))
+def stmtok1(a): (b) {
+    assert (a == b);
+    c = 1;
+    a = b + c;
+    a, b = 10;
+    a, b = c, d, e;
+    assume (a == b);
+    a = f(a);
+    b = g(a, b);
+    if (a == b)
+        a = 1;
+    else
+        a = 2;
+    if (a == b)
+        if (b == 1)
+            a = 1;
+        else
+            a = 2;
+    else
+        a = 3;
+    goto label;
+    label:
+        a = 2;
+    skip;
+    while (a != b)
+        a = a + 1;
+    while (a < 10) {
+        a = a + 1;
+        b = b - 1;
+    }
+}
+

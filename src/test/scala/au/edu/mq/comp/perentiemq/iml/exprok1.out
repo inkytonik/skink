@@ -1,0 +1,152 @@
+Program (
+    List (
+        FunDef (
+            "exprok1",
+            List (Arg ("a")),
+            List (Arg ("b")),
+            Block (
+                List (
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("a"), Var ("b")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Var ("a"), Var ("b")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mul (Var ("a"), Var ("b")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mod (Var ("a"), Var ("b")))),
+                    Assign (List (Var ("a")), List (Neg (Var ("b")))),
+                    Assign (List (Var ("a")), List (Var ("b"))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Index (Var ("b"), IntLit (1)))),
+                    Assign (
+                        List (Var ("a")),
+                        List (
+                            Index (
+                                Index (Var ("b"), IntLit (1)),
+                                IntLit (2)))),
+                    Assign (List (Var ("a")), List (IntLit (100))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("b"), Mul (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Var ("b"), Mul (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("b"), Div (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Div (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Var ("b"), Div (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Div (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("b"), Mod (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Var ("b"), Mod (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Add (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Add (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Sub (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Sub (Sub (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mul (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Div (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mod (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mul (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Div (Div (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mod (Div (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Div (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mod (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mul (Add (Var ("b"), Var ("c")), Var ("d")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Mul (Var ("b"), Add (Var ("c"), Var ("d"))))),
+                    Assign (
+                        List (Var ("a")),
+                        List (Add (Var ("b"), Add (Var ("c"), Var ("d"))))))))))
+def exprok1(a): (b) {
+    a = a + b;
+    a = a - b;
+    a = a * b;
+    a = a % b;
+    a = -b;
+    a = b;
+    a = b[1];
+    a = b[1][2];
+    a = 100;
+    a = b + c * d;
+    a = b * c + d;
+    a = b - c * d;
+    a = b * c - d;
+    a = b + c / d;
+    a = b / c + d;
+    a = b - c / d;
+    a = b / c - d;
+    a = b + c % d;
+    a = b % c + d;
+    a = b - c % d;
+    a = b % c - d;
+    a = b + c + d;
+    a = b + c - d;
+    a = b - c + d;
+    a = b - c - d;
+    a = b * c * d;
+    a = b * c / d;
+    a = b * c % d;
+    a = b % c * d;
+    a = b / c / d;
+    a = b / c % d;
+    a = b % c / d;
+    a = b % c % d;
+    a = (b + c) * d;
+    a = b * (c + d);
+    a = b + (c + d);
+}
+

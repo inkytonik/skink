@@ -1,0 +1,19 @@
+Program (
+    List (
+        FunDef (
+            "funcok1",
+            List (Arg ("x"), Arg ("y")),
+            List (Arg ("o1"), Arg ("o2")),
+            Block (
+                List (
+                    Assign (List (Var ("a")), List (IntLit (1))),
+                    Assign (
+                        List (Var ("o1")),
+                        List (Add (Var ("x"), Var ("y")))),
+                    Assign (List (Var ("o2")), List (IntLit (100))))))))
+def funcok1(x, y): (o1, o2) {
+    a = 1;
+    o1 = x + y;
+    o2 = 100;
+}
+

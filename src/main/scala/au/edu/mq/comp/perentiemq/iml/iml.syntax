@@ -1,0 +1,78 @@
+module au.edu.mq.comp.perentiemq.iml.IML;
+
+header {
+    import au.edu.mq.comp.perentiemq.iml.IMLSyntax.*;
+}
+
+Program =
+  Spacing FunctionDefinition+ EOF.
+
+FunctionDefinition =
+  "def" Identifier '(' ArgumentDefinition ** "," ')' ":"
+    '(' ArgumentDefinition ++ "," ')' Block \n \n                       {FunDef}.
+
+ArgumentDefinition =
+    Identifier ":" Type                                                 {TypedArg}
+  | Identifier                                                          {Arg}.
+
+Type =
+    'Array'                                                             {ArrayType}
+  | 'Bool'                                                              {BoolType}
+  | 'Int'                                                               {IntType}.
+
+Statement =
+  NonBlockStatement.
+
+NonBlockStatement : Statement {line, nested} =
+    "assert" '(' Predicate ')' ';'                                      {Assert}
+  | Assignable ++ "," sp "=" Expression ++ "," ';'                      {Assign}
+  | "assume" '(' Predicate ')' ';'                                      {Assume}
+  | Assignable ++ "," sp "=" Identifier '(' Expression ++ "," ')' ';'   {Call}
+  | "if" '(' Predicate ')' BlockOrStatement \n 'else' BlockOrStatement  {If}
+  | "goto" Identifier ';'                                               {Goto}
+  | Identifier ':' NonBlockStatement                                    {Label}
+  | 'skip' ';'                                                          {Skip}
+  | "while" '(' Predicate ')' BlockOrStatement                          {While}.
+
+BlockOrStatement : Statement =
+    Statement
+  | Block.
+
+Block : Statement =
+  sp '{' Statement+ \n '}'.
+
+Predicate {paren} =
+    Predicate "||" Predicate                                            {Or, left, 2}
+  | Predicate "&&" Predicate                                            {And, left, 1}
+  | Expression sp "==" Expression                                       {EQ}
+  | Expression sp "!=" Expression                                       {NEQ}
+  | Expression sp "<=" Expression                                       {LE}
+  | Expression sp "<" Expression                                        {LTE}
+  | Expression sp ">=" Expression                                       {GE}
+  | Expression sp ">" Expression                                        {GTE}
+  | '!' Predicate                                                       {Not}
+  | 'false'                                                             {False}
+  | 'true'                                                              {True}
+  | Assignable                                                          {PVar}
+  | '(' Predicate ')'.
+
+Expression {paren} =
+    Expression "+" Expression                                           {Add, left, 2}
+  | Expression "-" Expression                                           {Sub, left, 2}
+  | Expression "*" Expression                                           {Mul, left, 1}
+  | Expression "/" Expression                                           {Div, left, 1}
+  | Expression "%" Expression                                           {Mod, left, 1}
+  | '-' Expression                                                      {Neg}
+  | IntegerLiteral                                                      {IntLit, 1: scala.math.BigInt.apply : BigInt}
+  | Assignable
+  | '(' Expression ')'.
+
+Assignable : Expression =
+    Assignable '[' Expression ']'                                       {Index}
+  | Identifier                                                          {Var}.
+
+IntegerLiteral : String =
+  Integer Spacing.
+
+Integer : String =
+  [0-9]+.
