@@ -18,14 +18,12 @@ Program (
                     Assign (List (Var ("o3")), List (Var ("y")))))),
         FunDef (
             "bar",
-            List (Arg ("x"), Arg ("y"), Arg ("z")),
+            Nil,
             List (Arg ("o1"), Arg ("o2")),
             Block (
                 List (
-                    Assign (
-                        List (Var ("o1")),
-                        List (Add (Var ("x"), Var ("y")))),
-                    Assign (List (Var ("o2")), List (Var ("z"))))))))
+                    Assign (List (Var ("o1")), List (IntLit (1))),
+                    Assign (List (Var ("o2")), List (IntLit (2))))))))
 def funcok2(x): (o) {
     o = x;
 }
@@ -36,8 +34,8 @@ def foo(x: Bool, y: Int): (o1: Array, o2, o3) {
     o3 = y;
 }
 
-def bar(x, y, z): (o1, o2) {
-    o1 = x + y;
-    o2 = z;
+def bar(): (o1, o2) {
+    o1 = 1;
+    o2 = 2;
 }
 

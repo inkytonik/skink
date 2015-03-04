@@ -8,7 +8,7 @@ def foo(x : Bool, y : Int): (o1 : Array, o2, o3) {
     o3 = y;
 }
 
-def bar(x, y, z): (o1, o2) {
-    o1 = x + y;
-    o2 = z;
+def bar(): (o1, o2) {
+    o1 = 1;
+    o2 = 2;
 }
