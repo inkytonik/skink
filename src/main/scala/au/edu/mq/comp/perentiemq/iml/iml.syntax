@@ -28,8 +28,8 @@ NonBlockStatement : Statement {line, nested} =
   | Assignable ++ "," sp "=" Expression ++ "," ';'                      {Assign}
   | "assume" '(' Predicate ')' ';'                                      {Assume}
   | Assignable ++ "," sp "=" Identifier '(' Expression ++ "," ')' ';'   {Call}
-  | "if" '(' Predicate ')' BlockOrStatement \n 'else' BlockOrStatement  {If}
   | "goto" Identifier ';'                                               {Goto}
+  | "if" '(' Predicate ')' BlockOrStatement \n 'else' BlockOrStatement  {If}
   | Identifier ':' NonBlockStatement                                    {Label}
   | 'skip' ';'                                                          {Skip}
   | "while" '(' Predicate ')' BlockOrStatement                          {While}.
