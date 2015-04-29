@@ -1,0 +1,15 @@
+Program (
+    List (
+        FunDef (
+            "printing",
+            List (Arg ("a")),
+            List (Arg ("b")),
+            Block (
+                List (
+                    Print (ELoad (Var ("a"))),
+                    Print (Add (ELoad (Var ("a")), ELoad (Var ("b")))))))))
+def printing(a): (b) {
+    print (a);
+    print (a + b);
+}
+
