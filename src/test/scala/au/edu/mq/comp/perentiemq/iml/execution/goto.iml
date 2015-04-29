@@ -1,0 +1,11 @@
+def main(): (r) {
+  r = test(1);
+}
+
+def test(a) : (r) {
+  goto end;
+  a = 0;
+end:
+  print(a);
+  r = 0;
+}

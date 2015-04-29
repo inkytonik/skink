@@ -1,0 +1,9 @@
+def main(a): (r) {
+  a = 0;
+  if (true)
+      a = a + 1;
+  else
+      skip;
+  print (a);
+  r = 0;
+}

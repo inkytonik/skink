@@ -1,0 +1,13 @@
+def main(a): (r) {
+  a = 0;
+  if (4 > 3)
+      a = a + 1;
+  else
+      skip;
+  if (3 > 4)
+      skip;
+  else
+      a = a + 1;
+  print (a);
+  r = 0;
+}
