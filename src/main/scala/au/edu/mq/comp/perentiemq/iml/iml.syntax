@@ -27,10 +27,11 @@ NonBlockStatement : Statement {line, nested} =
     "assert" '(' Predicate ')' ';'                                      {Assert}
   | Assignable ++ "," sp "=" Expression ++ "," ';'                      {Assign}
   | "assume" '(' Predicate ')' ';'                                      {Assume}
-  | Assignable ++ "," sp "=" Identifier '(' Expression ++ "," ')' ';'   {Call}
+  | Assignable ++ "," sp "=" Identifier '(' Expression ** "," ')' ';'   {Call}
   | "goto" Identifier ';'                                               {Goto}
   | "if" '(' Predicate ')' BlockOrStatement \n 'else' BlockOrStatement  {If}
   | Identifier ':' NonBlockStatement                                    {Label}
+  | "print" '(' Expression ')' ';'                                      {Print}
   | 'skip' ';'                                                          {Skip}
   | "while" '(' Predicate ')' BlockOrStatement                          {While}.
 
@@ -47,13 +48,13 @@ Predicate {paren} =
   | Expression sp "==" Expression                                       {EQ}
   | Expression sp "!=" Expression                                       {NEQ}
   | Expression sp "<=" Expression                                       {LE}
-  | Expression sp "<" Expression                                        {LTE}
+  | Expression sp "<" Expression                                        {LT}
   | Expression sp ">=" Expression                                       {GE}
-  | Expression sp ">" Expression                                        {GTE}
+  | Expression sp ">" Expression                                        {GT}
   | '!' Predicate                                                       {Not}
   | 'false'                                                             {False}
   | 'true'                                                              {True}
-  | Assignable                                                          {PVar}
+  | Assignable                                                          {PLoad}
   | '(' Predicate ')'.
 
 Expression {paren} =
@@ -64,10 +65,10 @@ Expression {paren} =
   | Expression "%" Expression                                           {Mod, left, 1}
   | '-' Expression                                                      {Neg}
   | IntegerLiteral                                                      {IntLit, 1: scala.math.BigInt.apply : BigInt}
-  | Assignable
+  | Assignable                                                          {ELoad}
   | '(' Expression ')'.
 
-Assignable : Expression =
+Assignable =
     Assignable '[' Expression ']'                                       {Index}
   | Identifier                                                          {Var}.
 

@@ -1,4 +1,0 @@
-// No arguments in call
-def funcerr3(a) : (b) {
-    a = f();
-}
