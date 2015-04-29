@@ -8,9 +8,9 @@ import org.kiama.util.TestCompilerWithConfig
  * Tests that check that the IML parser and pretty-printers build
  * the correct trees that pretty-print to the correct output.
  */
-class IMLTests extends Driver with TestCompilerWithConfig[Program,IMLConfig] {
+class IMLSyntaxTests extends Driver with TestCompilerWithConfig[Program,IMLConfig] {
 
-    val path = "src/test/scala/au/edu/mq/comp/perentiemq/iml"
+    val path = "src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax"
     filetests ("IML parse and print", path, ".iml", ".out",
                argslist = List (Array ("-p", "-s")))
 

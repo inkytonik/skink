@@ -4,7 +4,8 @@ Program (
             "funcok2",
             List (Arg ("x")),
             List (Arg ("o")),
-            Block (List (Assign (List (Var ("o")), List (Var ("x")))))),
+            Block (
+                List (Assign (List (Var ("o")), List (ELoad (Var ("x"))))))),
         FunDef (
             "foo",
             List (TypedArg ("x", BoolType ()), TypedArg ("y", IntType ())),
@@ -13,9 +14,10 @@ Program (
                 List (
                     Assign (
                         List (Var ("o1")),
-                        List (Add (Var ("x"), Var ("y")))),
-                    Assign (List (Var ("o2")), List (Var ("x"))),
-                    Assign (List (Var ("o3")), List (Var ("y")))))),
+                        List (Add (ELoad (Var ("x")), ELoad (Var ("y"))))),
+                    Assign (List (Var ("o2")), List (ELoad (Var ("x")))),
+                    Assign (List (Var ("o3")), List (ELoad (Var ("y")))),
+                    Call (List (Var ("o1"), Var ("o2")), "bar", Nil)))),
         FunDef (
             "bar",
             Nil,
@@ -32,6 +34,7 @@ def foo(x: Bool, y: Int): (o1: Array, o2, o3) {
     o1 = x + y;
     o2 = x;
     o3 = y;
+    o1, o2 = bar();
 }
 
 def bar(): (o1, o2) {

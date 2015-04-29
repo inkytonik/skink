@@ -1,4 +1,4 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/funcerr1.iml:1:1: error: function definition expected
+src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/funcerr1.iml:1:1: error: function definition expected
 
 ^
 

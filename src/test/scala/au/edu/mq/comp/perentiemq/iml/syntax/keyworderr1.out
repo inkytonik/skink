@@ -1,4 +1,4 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/keyworderr1.iml:2:5: error: identifier expected
+src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/keyworderr1.iml:2:5: error: identifier expected
 def if(a): (b) = {
     ^
 

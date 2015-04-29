@@ -6,6 +6,7 @@ def foo(x : Bool, y : Int): (o1 : Array, o2, o3) {
     o1 = x + y;
     o2 = x;
     o3 = y;
+    o1, o2 = bar();
 }
 
 def bar(): (o1, o2) {

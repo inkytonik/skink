@@ -8,109 +8,193 @@ Program (
                 List (
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("a"), Var ("b")))),
+                        List (Add (ELoad (Var ("a")), ELoad (Var ("b"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Var ("a"), Var ("b")))),
+                        List (Sub (ELoad (Var ("a")), ELoad (Var ("b"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mul (Var ("a"), Var ("b")))),
+                        List (Mul (ELoad (Var ("a")), ELoad (Var ("b"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mod (Var ("a"), Var ("b")))),
-                    Assign (List (Var ("a")), List (Neg (Var ("b")))),
-                    Assign (List (Var ("a")), List (Var ("b"))),
+                        List (Mod (ELoad (Var ("a")), ELoad (Var ("b"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Index (Var ("b"), IntLit (1)))),
+                        List (Neg (ELoad (Var ("b"))))),
+                    Assign (List (Var ("a")), List (ELoad (Var ("b")))),
+                    Assign (
+                        List (Var ("a")),
+                        List (ELoad (Index (Var ("b"), IntLit (1))))),
                     Assign (
                         List (Var ("a")),
                         List (
-                            Index (
-                                Index (Var ("b"), IntLit (1)),
-                                IntLit (2)))),
+                            ELoad (
+                                Index (
+                                    Index (Var ("b"), IntLit (1)),
+                                    IntLit (2))))),
                     Assign (List (Var ("a")), List (IntLit (100))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("b"), Mul (Var ("c"), Var ("d"))))),
+                        List (
+                            Add (
+                                ELoad (Var ("b")),
+                                Mul (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Add (
+                                Mul (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Var ("b"), Mul (Var ("c"), Var ("d"))))),
+                        List (
+                            Sub (
+                                ELoad (Var ("b")),
+                                Mul (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Sub (
+                                Mul (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("b"), Div (Var ("c"), Var ("d"))))),
+                        List (
+                            Add (
+                                ELoad (Var ("b")),
+                                Div (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Div (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Add (
+                                Div (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Var ("b"), Div (Var ("c"), Var ("d"))))),
+                        List (
+                            Sub (
+                                ELoad (Var ("b")),
+                                Div (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Div (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Sub (
+                                Div (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("b"), Mod (Var ("c"), Var ("d"))))),
+                        List (
+                            Add (
+                                ELoad (Var ("b")),
+                                Mod (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Add (
+                                Mod (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Var ("b"), Mod (Var ("c"), Var ("d"))))),
+                        List (
+                            Sub (
+                                ELoad (Var ("b")),
+                                Mod (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Sub (
+                                Mod (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Add (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Add (
+                                Add (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Add (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Sub (
+                                Add (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Sub (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Add (
+                                Sub (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Sub (Sub (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Sub (
+                                Sub (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mul (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mul (
+                                Mul (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Div (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Div (
+                                Mul (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mod (Mul (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mod (
+                                Mul (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mul (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mul (
+                                Mod (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Div (Div (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Div (
+                                Div (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mod (Div (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mod (
+                                Div (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Div (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Div (
+                                Mod (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mod (Mod (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mod (
+                                Mod (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mul (Add (Var ("b"), Var ("c")), Var ("d")))),
+                        List (
+                            Mul (
+                                Add (ELoad (Var ("b")), ELoad (Var ("c"))),
+                                ELoad (Var ("d"))))),
                     Assign (
                         List (Var ("a")),
-                        List (Mul (Var ("b"), Add (Var ("c"), Var ("d"))))),
+                        List (
+                            Mul (
+                                ELoad (Var ("b")),
+                                Add (ELoad (Var ("c")), ELoad (Var ("d")))))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("b"), Add (Var ("c"), Var ("d"))))))))))
+                        List (
+                            Add (
+                                ELoad (Var ("b")),
+                                Add (ELoad (Var ("c")), ELoad (Var ("d")))))))))))
 def exprok1(a): (b) {
     a = a + b;
     a = a - b;

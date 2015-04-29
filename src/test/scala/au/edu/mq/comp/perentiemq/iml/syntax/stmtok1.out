@@ -6,29 +6,32 @@ Program (
             List (Arg ("b")),
             Block (
                 List (
-                    Assert (EQ (Var ("a"), Var ("b"))),
+                    Assert (EQ (ELoad (Var ("a")), ELoad (Var ("b")))),
                     Assign (List (Var ("c")), List (IntLit (1))),
                     Assign (
                         List (Var ("a")),
-                        List (Add (Var ("b"), Var ("c")))),
+                        List (Add (ELoad (Var ("b")), ELoad (Var ("c"))))),
                     Assign (List (Var ("a"), Var ("b")), List (IntLit (10))),
                     Assign (
                         List (Var ("a"), Var ("b")),
-                        List (Var ("c"), Var ("d"), Var ("e"))),
-                    Assume (EQ (Var ("a"), Var ("b"))),
-                    Call (List (Var ("a")), "f", List (Var ("a"))),
+                        List (
+                            ELoad (Var ("c")),
+                            ELoad (Var ("d")),
+                            ELoad (Var ("e")))),
+                    Assume (EQ (ELoad (Var ("a")), ELoad (Var ("b")))),
+                    Call (List (Var ("a")), "f", List (ELoad (Var ("a")))),
                     Call (
                         List (Var ("b")),
                         "g",
-                        List (Var ("a"), Var ("b"))),
+                        List (ELoad (Var ("a")), ELoad (Var ("b")))),
                     If (
-                        EQ (Var ("a"), Var ("b")),
+                        EQ (ELoad (Var ("a")), ELoad (Var ("b"))),
                         Assign (List (Var ("a")), List (IntLit (1))),
                         Assign (List (Var ("a")), List (IntLit (2)))),
                     If (
-                        EQ (Var ("a"), Var ("b")),
+                        EQ (ELoad (Var ("a")), ELoad (Var ("b"))),
                         If (
-                            EQ (Var ("b"), IntLit (1)),
+                            EQ (ELoad (Var ("b")), IntLit (1)),
                             Assign (List (Var ("a")), List (IntLit (1))),
                             Assign (List (Var ("a")), List (IntLit (2)))),
                         Assign (List (Var ("a")), List (IntLit (3)))),
@@ -38,20 +41,22 @@ Program (
                         Assign (List (Var ("a")), List (IntLit (2)))),
                     Skip (),
                     While (
-                        NEQ (Var ("a"), Var ("b")),
+                        NEQ (ELoad (Var ("a")), ELoad (Var ("b"))),
                         Assign (
                             List (Var ("a")),
-                            List (Add (Var ("a"), IntLit (1))))),
+                            List (Add (ELoad (Var ("a")), IntLit (1))))),
                     While (
-                        LTE (Var ("a"), IntLit (10)),
+                        LT (ELoad (Var ("a")), IntLit (10)),
                         Block (
                             List (
                                 Assign (
                                     List (Var ("a")),
-                                    List (Add (Var ("a"), IntLit (1)))),
+                                    List (
+                                        Add (ELoad (Var ("a")), IntLit (1)))),
                                 Assign (
                                     List (Var ("b")),
-                                    List (Sub (Var ("b"), IntLit (1))))))))))))
+                                    List (
+                                        Sub (ELoad (Var ("b")), IntLit (1))))))))))))
 def stmtok1(a): (b) {
     assert (a == b);
     c = 1;

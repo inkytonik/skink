@@ -6,57 +6,57 @@ Program (
             List (TypedArg ("b", BoolType ())),
             Block (
                 List (
-                    Assert (Or (PVar (Var ("a")), PVar (Var ("b")))),
-                    Assert (And (PVar (Var ("a")), PVar (Var ("b")))),
-                    Assert (EQ (Var ("c"), Var ("d"))),
-                    Assert (NEQ (Var ("c"), Var ("d"))),
-                    Assert (LE (Var ("c"), Var ("d"))),
-                    Assert (LTE (Var ("c"), Var ("d"))),
-                    Assert (GE (Var ("c"), Var ("d"))),
-                    Assert (GTE (Var ("c"), Var ("d"))),
-                    Assert (Not (PVar (Var ("b")))),
+                    Assert (Or (PLoad (Var ("a")), PLoad (Var ("b")))),
+                    Assert (And (PLoad (Var ("a")), PLoad (Var ("b")))),
+                    Assert (EQ (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (NEQ (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (LE (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (LT (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (GE (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (GT (ELoad (Var ("c")), ELoad (Var ("d")))),
+                    Assert (Not (PLoad (Var ("b")))),
                     Assert (False ()),
                     Assert (True ()),
                     Assert (
                         Or (
-                            PVar (Var ("a")),
-                            And (PVar (Var ("b")), PVar (Var ("c"))))),
+                            PLoad (Var ("a")),
+                            And (PLoad (Var ("b")), PLoad (Var ("c"))))),
                     Assert (
                         Or (
-                            And (PVar (Var ("a")), PVar (Var ("b"))),
-                            PVar (Var ("c")))),
+                            And (PLoad (Var ("a")), PLoad (Var ("b"))),
+                            PLoad (Var ("c")))),
                     Assert (
                         Or (
-                            Or (PVar (Var ("b")), PVar (Var ("c"))),
-                            PVar (Var ("d")))),
+                            Or (PLoad (Var ("b")), PLoad (Var ("c"))),
+                            PLoad (Var ("d")))),
                     Assert (
                         Or (
-                            And (PVar (Var ("b")), PVar (Var ("c"))),
-                            PVar (Var ("d")))),
+                            And (PLoad (Var ("b")), PLoad (Var ("c"))),
+                            PLoad (Var ("d")))),
                     Assert (
                         Or (
-                            PVar (Var ("b")),
-                            And (PVar (Var ("c")), PVar (Var ("d"))))),
+                            PLoad (Var ("b")),
+                            And (PLoad (Var ("c")), PLoad (Var ("d"))))),
                     Assert (
                         And (
-                            And (PVar (Var ("b")), PVar (Var ("c"))),
-                            PVar (Var ("d")))),
+                            And (PLoad (Var ("b")), PLoad (Var ("c"))),
+                            PLoad (Var ("d")))),
                     Assert (
                         And (
-                            Or (PVar (Var ("b")), PVar (Var ("c"))),
-                            PVar (Var ("d")))),
+                            Or (PLoad (Var ("b")), PLoad (Var ("c"))),
+                            PLoad (Var ("d")))),
                     Assert (
                         And (
-                            PVar (Var ("b")),
-                            Or (PVar (Var ("c")), PVar (Var ("d"))))),
+                            PLoad (Var ("b")),
+                            Or (PLoad (Var ("c")), PLoad (Var ("d"))))),
                     Assert (
                         Or (
-                            PVar (Var ("b")),
-                            Or (PVar (Var ("c")), PVar (Var ("d"))))),
+                            PLoad (Var ("b")),
+                            Or (PLoad (Var ("c")), PLoad (Var ("d"))))),
                     Assert (
                         Or (
-                            EQ (Var ("c"), Var ("d")),
-                            LTE (Var ("d"), Var ("c")))))))))
+                            EQ (ELoad (Var ("c")), ELoad (Var ("d"))),
+                            LT (ELoad (Var ("d")), ELoad (Var ("c"))))))))))
 def predok1(a: Bool): (b: Bool) {
     assert (a || b);
     assert (a && b);

@@ -1,4 +1,4 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/funcerr2.iml:2:19: error: identifier expected
+src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/funcerr2.iml:2:19: error: identifier expected
 def funcerr2(x): () {
                   ^
 

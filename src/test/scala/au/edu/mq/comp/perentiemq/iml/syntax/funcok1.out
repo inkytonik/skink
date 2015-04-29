@@ -9,7 +9,7 @@ Program (
                     Assign (List (Var ("a")), List (IntLit (1))),
                     Assign (
                         List (Var ("o1")),
-                        List (Add (Var ("x"), Var ("y")))),
+                        List (Add (ELoad (Var ("x")), ELoad (Var ("y"))))),
                     Assign (List (Var ("o2")), List (IntLit (100))))))))
 def funcok1(x, y): (o1, o2) {
     a = 1;
