@@ -48,7 +48,7 @@ class AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 case Branch (Label (Local (label))) =>
                     CFGExit (List (CFGGoto (label)))
 
-                // Twos-sided conditional branch
+                // Two-sided conditional branch
                 case BranchCond (cmp, Label (Local (trueLabel)), Label (Local (falseLabel))) =>
                     val name = render (cmp)
                     CFGExit (List (CFGChoice (name, 1, trueLabel),
