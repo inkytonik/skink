@@ -20,17 +20,17 @@ Type =
   | 'Bool'                                                              {BoolType}
   | 'Int'                                                               {IntType}.
 
-Statement =
+Statement {paren} =
   NonBlockStatement.
 
-NonBlockStatement : Statement {line, nested} =
+NonBlockStatement : Statement {line, nested, paren} =
     "assert" '(' Predicate ')' ';'                                      {Assert}
   | Assignable ++ "," sp "=" Expression ++ "," ';'                      {Assign}
   | "assume" '(' Predicate ')' ';'                                      {Assume}
   | Assignable ++ "," sp "=" Identifier '(' Expression ** "," ')' ';'   {Call}
   | "goto" Identifier ';'                                               {Goto}
   | "if" '(' Predicate ')' BlockOrStatement \n 'else' BlockOrStatement  {If}
-  | Identifier ':' NonBlockStatement                                    {Label}
+  | Identifier ':' NonBlockStatement                                    {Label, 1, right}
   | "print" '(' Expression ')' ';'                                      {Print}
   | 'skip' ';'                                                          {Skip}
   | "while" '(' Predicate ')' BlockOrStatement                          {While}.
@@ -43,33 +43,33 @@ Block : Statement =
   sp '{' Statement+ \n '}'.
 
 Predicate {paren} =
-    Predicate "||" Predicate                                            {Or, left, 2}
-  | Predicate "&&" Predicate                                            {And, left, 1}
+    Predicate sp "||" Predicate                                         {Or, left, 3}
+  | Predicate sp "&&" Predicate                                         {And, left, 2}
   | Expression sp "==" Expression                                       {EQ}
   | Expression sp "!=" Expression                                       {NEQ}
   | Expression sp "<=" Expression                                       {LE}
   | Expression sp "<" Expression                                        {LT}
   | Expression sp ">=" Expression                                       {GE}
   | Expression sp ">" Expression                                        {GT}
-  | '!' Predicate                                                       {Not}
+  | '!' Predicate                                                       {Not, right, 1}
   | 'false'                                                             {False}
   | 'true'                                                              {True}
   | Assignable                                                          {PLoad}
   | '(' Predicate ')'.
 
 Expression {paren} =
-    Expression "+" Expression                                           {Add, left, 2}
-  | Expression "-" Expression                                           {Sub, left, 2}
-  | Expression "*" Expression                                           {Mul, left, 1}
-  | Expression "/" Expression                                           {Div, left, 1}
-  | Expression "%" Expression                                           {Mod, left, 1}
-  | '-' Expression                                                      {Neg}
+    Expression sp "+" Expression                                        {Add, left, 3}
+  | Expression sp "-" Expression                                        {Sub, left, 3}
+  | Expression sp "*" Expression                                        {Mul, left, 2}
+  | Expression sp "/" Expression                                        {Div, left, 2}
+  | Expression sp "%" Expression                                        {Mod, left, 2}
+  | '-' Expression                                                      {Neg, right, 1}
   | IntegerLiteral                                                      {IntLit, 1: scala.math.BigInt.apply : BigInt}
   | Assignable                                                          {ELoad}
   | '(' Expression ')'.
 
-Assignable =
-    Assignable '[' Expression ']'                                       {Index}
+Assignable {paren} =
+    Assignable '[' Expression ']'                                       {Index, left, 1}
   | Identifier                                                          {Var}.
 
 IntegerLiteral : String =

@@ -6,7 +6,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 scalacOptions :=
     Seq (

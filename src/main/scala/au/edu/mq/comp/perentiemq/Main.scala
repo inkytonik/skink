@@ -31,6 +31,8 @@ trait Driver extends CompilerWithConfig[Program,IMLConfig] {
     import org.scalallvm.assembly.Executor.execute
     import org.kiama.output.PrettyPrinterTypes.Document
     import org.kiama.util.{Emitter, ErrorEmitter, OutputEmitter}
+    import org.kiama.util.Messaging.Messages
+    import sbtrats.ParserSupport.ratsFailureMessages
 
     override def createConfig (args : Seq[String],
                                out : Emitter = new OutputEmitter,
@@ -43,13 +45,13 @@ trait Driver extends CompilerWithConfig[Program,IMLConfig] {
     // Not using Scala parser library
     var parser = null
 
-    override def makeast (reader : Reader, filename : String, config : IMLConfig) : Either[Program,String] = {
+    override def makeast (reader : Reader, filename : String, config : IMLConfig) : Either[Program,Messages] = {
         val p = new iml.IML (reader, filename)
         val pr = p.pProgram (0)
         if (pr.hasValue)
             Left (p.value (pr).asInstanceOf[Program])
         else
-            Right (p.format (pr.parseError))
+            Right (ratsFailureMessages (p, pr.parseError))
     }
 
     override def process (filename : String, program : Program, config : IMLConfig) {
