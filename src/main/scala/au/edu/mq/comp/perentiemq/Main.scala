@@ -16,6 +16,8 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
                                          descr = "Print the source code tree")
     lazy val sourcePrettyPrint = opt[Boolean] ("srcprettyprint", short = 'p',
                                                descr = "Pretty-print the source code")
+    lazy val targetPrint = opt[Boolean] ("tgtprint", short = 'u',
+                                         descr = "Print the target code tree (requires -c)")
     lazy val targetPrettyPrint = opt[Boolean] ("tgtprettyprint", short = 't',
                                                descr = "Pretty-print the target code (requires -c)")
 }
@@ -61,6 +63,9 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
         if (config.compile () || config.execute ()) {
             val compiler = new Compiler (positions)
             val ir = compiler.compile (program)
+
+            if (config.targetPrint ())
+                config.error.emitln (AssemblyPrettyPrinter.pretty (AssemblyPrettyPrinter.any (ir)).layout)
 
             if (config.targetPrettyPrint ())
                 config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)
