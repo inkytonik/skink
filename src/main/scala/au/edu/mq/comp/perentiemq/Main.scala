@@ -1,7 +1,7 @@
 package au.edu.mq.comp.perentiemq
 
 import iml.IMLSyntax.Program
-import org.kiama.util.{CompilerWithConfig, Config}
+import org.kiama.util.{CompilerBase, Config}
 
 abstract class IMLConfig (args : Seq[String]) extends Config (args) {
     lazy val cfgPrettyPrint = opt[Boolean] ("cfgprint", short = 'g',
@@ -20,19 +20,18 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
                                                descr = "Pretty-print the target code (requires -c)")
 }
 
-trait Driver extends CompilerWithConfig[Program,IMLConfig] {
+trait Driver extends CompilerBase[Program,IMLConfig] {
 
     import cfg.AssemblyCFGBuilder
-    import iml.Compiler.compile
+    import iml.Compiler
     import iml.IMLPrettyPrinter.{any, pretty}
     import java.io.Reader
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.{Program => IR}
     import org.scalallvm.assembly.Executor.execute
     import org.kiama.output.PrettyPrinterTypes.Document
-    import org.kiama.util.{Emitter, ErrorEmitter, OutputEmitter}
+    import org.kiama.util.{Emitter, ErrorEmitter, OutputEmitter, Source}
     import org.kiama.util.Messaging.Messages
-    import sbtrats.ParserSupport.ratsFailureMessages
 
     override def createConfig (args : Seq[String],
                                out : Emitter = new OutputEmitter,
@@ -42,19 +41,16 @@ trait Driver extends CompilerWithConfig[Program,IMLConfig] {
             lazy val error = err
         }
 
-    // Not using Scala parser library
-    var parser = null
-
-    override def makeast (reader : Reader, filename : String, config : IMLConfig) : Either[Program,Messages] = {
-        val p = new iml.IML (reader, filename)
+    override def makeast (source : Source, config : IMLConfig) : Either[Program,Messages] = {
+        val p = new iml.IML (source, positions)
         val pr = p.pProgram (0)
         if (pr.hasValue)
             Left (p.value (pr).asInstanceOf[Program])
         else
-            Right (ratsFailureMessages (p, pr.parseError))
+            Right (Vector (p.errorToMessage (pr.parseError)))
     }
 
-    override def process (filename : String, program : Program, config : IMLConfig) {
+    def process (source : Source, program : Program, config : IMLConfig) {
 
         if (config.sourcePrint ())
             config.error.emitln (pretty (any (program)).layout)
@@ -63,7 +59,8 @@ trait Driver extends CompilerWithConfig[Program,IMLConfig] {
             config.error.emit (format (program).layout)
 
         if (config.compile () || config.execute ()) {
-            val ir = compile (program)
+            val compiler = new Compiler (positions)
+            val ir = compiler.compile (program)
 
             if (config.targetPrettyPrint ())
                 config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)

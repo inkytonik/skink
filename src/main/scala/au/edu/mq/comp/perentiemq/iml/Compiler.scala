@@ -1,19 +1,25 @@
 package au.edu.mq.comp.perentiemq.iml
 
+import org.kiama.util.Positions
+
 /**
  * Compiler from IML to LLVM IR.
  */
-object Compiler {
+class Compiler (positions : Positions) {
 
     import au.edu.mq.comp.perentiemq.iml.{IMLSyntax => IML}
-    import org.kiama.util.Positions.getStart
-    import org.kiama.util.Counter
+    import org.kiama.util.{Counter, Position}
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable
 
     // Entry point
 
     val compile = translateProgram _
+
+    // Position access
+
+    def getStart (node : IML.ASTNode) : Position =
+        positions.getStart (node).getOrElse (Position (0, 0, null))
 
     // Temporary variable name allocation
 
@@ -51,8 +57,10 @@ object Compiler {
 
     // IML Helpers
 
-    def blockIdentifier (node : IML.ASTNode, suffix : String) : String =
-        s".block.${getStart (node)}.$suffix"
+    def blockIdentifier (node : IML.ASTNode, suffix : String) : String = {
+        val pos = getStart (node)
+        s".block.${pos.line}.${pos.column}.$suffix"
+    }
 
     def errorBlockId : String =
         ".error"
@@ -223,9 +231,6 @@ object Compiler {
         val functions = program.functionDefinitions.map (translateFunDef)
         Program (topLevels ++ functions)
     }
-
-    val lineTemp = ".line"
-    val columnTemp = ".column"
 
     def translateAssert (predicate : IML.Predicate) {
         val value = translatePredicate (predicate)

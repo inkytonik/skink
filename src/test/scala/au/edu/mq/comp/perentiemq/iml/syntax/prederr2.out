@@ -1,4 +1,3 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/prederr2.iml:3:20: error: ')' expected
+src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/prederr2.iml:3:20: ')' expected
     assert (a != b != c);
                    ^
-
