@@ -1,3 +1,4 @@
+// name of the project
 name := "perentiemq"
 
 version := "0.1.0"
