@@ -1,3 +1,4 @@
+// name of the project
 name := "perentiemq"
 
 version := "0.1.0"
@@ -39,6 +40,7 @@ libraryDependencies ++=
         "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
     )
 
+// resolvers
 resolvers ++= Seq (
     Resolver.sonatypeRepo ("releases"),
     Resolver.sonatypeRepo ("snapshots")
