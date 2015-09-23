@@ -1,6 +1,47 @@
 package au.edu.mq.comp.perentiemq.cfg
 
 import org.kiama.attribution.Attribution
+import org.kiama.relation.Bridge
+
+/**
+ * Base class of all CFG AST nodes.
+ */
+abstract class CFGASTNode[F,B] extends Product
+
+/**
+ * A control flow graph for function consisting of a sequence of CFG blocks.
+ */
+case class CFG[F,B] (function : Bridge[F], blocks : List[CFGBlock[F,B]]) extends CFGASTNode[F,B]
+
+/**
+ * A CFG block that represents the given underlying `block`.
+ */
+case class CFGBlock[F,B] (block : Bridge[B], exitInfo : CFGExit[F,B]) extends CFGASTNode[F,B]
+
+/**
+ * An exit descriptor consisting of zero or more conditions which are
+ * to be interpreted in the order given.
+ */
+case class CFGExit[F,B] (conditions : List[CFGExitCond[F,B]]) extends CFGASTNode[F,B]
+
+/**
+ * Base class of exit conditions representing situations where control
+ * transfers from a block to another.
+ */
+sealed abstract class CFGExitCond[F,B] extends CFGASTNode[F,B] {
+    def target : String
+}
+
+/**
+ * An exit condition that means that if the variable called `name` has the value
+ * `choice` then control is transferred to `target`.
+ */
+case class CFGChoice[F,B] (name : String, choice : Int, target : String) extends CFGExitCond[F,B]
+
+/**
+ * An exit condition that means always transfer control to `target`.
+ */
+case class CFGGoto[F,B] (target : String) extends CFGExitCond[F,B]
 
 /**
  * Abstract builder for control-flow graphs. The CFGs are layered on top of
@@ -13,67 +54,20 @@ import org.kiama.attribution.Attribution
  */
 abstract class CFGBuilder[F,B] extends Attribution {
 
-    import org.kiama.relation.Bridge
-
     // Support methods that descendants must provide
 
     def blockName (function : F, block : B) : String
-    def blocksOf (function : F) : List[CFGBlock]
+    def blocksOf (function : F) : List[CFGBlock[F,B]]
     def functionName (function : F) : String
     def isEntry (function : F, block : B) : Boolean
     def isExit (function : F, block : B) : Boolean
-
-    // CFG representation
-
-    type BlockName = String
-    type VarName = String
-
-    /**
-     * Base class of all CFG AST nodes.
-     */
-    abstract class CFGASTNode extends Product
-
-    /**
-     * A control flow graph for function `F` consisting of a sequence of CFG blocks.
-     */
-    case class CFG (function : Bridge[F], blocks : List[CFGBlock]) extends CFGASTNode
-
-    /**
-     * A CFG block that represents the given underlying `block`.
-     */
-    case class CFGBlock (block : Bridge[B], exitInfo : CFGExit) extends CFGASTNode
-
-    /**
-     * An exit descriptor consisting of zero or more conditions which are
-     * to be interpreted in the order given.
-     */
-    case class CFGExit (conditions : List[CFGExitCond]) extends CFGASTNode
-
-    /**
-     * Base class of exit conditions representing situations where control
-     * transfers from a block to another.
-     */
-    sealed abstract class CFGExitCond extends CFGASTNode {
-        def target : BlockName
-    }
-
-    /**
-     * An exit condition that means that if the variable called `name` has the value
-     * `choice` then control is transferred to `target`.
-     */
-    case class CFGChoice (name : VarName, choice : Int, target : BlockName) extends CFGExitCond
-
-    /**
-     * An exit condition that means always transfer control to `target`.
-     */
-    case class CFGGoto (target : BlockName) extends CFGExitCond
 
     // Construction
 
     /**
      * Make a CFG from a function.
      */
-    lazy val cfg : F => CFG =
+    lazy val cfg : F => CFG[F,B] =
         attr {
             case function =>
                 CFG (Bridge (function), blocksOf (function))
@@ -81,14 +75,14 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
     // CFG analysis
 
-    class CFGAnalyser (cfg : CFG) {
+    class CFGAnalyser (cfg : CFG[F,B]) {
 
         import org.kiama.attribution.Decorators
         import org.kiama.output.PrettyPrinter._
         import org.kiama.output.PrettyPrinterTypes.Document
         import org.kiama.relation.Tree
 
-        val tree = new Tree[CFGASTNode,CFG] (cfg)
+        val tree = new Tree[CFGASTNode[F,B],CFG[F,B]] (cfg)
         val decorators = new Decorators (tree)
 
         import tree._
@@ -99,7 +93,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The function that is represented by this graph.
          */
-        lazy val function : CFGASTNode => F =
+        lazy val function : CFGASTNode[F,B] => F =
             atRoot {
                 case CFG (Bridge (function), _) =>
                     function
@@ -108,9 +102,9 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The CFG blocks.
          */
-        lazy val cfgBlocks : CFGASTNode => List[CFGBlock] =
+        lazy val cfgBlocks : CFGASTNode[F,B] => List[CFGBlock[F,B]] =
             atRoot {
-                case cfg : CFG =>
+                case cfg : CFG[F,B] =>
                     cfg.blocks
             }
 
@@ -118,7 +112,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
          * The unique entry block for this CFG. It is a run-time error if the
          * underlying function has more than one entry block.
          */
-        lazy val entry : CFGASTNode => CFGBlock =
+        lazy val entry : CFGASTNode[F,B] => CFGBlock[F,B] =
             atRoot {
                 case CFG (Bridge (function), blocks) =>
                     val entries = blocks.filter {
@@ -135,7 +129,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The exit blocks for this CFG.
          */
-        lazy val exits : CFGASTNode => List[CFGBlock] =
+        lazy val exits : CFGASTNode[F,B] => List[CFGBlock[F,B]] =
             atRoot {
                 case CFG (Bridge (function), blocks) =>
                     blocks.filter {
@@ -149,7 +143,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The underlying name of this block.
          */
-        lazy val name : CFGBlock => BlockName =
+        lazy val name : CFGBlock[F,B] => String =
             attr {
                 case cfgBlock @ CFGBlock (Bridge (block), _) =>
                     blockName (function (cfgBlock), block)
@@ -160,7 +154,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The resolved target block of a choice exit condition.
          */
-        lazy val target : CFGExitCond => Option[CFGBlock] =
+        lazy val target : CFGExitCond[F,B] => Option[CFGBlock[F,B]] =
             attr {
                 case astNode =>
                     resolve (astNode.target) (astNode)
@@ -170,7 +164,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
          * Resolve an underlying block name to get the corresponding CFG block.
          * FIXME: assumes that the block names are unique.
          */
-        lazy val resolve : BlockName => CFGASTNode => Option[CFGBlock] =
+        lazy val resolve : String => CFGASTNode[F,B] => Option[CFGBlock[F,B]] =
            paramAttr {
                 blockName => (
                     node =>
@@ -180,19 +174,19 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
         // Pretty-printer
 
-        lazy val formatString : CFG => String =
+        lazy val formatString : CFG[F,B] => String =
             attr {
                 case cfg =>
                     format (cfg).layout
             }
 
-        lazy val format : CFG => Document =
+        lazy val format : CFG[F,B] => Document =
             attr {
                 case cfg =>
                     pretty (toDoc (cfg))
             }
 
-        lazy val toDoc : CFGASTNode => Doc =
+        lazy val toDoc : CFGASTNode[F,B] => Doc =
             attr {
 
                 case cfg @ CFG (Bridge (function), blocks) =>
@@ -222,10 +216,10 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
             }
 
-        def toNameDoc (cfgBlock : CFGBlock) : Doc =
+        def toNameDoc (cfgBlock : CFGBlock[F,B]) : Doc =
             text (blockName (function (cfgBlock), cfgBlock.block.cross))
 
-        def toTargetDoc (astNode : CFGASTNode, blockName : BlockName) : Doc =
+        def toTargetDoc (astNode : CFGASTNode[F,B], blockName : String) : Doc =
             resolve (blockName) (astNode).map (toNameDoc).getOrElse ("???")
 
     }

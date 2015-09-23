@@ -24,7 +24,7 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
 
 trait Driver extends CompilerBase[Program,IMLConfig] {
 
-    import cfg.AssemblyCFGBuilder
+    import cfg.AssemblyCFG
     import iml.Compiler
     import iml.IMLPrettyPrinter.{any, pretty}
     import java.io.Reader
@@ -70,12 +70,11 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
             if (config.targetPrettyPrint ())
                 config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)
 
-            val cfgBuilder = new AssemblyCFGBuilder
-            val cfgs = cfgBuilder.buildCFGs (ir)
+            val cfgs = AssemblyCFG.buildCFGs (ir)
 
             if (config.cfgPrettyPrint ())
                 for (cfg <- cfgs) {
-                    val cfgAnalyser = new cfgBuilder.CFGAnalyser (cfg)
+                    val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
                     config.error.emitln (cfgAnalyser.formatString (cfg))
                 }
 
