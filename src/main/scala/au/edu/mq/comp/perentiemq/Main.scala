@@ -7,9 +7,9 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
     lazy val cfgPrettyPrint = opt[Boolean] ("cfgprint", short = 'g',
                                             descr = "Pretty print the control flow graph of the target code (requires -c)")
     lazy val compile = opt[Boolean] ("compile", short = 'c',
-                                     descr = "Compile the source code")
+                                     descr = "Compile the IML program")
     lazy val execute = opt[Boolean] ("execute", short = 'x',
-                                     descr = "Execute the target code (implies -c)")
+                                     descr = "Execute the target code")
     lazy val lli = opt[String] ("lli", descr = "Program to use to execute target code",
                                 default = Some ("/usr/local/opt/llvm/bin/lli"))
     lazy val sourcePrint = opt[Boolean] ("srcprint", short = 's',
@@ -17,9 +17,9 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
     lazy val sourcePrettyPrint = opt[Boolean] ("srcprettyprint", short = 'p',
                                                descr = "Pretty-print the source code")
     lazy val targetPrint = opt[Boolean] ("tgtprint", short = 'u',
-                                         descr = "Print the target code tree (requires -c)")
+                                         descr = "Print the target code tree")
     lazy val targetPrettyPrint = opt[Boolean] ("tgtprettyprint", short = 't',
-                                               descr = "Pretty-print the target code (requires -c)")
+                                               descr = "Pretty-print the target code")
 }
 
 trait Driver extends CompilerBase[Program,IMLConfig] {
@@ -28,12 +28,12 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
     import iml.Compiler
     import iml.IMLPrettyPrinter.{any, pretty}
     import java.io.Reader
-    import org.scalallvm.assembly.AssemblyPrettyPrinter
+    import org.scalallvm.assembly.{Assembly, AssemblyPrettyPrinter}
     import org.scalallvm.assembly.AssemblySyntax.{Program => IR}
     import org.scalallvm.assembly.Executor.execute
     import org.kiama.output.PrettyPrinterTypes.Document
     import org.kiama.util.{Emitter, ErrorEmitter, OutputEmitter, Source}
-    import org.kiama.util.Messaging.Messages
+    import org.kiama.util.Messaging.{Messages, noMessages}
 
     override def createConfig (args : Seq[String],
                                out : Emitter = new OutputEmitter,
@@ -44,12 +44,33 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
         }
 
     override def makeast (source : Source, config : IMLConfig) : Either[Program,Messages] = {
-        val p = new iml.IML (source, positions)
-        val pr = p.pProgram (0)
-        if (pr.hasValue)
-            Left (p.value (pr).asInstanceOf[Program])
-        else
-            Right (Vector (p.errorToMessage (pr.parseError)))
+        if (config.compile () || config.sourcePrint () || config.sourcePrettyPrint ()) {
+
+            // We're compiling so input file contains IML. Parse and process
+            // the IML program and then the IR of the compiled program.
+
+            val p = new iml.IML (source, positions)
+            val pr = p.pProgram (0)
+            if (pr.hasValue)
+                Left (p.value (pr).asInstanceOf[Program])
+            else
+                Right (Vector (p.errorToMessage (pr.parseError)))
+
+        } else {
+
+            // We're not compiling so input file contains target code (LLVM IR).
+            // Use LLVM lib to parse and then process the IR.
+
+            val p = new Assembly (source, positions)
+            val pr = p.pProgram (0)
+            if (pr.hasValue) {
+                processir (p.value (pr).asInstanceOf[IR], config)
+                Right (noMessages)
+            } else
+                Right (Vector (p.errorToMessage (pr.parseError)))
+
+        }
+
     }
 
     def process (source : Source, program : Program, config : IMLConfig) {
@@ -60,30 +81,35 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
         if (config.sourcePrettyPrint ())
             config.error.emit (format (program).layout)
 
-        if (config.compile () || config.execute ()) {
+        if (config.compile ()) {
             val compiler = new Compiler (positions)
             val ir = compiler.compile (program)
+            processir (ir, config)
+        }
 
-            if (config.targetPrint ())
-                config.error.emitln (AssemblyPrettyPrinter.pretty (AssemblyPrettyPrinter.any (ir)).layout)
+    }
 
-            if (config.targetPrettyPrint ())
-                config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)
+    def processir (ir : IR, config : IMLConfig) {
 
-            val cfgs = AssemblyCFG.buildCFGs (ir)
+        if (config.targetPrint ())
+            config.error.emitln (AssemblyPrettyPrinter.pretty (AssemblyPrettyPrinter.any (ir)).layout)
 
-            if (config.cfgPrettyPrint ())
-                for (cfg <- cfgs) {
-                    val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
-                    config.error.emitln (cfgAnalyser.formatString (cfg))
-                }
+        if (config.targetPrettyPrint ())
+            config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)
 
-            if (config.execute ()) {
-                val (output, code) = execute (ir, config.lli ())
-                config.output.emit (output)
-                if (code != 0)
-                    config.output.emitln (s"exit code: $code")
+        val cfgs = AssemblyCFG.buildCFGs (ir)
+
+        if (config.cfgPrettyPrint ())
+            for (cfg <- cfgs) {
+                val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
+                config.error.emitln (cfgAnalyser.formatString (cfg))
             }
+
+        if (config.execute ()) {
+            val (output, code) = execute (ir, config.lli ())
+            config.output.emit (output)
+            if (code != 0)
+                config.output.emitln (s"exit code: $code")
         }
 
     }

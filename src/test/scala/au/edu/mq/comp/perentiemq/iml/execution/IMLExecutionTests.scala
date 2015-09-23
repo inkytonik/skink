@@ -11,6 +11,6 @@ class IMLExecutionTests extends Driver with TestCompilerWithConfig[Program,IMLCo
 
     val path = "src/test/scala/au/edu/mq/comp/perentiemq/iml/execution"
     filetests ("IML execution", path, ".iml", ".out",
-               argslist = List (Array ("-x")))
+               argslist = List (Array ("-c", "-x")))
 
 }
