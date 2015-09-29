@@ -50,7 +50,7 @@ resolvers ++= Seq (
 
 sbtRatsSettings
 
-ratsUseScalaLists := true
+ratsScalaRepetitionType := Some (VectorType)
 
 ratsUseScalaOptions := true
 

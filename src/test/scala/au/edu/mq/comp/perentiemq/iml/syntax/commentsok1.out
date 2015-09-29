@@ -1,13 +1,13 @@
 Program (
-    List (
+    Vector (
         FunDef (
             "commentsok1",
-            List (Arg ("a")),
-            List (Arg ("b")),
+            Vector (Arg ("a")),
+            Vector (Arg ("b")),
             Block (
-                List (
-                    Assign (List (Var ("a")), List (IntLit (1))),
-                    Assign (List (Var ("a")), List (IntLit (1))))))))
+                Vector (
+                    Assign (Vector (Var ("a")), Vector (IntLit (1))),
+                    Assign (Vector (Var ("a")), Vector (IntLit (1))))))))
 def commentsok1(a): (b) {
     a = 1;
     a = 1;

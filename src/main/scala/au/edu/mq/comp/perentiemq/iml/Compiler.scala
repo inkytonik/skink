@@ -43,7 +43,7 @@ class Compiler (positions : Positions) {
 
     def finishBlock (terminator : TerminatorInstruction) {
         val label = if (labelStack.isEmpty) NoLabel () else BlockLabel (labelStack.pop ())
-        val block = Block (label, Nil, None, insnBuffer.result (), terminator)
+        val block = Block (label, Vector (), None, insnBuffer.toVector, terminator)
         blockBuffer.append (block)
     }
 
@@ -81,23 +81,23 @@ class Compiler (positions : Positions) {
     def bytePtrType () = PointerT (IntT (8), DefaultAddrSpace ())
 
     val exitType =
-        FunctionT (VoidT (), VarArgTypes (List (defaultIntType ())))
+        FunctionT (VoidT (), VarArgTypes (Vector (defaultIntType ())))
 
     def exitDeclaration () : Item =
         FunctionDeclaration (DefaultLinkage (), DefaultVisibility (),
-            DefaultDLLStorageClass (), DefaultCC (), Nil, VoidT (),
-            Global ("exit"), Args (List (Argument (defaultIntType (), Nil, None))),
-            NamedAddr (), List (NoUnwind (), SSP (), UWTable (), NoReturn ()),
+            DefaultDLLStorageClass (), DefaultCC (), Vector (), VoidT (),
+            Global ("exit"), Args (Vector (Argument (defaultIntType (), Vector (), None))),
+            NamedAddr (), Vector (NoUnwind (), SSP (), UWTable (), NoReturn ()),
             DefaultAlignFunc (), NoGCName (), NoPrefix (), NoPrologue ())
 
     val printfType =
-        FunctionT (defaultIntType (), VarArgTypes (List (bytePtrType)))
+        FunctionT (defaultIntType (), VarArgTypes (Vector (bytePtrType)))
 
     def printfDeclaration () : Item =
         FunctionDeclaration (DefaultLinkage (), DefaultVisibility (),
-            DefaultDLLStorageClass (), DefaultCC (), Nil, defaultIntType (),
-            Global ("printf"), VarArgs (List (Argument (bytePtrType (), Nil, None))),
-            NamedAddr (), List (NoUnwind (), SSP (), UWTable ()),
+            DefaultDLLStorageClass (), DefaultCC (), Vector (), defaultIntType (),
+            Global ("printf"), VarArgs (Vector (Argument (bytePtrType (), Vector (), None))),
+            NamedAddr (), Vector (NoUnwind (), SSP (), UWTable ()),
             DefaultAlignFunc (), NoGCName (), NoPrefix (), NoPrologue ())
 
     def stringType (length : Int) =
@@ -135,9 +135,9 @@ class Compiler (positions : Positions) {
         Named (temp)
     }
 
-    def emitCall (temp : Local, tipe : Type, id : String, args : List[CallArgument]) {
-        emit (Call (Binding (temp), NotTail (), DefaultCC (), Nil, tipe,
-                    Function (Named (Global (id))), args, Nil))
+    def emitCall (temp : Local, tipe : Type, id : String, args : Vector[CallArgument]) {
+        emit (Call (Binding (temp), NotTail (), DefaultCC (), Vector (), tipe,
+                    Function (Named (Global (id))), args, Vector ()))
     }
 
     def emitCompare (compareop : CompareOp, l : IML.Expression, r : IML.Expression) : Value = {
@@ -149,9 +149,9 @@ class Compiler (positions : Positions) {
     }
 
     def emitExit () {
-        val args = List (ValueArg (defaultIntType (), Nil, Const (IntC (-1))))
-        emit (Call (NoBinding (), NotTail (), DefaultCC (), Nil, VoidT (),
-                    Function (Named (Global ("exit"))), args, Nil))
+        val args = Vector (ValueArg (defaultIntType (), Vector (), Const (IntC (-1))))
+        emit (Call (NoBinding (), NotTail (), DefaultCC (), Vector (), VoidT (),
+                    Function (Named (Global ("exit"))), args, Vector ()))
     }
 
     def emitLoad (value : Value, tipe : IML.Type) : Local = {
@@ -162,7 +162,7 @@ class Compiler (positions : Positions) {
     }
 
     def emitConstLoad (id : String, v : Int) {
-        emit (Binary (Binding (Local (id)), Add (Nil), defaultIntType (),
+        emit (Binary (Binding (Local (id)), Add (Vector ()), defaultIntType (),
                       Const (IntC (v)), Const (IntC (0))))
     }
 
@@ -186,7 +186,7 @@ class Compiler (positions : Positions) {
                       Align (4)))
         }
 
-    def emitStores (assignables : List[IML.Assignable], locs : List[Value]) =
+    def emitStores (assignables : Vector[IML.Assignable], locs : Vector[Value]) =
         for ((assignable, loc) <- assignables.zip (locs)) {
             emitStore (assignable, IML.IntType (), loc)
         }
@@ -222,7 +222,7 @@ class Compiler (positions : Positions) {
 
     def translateProgram (program : IML.Program) : Program = {
         val topLevels =
-            List (
+            Vector (
                 exitDeclaration (),
                 printfDeclaration (),
                 assertionFailureStringConstant (),
@@ -243,13 +243,13 @@ class Compiler (positions : Positions) {
                 GetElementPtrC (InBounds (), assertionFailureType,
                                 PointerT (assertionFailureType, DefaultAddrSpace ()),
                                 NameC (Global (assertionFailureStringName)),
-                                List (ElemIndex (defaultIntType (), Const (IntC (0))),
+                                Vector (ElemIndex (defaultIntType (), Const (IntC (0))),
                                       ElemIndex (defaultIntType (), Const (IntC (0))))))
-        val arg1 = ValueArg (bytePtrType, Nil, arg1Value)
-        val arg2 = ValueArg (defaultIntType (), Nil, Const (IntC (getStart (predicate).line)))
-        val arg3 = ValueArg (defaultIntType (), Nil, Const (IntC (getStart (predicate).column)))
+        val arg1 = ValueArg (bytePtrType, Vector (), arg1Value)
+        val arg2 = ValueArg (defaultIntType (), Vector (), Const (IntC (getStart (predicate).line)))
+        val arg3 = ValueArg (defaultIntType (), Vector (), Const (IntC (getStart (predicate).column)))
         val ctemp = nextTemp ()
-        emitCall (ctemp, printfType, "printf", List (arg1, arg2, arg3))
+        emitCall (ctemp, printfType, "printf", Vector (arg1, arg2, arg3))
         finishBlockUncond (errorBlockId)
         startBlock (okBlockId)
     }
@@ -261,21 +261,21 @@ class Compiler (positions : Positions) {
     def assertionFailureStringConstant () : Item =
         defineStringConstant (assertionFailureStringName, assertionFailureString)
 
-    def translateCall (assignable : IML.Assignable, id : String, expressions : List[IML.Expression]) {
+    def translateCall (assignable : IML.Assignable, id : String, expressions : Vector[IML.Expression]) {
         val args = expressions map {
                        case e =>
-                           ValueArg (defaultIntType (), Nil, translateExpression (e))
+                           ValueArg (defaultIntType (), Vector (), translateExpression (e))
                    }
         val temp = nextTemp ()
         emitCall (temp, defaultIntType (), id, args)
-        emitStores (List (assignable), List (Named (temp)))
+        emitStores (Vector (assignable), Vector (Named (temp)))
     }
 
     def translateExpression (expression : IML.Expression) : Value =
         expression match {
 
             case IML.Add (l, r) =>
-                emitBinaryInt (Add (List (NoSignedWrap ())), l, r)
+                emitBinaryInt (Add (Vector (NoSignedWrap ())), l, r)
 
             case IML.Div (l, r) =>
                 emitBinaryInt (SDiv (NotExact ()), l, r)
@@ -293,22 +293,22 @@ class Compiler (positions : Positions) {
                 emitBinaryInt (SRem (), l, r)
 
             case IML.Mul (l, r) =>
-                emitBinaryInt (Mul (List (NoSignedWrap ())), l, r)
+                emitBinaryInt (Mul (Vector (NoSignedWrap ())), l, r)
 
             case IML.Neg (e) =>
                 translateExpression (IML.Sub (IML.IntLit (0), e))
 
             case IML.Sub (l, r) =>
-                emitBinaryInt (Sub (List (NoSignedWrap ())), l, r)
+                emitBinaryInt (Sub (Vector (NoSignedWrap ())), l, r)
 
         }
 
     def translateFunDef (functionDefinition : IML.FunctionDefinition) : Item = {
 
-        def arguments (optArgumentDefinitions : List[IML.ArgumentDefinition]) : Arguments =
+        def arguments (optArgumentDefinitions : Vector[IML.ArgumentDefinition]) : Arguments =
             Args (optArgumentDefinitions map argumentDefinitionToArgument)
 
-        def returnType (argumentDefinitions : List[IML.ArgumentDefinition]) : Type =
+        def returnType (argumentDefinitions : Vector[IML.ArgumentDefinition]) : Type =
             if (argumentDefinitions.length == 1)
                 argumentDefinitionToType (argumentDefinitions.head)
             else
@@ -323,7 +323,7 @@ class Compiler (positions : Positions) {
             }
 
         def makeArgument (n : String, t : Type) : Argument =
-            Argument (t, Nil, Some (Local (n)))
+            Argument (t, Vector (), Some (Local (n)))
 
         def argumentDefinitionToIdentifier (argumentDefinition : IML.ArgumentDefinition) : String =
             argumentDefinition match {
@@ -401,11 +401,11 @@ class Compiler (positions : Positions) {
                 emitExit ()
                 finishBlock (Ret (rettype, Const (IntC (-1))))
 
-                val body = FunctionBody (blockBuffer.result ())
+                val body = FunctionBody (blockBuffer.toVector)
 
                 FunctionDefinition (DefaultLinkage (), DefaultVisibility (),
-                    DefaultDLLStorageClass (), DefaultCC (), Nil, rettype, global,
-                    args, NamedAddr (), Nil, DefaultSection (), NoComdat (),
+                    DefaultDLLStorageClass (), DefaultCC (), Vector (), rettype, global,
+                    args, NamedAddr (), Vector (), DefaultSection (), NoComdat (),
                     DefaultAlignFunc (), NoGCName (), NoPrefix (), NoPrologue (),
                     body)
 
@@ -485,12 +485,12 @@ class Compiler (positions : Positions) {
                 GetElementPtrC (InBounds (), printFormatType,
                                 PointerT (printFormatType, DefaultAddrSpace ()),
                                 NameC (Global (printFormatStringName)),
-                                List (ElemIndex (defaultIntType (), Const (IntC (0))),
+                                Vector (ElemIndex (defaultIntType (), Const (IntC (0))),
                                       ElemIndex (defaultIntType (), Const (IntC (0))))))
-        val arg1 = ValueArg (bytePtrType, Nil, arg1Value)
-        val arg2 = ValueArg (defaultIntType (), Nil, etemp)
+        val arg1 = ValueArg (bytePtrType, Vector (), arg1Value)
+        val arg2 = ValueArg (defaultIntType (), Vector (), etemp)
         val ctemp = nextTemp ()
-        emitCall (ctemp, printfType, "printf", List (arg1, arg2))
+        emitCall (ctemp, printfType, "printf", Vector (arg1, arg2))
     }
 
     def translateStatement (statement : IML.Statement) {
@@ -508,7 +508,7 @@ class Compiler (positions : Positions) {
             case IML.Block (statements) =>
                 statements.map (translateStatement)
 
-            case IML.Call (List (assignable), id, expressions) =>
+            case IML.Call (Vector (assignable), id, expressions) =>
                 translateCall (assignable, id, expressions)
 
             case IML.Call (assignables, id, expressions) =>

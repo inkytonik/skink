@@ -11,7 +11,7 @@ abstract class CFGASTNode[F,B] extends Product
 /**
  * A control flow graph for function consisting of a sequence of CFG blocks.
  */
-case class CFG[F,B] (function : Bridge[F], blocks : List[CFGBlock[F,B]]) extends CFGASTNode[F,B]
+case class CFG[F,B] (function : Bridge[F], blocks : Vector[CFGBlock[F,B]]) extends CFGASTNode[F,B]
 
 /**
  * A CFG block that represents the given underlying `block`.
@@ -22,7 +22,7 @@ case class CFGBlock[F,B] (block : Bridge[B], exitInfo : CFGExit[F,B]) extends CF
  * An exit descriptor consisting of zero or more conditions which are
  * to be interpreted in the order given.
  */
-case class CFGExit[F,B] (conditions : List[CFGExitCond[F,B]]) extends CFGASTNode[F,B]
+case class CFGExit[F,B] (conditions : Vector[CFGExitCond[F,B]]) extends CFGASTNode[F,B]
 
 /**
  * Base class of exit conditions representing situations where control
@@ -57,7 +57,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
     // Support methods that descendants must provide
 
     def blockName (function : F, block : B) : String
-    def blocksOf (function : F) : List[CFGBlock[F,B]]
+    def blocksOf (function : F) : Vector[CFGBlock[F,B]]
     def functionName (function : F) : String
     def isEntry (function : F, block : B) : Boolean
     def isExit (function : F, block : B) : Boolean
@@ -102,7 +102,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The CFG blocks.
          */
-        lazy val cfgBlocks : CFGASTNode[F,B] => List[CFGBlock[F,B]] =
+        lazy val cfgBlocks : CFGASTNode[F,B] => Vector[CFGBlock[F,B]] =
             atRoot {
                 case cfg : CFG[F,B] =>
                     cfg.blocks
@@ -129,7 +129,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * The exit blocks for this CFG.
          */
-        lazy val exits : CFGASTNode[F,B] => List[CFGBlock[F,B]] =
+        lazy val exits : CFGASTNode[F,B] => Vector[CFGBlock[F,B]] =
             atRoot {
                 case CFG (Bridge (function), blocks) =>
                     blocks.filter {

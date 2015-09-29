@@ -1,11 +1,11 @@
 Program (
-    List (
+    Vector (
         FunDef (
             "printing",
-            List (Arg ("a")),
-            List (Arg ("b")),
+            Vector (Arg ("a")),
+            Vector (Arg ("b")),
             Block (
-                List (
+                Vector (
                     Print (ELoad (Var ("a"))),
                     Print (Add (ELoad (Var ("a")), ELoad (Var ("b")))))))))
 def printing(a): (b) {

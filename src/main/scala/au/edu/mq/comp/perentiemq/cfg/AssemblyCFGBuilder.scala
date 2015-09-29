@@ -31,7 +31,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 false
         }
 
-    def blocksOf (function : FunctionDefinition) : List[CFGBlock[FunctionDefinition,Block]] =
+    def blocksOf (function : FunctionDefinition) : Vector[CFGBlock[FunctionDefinition,Block]] =
         function.functionBody.blocks.map {
             case block =>
                 CFGBlock (Bridge (block), exitOf (function, block))
@@ -42,17 +42,17 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
             // Any exit block
             case _ if (isExit (function, block)) =>
-                CFGExit (Nil)
+                CFGExit (Vector ())
 
             // Unconditional branch
             case Branch (Label (Local (label))) =>
-                CFGExit (List (CFGGoto (label)))
+                CFGExit (Vector (CFGGoto (label)))
 
             // Two-sided conditional branch
             case BranchCond (cmp, Label (Local (trueLabel)), Label (Local (falseLabel))) =>
                 val name = render (cmp)
-                CFGExit (List (CFGChoice (name, 1, trueLabel),
-                               CFGChoice (name, 0, falseLabel)))
+                CFGExit (Vector (CFGChoice (name, 1, trueLabel),
+                                 CFGChoice (name, 0, falseLabel)))
 
             case i =>
                 sys.error (s"exitOf: terminator not handled: $i")
@@ -64,7 +64,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
     // Top-level interface
 
-    def buildCFGs (program : Program) : List[CFG[FunctionDefinition,Block]] =
+    def buildCFGs (program : Program) : Vector[CFG[FunctionDefinition,Block]] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 cfg (fd)

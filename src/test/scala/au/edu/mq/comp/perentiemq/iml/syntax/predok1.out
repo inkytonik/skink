@@ -1,11 +1,11 @@
 Program (
-    List (
+    Vector (
         FunDef (
             "predok1",
-            List (TypedArg ("a", BoolType ())),
-            List (TypedArg ("b", BoolType ())),
+            Vector (TypedArg ("a", BoolType ())),
+            Vector (TypedArg ("b", BoolType ())),
             Block (
-                List (
+                Vector (
                     Assert (Or (PLoad (Var ("a")), PLoad (Var ("b")))),
                     Assert (And (PLoad (Var ("a")), PLoad (Var ("b")))),
                     Assert (EQ (ELoad (Var ("c")), ELoad (Var ("d")))),

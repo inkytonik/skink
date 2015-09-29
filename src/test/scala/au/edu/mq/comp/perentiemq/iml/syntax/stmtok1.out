@@ -1,61 +1,66 @@
 Program (
-    List (
+    Vector (
         FunDef (
             "stmtok1",
-            List (Arg ("a")),
-            List (Arg ("b")),
+            Vector (Arg ("a")),
+            Vector (Arg ("b")),
             Block (
-                List (
+                Vector (
                     Assert (EQ (ELoad (Var ("a")), ELoad (Var ("b")))),
-                    Assign (List (Var ("c")), List (IntLit (1))),
+                    Assign (Vector (Var ("c")), Vector (IntLit (1))),
                     Assign (
-                        List (Var ("a")),
-                        List (Add (ELoad (Var ("b")), ELoad (Var ("c"))))),
-                    Assign (List (Var ("a"), Var ("b")), List (IntLit (10))),
+                        Vector (Var ("a")),
+                        Vector (Add (ELoad (Var ("b")), ELoad (Var ("c"))))),
                     Assign (
-                        List (Var ("a"), Var ("b")),
-                        List (
+                        Vector (Var ("a"), Var ("b")),
+                        Vector (IntLit (10))),
+                    Assign (
+                        Vector (Var ("a"), Var ("b")),
+                        Vector (
                             ELoad (Var ("c")),
                             ELoad (Var ("d")),
                             ELoad (Var ("e")))),
                     Assume (EQ (ELoad (Var ("a")), ELoad (Var ("b")))),
-                    Call (List (Var ("a")), "f", List (ELoad (Var ("a")))),
                     Call (
-                        List (Var ("b")),
+                        Vector (Var ("a")),
+                        "f",
+                        Vector (ELoad (Var ("a")))),
+                    Call (
+                        Vector (Var ("b")),
                         "g",
-                        List (ELoad (Var ("a")), ELoad (Var ("b")))),
+                        Vector (ELoad (Var ("a")), ELoad (Var ("b")))),
                     If (
                         EQ (ELoad (Var ("a")), ELoad (Var ("b"))),
-                        Assign (List (Var ("a")), List (IntLit (1))),
-                        Assign (List (Var ("a")), List (IntLit (2)))),
+                        Assign (Vector (Var ("a")), Vector (IntLit (1))),
+                        Assign (Vector (Var ("a")), Vector (IntLit (2)))),
                     If (
                         EQ (ELoad (Var ("a")), ELoad (Var ("b"))),
                         If (
                             EQ (ELoad (Var ("b")), IntLit (1)),
-                            Assign (List (Var ("a")), List (IntLit (1))),
-                            Assign (List (Var ("a")), List (IntLit (2)))),
-                        Assign (List (Var ("a")), List (IntLit (3)))),
+                            Assign (Vector (Var ("a")), Vector (IntLit (1))),
+                            Assign (Vector (Var ("a")), Vector (IntLit (2)))),
+                        Assign (Vector (Var ("a")), Vector (IntLit (3)))),
                     Goto ("label"),
                     Label (
                         "label",
-                        Assign (List (Var ("a")), List (IntLit (2)))),
+                        Assign (Vector (Var ("a")), Vector (IntLit (2)))),
                     Skip (),
                     While (
                         NEQ (ELoad (Var ("a")), ELoad (Var ("b"))),
                         Assign (
-                            List (Var ("a")),
-                            List (Add (ELoad (Var ("a")), IntLit (1))))),
+                            Vector (Var ("a")),
+                            Vector (Add (ELoad (Var ("a")), IntLit (1))))),
                     While (
                         LT (ELoad (Var ("a")), IntLit (10)),
                         Block (
-                            List (
+                            Vector (
                                 Assign (
-                                    List (Var ("a")),
-                                    List (
+                                    Vector (Var ("a")),
+                                    Vector (
                                         Add (ELoad (Var ("a")), IntLit (1)))),
                                 Assign (
-                                    List (Var ("b")),
-                                    List (
+                                    Vector (Var ("b")),
+                                    Vector (
                                         Sub (ELoad (Var ("b")), IntLit (1))))))))))))
 def stmtok1(a): (b) {
     assert (a == b);
