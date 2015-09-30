@@ -5,7 +5,9 @@ import org.kiama.util.{CompilerBase, Config}
 
 abstract class IMLConfig (args : Seq[String]) extends Config (args) {
     lazy val cfgPrettyPrint = opt[Boolean] ("cfgprint", short = 'g',
-                                            descr = "Pretty print the control flow graph of the target code (requires -c)")
+                                            descr = "Pretty print the control flow graph of the target code")
+    lazy val cfgDotPrint = opt[Boolean] ("cfgdotprint", short = 'd',
+                                         descr = "Output the control flow graph of the target code in DOT form")
     lazy val compile = opt[Boolean] ("compile", short = 'c',
                                      descr = "Compile the IML program")
     lazy val execute = opt[Boolean] ("execute", short = 'x',
@@ -24,10 +26,11 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
 
 trait Driver extends CompilerBase[Program,IMLConfig] {
 
+    import au.edu.mq.comp.automat.util.DotConverter.toDot
+    import au.edu.mq.comp.dot.DOTPrettyPrinter
     import cfg.AssemblyCFG
     import iml.Compiler
     import iml.IMLPrettyPrinter.{any, pretty}
-    import java.io.Reader
     import org.scalallvm.assembly.{Assembly, AssemblyPrettyPrinter}
     import org.scalallvm.assembly.AssemblySyntax.{Program => IR}
     import org.scalallvm.assembly.Executor.execute
@@ -99,11 +102,19 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
         val cfgs = AssemblyCFG.buildCFGs (ir)
 
-        if (config.cfgPrettyPrint ())
-            for (cfg <- cfgs) {
-                val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
+        for (cfg <- cfgs) {
+            val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
+
+            if (config.cfgPrettyPrint ())
                 config.error.emitln (cfgAnalyser.formatString (cfg))
+
+            if (config.cfgDotPrint ()) {
+                val nfa = cfgAnalyser.nfa (cfg)
+                val dot = toDot (nfa)
+                config.error.emitln
+                config.error.emitln (DOTPrettyPrinter.format (dot).layout)
             }
+        }
 
         if (config.execute ()) {
             val (output, code) = execute (ir, config.lli ())

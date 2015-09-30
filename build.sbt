@@ -32,6 +32,7 @@ shellPrompt <<= (name, version) { (n, v) =>
 
 libraryDependencies ++=
     Seq (
+        "au.edu.mq.comp" %% "automat" % "0.1.1",
         "com.googlecode.kiama" %% "kiama" % "2.0.0-SNAPSHOT",
         "com.googlecode.kiama" %% "kiama" % "2.0.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.1.0",

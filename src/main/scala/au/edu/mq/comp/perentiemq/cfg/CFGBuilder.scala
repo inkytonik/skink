@@ -77,10 +77,14 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
     class CFGAnalyser (cfg : CFG[F,B]) {
 
+        import au.edu.mq.comp.automat.auto.NFA
+        import au.edu.mq.comp.automat.edge.Edge
+        import au.edu.mq.comp.automat.edge.Implicits._
         import org.kiama.attribution.Decorators
         import org.kiama.output.PrettyPrinter._
         import org.kiama.output.PrettyPrinterTypes.Document
         import org.kiama.relation.Tree
+        import scala.collection.mutable.ListBuffer
 
         val tree = new Tree[CFGASTNode[F,B],CFG[F,B]] (cfg)
         val decorators = new Decorators (tree)
@@ -171,6 +175,46 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         cfgBlocks (node).find { case b => name (b) == blockName }
                 )
            }
+
+        // Conversion to an NFA
+
+        /**
+         * Node wrapper for CFG blocks. This is necessary since the automata
+         * library uses `toString` to print NFA states but the class definition
+         * for `CFGBlock` can't do a meaningful job since it only has generic
+         * access to the underlying block.
+         */
+        case class Node (cfgBlock : CFGBlock[F,B]) {
+            override def toString = '"' + name (cfgBlock) + '"'
+        }
+
+        /**
+         * Build an NFA that represents this CFG. Nodes are CFG blocks and
+         * edges show possible transitions from block to block. Edges are
+         * labelled by the exit condition that enables that transition.
+         */
+        lazy val nfa : CFG[F,B] => NFA[Node,CFGExitCond[F,B]] =
+            attr {
+                case cfg @ CFG (_, blocks) =>
+                    val nodes = blocks.map (Node).toSet
+                    val edges = {
+                        val buf = new ListBuffer[Edge[Node,CFGExitCond[F,B]]]
+                        for (srcnode <- nodes) {
+                            for (exitcond <- srcnode.cfgBlock.exitInfo.conditions) {
+                                target (exitcond) match {
+                                    case Some (tgtblock) =>
+                                        val tgtnode = Node (tgtblock)
+                                        buf += (srcnode ~> tgtnode) (exitcond)
+                                    case None =>
+                                        // Do nothing
+                                }
+                            }
+                        }
+                        buf.toSet
+                    }
+                    val accepting = exits (cfg).map (Node).toSet
+                    NFA (nodes, edges, accepting)
+            }
 
         // Pretty-printer
 
