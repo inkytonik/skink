@@ -22,6 +22,8 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
                                          descr = "Print the target code tree")
     lazy val targetPrettyPrint = opt[Boolean] ("tgtprettyprint", short = 't',
                                                descr = "Pretty-print the target code")
+    lazy val verifyTarget = opt[Boolean] ("verify", short = 'v',
+                                          descr = "Verify the target code")
 }
 
 trait Driver extends CompilerBase[Program,IMLConfig] {
@@ -100,7 +102,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
         if (config.targetPrettyPrint ())
             config.error.emit (AssemblyPrettyPrinter.format (ir, 5).layout)
 
-        val cfgs = AssemblyCFG.buildCFGs (ir)
+        val cfgs = AssemblyCFG.buildCFGs (ir, config.verifyTarget ())
 
         for (cfg <- cfgs) {
             val cfgAnalyser = new AssemblyCFG.CFGAnalyser (cfg)
@@ -114,6 +116,9 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
                 config.error.emitln
                 config.error.emitln (DOTPrettyPrinter.format (dot).layout)
             }
+
+            if (config.verifyTarget ())
+                AssemblyCFG.verify (cfg, cfgAnalyser)
         }
 
         if (config.execute ()) {

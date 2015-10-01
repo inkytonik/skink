@@ -62,12 +62,180 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
     def functionName (function : FunctionDefinition) : String =
         render (function.global)
 
+    // Verification support
+
+    /**
+     * Prepare the IR of a function for verification and return the
+     * new IR form. The transformations are:
+     *
+     * - remove calls to __VERIFIER_assert and replace them with
+     * transfers to a special .error block. We assume there is no
+     * such block already.
+     */
+    def makeVerifiable (function : FunctionDefinition) : FunctionDefinition = {
+
+        import org.kiama.rewriting.Rewriter.{everywhere, rewrite, rule}
+        import scala.collection.mutable.ListBuffer
+
+        // Process each block looking for __VERIFIER_assert calls. We
+        // assume they are of the following form which is how clang
+        // generates them at present from the SV-COMP code:
+        //    %conv = zext i1 %cmp to i32
+        //    call void @__VERIFIER_assert(i32 %conv)
+        //    ... rest of block ...
+        // %cmp contains the actual condition being tested.
+        // We find pairs of instructions of this form and replace them with:
+        //    br i1 %cmp, label %name, label .error
+        //  name:
+        //    ... rest of block ...
+        // where name is a generated name for the rest of the block. In
+        // other words, the block is split at this point and control only
+        // transfer to the rest of the block if the condition is true.
+
+        def expandAssertCalls (block : Block) : Vector[Block] = {
+
+            type Instructions = Vector[Instruction]
+
+            val blockname = blockName (function, block)
+            val errorLabel = Label (Local (".error"))
+
+            /**
+             * Predicate to identify the conversion operation that precedes
+             * an assert call. If one is found, return the value that is
+             * converted and the value that it is converted to.
+             */
+            def isAssertionConversion (insn : Instruction) : Option[(Named, Local)] =
+                insn match {
+                    case Convert (Binding (to : Local), ZExt (), IntT (fromsize), from : Named, IntT (tosize))
+                            if (fromsize == 1) && (tosize == 32) =>
+                        Some ((from, to))
+                    case _ =>
+                        None
+                }
+
+            /**
+             * Predicate to identify an assert call in SV-COMP form. The value
+             * should be the one that is asserted.
+             */
+            def isAssertCall (insn : Instruction, local : Local) : Boolean = {
+                println (local)
+                insn match {
+                    case Call (_, _, _, _, VoidT (),
+                               Function (Named (Global ("__VERIFIER_assert"))),
+                               Vector (ValueArg (IntT (size), Vector (), Named (arg))),
+                               Vector ())
+                            if (size == 32) && (local == arg) =>
+                        true
+                    case _ =>
+                        false
+                }
+            }
+
+            /**
+             * Find next assert call, return instructions before and after, plus
+             * the value on which the call is made. Return None if there is no
+             * assert call.
+             */
+            def findAssert (insns : Instructions) : Option[(Instructions, Instructions, Named)] = {
+                var index = 0
+                while (index < insns.size) {
+                    isAssertionConversion (insns (index)) match {
+                        case Some ((from, to)) =>
+                            if ((index < insns.size - 1) && isAssertCall (insns (index + 1), to)) {
+                                val (before, after) = insns.splitAt (index)
+                                return Some ((before, after.tail.tail, from))
+                            } else
+                                index = index + 1
+                        case None =>
+                            index = index + 1
+                    }
+                }
+                None
+            }
+
+            /*
+             * A straight-line group of instructions from the original block
+             * that terminate with an assertion on value.
+             */
+            case class Group (insns : Instructions, value : Named)
+
+            /**
+             * Make groups of instructions. A new group is begun if an assert
+             * call is detected. The value of the last group is a dummy.
+             */
+            def makeGroups (insns : Instructions) : Vector[Group] =
+                findAssert (insns) match {
+                    case None =>
+                        Vector (Group (insns, Named (Local ("dummy"))))
+                    case Some ((before, after, value)) =>
+                        Group (before, value) +: makeGroups (after)
+                }
+
+            val groups : Vector[Group] = makeGroups (block.optInstructions)
+            val numgroups = groups.size
+
+            /*
+             * Make a new block for the given group which is the nth group in the
+             * block of which there are numgroups groups.
+             */
+            def makeBlock (group : Group, n : Int, numgroups : Int) : Block = {
+                val thisBlockLabel = BlockLabel (s"$blockname.$n")
+                if (n == numgroups - 1) {
+                    // Last block gets the original terminator insn
+                    Block (thisBlockLabel, Vector (), None, group.insns, block.terminatorInstruction)
+                } else {
+                    val nextLabel = Label (Local (s"$blockname.${n + 1}"))
+                    val terminator = BranchCond (group.value, nextLabel, errorLabel)
+                    if (n == 0) {
+                        // First block gets the original phi and landing pad insns,
+                        // plus new terminator
+                        Block (block.optBlockLabel, block.optPhiInstructions, None, group.insns, terminator)
+                    } else {
+                        // Other blocks just have the new terminator
+                        Block (thisBlockLabel, Vector (), None, group.insns, terminator)
+                    }
+                }
+            }
+
+            numgroups match {
+                case 1 =>
+                    Vector (block)
+                case numgroups =>
+                    for ((group, index) <- groups.zipWithIndex)
+                        yield makeBlock (group, index, numgroups)
+            }
+
+        }
+
+        val functionBodyWithProcessedBlocks =
+            function.functionBody.blocks.flatMap (expandAssertCalls)
+
+        // Add the error block.
+        //  .error:
+        //    ret void
+
+        val errorBlock = Block (BlockLabel (".error"), Vector (),
+                                None, Vector (), RetVoid ())
+
+        val functionBodyWithErrorBlock =
+            FunctionBody (functionBodyWithProcessedBlocks :+ errorBlock)
+
+        // Return the new function
+        function.copy (functionBody = functionBodyWithErrorBlock)
+
+    }
+
     // Top-level interface
 
-    def buildCFGs (program : Program) : Vector[CFG[FunctionDefinition,Block]] =
+    /**
+     * Build and return the CFGs for the functions in `program`. If the
+     * flag `forVerification` is true then the IR will be prepared for
+     * verification before the CFGs are created (default: false).
+     */
+    def buildCFGs (program : Program, forVerification : Boolean = false) : Vector[CFG[FunctionDefinition,Block]] =
         program.items.collect {
             case fd : FunctionDefinition =>
-                cfg (fd)
+                cfg (if (forVerification) makeVerifiable (fd) else fd)
         }
 
 }
