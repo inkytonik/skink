@@ -117,8 +117,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              * Predicate to identify an assert call in SV-COMP form. The value
              * should be the one that is asserted.
              */
-            def isAssertCall (insn : Instruction, local : Local) : Boolean = {
-                println (local)
+            def isAssertCall (insn : Instruction, local : Local) : Boolean =
                 insn match {
                     case Call (_, _, _, _, VoidT (),
                                Function (Named (Global ("__VERIFIER_assert"))),
@@ -129,7 +128,6 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                     case _ =>
                         false
                 }
-            }
 
             /**
              * Find next assert call, return instructions before and after, plus
