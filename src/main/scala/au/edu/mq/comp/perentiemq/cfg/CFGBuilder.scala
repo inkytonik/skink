@@ -80,6 +80,8 @@ abstract class CFGBuilder[F,B] extends Attribution {
         import au.edu.mq.comp.automat.auto.NFA
         import au.edu.mq.comp.automat.edge.Edge
         import au.edu.mq.comp.automat.edge.Implicits._
+        import au.edu.mq.comp.automat.util.DotConverter
+        import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
         import org.kiama.attribution.Decorators
         import org.kiama.output.PrettyPrinter._
         import org.kiama.output.PrettyPrinterTypes.Document
@@ -179,31 +181,21 @@ abstract class CFGBuilder[F,B] extends Attribution {
         // Conversion to an NFA
 
         /**
-         * Node wrapper for CFG blocks. This is necessary since the automata
-         * library uses `toString` to print NFA states but the class definition
-         * for `CFGBlock` can't do a meaningful job since it only has generic
-         * access to the underlying block.
-         */
-        case class Node (cfgBlock : CFGBlock[F,B]) {
-            override def toString = '"' + name (cfgBlock) + '"'
-        }
-
-        /**
          * Build an NFA that represents this CFG. Nodes are CFG blocks and
          * edges show possible transitions from block to block. Edges are
          * labelled by the exit condition that enables that transition.
          */
-        lazy val nfa : CFG[F,B] => NFA[Node,CFGExitCond[F,B]] =
+        lazy val nfa : CFG[F,B] => NFA[CFGBlock[F,B],CFGExitCond[F,B]] =
             attr {
                 case cfg @ CFG (_, blocks) =>
-                    val init = Set (Node (entry (cfg)))
+                    val init = Set (entry (cfg))
                     val edges = {
-                        val buf = new ListBuffer[Edge[Node,CFGExitCond[F,B]]]
+                        val buf = new ListBuffer[Edge[CFGBlock[F,B],CFGExitCond[F,B]]]
                         for (srcblock <- cfgBlocks (cfg)) {
                             for (exitcond <- srcblock.exitInfo.conditions) {
                                 target (exitcond) match {
                                     case Some (tgtblock) =>
-                                        buf += (Node (srcblock) ~> Node (tgtblock)) (exitcond)
+                                        buf += (srcblock ~> tgtblock) (exitcond)
                                     case None =>
                                         // Do nothing
                                 }
@@ -211,9 +203,29 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         }
                         buf.toSet
                     }
-                    val accepting = exits (cfg).map (Node).toSet
+                    val accepting = exits (cfg).toSet
                     NFA (init, edges, accepting)
             }
+
+        /**
+         * Return the DOT representation of a CFG NFA.
+         */
+        def toDot (nfa : NFA[CFGBlock[F,B],CFGExitCond[F,B]]) : DotSpec =
+            DotConverter.toDot (
+                nfa,
+                (b : CFGBlock[F,B]) => {
+                    val label = Attribute ("label", StringLit (name (b)))
+                    val style = 
+                        Attribute ("shape", if (nfa.init.contains (b))
+                                                Ident ("circle")
+                                            else if (nfa.accepting.contains (b))
+                                                Ident ("doublecircle")
+                                            else
+                                                Ident ("oval"))
+                    List (label, style)
+                },
+                (b : CFGBlock[F,B]) => '"' + name (b) + '"'
+            )
 
         // Pretty-printer
 

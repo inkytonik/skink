@@ -28,7 +28,6 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
 
 trait Driver extends CompilerBase[Program,IMLConfig] {
 
-    import au.edu.mq.comp.automat.util.DotConverter.toDot
     import au.edu.mq.comp.dot.DOTPrettyPrinter
     import cfg.AssemblyCFG
     import iml.Compiler
@@ -112,7 +111,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
             if (config.cfgDotPrint ()) {
                 val nfa = cfgAnalyser.nfa (cfg)
-                val dot = toDot (nfa)
+                val dot = cfgAnalyser.toDot (nfa)
                 config.error.emitln
                 config.error.emitln (DOTPrettyPrinter.format (dot).layout)
             }
