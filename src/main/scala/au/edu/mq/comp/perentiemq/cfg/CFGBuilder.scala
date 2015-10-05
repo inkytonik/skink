@@ -196,15 +196,14 @@ abstract class CFGBuilder[F,B] extends Attribution {
         lazy val nfa : CFG[F,B] => NFA[Node,CFGExitCond[F,B]] =
             attr {
                 case cfg @ CFG (_, blocks) =>
-                    val nodes = blocks.map (Node).toSet
+                    val init = Set (Node (entry (cfg)))
                     val edges = {
                         val buf = new ListBuffer[Edge[Node,CFGExitCond[F,B]]]
-                        for (srcnode <- nodes) {
-                            for (exitcond <- srcnode.cfgBlock.exitInfo.conditions) {
+                        for (srcblock <- cfgBlocks (cfg)) {
+                            for (exitcond <- srcblock.exitInfo.conditions) {
                                 target (exitcond) match {
                                     case Some (tgtblock) =>
-                                        val tgtnode = Node (tgtblock)
-                                        buf += (srcnode ~> tgtnode) (exitcond)
+                                        buf += (Node (srcblock) ~> Node (tgtblock)) (exitcond)
                                     case None =>
                                         // Do nothing
                                 }
@@ -213,7 +212,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         buf.toSet
                     }
                     val accepting = exits (cfg).map (Node).toSet
-                    NFA (nodes, edges, accepting)
+                    NFA (init, edges, accepting)
             }
 
         // Pretty-printer
