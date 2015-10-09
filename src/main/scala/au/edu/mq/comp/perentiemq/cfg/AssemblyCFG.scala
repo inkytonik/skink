@@ -170,9 +170,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[Term] =
             optExitcond match {
-                case Some (exitcond @ CFGChoice (s, value : Boolean, _)) =>
-                    Some (Core.Equals (stringToIdentifier (exitcond, s),
-                                       if (value) Core.True () else Core.False ()))
+                case Some (exitcond @ CFGChoice (s, value, _)) =>
+                    val id = stringToIdentifier (exitcond, s)
+                    val v = value match {
+                        case b : Boolean =>
+                            if (b) Core.True () else Core.False ()
+                        case i : Int =>
+                            SNumeral (i)
+                        case _ =>
+                            sys.error (s"exitcondToTerm: unsupported value $value")
+                    }
+                    Some (Core.Equals (id, v))
                 case _ =>
                     None
             }
