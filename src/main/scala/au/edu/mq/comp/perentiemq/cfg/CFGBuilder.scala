@@ -36,7 +36,7 @@ sealed abstract class CFGExitCond[F,B] extends CFGASTNode[F,B] {
  * An exit condition that means that if the variable called `name` has the value
  * `choice` then control is transferred to `target`.
  */
-case class CFGChoice[F,B] (name : String, choice : Int, target : String) extends CFGExitCond[F,B]
+case class CFGChoice[F,B,T] (name : String, choice : T, target : String) extends CFGExitCond[F,B]
 
 /**
  * An exit condition that means always transfer control to `target`.

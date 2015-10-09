@@ -51,8 +51,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
             // Two-sided conditional branch
             case BranchCond (cmp, Label (Local (trueLabel)), Label (Local (falseLabel))) =>
                 val name = render (cmp)
-                CFGExit (Vector (CFGChoice (name, 1, trueLabel),
-                                 CFGChoice (name, 0, falseLabel)))
+                CFGExit (Vector (CFGChoice (name, true, trueLabel),
+                                 CFGChoice (name, false, falseLabel)))
 
             case i =>
                 sys.error (s"exitOf: terminator not handled: $i")

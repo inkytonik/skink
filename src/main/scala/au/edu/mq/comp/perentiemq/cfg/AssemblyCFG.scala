@@ -170,9 +170,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[Term] =
             optExitcond match {
-                case Some (exitcond @ CFGChoice (s, value, _)) =>
+                case Some (exitcond @ CFGChoice (s, value : Boolean, _)) =>
                     Some (Core.Equals (stringToIdentifier (exitcond, s),
-                                       if (value == 1) Core.True () else Core.False ()))
+                                       if (value) Core.True () else Core.False ()))
                 case _ =>
                     None
             }
