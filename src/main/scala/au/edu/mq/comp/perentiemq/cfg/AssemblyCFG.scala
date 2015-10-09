@@ -277,16 +277,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         val variables = getVariables (assertions)
 
-        // FIXME: too much duplication here...
-
         val GlobalIndexedVar = "@(.*)@([0-9]+)".r
         val LocalIndexedVar = "%(.*)@([0-9]+)".r
+        
         val declarations =
             variables.collect {
-                case symbol @ SSymbol (GlobalIndexedVar (name, index)) =>
-                    DeclareFun (symbol, Seq (), typeToSort (types (Global (name))))
-                case symbol @ SSymbol (LocalIndexedVar (name, index)) =>
-                    DeclareFun (symbol, Seq (), typeToSort (types (Local (name))))
+                case symbol @ SSymbol (GlobalIndexedVar (id, _)) =>
+                    (symbol, Global (id))
+                case symbol @ SSymbol (LocalIndexedVar (id, _)) =>
+                    (symbol, Local (id))
+            }.map {
+                case (symbol, name) =>
+                    DeclareFun (symbol, Seq (), typeToSort (types (name)))
             }
 
         val logic = Vector (SetLogic (QF_LIA))
