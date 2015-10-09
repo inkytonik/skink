@@ -8,7 +8,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import org.kiama.==>
     import org.kiama.attribution.Decorators
     import org.kiama.relation.Tree
+    import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.Analyser
+    import smtlib.parser.Commands._
     import smtlib.parser.Terms._
     import smtlib.theories.{Core, Ints}
     import scala.collection.mutable
@@ -74,28 +77,28 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          */
         def stringToIdentifier (node : Product, s : String) : QualifiedIdentifier = {
             val count = stores (node).getOrElse (s, 0)
-            QualifiedIdentifier (Identifier (SSymbol (s"$s.$count")))
+            QualifiedIdentifier (Identifier (SSymbol (s"$s@$count")))
         }
 
         /**
-         * Return an SMTlib term that expresses the effect of an LLVM node.
+         * Return SMTlib terms that express the effect of an LLVM node.
          */
-        lazy val term : ASTNode => Term =
+        lazy val term : ASTNode => Vector[Term] =
             attr {
 
                 // Blocks
 
                 case block : Block =>
-                    Core.And (block.optInstructions.map (term) : _*)
+                    block.optInstructions.flatMap (term)
 
                 // Instructions
 
                 case InsnMeta (insn, _) =>
                     term (insn)
 
-                case Binary (to, op, _ : IntT, left, right) =>
-                    val lterm = term (left)
-                    val rterm = term (right)
+                case Binary (Binding (to), op, _ : IntT, left, right) =>
+                    val lterm = vterm (left)
+                    val rterm = vterm (right)
                     val exp =
                         op match {
                             case _ : Add => Ints.Add (lterm, rterm)
@@ -105,11 +108,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                                 println (s"binary int op $op not handled")
                                 SNumeral (9999)
                         }
-                    Core.Equals (term (to), exp)
+                    Vector (Core.Equals (nterm (to), exp))
 
-                case Compare (to, ICmp (icond), _ : IntT, left, right) =>
-                    val lterm = term (left)
-                    val rterm = term (right)
+                case Compare (Binding (to), ICmp (icond), _ : IntT, left, right) =>
+                    val lterm = vterm (left)
+                    val rterm = vterm (right)
                     val exp =
                         icond match {
                             case EQ ()  => Core.Equals (lterm, rterm)
@@ -123,49 +126,59 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                             case SLT () => Ints.LessThan (lterm, rterm)
                             case SLE () => Ints.LessEquals (lterm, rterm)
                         }
-                    Core.Equals (term (to), exp)
+                    Vector (Core.Equals (nterm (to), exp))
 
-                case Convert (to, _, _ : IntT, from, _ : IntT) =>
-                    Core.Equals (term (to), term (from))
+                case Convert (Binding (to), _, _ : IntT, from, _ : IntT) =>
+                    Vector (Core.Equals (nterm (to), vterm (from)))
 
-                case Load (to, _, tipe, _, from, _) =>
-                    Core.Equals (term (to), term (from))
+                case Load (Binding (to), _, tipe, _, from, _) =>
+                    Vector (Core.Equals (nterm (to), vterm (from)))
 
                 case Store (_, tipe, from, _, to, _) =>
-                    Core.Equals (term (to), term (from))
+                    Vector (Core.Equals (vterm (to), vterm (from)))
 
-                // Bindings and names
-
-                case Binding (name) =>
-                    term (name)
-
-                case name : Name =>
-                    stringToIdentifier (name, render (name))
-
-                // Values
-
-                case Const (IntC (i)) =>
-                    SNumeral (i)
-
-                case Named (name) =>
-                    term (name)
-
-                case node =>
-                    println (s"node not handled: $node")
-                    Core.True ()
+                case _ =>
+                    Vector ()
 
             }
 
-        def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Term =
+        /**
+         * Return an SMTlib term that expresses an LLVM value.
+         * FIXME: currently only does integer constants and names.
+         */
+        lazy val vterm : Value => Term = {
+            attr {
+                case Const (IntC (i)) =>
+                    SNumeral (i)
+                case Named (name) =>
+                    nterm (name)
+                case _ =>
+                    // FIXME: dummy
+                    SNumeral (42)
+            }
+        }
+
+        /**
+         * Return an SMTlib term that expresses an LLVM name.
+         */
+        lazy val nterm : Name => Term = {
+            attr {
+                case name =>
+                    stringToIdentifier (name, render (name))
+            }
+        }
+
+        def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[Term] =
             optExitcond match {
                 case Some (exitcond @ CFGChoice (s, value, _)) =>
-                    Core.Equals (stringToIdentifier (exitcond, s), SNumeral (BigInt (value)))
+                    Some (Core.Equals (stringToIdentifier (exitcond, s),
+                                       if (value == 1) Core.True () else Core.False ()))
                 case _ =>
-                    Core.True ()
+                    None
             }
 
         def entryToTerm (entry : Entry) : Vector[Term] =
-            Vector (term (entry.block), exitcondToTerm (entry.optExitcond))
+            term (entry.block) ++ exitcondToTerm (entry.optExitcond)
 
         tree.root.entries.flatMap (entryToTerm)
 
@@ -177,7 +190,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * the control flow, always choosing the first exit condition. It includes
      * at most six entries.
      */
-    def cfgToTerms (cfg : CFG[FunctionDefinition,Block]) : Vector[Term] = {
+    def cfgToEffectTerms (cfg : CFG[FunctionDefinition,Block]) : Vector[Term] = {
 
         import scala.annotation.tailrec
 
@@ -203,10 +216,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
-     * Verify the given CFG. The IR is assumed to have bene processed by
+     * Verify the given CFG. The IR is assumed to have been processed by
      * `prepareIRForVerification` before the CFG was constructed.
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
+
+        import org.kiama.rewriting.Rewriter.collectall
+        import smtlib.interpreters.SMTInterpolInterpreter
 
         /**
          * The prefix used by the SV-COMP to signify special functions.
@@ -224,9 +240,59 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         if (isNotToBeVerified (fname))
             return
 
-        // Dummy, will be replaced
-        println (s"verified, not! $fname")
-        println (cfgToTerms (cfg))
+        val funtree = new Tree[ASTNode,FunctionDefinition] (cfg.function.cross)
+        val funanalyser = new Analyser (funtree)
+        val types = funanalyser.typesOfFunction (cfg.function.cross)
+
+        def nameToSymbol (name : Name) =
+            SSymbol (AssemblyPrettyPrinter.format (name).layout)
+
+        def typeToSort (tipe : Type) : Sort =
+            tipe match {
+                case IntT (n) if n == 1 =>
+                    Core.BoolSort ()
+                case IntT (_) =>
+                    Ints.IntSort ()
+                case PointerT (IntT (_), DefaultAddrSpace ()) =>
+                    Ints.IntSort ()
+                case _ =>
+                    sys.error (s"variable type $tipe not supported")
+            }
+
+        val assertions = cfgToEffectTerms (cfg).map (Assert)
+
+        val getVariables = 
+            collectall[Set,SSymbol] {
+                case Identifier (symbol, Seq ()) =>
+                    Set (symbol)
+            }
+
+        val variables = getVariables (assertions)
+
+        // FIXME: too much duplication here...
+
+        val GlobalIndexedVar = "@(.*)@([0-9]+)".r
+        val LocalIndexedVar = "%(.*)@([0-9]+)".r
+        val declarations =
+            variables.collect {
+                case symbol @ SSymbol (GlobalIndexedVar (name, index)) =>
+                    DeclareFun (symbol, Seq (), typeToSort (types (Global (name))))
+                case symbol @ SSymbol (LocalIndexedVar (name, index)) =>
+                    DeclareFun (symbol, Seq (), typeToSort (types (Local (name))))
+            }
+
+        val logic = Vector (SetLogic (QF_LIA))
+        val check = Vector (CheckSat ())
+
+        val commands = logic ++ declarations ++ assertions ++ check
+
+        val smtinterpol = SMTInterpolInterpreter.buildDefault
+        for (command <- commands) {
+            val response = smtinterpol.eval (command)
+            print (command)
+            print (response)
+        }
+        smtinterpol.eval (Exit ())
 
     }
 }
