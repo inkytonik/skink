@@ -11,10 +11,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.Analyser
-    import smtlib.parser.Commands._
-    import smtlib.parser.Terms._
+    import smtlib.interpreters.Configurations._
+    import smtlib.interpreters.SMTSolver
+    import smtlib.parser.Commands.Exit
+    import smtlib.parser.Terms.Sort
     import smtlib.theories.{Core, Ints}
-    import scala.collection.mutable
+    import smtlib.util.Implicits._
+    import smtlib.util.Logics._
+    import smtlib.util.TypedTerm
 
     /**
      * A trace entry is a block and an optional exit condition. If the
@@ -32,9 +36,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     case class Trace (entries : Vector[Entry])
 
     /**
-     * Convert a trace into SMTlib terms that express the effect of the trace.
+     * Convert a trace into terms that express the effect of the trace.
      */
-    def traceToTerm (trace : Trace) : Vector[Term] = {
+    def traceToTerm (trace : Trace, types : Map[Name,Type]) : Vector[TypedTerm] = {
 
         val tree = new Tree[Product,Trace] (trace)
         val decorators = new Decorators (tree)
@@ -71,19 +75,21 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         /**
-         * Make an SMTlib qualified identifier for a program variable named `s`.
-         * The name is given a count suffix to reflect the fact that it references
-         * a particular assigned or stored version of the base name in the trace.
+         * Make the indexed name of a particular occurrence of a program variable
+         * in a trace. The base variable name is given a numeric index to reflect
+         * the fact that it references a particular assigned or stored version of
+         * the base name in the trace. E.g., the first use gets "@1" and the 
+         * second gets "@2".
          */
-        def stringToIdentifier (node : Product, s : String) : QualifiedIdentifier = {
-            val count = stores (node).getOrElse (s, 0)
-            QualifiedIdentifier (Identifier (SSymbol (s"$s@$count")))
+        def nameToIndexedName (use : Product, s : String) : String = {
+            val index = stores (use).getOrElse (s, 0)
+            s"$s@$index"
         }
 
         /**
-         * Return SMTlib terms that express the effect of an LLVM node.
+         * Return terms that express the effect of an LLVM node.
          */
-        lazy val term : ASTNode => Vector[Term] =
+        lazy val term : ASTNode => Vector[TypedTerm] =
             attr {
 
                 // Blocks
@@ -99,43 +105,43 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case Binary (Binding (to), op, _ : IntT, left, right) =>
                     val lterm = vterm (left)
                     val rterm = vterm (right)
-                    val exp =
+                    val exp : TypedTerm =
                         op match {
-                            case _ : Add => Ints.Add (lterm, rterm)
-                            case _ : Mul => Ints.Mul (lterm, rterm)
-                            case _ : Sub => Ints.Sub (lterm, rterm)
+                            case _ : Add => lterm + rterm
+                            case _ : Mul => lterm * rterm
+                            case _ : Sub => lterm - rterm
                             case _ =>
                                 println (s"binary int op $op not handled")
-                                SNumeral (9999)
+                                9999
                         }
-                    Vector (Core.Equals (nterm (to), exp))
+                    Vector (nterm (to) === exp)
 
                 case Compare (Binding (to), ICmp (icond), _ : IntT, left, right) =>
                     val lterm = vterm (left)
                     val rterm = vterm (right)
                     val exp =
                         icond match {
-                            case EQ ()  => Core.Equals (lterm, rterm)
-                            case NE ()  => Core.Not (Core.Equals (lterm, rterm))
-                            case UGT () => Ints.GreaterThan (lterm, rterm)
-                            case UGE () => Ints.GreaterEquals (lterm, rterm)
-                            case ULT () => Ints.LessThan (lterm, rterm)
-                            case ULE () => Ints.LessEquals (lterm, rterm)
-                            case SGT () => Ints.GreaterThan (lterm, rterm)
-                            case SGE () => Ints.GreaterEquals (lterm, rterm)
-                            case SLT () => Ints.LessThan (lterm, rterm)
-                            case SLE () => Ints.LessEquals (lterm, rterm)
+                            case EQ ()  => lterm === rterm
+                            case NE ()  => ! (lterm === rterm)
+                            case UGT () => lterm > rterm
+                            case UGE () => lterm >= rterm
+                            case ULT () => lterm < rterm
+                            case ULE () => lterm <= rterm
+                            case SGT () => lterm > rterm
+                            case SGE () => lterm >= rterm
+                            case SLT () => lterm < rterm
+                            case SLE () => lterm <= rterm
                         }
-                    Vector (Core.Equals (nterm (to), exp))
+                    Vector (nterm (to) === exp)
 
                 case Convert (Binding (to), _, _ : IntT, from, _ : IntT) =>
-                    Vector (Core.Equals (nterm (to), vterm (from)))
+                    Vector (nterm (to) === vterm (from))
 
                 case Load (Binding (to), _, tipe, _, from, _) =>
-                    Vector (Core.Equals (nterm (to), vterm (from)))
+                    Vector (nterm (to) === vterm (from))
 
                 case Store (_, tipe, from, _, to, _) =>
-                    Vector (Core.Equals (vterm (to), vterm (from)))
+                    Vector (vterm (to) === vterm (from))
 
                 case _ =>
                     Vector ()
@@ -143,83 +149,78 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
 
         /**
-         * Return an SMTlib term that expresses an LLVM value.
+         * Return a term that expresses an LLVM value.
          * FIXME: currently only does integer constants and names.
          */
-        lazy val vterm : Value => Term = {
+        lazy val vterm : Value => TypedTerm = {
             attr {
                 case Const (IntC (i)) =>
-                    SNumeral (i)
+                    i
                 case Named (name) =>
                     nterm (name)
                 case _ =>
                     // FIXME: dummy
-                    SNumeral (42)
+                    42
             }
         }
 
         /**
-         * Return an SMTlib term that expresses an LLVM name.
+         * Return the sort that should be used for variable name.
+         * FIXME: currently only handled Booleans, integers and pointers to integers.
          */
-        lazy val nterm : Name => Term = {
+        def typeToSort (tipe : Type) : Sort =
+            tipe match {
+                case IntT (n) if n == 1 =>
+                    Core.BoolSort ()
+                case IntT (_) =>
+                    Ints.IntSort ()
+                case PointerT (IntT (_), DefaultAddrSpace ()) =>
+                    Ints.IntSort ()
+                case _ =>
+                    sys.error (s"variable type $tipe not supported")
+            }
+
+        /**
+         * Return a term that expresses an LLVM name.
+         */
+        lazy val nterm : Name => TypedTerm = {
             attr {
                 case name =>
-                    stringToIdentifier (name, render (name))
+                    TypedTerm (nameToIndexedName (name, render (name)),
+                               typeToSort (types (name)))
             }
         }
 
-        def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[Term] =
+        /**
+         * Return a term that expresses the condition that must be true if
+         * an optional exit condition is used to exit from a block. None is
+         * returned if there is no exit condition.
+         */
+        def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[TypedTerm] =
             optExitcond match {
                 case Some (exitcond @ CFGChoice (s, value, _)) =>
-                    val id = stringToIdentifier (exitcond, s)
-                    val v = value match {
+                    val id = nameToIndexedName (exitcond, s)
+                    value match {
                         case b : Boolean =>
-                            if (b) Core.True () else Core.False ()
+                            Some (TypedTerm (id, Core.BoolSort ()) === b)
                         case i : Int =>
-                            SNumeral (i)
+                            Some (TypedTerm (id, Ints.IntSort ()) === i)
                         case _ =>
                             sys.error (s"exitcondToTerm: unsupported value $value")
                     }
-                    Some (Core.Equals (id, v))
                 case _ =>
                     None
             }
 
-        def entryToTerm (entry : Entry) : Vector[Term] =
+        /**
+         * Return terms that express the effect of a trace entry, including
+         * the transition to the next entry in the trace, if there is one.
+         */
+        def entryToTerm (entry : Entry) : Vector[TypedTerm] =
             term (entry.block) ++ exitcondToTerm (entry.optExitcond)
 
+        // Return all of the terms arising from this trace
         tree.root.entries.flatMap (entryToTerm)
-
-    }
-
-    /**
-     * FIXME: dummy entry point. This is just here to provide a way to get
-     * a trace from a CFG. It just starts at the entry block and follows
-     * the control flow, always choosing the first exit condition. It includes
-     * at most six entries.
-     */
-    def cfgToEffectTerms (cfg : CFG[FunctionDefinition,Block]) : Vector[Term] = {
-
-        import scala.annotation.tailrec
-
-        val analyser = new CFGAnalyser (cfg)
-
-        @tailrec
-        def makeTrace (count : Int, b : CFGBlock[FunctionDefinition,Block], buf : Vector[Entry]) : Trace = {
-            if (count <= 0)
-                Trace (buf)
-            else
-                b.exitInfo.conditions match {
-                    case cond +: _ =>
-                        val next = analyser.target (cond).get
-                        makeTrace (count - 1, next, buf :+ Entry (b.block.cross, Some (cond)))
-                    case Vector () =>
-                        Trace (buf :+ Entry (b.block.cross, None))
-                }
-        }
-
-        val trace = makeTrace (6, cfg.blocks (0), Vector ())
-        traceToTerm (trace)
 
     }
 
@@ -229,7 +230,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
 
-        import org.kiama.rewriting.Rewriter.collectall
+        import scala.annotation.tailrec
         import smtlib.interpreters.SMTInterpolInterpreter
 
         /**
@@ -248,61 +249,37 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         if (isNotToBeVerified (fname))
             return
 
+        // Gather type information variables in this CFG
         val funtree = new Tree[ASTNode,FunctionDefinition] (cfg.function.cross)
         val funanalyser = new Analyser (funtree)
         val types = funanalyser.typesOfFunction (cfg.function.cross)
 
-        def nameToSymbol (name : Name) =
-            SSymbol (AssemblyPrettyPrinter.format (name).layout)
+        // An analyser for the CFG for use during trace generation
+        val analyser = new CFGAnalyser (cfg)
 
-        def typeToSort (tipe : Type) : Sort =
-            tipe match {
-                case IntT (n) if n == 1 =>
-                    Core.BoolSort ()
-                case IntT (_) =>
-                    Ints.IntSort ()
-                case PointerT (IntT (_), DefaultAddrSpace ()) =>
-                    Ints.IntSort ()
-                case _ =>
-                    sys.error (s"variable type $tipe not supported")
-            }
-
-        val assertions = cfgToEffectTerms (cfg).map (Assert)
-
-        val getVariables = 
-            collectall[Set,SSymbol] {
-                case Identifier (symbol, Seq ()) =>
-                    Set (symbol)
-            }
-
-        val variables = getVariables (assertions)
-
-        val GlobalIndexedVar = "@(.*)@([0-9]+)".r
-        val LocalIndexedVar = "%(.*)@([0-9]+)".r
-        
-        val declarations =
-            variables.collect {
-                case symbol @ SSymbol (GlobalIndexedVar (id, _)) =>
-                    (symbol, Global (id))
-                case symbol @ SSymbol (LocalIndexedVar (id, _)) =>
-                    (symbol, Local (id))
-            }.map {
-                case (symbol, name) =>
-                    DeclareFun (symbol, Seq (), typeToSort (types (name)))
-            }
-
-        val logic = Vector (SetLogic (QF_LIA))
-        val check = Vector (CheckSat ())
-
-        val commands = logic ++ declarations ++ assertions ++ check
-
-        val smtinterpol = SMTInterpolInterpreter.buildDefault
-        for (command <- commands) {
-            val response = smtinterpol.eval (command)
-            print (command)
-            print (response)
+        @tailrec
+        def makeTrace (count : Int, b : CFGBlock[FunctionDefinition,Block], buf : Vector[Entry]) : Trace = {
+            if (count <= 0)
+                Trace (buf)
+            else
+                b.exitInfo.conditions match {
+                    case cond +: _ =>
+                        val next = analyser.target (cond).get
+                        makeTrace (count - 1, next, buf :+ Entry (b.block.cross, Some (cond)))
+                    case Vector () =>
+                        Trace (buf :+ Entry (b.block.cross, None))
+                }
         }
-        smtinterpol.eval (Exit ())
+
+        val trace = makeTrace (6, cfg.blocks (0), Vector ())
+
+        val terms = traceToTerm (trace, types)
+        println (terms)
+        
+        implicit val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
+        val result = isSat (terms)
+        println (result)
+        solver.eval (Exit ())
 
     }
 }
