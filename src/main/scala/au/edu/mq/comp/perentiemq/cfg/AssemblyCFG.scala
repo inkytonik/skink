@@ -276,9 +276,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         val terms = traceToTerm (trace, types)
         println (terms)
-        
-        implicit val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
-        val result = isSat (terms)
+
+        val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
+        val result = isSat (terms) (solver)
         println (result)
         solver.eval (Exit ())
 
