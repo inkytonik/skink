@@ -44,6 +44,13 @@ case class CFGChoice[F,B,T] (name : String, choice : T, target : String) extends
 case class CFGGoto[F,B] (target : String) extends CFGExitCond[F,B]
 
 /**
+ * A CFG entry represents a step in the execution of the function represented
+ * by the CFG. It means that the constituent block has been executed and the
+ * condition describes how execution flows to the next block that is executed.
+ */
+case class CFGEntry[F,B] (block : B, condition : CFGExitCond[F,B])
+
+/**
  * Abstract builder for control-flow graphs. The CFGs are layered on top of
  * structure provided by sub-classes. A sub-class provides the type `F` for
  * functions and the type `B` for blocks. Also, the sub-class must provide
@@ -182,22 +189,22 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
         /**
          * Build an NFA that represents the error traces through this CFG.
-         * I.e., the only accepting state if that which represents the .error
-         * block (if it exists). Nodes are CFG blocks and edges show possible
-         * transitions from block to block. Edges are labelled by the exit
-         * condition that enables that transition.
+         * States are blocks of the CFG. Edges are labelled with entries that
+         * describe the transition represented by the edge. The only accepting
+         * state of the NFA is the .error block (if it exists).
          */
-        lazy val nfa : CFG[F,B] => NFA[CFGBlock[F,B],CFGExitCond[F,B]] =
+        lazy val nfa : CFG[F,B] => NFA[CFGBlock[F,B],CFGEntry[F,B]] =
             attr {
                 case cfg @ CFG (_, blocks) =>
                     val init = Set (entry (cfg))
                     val edges = {
-                        val buf = new ListBuffer[Edge[CFGBlock[F,B],CFGExitCond[F,B]]]
+                        val buf = new ListBuffer[Edge[CFGBlock[F,B],CFGEntry[F,B]]]
                         for (srcblock <- cfgBlocks (cfg)) {
                             for (exitcond <- srcblock.exitInfo.conditions) {
                                 target (exitcond) match {
                                     case Some (tgtblock) =>
-                                        buf += (srcblock ~> tgtblock) (exitcond)
+                                        val label = CFGEntry[F,B] (srcblock.block.cross, exitcond)
+                                        buf += (srcblock ~> tgtblock) (label)
                                     case None =>
                                         // Do nothing
                                 }
@@ -212,12 +219,12 @@ abstract class CFGBuilder[F,B] extends Attribution {
         /**
          * Return the DOT representation of a CFG NFA.
          */
-        def toDot (nfa : NFA[CFGBlock[F,B],CFGExitCond[F,B]]) : DotSpec =
+        def toDot (nfa : NFA[CFGBlock[F,B],CFGEntry[F,B]]) : DotSpec =
             DotConverter.toDot (
                 nfa,
                 (b : CFGBlock[F,B]) => {
                     val label = Attribute ("label", StringLit (name (b)))
-                    val style = 
+                    val style =
                         Attribute ("shape", if (nfa.init.contains (b))
                                                 Ident ("circle")
                                             else if (nfa.accepting.contains (b))
@@ -226,7 +233,8 @@ abstract class CFGBuilder[F,B] extends Attribution {
                                                 Ident ("oval"))
                     List (label, style)
                 },
-                (b : CFGBlock[F,B]) => '"' + name (b) + '"'
+                (b : CFGBlock[F,B]) => '"' + name (b) + '"',
+                (l : CFGEntry[F,B]) => l.condition.toString
             )
 
         // Pretty-printer

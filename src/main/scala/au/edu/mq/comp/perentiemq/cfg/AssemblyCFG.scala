@@ -10,24 +10,19 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import smtlib.util.TypedTerm
 
     /**
-     * A trace entry is a block and an optional exit condition. If the
-     * exit condition is present, then it describes how control flows
-     * to the next block in a trace.
+     * An alias for trace entries in an Assembly CFG.
      */
-    case class Entry (
-        block : Block,
-        optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]
-    )
+    type Entry = CFGEntry[FunctionDefinition,Block]
 
     /**
      * A trace is just an ordered collection of trace entries.
      */
-    case class Trace (entries : Vector[Entry])
+    case class Trace (entries : Seq[Entry])
 
     /**
      * Convert a trace into terms that express the effect of the trace.
      */
-    def traceToTerm (trace : Trace, types : Map[Name,Type]) : Vector[TypedTerm] = {
+    def traceToTerm (trace : Trace, types : Map[Name,Type]) : Seq[TypedTerm] = {
 
         import org.kiama.==>
         import org.kiama.attribution.Decorators
@@ -189,12 +184,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         /**
          * Return a term that expresses the condition that must be true if
-         * an optional exit condition is used to exit from a block. None is
-         * returned if there is no exit condition.
+         * an exit condition is used to exit from a block. None is returned
+         * if it's not a choice exit condition (so the condition is really
+         * "true").
          */
-        def exitcondToTerm (optExitcond : Option[CFGExitCond[FunctionDefinition,Block]]) : Option[TypedTerm] =
-            optExitcond match {
-                case Some (exitcond @ CFGChoice (s, value, _)) =>
+        def exitcondToTerm (exitcond : CFGExitCond[FunctionDefinition,Block]) : Option[TypedTerm] =
+            exitcond match {
+                case CFGChoice (s, value, _) =>
                     val id = nameToIndexedName (exitcond, s)
                     value match {
                         case b : Boolean =>
@@ -213,7 +209,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * the transition to the next entry in the trace, if there is one.
          */
         def entryToTerm (entry : Entry) : Vector[TypedTerm] =
-            term (entry.block) ++ exitcondToTerm (entry.optExitcond)
+            term (entry.block) ++ exitcondToTerm (entry.condition)
 
         // Return all of the terms arising from this trace
         tree.root.entries.flatMap (entryToTerm)
@@ -266,9 +262,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 b.exitInfo.conditions match {
                     case cond +: _ =>
                         val next = analyser.target (cond).get
-                        makeTrace (count - 1, next, buf :+ Entry (b.block.cross, Some (cond)))
+                        makeTrace (count - 1, next, buf :+ CFGEntry (b.block.cross, cond))
                     case Vector () =>
-                        Trace (buf :+ Entry (b.block.cross, None))
+                        Trace (Vector ())
                 }
         }
 
