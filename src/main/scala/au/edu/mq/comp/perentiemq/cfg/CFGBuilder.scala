@@ -181,9 +181,11 @@ abstract class CFGBuilder[F,B] extends Attribution {
         // Conversion to an NFA
 
         /**
-         * Build an NFA that represents this CFG. Nodes are CFG blocks and
-         * edges show possible transitions from block to block. Edges are
-         * labelled by the exit condition that enables that transition.
+         * Build an NFA that represents the error traces through this CFG.
+         * I.e., the only accepting state if that which represents the .error
+         * block (if it exists). Nodes are CFG blocks and edges show possible
+         * transitions from block to block. Edges are labelled by the exit
+         * condition that enables that transition.
          */
         lazy val nfa : CFG[F,B] => NFA[CFGBlock[F,B],CFGExitCond[F,B]] =
             attr {
@@ -203,7 +205,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         }
                         buf.toSet
                     }
-                    val accepting = exits (cfg).toSet
+                    val accepting = resolve (".error") (cfg).toSet
                     NFA (init, edges, accepting)
             }
 
