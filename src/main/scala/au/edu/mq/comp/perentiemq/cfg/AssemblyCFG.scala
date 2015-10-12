@@ -5,19 +5,8 @@ package au.edu.mq.comp.perentiemq.cfg
  */
 object AssemblyCFG extends AssemblyCFGBuilder {
 
-    import org.kiama.==>
-    import org.kiama.attribution.Decorators
     import org.kiama.relation.Tree
-    import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax._
-    import org.scalallvm.assembly.Analyser
-    import smtlib.interpreters.Configurations._
-    import smtlib.interpreters.SMTSolver
-    import smtlib.parser.Commands.Exit
-    import smtlib.parser.Terms.Sort
-    import smtlib.theories.{Core, Ints}
-    import smtlib.util.Implicits._
-    import smtlib.util.Logics._
     import smtlib.util.TypedTerm
 
     /**
@@ -39,6 +28,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Convert a trace into terms that express the effect of the trace.
      */
     def traceToTerm (trace : Trace, types : Map[Name,Type]) : Vector[TypedTerm] = {
+
+        import org.kiama.==>
+        import org.kiama.attribution.Decorators
+        import org.scalallvm.assembly.AssemblyPrettyPrinter
+        import smtlib.parser.Terms.Sort
+        import smtlib.theories.{Core, Ints}
+        import smtlib.util.Implicits._
 
         val tree = new Tree[Product,Trace] (trace)
         val decorators = new Decorators (tree)
@@ -78,7 +74,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * Make the indexed name of a particular occurrence of a program variable
          * in a trace. The base variable name is given a numeric index to reflect
          * the fact that it references a particular assigned or stored version of
-         * the base name in the trace. E.g., the first use gets "@1" and the 
+         * the base name in the trace. E.g., the first use gets "@1" and the
          * second gets "@2".
          */
         def nameToIndexedName (use : Product, s : String) : String = {
@@ -230,8 +226,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
 
+        import au.edu.mq.comp.automat.lang.Lang
+        import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
-        import smtlib.interpreters.SMTInterpolInterpreter
+        import smtlib.interpreters.Configurations._
+        import smtlib.interpreters.SMTSolver
+        import smtlib.parser.Commands.Exit
+        import smtlib.util.Logics.isSat
 
         /**
          * The prefix used by the SV-COMP to signify special functions.
