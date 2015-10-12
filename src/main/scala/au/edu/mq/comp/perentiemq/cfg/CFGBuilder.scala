@@ -61,6 +61,8 @@ case class CFGEntry[F,B] (block : B, condition : CFGExitCond[F,B])
  */
 abstract class CFGBuilder[F,B] extends Attribution {
 
+    import au.edu.mq.comp.automat.auto.NFA
+
     // Support methods that descendants must provide
 
     def blockName (function : F, block : B) : String
@@ -68,6 +70,13 @@ abstract class CFGBuilder[F,B] extends Attribution {
     def functionName (function : F) : String
     def isEntry (function : F, block : B) : Boolean
     def isExit (function : F, block : B) : Boolean
+
+    // Types
+
+    /**
+     * The type of NFAs made from the built CFGs.
+     */
+    type CFGNFA = NFA[CFGBlock[F,B],CFGEntry[F,B]]
 
     // Construction
 
@@ -84,7 +93,6 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
     class CFGAnalyser (cfg : CFG[F,B]) {
 
-        import au.edu.mq.comp.automat.auto.NFA
         import au.edu.mq.comp.automat.edge.Edge
         import au.edu.mq.comp.automat.edge.Implicits._
         import au.edu.mq.comp.automat.util.DotConverter
@@ -170,20 +178,32 @@ abstract class CFGBuilder[F,B] extends Attribution {
         lazy val target : CFGExitCond[F,B] => Option[CFGBlock[F,B]] =
             attr {
                 case astNode =>
-                    resolve (astNode.target) (astNode)
+                    resolveByName (astNode.target) (astNode)
             }
 
         /**
          * Resolve an underlying block name to get the corresponding CFG block.
          * FIXME: assumes that the block names are unique.
          */
-        lazy val resolve : String => CFGASTNode[F,B] => Option[CFGBlock[F,B]] =
-           paramAttr {
+        lazy val resolveByName : String => CFGASTNode[F,B] => Option[CFGBlock[F,B]] =
+            paramAttr {
                 blockName => (
                     node =>
                         cfgBlocks (node).find { case b => name (b) == blockName }
                 )
-           }
+            }
+
+        /**
+         * Resolve an underlying block to get the corresponding CFG block.
+         * FIXME: assumes that the block names is only referred to by at most one CFG block.
+         */
+        lazy val resolveByBlock : B => CFGASTNode[F,B] => Option[CFGBlock[F,B]] =
+            attr {
+                block => (
+                    node =>
+                        cfgBlocks (node).find { case b => b.block.cross == block }
+                )
+            }
 
         // Conversion to an NFA
 
@@ -193,7 +213,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
          * describe the transition represented by the edge. The only accepting
          * state of the NFA is the .error block (if it exists).
          */
-        lazy val nfa : CFG[F,B] => NFA[CFGBlock[F,B],CFGEntry[F,B]] =
+        lazy val nfa : CFG[F,B] => CFGNFA =
             attr {
                 case cfg @ CFG (_, blocks) =>
                     val init = Set (entry (cfg))
@@ -212,7 +232,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         }
                         buf.toSet
                     }
-                    val accepting = resolve (".error") (cfg).toSet
+                    val accepting = resolveByName (".error") (cfg).toSet
                     NFA (init, edges, accepting)
             }
 
@@ -285,7 +305,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
             text (blockName (function (cfgBlock), cfgBlock.block.cross))
 
         def toTargetDoc (astNode : CFGASTNode[F,B], blockName : String) : Doc =
-            resolve (blockName) (astNode).map (toNameDoc).getOrElse ("???")
+            resolveByName (blockName) (astNode).map (toNameDoc).getOrElse ("???")
 
     }
 

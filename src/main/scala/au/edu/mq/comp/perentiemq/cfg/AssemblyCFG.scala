@@ -22,7 +22,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /**
      * Convert a trace into terms that express the effect of the trace.
      */
-    def traceToTerm (trace : Trace, types : Map[Name,Type]) : Seq[TypedTerm] = {
+    def traceToTerms (trace : Trace, types : Map[Name,Type]) : Seq[TypedTerm] = {
 
         import org.kiama.==>
         import org.kiama.attribution.Decorators
@@ -222,12 +222,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
 
+        import au.edu.mq.comp.automat.auto.NFA
         import au.edu.mq.comp.automat.lang.Lang
+        import au.edu.mq.comp.automat.edge.Implicits._
         import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
+        import scala.util.{Failure, Success}
         import smtlib.interpreters.Configurations._
         import smtlib.interpreters.SMTSolver
-        import smtlib.parser.Commands.Exit
+        import smtlib.parser.Commands.{Exit, Reset}
+        import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus}
         import smtlib.util.Logics.isSat
 
         /**
@@ -246,37 +250,97 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         if (isNotToBeVerified (fname))
             return
 
-        // Gather type information variables in this CFG
+        // Gather type information on variables in this CFG
         val funtree = new Tree[ASTNode,FunctionDefinition] (cfg.function.cross)
         val funanalyser = new Analyser (funtree)
         val types = funanalyser.typesOfFunction (cfg.function.cross)
 
-        // An analyser for the CFG for use during trace generation
-        val analyser = new CFGAnalyser (cfg)
+        // Make the NFA for this CFG
+        val cfganalyser = new CFGAnalyser (cfg)
+        val nfa = cfganalyser.nfa (cfg)
 
-        @tailrec
-        def makeTrace (count : Int, b : CFGBlock[FunctionDefinition,Block], buf : Vector[Entry]) : Trace = {
-            if (count <= 0)
-                Trace (buf)
-            else
-                b.exitInfo.conditions match {
-                    case cond +: _ =>
-                        val next = analyser.target (cond).get
-                        makeTrace (count - 1, next, buf :+ CFGEntry (b.block.cross, cond))
-                    case Vector () =>
-                        Trace (Vector ())
-                }
+        /**
+         * Return an interpolant automata for a trace.
+         * FIXME: for now this just returns the trivial automaton that
+         * just accepts the trace. Will be replaced by something less
+         * hacky...
+         */
+        def interpolantAutomata (trace : Trace) : CFGNFA = {
+            val edges = trace.entries.map {
+                            case entry @ CFGEntry (block, exitcond) =>
+                                cfganalyser.resolveByBlock (block) (exitcond) match {
+                                    case Some (from) =>
+                                        cfganalyser.target (exitcond) match {
+                                            case Some (to) =>
+                                                (from ~> to) (entry)
+                                            case None =>
+                                                sys.error (s"interpolantAutomata: couldn't find to target for $exitcond")
+                                        }
+                                    case None =>
+                                        sys.error (s"interpolantAutomata: couldn't find from block $block")
+                                }
+                        }.toSet
+            val res = NFA (nfa.init, edges, nfa.accepting)
+
+            val dot = cfgAnalyser.toDot (res)
+            println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
+
+            res
         }
 
-        val trace = makeTrace (6, cfg.blocks (0), Vector ())
+        /**
+         * Implement the refinement loop, returning an optional trace that if
+         * present is feasible and demonstrates how the program is incorrect.
+         * FIXME: this code should be tidied up, remove vars??
+         */
+        def traceRefinement () : Option[Trace] = {
+            val lang = Lang (nfa)
+            var optEntries = lang.getAcceptedTraceAfter (List ())
+            while (optEntries != None) {
+                val trace = Trace (optEntries.get)
+                val terms = traceToTerms (trace, types)
+                println (s"trying terms $terms")
+                // FIXME: can reuse solver? use Reset command instead of Exit each time?
+                val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
+                isSat (terms) (solver) match {
+                    case Success (SatStatus) =>
+                        solver.eval (Exit ())
+                        println ("trace was feasible")
+                        return Some (trace)
+                    case Success (UnsatStatus) =>
+                        solver.eval (Exit ())
+                        println ("trace was infeasible")
+                        val tracenfa = interpolantAutomata (trace)
+                        println (tracenfa)
+                        val tracelang = Lang (tracenfa)
+                        val newlang = lang /\ tracelang
 
-        val terms = traceToTerm (trace, types)
-        println (terms)
+                        // FIXME: can't do this since .a is private...
+                        // val dot = cfgAnalyser.toDot (newlang.a)
+                        // println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
 
-        val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
-        val result = isSat (terms) (solver)
-        println (result)
-        solver.eval (Exit ())
+                        optEntries = newlang.getAcceptedTraceAfter (List ())
+                    case status =>
+                        sys.error (s"strange solver status: $status")
+                }
+            }
+            None
+        }
+
+        def printTrace (trace : Trace) {
+            for (entry <- trace.entries) {
+                println (s"${entry.block.optBlockLabel} ${entry.condition}")
+            }
+        }
+
+        // Run the verification
+        traceRefinement () match {
+            case None =>
+                println ("program is correct")
+            case Some (trace) =>
+                println ("program is incorrect")
+                printTrace (trace)
+        }
 
     }
 }
