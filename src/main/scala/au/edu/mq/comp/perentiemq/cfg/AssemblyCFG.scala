@@ -301,7 +301,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                         val terms = traceToTerms (trace, types)
 
                         import org.kiama.output.PrettyPrinter.{any, pretty}
-                        println (s"trying terms ${pretty (any (terms)).layout}")
+                        val pp = terms.map (_.toString)
+                        println (s"trying terms ${pretty (any (pp)).layout}")
 
                         val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
                         isSat (terms) (solver) match {
