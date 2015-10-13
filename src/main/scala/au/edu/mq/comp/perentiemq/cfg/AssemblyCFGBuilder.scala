@@ -99,7 +99,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
             val blockname = blockName (function, block)
             val errorLabel = Label (Local (".error"))
 
-            /**
+            /*
              * Predicate to identify the conversion operation that precedes
              * an assert call. If one is found, return the value that is
              * converted and the value that it is converted to.
@@ -113,7 +113,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                         None
                 }
 
-            /**
+            /*
              * Predicate to identify an assert call in SV-COMP form. The value
              * should be the one that is asserted.
              */
@@ -129,7 +129,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                         false
                 }
 
-            /**
+            /*
              * Find next assert call, return instructions before and after, plus
              * the value on which the call is made. Return None if there is no
              * assert call.
@@ -157,7 +157,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              */
             case class Group (insns : Instructions, value : Named)
 
-            /**
+            /*
              * Make groups of instructions. A new group is begun if an assert
              * call is detected. The value of the last group is a dummy.
              */

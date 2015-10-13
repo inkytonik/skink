@@ -48,6 +48,13 @@ resolvers ++= Seq (
     Resolver.sonatypeRepo ("snapshots")
 )
 
+
+scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
+                                            // "-diagrams-dot-path",
+                                            // "/usr/local/bin/dot",
+                                            // "-diagrams-debug",
+                                            "-diagrams-dot-restart", "50")
+                                            
 // Rats! setup
 
 sbtRatsSettings

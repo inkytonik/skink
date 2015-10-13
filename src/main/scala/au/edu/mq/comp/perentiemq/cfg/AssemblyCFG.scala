@@ -65,19 +65,21 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 bumpcount (in (n), name)
         }
 
-        /**
+        /*
          * Make the indexed name of a particular occurrence of a program variable
-         * in a trace. The base variable name is given a numeric index to reflect
+         * in a trace. 
+         * 
+         * The base variable name is given a numeric index to reflect
          * the fact that it references a particular assigned or stored version of
-         * the base name in the trace. E.g., the first use gets "@1" and the
-         * second gets "@2".
+         * the base name in the trace. E.g., the first use gets @1 and the
+         * second gets @2.
          */
         def nameToIndexedName (use : Product, s : String) : String = {
             val index = stores (use).getOrElse (s, 0)
             s"$s@$index"
         }
 
-        /**
+        /*
          * Return terms that express the effect of an LLVM node.
          */
         lazy val term : ASTNode => Vector[TypedTerm] =
@@ -139,7 +141,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
             }
 
-        /**
+        /*
          * Return a term that expresses an LLVM value.
          * FIXME: currently only does integer constants and names.
          */
@@ -155,7 +157,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
         }
 
-        /**
+        /*
          * Return the sort that should be used for variable name.
          * FIXME: currently only handled Booleans, integers and pointers to integers.
          */
@@ -171,7 +173,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     sys.error (s"variable type $tipe not supported")
             }
 
-        /**
+        /*
          * Return a term that expresses an LLVM name.
          */
         lazy val nterm : Name => TypedTerm = {
@@ -182,7 +184,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
         }
 
-        /**
+        /*
          * Return a term that expresses the condition that must be true if
          * an exit condition is used to exit from a block. None is returned
          * if it's not a choice exit condition (so the condition is really
@@ -204,7 +206,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     None
             }
 
-        /**
+        /*
          * Return terms that express the effect of a trace entry, including
          * the transition to the next entry in the trace, if there is one.
          */
@@ -234,12 +236,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus}
         import smtlib.util.Logics.isSat
 
-        /**
+        /*
          * The prefix used by the SV-COMP to signify special functions.
          */
         val SVCompVerifierPrefix = "@__VERIFIER"
 
-        /**
+        /*
          * Return whether or not the named function should be verified.
          */
         def isNotToBeVerified (name : String) : Boolean =
@@ -259,7 +261,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         val cfganalyser = new CFGAnalyser (cfg)
         val nfa = cfganalyser.nfa (cfg)
 
-        /**
+        /*
          * Return an interpolant automata for a trace.
          * FIXME: for now this just returns the trivial automaton that
          * just accepts the trace. Will be replaced by something less
@@ -288,7 +290,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             res
         }
 
-        /**
+        /*
          * Implement the refinement loop, returning an optional trace that if
          * present is feasible and demonstrates how the program is incorrect.
          * FIXME: this code should be tidied up, remove vars??

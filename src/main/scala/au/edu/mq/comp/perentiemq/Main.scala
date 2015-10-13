@@ -13,7 +13,7 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
     lazy val execute = opt[Boolean] ("execute", short = 'x',
                                      descr = "Execute the target code")
     lazy val lli = opt[String] ("lli", descr = "Program to use to execute target code",
-                                default = Some ("/usr/local/opt/llvm/bin/lli"))
+                                default = Some ("/usr/local/bin/lli"))
     lazy val sourcePrint = opt[Boolean] ("srcprint", short = 's',
                                          descr = "Print the source code tree")
     lazy val sourcePrettyPrint = opt[Boolean] ("srcprettyprint", short = 'p',
