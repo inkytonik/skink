@@ -222,7 +222,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
 
-        import au.edu.mq.comp.automat.auto.NFA
+        import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
         import au.edu.mq.comp.automat.lang.Lang
         import au.edu.mq.comp.automat.edge.Implicits._
         import org.scalallvm.assembly.Analyser
@@ -280,51 +280,48 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                                         sys.error (s"interpolantAutomata: couldn't find from block $block")
                                 }
                         }.toSet
-            val res = NFA (nfa.init, edges, nfa.accepting)
-
-            val dot = cfgAnalyser.toDot (res)
-            println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
-
-            res
+            NFA (nfa.init, edges, nfa.accepting)
         }
 
         /**
          * Implement the refinement loop, returning an optional trace that if
          * present is feasible and demonstrates how the program is incorrect.
-         * FIXME: this code should be tidied up, remove vars??
          */
-        def traceRefinement () : Option[Trace] = {
-            val lang = Lang (nfa)
-            var optEntries = lang.getAcceptedTraceAfter (List ())
-            while (optEntries != None) {
-                val trace = Trace (optEntries.get)
-                val terms = traceToTerms (trace, types)
-                println (s"trying terms $terms")
-                // FIXME: can reuse solver? use Reset command instead of Exit each time?
-                val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
-                isSat (terms) (solver) match {
-                    case Success (SatStatus) =>
-                        solver.eval (Exit ())
-                        println ("trace was feasible")
-                        return Some (trace)
-                    case Success (UnsatStatus) =>
-                        solver.eval (Exit ())
-                        println ("trace was infeasible")
-                        val tracenfa = interpolantAutomata (trace)
-                        println (tracenfa)
-                        val tracelang = Lang (tracenfa)
-                        val newlang = lang /\ tracelang
+        def traceRefinement (nfa : CFGNFA) : Option[Trace] = {
 
-                        // FIXME: can't do this since .a is private...
-                        // val dot = cfgAnalyser.toDot (newlang.a)
-                        // println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
+            // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
 
-                        optEntries = newlang.getAcceptedTraceAfter (List ())
-                    case status =>
-                        sys.error (s"strange solver status: $status")
+            def refine[S] (dfa : DetAuto[S,Entry]) : Option[Trace] =
+                Lang (dfa).getAcceptedTraceAfter (List ()) match {
+
+                    case None =>
+                        None
+
+                    case Some (entries) =>
+                        val trace = Trace (entries)
+                        val terms = traceToTerms (trace, types)
+                        // println (s"trying terms $terms")
+
+                        val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
+                        isSat (terms) (solver) match {
+                            case Success (SatStatus) =>
+                                solver.eval (Exit ())
+                                // println ("trace was feasible")
+                                Some (trace)
+
+                            case Success (UnsatStatus) =>
+                                solver.eval (Exit ())
+                                // println ("trace was infeasible")
+                                val tracenfa = interpolantAutomata (trace)
+                                refine (dfa - tracenfa)
+
+                            case status =>
+                                sys.error (s"strange solver status: $status")
+                        }
+
                 }
-            }
-            None
+
+            refine (nfa)
         }
 
         def printTrace (trace : Trace) {
@@ -334,7 +331,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         // Run the verification
-        traceRefinement () match {
+        traceRefinement (nfa) match {
             case None =>
                 println ("program is correct")
             case Some (trace) =>
