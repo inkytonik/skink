@@ -269,24 +269,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * just accepts the trace. Will be replaced by something less
          * hacky...
          */
-        def interpolantAutomata (trace : Trace) : CFGNFA = {
-            val edges = trace.entries.map {
-                            case entry @ CFGEntry (block, exitcond) =>
-                                cfganalyser.resolveByBlock (block) (exitcond) match {
-                                    case Some (from) =>
-                                        cfganalyser.target (exitcond) match {
-                                            case Some (to) =>
-                                                (from ~> to) (entry)
-                                            case None =>
-                                                sys.error (s"interpolantAutomata: couldn't find to target for $exitcond")
-                                        }
-                                    case None =>
-                                        sys.error (s"interpolantAutomata: couldn't find from block $block")
-                                }
+        def interpolantAutomata (trace : Trace) : NFA[Int,CFGEntry[FunctionDefinition,Block]] = {
+            val numentries = trace.entries.length
+            val init = (0 to numentries).toSet
+            val edges = trace.entries.zipWithIndex.map {
+                            case (entry, index) =>
+                                (index ~> (index + 1)) (entry)
                         }.toSet
-            val res = NFA (nfa.init, edges, nfa.accepting)
-            val dot = cfgAnalyser.toDot (res)
-            println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
+            val accepting = Set (numentries)
+            val res = NFA (init, edges, accepting)
+            println (res)
             res
         }
 
