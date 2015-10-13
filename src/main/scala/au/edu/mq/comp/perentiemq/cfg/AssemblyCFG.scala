@@ -165,7 +165,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     Core.BoolSort ()
                 case IntT (_) =>
                     Ints.IntSort ()
-                case PointerT (IntT (_), DefaultAddrSpace ()) =>
+                case PointerT (_, DefaultAddrSpace ()) =>
                     Ints.IntSort ()
                 case _ =>
                     sys.error (s"variable type $tipe not supported")
