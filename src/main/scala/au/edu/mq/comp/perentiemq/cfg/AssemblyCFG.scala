@@ -280,7 +280,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                                         sys.error (s"interpolantAutomata: couldn't find from block $block")
                                 }
                         }.toSet
-            NFA (nfa.init, edges, nfa.accepting)
+            val res = NFA (nfa.init, edges, nfa.accepting)
+            val dot = cfgAnalyser.toDot (res)
+            println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
+            res
         }
 
         /**
@@ -300,18 +303,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     case Some (entries) =>
                         val trace = Trace (entries)
                         val terms = traceToTerms (trace, types)
-                        // println (s"trying terms $terms")
+                        println (s"trying terms $terms")
 
                         val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
                         isSat (terms) (solver) match {
                             case Success (SatStatus) =>
                                 solver.eval (Exit ())
-                                // println ("trace was feasible")
+                                println ("trace was feasible")
                                 Some (trace)
 
                             case Success (UnsatStatus) =>
                                 solver.eval (Exit ())
-                                // println ("trace was infeasible")
+                                println ("trace was infeasible")
                                 val tracenfa = interpolantAutomata (trace)
                                 refine (dfa - tracenfa)
 
