@@ -54,6 +54,16 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 CFGExit (Vector (CFGChoice (name, true, trueLabel),
                                  CFGChoice (name, false, falseLabel)))
 
+            // Multi-way branch
+            case Switch (IntT (_), cmp, Label (Local (dfltlabel)), cases) =>
+                val name = render (cmp)
+                val caseToExitCond : Case => CFGExitCond[FunctionDefinition,Block] = {
+                    case Case (_, value, Label (Local (label))) =>
+                        CFGChoice (name, value, label)
+                }
+                val choices = cases.map (caseToExitCond)
+                CFGExit (choices :+ CFGGoto (dfltlabel))
+
             case i =>
                 sys.error (s"exitOf: terminator not handled: $i")
 
