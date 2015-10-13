@@ -1,4 +1,4 @@
-; ModuleID = 'while_infinite_loop_1_true-unreach-call_false-termination.c'
+; ModuleID = 'count_up_down_true-unreach-call_true-termination.i'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
@@ -15,7 +15,7 @@ if.then:                                          ; preds = %entry
   br label %ERROR
 
 ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #2
+  call void (...) @__VERIFIER_error() #3
   unreachable
 
 if.end:                                           ; preds = %entry
@@ -29,26 +29,47 @@ declare void @__VERIFIER_error(...) #1
 define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
+  %n = alloca i32, align 4
   %x = alloca i32, align 4
+  %y = alloca i32, align 4
   store i32 0, i32* %retval
-  store i32 0, i32* %x, align 4
-  br label %while.body
+  %call = call i32 (...) @__VERIFIER_nondet_uint()
+  store i32 %call, i32* %n, align 4
+  %0 = load i32, i32* %n, align 4
+  store i32 %0, i32* %x, align 4
+  store i32 0, i32* %y, align 4
+  br label %while.cond
 
-while.body:                                       ; preds = %entry, %while.body
-  %0 = load i32, i32* %x, align 4
-  %cmp = icmp eq i32 %0, 0
-  %conv = zext i1 %cmp to i32
+while.cond:                                       ; preds = %while.body, %entry
+  %1 = load i32, i32* %x, align 4
+  %cmp = icmp ugt i32 %1, 0
+  br i1 %cmp, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %2 = load i32, i32* %x, align 4
+  %dec = add i32 %2, -1
+  store i32 %dec, i32* %x, align 4
+  %3 = load i32, i32* %y, align 4
+  %inc = add i32 %3, 1
+  store i32 %inc, i32* %y, align 4
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  %4 = load i32, i32* %y, align 4
+  %5 = load i32, i32* %n, align 4
+  %cmp1 = icmp eq i32 %4, %5
+  %conv = zext i1 %cmp1 to i32
   call void @__VERIFIER_assert(i32 %conv)
-  br label %while.body
-
-return:                                           ; No predecessors!
-  %1 = load i32, i32* %retval
-  ret i32 %1
+  %6 = load i32, i32* %retval
+  ret i32 %6
 }
+
+declare i32 @__VERIFIER_nondet_uint(...) #2
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { noreturn }
+attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #3 = { noreturn }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
