@@ -93,6 +93,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case InsnMeta (insn, _) =>
                     term (insn)
 
+                case _ : Alloca =>
+                    Vector ()
+
                 case Binary (Binding (to), op, _ : IntT, left, right) =>
                     val lterm = vterm (left)
                     val rterm = vterm (right)
@@ -134,7 +137,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case Store (_, tipe, from, _, to, _) =>
                     Vector (vterm (to) === vterm (from))
 
-                case _ =>
+                case node =>
+                    println (s"terms not found for $node")
                     Vector ()
 
             }
