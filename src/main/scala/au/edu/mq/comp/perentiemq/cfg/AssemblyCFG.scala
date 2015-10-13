@@ -95,6 +95,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case InsnMeta (insn, _) =>
                     term (insn)
 
+                case _ : Alloca =>
+                    Vector ()
+
                 case Binary (Binding (to), op, _ : IntT, left, right) =>
                     val lterm = vterm (left)
                     val rterm = vterm (right)
@@ -136,7 +139,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case Store (_, tipe, from, _, to, _) =>
                     Vector (vterm (to) === vterm (from))
 
-                case _ =>
+                case node =>
+                    println (s"terms not found for $node")
                     Vector ()
 
             }
@@ -167,7 +171,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     Core.BoolSort ()
                 case IntT (_) =>
                     Ints.IntSort ()
-                case PointerT (IntT (_), DefaultAddrSpace ()) =>
+                case PointerT (_, DefaultAddrSpace ()) =>
                     Ints.IntSort ()
                 case _ =>
                     sys.error (s"variable type $tipe not supported")
@@ -224,7 +228,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
 
-        import au.edu.mq.comp.automat.auto.NFA
+        import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
         import au.edu.mq.comp.automat.lang.Lang
         import au.edu.mq.comp.automat.edge.Implicits._
         import org.scalallvm.assembly.Analyser
@@ -267,66 +271,61 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * just accepts the trace. Will be replaced by something less
          * hacky...
          */
-        def interpolantAutomata (trace : Trace) : CFGNFA = {
-            val edges = trace.entries.map {
-                            case entry @ CFGEntry (block, exitcond) =>
-                                cfganalyser.resolveByBlock (block) (exitcond) match {
-                                    case Some (from) =>
-                                        cfganalyser.target (exitcond) match {
-                                            case Some (to) =>
-                                                (from ~> to) (entry)
-                                            case None =>
-                                                sys.error (s"interpolantAutomata: couldn't find to target for $exitcond")
-                                        }
-                                    case None =>
-                                        sys.error (s"interpolantAutomata: couldn't find from block $block")
-                                }
+        def interpolantAutomata (trace : Trace) : NFA[Int,CFGEntry[FunctionDefinition,Block]] = {
+            val numentries = trace.entries.length
+            val init = (0 to numentries).toSet
+            val edges = trace.entries.zipWithIndex.map {
+                            case (entry, index) =>
+                                (index ~> (index + 1)) (entry)
                         }.toSet
-            val res = NFA (nfa.init, edges, nfa.accepting)
-
-            val dot = cfgAnalyser.toDot (res)
-            println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
-
+            val accepting = Set (numentries)
+            val res = NFA (init, edges, accepting)
+            println (res)
             res
         }
 
         /*
          * Implement the refinement loop, returning an optional trace that if
          * present is feasible and demonstrates how the program is incorrect.
-         * FIXME: this code should be tidied up, remove vars??
          */
-        def traceRefinement () : Option[Trace] = {
-            val lang = Lang (nfa)
-            var optEntries = lang.getAcceptedTraceAfter (List ())
-            while (optEntries != None) {
-                val trace = Trace (optEntries.get)
-                val terms = traceToTerms (trace, types)
-                println (s"trying terms $terms")
-                // FIXME: can reuse solver? use Reset command instead of Exit each time?
-                val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
-                isSat (terms) (solver) match {
-                    case Success (SatStatus) =>
-                        solver.eval (Exit ())
-                        println ("trace was feasible")
-                        return Some (trace)
-                    case Success (UnsatStatus) =>
-                        solver.eval (Exit ())
-                        println ("trace was infeasible")
-                        val tracenfa = interpolantAutomata (trace)
-                        println (tracenfa)
-                        val tracelang = Lang (tracenfa)
-                        val newlang = lang /\ tracelang
+        def traceRefinement (nfa : CFGNFA) : Option[Trace] = {
 
-                        // FIXME: can't do this since .a is private...
-                        // val dot = cfgAnalyser.toDot (newlang.a)
-                        // println (au.edu.mq.comp.dot.DOTPrettyPrinter.format (dot).layout)
+            // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
 
-                        optEntries = newlang.getAcceptedTraceAfter (List ())
-                    case status =>
-                        sys.error (s"strange solver status: $status")
+            def refine[S] (dfa : DetAuto[S,Entry]) : Option[Trace] =
+                Lang (dfa).getAcceptedTraceAfter (List ()) match {
+
+                    case None =>
+                        None
+
+                    case Some (entries) =>
+                        val trace = Trace (entries)
+                        val terms = traceToTerms (trace, types)
+
+                        import org.kiama.output.PrettyPrinter.{any, pretty}
+                        val pp = terms.map (_.toString)
+                        println (s"trying terms ${pretty (any (pp)).layout}")
+
+                        val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
+                        isSat (terms) (solver) match {
+                            case Success (SatStatus) =>
+                                solver.eval (Exit ())
+                                println ("trace was feasible")
+                                Some (trace)
+
+                            case Success (UnsatStatus) =>
+                                solver.eval (Exit ())
+                                println ("trace was infeasible")
+                                val tracenfa = interpolantAutomata (trace)
+                                refine (dfa - tracenfa)
+
+                            case status =>
+                                sys.error (s"strange solver status: $status")
+                        }
+
                 }
-            }
-            None
+
+            refine (nfa)
         }
 
         def printTrace (trace : Trace) {
@@ -336,7 +335,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         // Run the verification
-        traceRefinement () match {
+        traceRefinement (nfa) match {
             case None =>
                 println ("program is correct")
             case Some (trace) =>

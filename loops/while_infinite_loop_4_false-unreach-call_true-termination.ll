@@ -1,6 +1,8 @@
-; ModuleID = 'while_infinite_loop_1_true-unreach-call_false-termination.c'
+; ModuleID = 'while_infinite_loop_4_false-unreach-call_true-termination.i'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
+
+@x = global i32 0, align 4
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -26,16 +28,28 @@ if.end:                                           ; preds = %entry
 declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
+define void @eval() #0 {
+entry:
+  br label %while.body
+
+while.body:                                       ; preds = %entry
+  store i32 1, i32* @x, align 4
+  br label %while.end
+
+while.end:                                        ; preds = %while.body
+  ret void
+}
+
+; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
-  %x = alloca i32, align 4
   store i32 0, i32* %retval
-  store i32 0, i32* %x, align 4
   br label %while.body
 
 while.body:                                       ; preds = %entry, %while.body
-  %0 = load i32, i32* %x, align 4
+  call void @eval()
+  %0 = load i32, i32* @x, align 4
   %cmp = icmp eq i32 %0, 0
   %conv = zext i1 %cmp to i32
   call void @__VERIFIER_assert(i32 %conv)
