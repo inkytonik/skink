@@ -230,14 +230,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
         import au.edu.mq.comp.automat.lang.Lang
         import au.edu.mq.comp.automat.edge.Implicits._
+        import org.kiama.rewriting.Rewriter.collect
         import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
-        import scala.util.{Failure, Success}
+        import scala.util.{Failure, Success, Try}
+        import smtlib.Interpreter
         import smtlib.interpreters.Configurations._
         import smtlib.interpreters.SMTSolver
         import smtlib.parser.Commands.{Exit, Reset}
         import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus}
-        import smtlib.util.Logics.isSat
+        import smtlib.parser.Terms.QualifiedIdentifier
+        import smtlib.util.Logics.{getValues, isSat}
+        import smtlib.util.ValMap
 
         /**
          * The prefix used by the SV-COMP to signify special functions.
@@ -284,14 +288,38 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         /**
+         * A feasible trace that leads to a program failure. `values`, if
+         * present, reports on the values that lead to the failure. It
+         * may contain entries for the identifiers in `ids` but may not
+         * map them all.
+         */
+        case class FailureTrace (trace : Trace, ids : Seq[QualifiedIdentifier],
+                                 values : Try[ValMap])
+
+        /**
          * Implement the refinement loop, returning an optional trace that if
          * present is feasible and demonstrates how the program is incorrect.
          */
-        def traceRefinement (nfa : CFGNFA) : Option[Trace] = {
+        def traceRefinement (nfa : CFGNFA) : Option[FailureTrace] = {
+
+            def makeFailureTrace (trace : Trace, terms: Seq[TypedTerm], solver : Interpreter) : FailureTrace = {
+                val getids = collect[Seq,QualifiedIdentifier] {
+                                 case id @ (QualifiedIdentifier (_, Some (_))) =>
+                                     id
+                             }
+                val ids = getids (terms).toSet.toSeq
+                val values = ids match {
+                                 case h +: t =>
+                                     getValues (h, t) (solver)
+                                 case _ =>
+                                     Success (ValMap (Map.empty))
+                             }
+                FailureTrace (trace, ids, values)
+            }
 
             // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
 
-            def refine[S] (dfa : DetAuto[S,Entry]) : Option[Trace] =
+            def refine[S] (dfa : DetAuto[S,Entry]) : Option[FailureTrace] =
                 Lang (dfa).getAcceptedTraceAfter (List ()) match {
 
                     case None =>
@@ -308,9 +336,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                         val solver = SMTSolver (SMTInterpol, QFLIASatModelConfig).get
                         isSat (terms) (solver) match {
                             case Success (SatStatus) =>
-                                solver.eval (Exit ())
                                 println ("trace was feasible")
-                                Some (trace)
+                                val failure = makeFailureTrace (trace, terms, solver)
+                                solver.eval (Exit ())
+                                Some (failure)
 
                             case Success (UnsatStatus) =>
                                 solver.eval (Exit ())
@@ -327,9 +356,39 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             refine (nfa)
         }
 
-        def printTrace (trace : Trace) {
-            for (entry <- trace.entries) {
-                println (s"${entry.block.optBlockLabel} ${entry.condition}")
+        // Regexp for breaking verified names apart
+        val Name = "(.*)@([0-9]+)".r
+
+        /**
+         * An ordering of qualified identifiers that breaks the name apart and
+         * orders in increasing order of integer index and then name.
+         */
+        implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
+            def compare (a : QualifiedIdentifier, b : QualifiedIdentifier) : Int =
+                (a.id.symbol.name, b.id.symbol.name) match {
+                    case (Name (avar, aind), Name (bvar, bind)) =>
+                        val ai = aind.toInt
+                        val bi = bind.toInt
+                        if (ai == bi)
+                            avar compare bvar
+                        else
+                            ai - bi
+                }
+        }
+
+        def printTrace (failure : FailureTrace) {
+            println ("trace:")
+            for (entry <- failure.trace.entries)
+                println (s"  ${entry.block.optBlockLabel} ${entry.condition}")
+            println ("values:")
+            if (failure.values.isSuccess) {
+                val values = failure.values.get
+                for (qid <- failure.ids.sorted)
+                    if (values.isDefinedAt (qid)) {
+                        val i = qid.id.symbol.name
+                        val v = values.get (qid).get.getTerm
+                        println (s"  $i = $v")
+                    }
             }
         }
 
@@ -337,9 +396,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         traceRefinement (nfa) match {
             case None =>
                 config.output.emitln ("program is correct")
-            case Some (trace) =>
+            case Some (failure) =>
                 config.output.emitln ("program is incorrect")
-                printTrace (trace)
+                printTrace (failure)
         }
 
     }
