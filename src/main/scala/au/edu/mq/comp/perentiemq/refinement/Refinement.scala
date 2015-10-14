@@ -23,18 +23,22 @@ object TraceRefinement {
   def traceRefinement[S1, L](cfg: NFA[S1, L],
     traceToTerms: Seq[L] => Seq[TypedTerm]): Try[Option[Seq[L]]] = {
 
+    println("I am called")
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
     def refineRec[S2](cfg: NFA[S1, L], r: DetAuto[S2, L]): Try[Option[Seq[L]]] =
 
-      (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
+      (Lang(cfg)).getAcceptedTrace match {
+      // (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
         //  if None, the program is correct
         case None =>
+            println("Exiting")
           Success(None)
 
         case Some(entries) =>
+            println("Found")
           val trace = entries
           val terms: Seq[TypedTerm] = traceToTerms(trace)
 
@@ -60,9 +64,9 @@ object TraceRefinement {
                 Failure(new Exception(s"strange solver status: $status"))
               // sys.error(s"strange solver status: $status")
           }
-
       }
 
+    println("Calling refineRec")
     refineRec(cfg, NFA[Set[Int], L](Set(), Set(), Set()))
   }
 }

@@ -23,7 +23,7 @@ class SimpleIntProgs extends FunSuite with Matchers with Driver {
   val path = "src/test/scala/au/edu/mq/comp/perentiemq/simple-example-programs/ll/"
 
   test( "Parse and verify" ) {
-    val IRCode = makeast(FileSource(path + "simple-if.ll"), conf)
+    val IRCode = makeast(FileSource(path + "simple-if-false.ll"), conf)
     // processfile(path + "simple-if.ll", createConfig(Seq("-t", "-v")))
     println(IRCode)
     assert(true)
