@@ -104,6 +104,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
         def expandAssertCalls (block : Block) : Vector[Block] = {
 
+            val assertname = "__VERIFIER_assert"
+
             type Instructions = Vector[Instruction]
 
             val blockname = blockName (function, block)
@@ -124,13 +126,31 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 }
 
             /**
+             * Extractor to match various forms of calls to assert function.
+             * The main reason for the differences seems to be whether a
+             * correct prototype is available when the LLVM IR is produced.
+             * To simplify things, we don't assume that the proper prototype
+             * is there, so we support these multiple forms.
+             */
+            object AssertFunction {
+                def unapply (v : CalledValue) : Boolean =
+                    v match {
+                        case Function (Named (Global (`assertname`))) =>
+                            true
+                        case Function (Const (ConvertC (Bitcast (), _, NameC (Global (`assertname`)), _))) =>
+                            true
+                        case _ =>
+                            false
+                    }
+            }
+
+            /**
              * Predicate to identify an assert call in SV-COMP form. The value
              * should be the one that is asserted.
              */
             def isAssertCall (insn : Instruction, local : Local) : Boolean =
                 insn match {
-                    case Call (_, _, _, _, VoidT (),
-                               Function (Named (Global ("__VERIFIER_assert"))),
+                    case Call (_, _, _, _, _, AssertFunction (),
                                Vector (ValueArg (IntT (size), Vector (), Named (arg))),
                                Vector ())
                             if (size == 32) && (local == arg) =>
