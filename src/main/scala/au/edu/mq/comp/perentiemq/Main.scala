@@ -116,6 +116,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
                 config.error.emitln (DOTPrettyPrinter.format (dot).layout)
             }
 
+            //  launch the verification
             if (config.verifyTarget ())
                 AssemblyCFG.verify (cfg, cfgAnalyser)
         }
