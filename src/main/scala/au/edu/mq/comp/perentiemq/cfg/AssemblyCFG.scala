@@ -11,6 +11,19 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import smtlib.util.TypedTerm
 
     /**
+     * Return whether or not the named function is a special verifier
+     * function.
+     */
+    def isVerifierFunction (name : String) : Boolean =
+        name.startsWith ("__VERIFIER")
+
+    /**
+     * Return whether or not the named function is an LLVM intrinsic.
+     */
+    def isLLVMIntrinsic (name : String) : Boolean =
+        name.startsWith ("llvm")
+
+    /**
      * An alias for trace entries in an Assembly CFG.
      */
     type Entry = CFGEntry[FunctionDefinition,Block]
@@ -79,6 +92,22 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         /**
+         * Extractor that recognises functions whose calls we want to ignore when
+         * generating effect terms. Currently:
+         *   - any LLVM intrinsic, such as llvm.stacksave
+         *   - special verifier fns, such as __VERIFIER_nondet_int
+         */
+        object IgnoredFunction {
+            def unapply (fn : Function) : Boolean =
+                fn match {
+                    case Function (Named (Global (s))) =>
+                        isLLVMIntrinsic (s) || isVerifierFunction (s)
+                    case _ =>
+                        false
+                }
+        }
+
+        /**
          * Return terms that express the effect of an LLVM node.
          */
         lazy val term : ASTNode => Vector[TypedTerm] =
@@ -110,6 +139,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                                 9999
                         }
                     Vector (nterm (to) === exp)
+
+                case Call (_, _, _, _, _, IgnoredFunction (), _, _) =>
+                    Vector ()
 
                 case Compare (Binding (to), ICmp (icond), _ : IntT, left, right) =>
                     val lterm = vterm (left)
@@ -243,20 +275,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         import smtlib.util.Logics.{getValues, isSat}
         import smtlib.util.ValMap
 
-        /**
-         * The prefix used by the SV-COMP to signify special functions.
-         */
-        val SVCompVerifierPrefix = "@__VERIFIER"
-
-        /**
-         * Return whether or not the named function should be verified.
-         */
-        def isNotToBeVerified (name : String) : Boolean =
-            name.startsWith (SVCompVerifierPrefix)
-
         // Return if we don't want to verify this function
         val fname = functionName (cfgAnalyser.function (cfg))
-        if (isNotToBeVerified (fname))
+        if (isVerifierFunction (fname.drop (1)))
             return
 
         // Gather type information on variables in this CFG
