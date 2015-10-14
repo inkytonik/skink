@@ -1,0 +1,5 @@
+#! /bin/sh
+# Generate appropriate LLVM IR code for C programs on command-line.
+# We assume the latest clang which is 3.7.0.
+
+clang -S -emit-llvm -c $*
