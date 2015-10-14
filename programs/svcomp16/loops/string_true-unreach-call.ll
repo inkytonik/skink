@@ -214,8 +214,7 @@ lor.end:                                          ; preds = %lor.rhs, %while.end
   %33 = phi i1 [ true, %while.end51 ], [ %cmp57, %lor.rhs ]
   %lor.ext = zext i1 %33 to i32
   call void @__VERIFIER_assert(i32 %lor.ext)
-  %34 = load i32, i32* %retval
-  ret i32 %34
+  ret i32 0
 }
 
 declare signext i8 @__VERIFIER_nondet_char(...) #2
