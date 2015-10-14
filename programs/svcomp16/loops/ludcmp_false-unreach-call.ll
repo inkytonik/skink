@@ -30,8 +30,9 @@ if.end:                                           ; preds = %entry
 declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
 entry:
+  %retval = alloca i32, align 4
   %i = alloca i32, align 4
   %j = alloca i32, align 4
   %nmax = alloca i32, align 4
@@ -39,6 +40,7 @@ entry:
   %chkerr = alloca i32, align 4
   %eps = alloca double, align 8
   %w = alloca double, align 8
+  store i32 0, i32* %retval
   store i32 50, i32* %nmax, align 4
   store i32 5, i32* %n, align 4
   store double 1.000000e-06, double* %eps, align 8
@@ -136,7 +138,7 @@ for.end25:                                        ; preds = %for.cond
   %24 = load double, double* %eps, align 8
   %call = call i32 @ludcmp(i32 %22, i32 %23, double %24)
   store i32 %call, i32* %chkerr, align 4
-  ret void
+  ret i32 0
 }
 
 ; Function Attrs: nounwind ssp uwtable

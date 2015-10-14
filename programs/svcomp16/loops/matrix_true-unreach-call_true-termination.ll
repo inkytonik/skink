@@ -128,6 +128,7 @@ for.end18:                                        ; preds = %for.cond
   %cmp21 = icmp sle i32 %25, %26
   %conv = zext i1 %cmp21 to i32
   call void @__VERIFIER_assert(i32 %conv)
+  store i32 0, i32* %retval
   %27 = load i8*, i8** %saved_stack
   call void @llvm.stackrestore(i8* %27)
   %28 = load i32, i32* %retval

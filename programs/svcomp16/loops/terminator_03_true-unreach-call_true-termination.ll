@@ -1,4 +1,4 @@
-; ModuleID = 'terminator_01_false-unreach-call_false-termination.i'
+; ModuleID = 'terminator_03_true-unreach-call_true-termination.i'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
@@ -30,29 +30,58 @@ define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
   %x = alloca i32, align 4
-  %p = alloca i32*, align 8
+  %y = alloca i32, align 4
   store i32 0, i32* %retval
   %call = call i32 (...) @__VERIFIER_nondet_int()
   store i32 %call, i32* %x, align 4
-  store i32* %x, i32** %p, align 8
+  %call1 = call i32 (...) @__VERIFIER_nondet_int()
+  store i32 %call1, i32* %y, align 4
+  %0 = load i32, i32* %y, align 4
+  %cmp = icmp sgt i32 %0, 0
+  br i1 %cmp, label %if.then, label %if.end
+
+if.then:                                          ; preds = %entry
   br label %while.cond
 
-while.cond:                                       ; preds = %while.body, %entry
-  %0 = load i32, i32* %x, align 4
-  %cmp = icmp slt i32 %0, 100
-  br i1 %cmp, label %while.body, label %while.end
+while.cond:                                       ; preds = %while.body, %if.then
+  %1 = load i32, i32* %x, align 4
+  %cmp2 = icmp slt i32 %1, 100
+  br i1 %cmp2, label %while.body, label %while.end
 
 while.body:                                       ; preds = %while.cond
-  %1 = load i32*, i32** %p, align 8
-  %2 = load i32, i32* %1, align 4
-  %inc = add nsw i32 %2, 1
-  store i32 %inc, i32* %1, align 4
+  %2 = load i32, i32* %x, align 4
+  %3 = load i32, i32* %y, align 4
+  %add = add nsw i32 %2, %3
+  store i32 %add, i32* %x, align 4
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
-  call void @__VERIFIER_assert(i32 0)
-  %3 = load i32, i32* %retval
-  ret i32 %3
+  br label %if.end
+
+if.end:                                           ; preds = %while.end, %entry
+  %4 = load i32, i32* %y, align 4
+  %cmp3 = icmp sle i32 %4, 0
+  br i1 %cmp3, label %lor.end, label %lor.rhs
+
+lor.rhs:                                          ; preds = %if.end
+  %5 = load i32, i32* %y, align 4
+  %cmp4 = icmp sgt i32 %5, 0
+  br i1 %cmp4, label %land.rhs, label %land.end
+
+land.rhs:                                         ; preds = %lor.rhs
+  %6 = load i32, i32* %x, align 4
+  %cmp5 = icmp sge i32 %6, 100
+  br label %land.end
+
+land.end:                                         ; preds = %land.rhs, %lor.rhs
+  %7 = phi i1 [ false, %lor.rhs ], [ %cmp5, %land.rhs ]
+  br label %lor.end
+
+lor.end:                                          ; preds = %land.end, %if.end
+  %8 = phi i1 [ true, %if.end ], [ %7, %land.end ]
+  %lor.ext = zext i1 %8 to i32
+  call void @__VERIFIER_assert(i32 %lor.ext)
+  ret i32 0
 }
 
 declare i32 @__VERIFIER_nondet_int(...) #2

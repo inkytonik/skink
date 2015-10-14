@@ -207,8 +207,7 @@ while.end56:                                      ; preds = %while.cond30
   %cmp57 = icmp eq i32 %27, %28
   %conv58 = zext i1 %cmp57 to i32
   call void @__VERIFIER_assert(i32 %conv58)
-  %29 = load i32, i32* %retval
-  ret i32 %29
+  ret i32 0
 }
 
 ; Function Attrs: nounwind

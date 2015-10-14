@@ -32,8 +32,10 @@ if.end:                                           ; preds = %entry
 declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
 entry:
+  %retval = alloca i32, align 4
+  store i32 0, i32* %retval
   %call = call i32 (...) @__VERIFIER_nondet_int()
   store i32 %call, i32* @k, align 4
   store i32 0, i32* @i, align 4
@@ -94,7 +96,7 @@ if.end:                                           ; preds = %if.then17, %if.then
   br label %if.end18
 
 if.end18:                                         ; preds = %if.end, %land.lhs.true, %while.end
-  ret void
+  ret i32 0
 }
 
 declare i32 @__VERIFIER_nondet_int(...) #2
