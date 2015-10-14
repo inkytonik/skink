@@ -235,7 +235,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     val id = nameToIndexedName (exitcond, s)
                     value match {
                         case b : Boolean =>
-                            Some (TypedTerm (id, Core.BoolSort ()) === b)
+                            val t = TypedTerm (id, Core.BoolSort ())
+                            Some (if (b) t else ! t)
                         case i : Int =>
                             Some (TypedTerm (id, Ints.IntSort ()) === i)
                         case _ =>
