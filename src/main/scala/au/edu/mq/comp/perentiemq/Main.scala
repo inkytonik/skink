@@ -117,7 +117,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
             }
 
             if (config.verifyTarget ())
-                AssemblyCFG.verify (cfg, cfgAnalyser)
+                AssemblyCFG.verify (cfg, cfgAnalyser, config)
         }
 
         if (config.execute ()) {

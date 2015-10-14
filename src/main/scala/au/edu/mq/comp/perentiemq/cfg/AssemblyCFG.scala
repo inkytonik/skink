@@ -5,6 +5,7 @@ package au.edu.mq.comp.perentiemq.cfg
  */
 object AssemblyCFG extends AssemblyCFGBuilder {
 
+    import au.edu.mq.comp.perentiemq.IMLConfig
     import org.kiama.relation.Tree
     import org.scalallvm.assembly.AssemblySyntax._
     import smtlib.util.TypedTerm
@@ -224,7 +225,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Verify the given CFG. The IR is assumed to have been processed by
      * `prepareIRForVerification` before the CFG was constructed.
      */
-    def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser) {
+    def verify (cfg : CFG[FunctionDefinition,Block], cfgAnalyser : CFGAnalyser, config : IMLConfig) {
 
         import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
         import au.edu.mq.comp.automat.lang.Lang
@@ -335,9 +336,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         // Run the verification
         traceRefinement (nfa) match {
             case None =>
-                println ("program is correct")
+                config.output.emitln ("program is correct")
             case Some (trace) =>
-                println ("program is incorrect")
+                config.output.emitln ("program is incorrect")
                 printTrace (trace)
         }
 
