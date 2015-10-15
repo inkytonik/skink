@@ -5,6 +5,7 @@ package au.edu.mq.comp.perentiemq.cfg
  */
 object AssemblyCFG extends AssemblyCFGBuilder {
 
+  import au.edu.mq.comp.perentiemq.PerentieMQConfig
   import org.kiama.relation.Tree
   import org.scalallvm.assembly.AssemblySyntax._
   import smtlib.util.TypedTerm
@@ -214,6 +215,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * Return terms that express the effect of a trace entry, including
          * the transition to the next entry in the trace, if there is one.
          */
+
     def entryToTerm(entry: Entry): Vector[TypedTerm] =
       term(entry.block) ++ exitcondToTerm(entry.condition)
 
@@ -226,21 +228,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
    */
-  def verify(cfg: CFG[FunctionDefinition, Block], cfgAnalyser: CFGAnalyser) {
+  def verify(cfg: CFG[FunctionDefinition, Block], cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
 
-    import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
-    import au.edu.mq.comp.automat.lang.Lang
-    import au.edu.mq.comp.automat.edge.Implicits._
+    import au.edu.mq.comp.automat.auto.{ NFA }
     import org.scalallvm.assembly.Analyser
     import scala.annotation.tailrec
-    import scala.util.{ Failure, Success }
-    import smtlib.interpreters.Configurations._
-    import smtlib.interpreters.SMTSolver
-    import smtlib.parser.Commands.{ Exit, Reset }
-    import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus }
-    import smtlib.util.Logics.isSat
-
-    import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.traceRefinement
+    import scala.util.{ Try, Failure, Success }
+    import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
     /*
          * The prefix used by the SV-COMP to signify special functions.
          */
@@ -249,6 +243,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /*
          * Return whether or not the named function should be verified.
          */
+
     def isNotToBeVerified(name: String): Boolean =
       name.startsWith(SVCompVerifierPrefix)
 
@@ -266,25 +261,55 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     val cfganalyser = new CFGAnalyser(cfg)
     val nfa = cfganalyser.nfa(cfg)
 
-    println(nfa.accepting)
-    nfa.edges map println
-    println(Lang(nfa).getAcceptedTrace)
-    
+    // Regexp for breaking verified names apart
+    val Name = "(.*)@([0-9]+)".r
+
+    import smtlib.parser.Terms.QualifiedIdentifier
+
+    /**
+     * An ordering of qualified identifiers that breaks the name apart and
+     * orders in increasing order of integer index and then name.
+     */
+    implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
+      def compare(a: QualifiedIdentifier, b: QualifiedIdentifier): Int =
+        (a.id.symbol.name, b.id.symbol.name) match {
+          case (Name(avar, aind), Name(bvar, bind)) =>
+            val ai = aind.toInt
+            val bi = bind.toInt
+            if (ai == bi)
+              avar compare bvar
+            else
+              ai - bi
+        }
+    }
+
+    def printTrace(failure: FailureTrace[Entry]) {
+      println("trace:")
+      for (entry <- failure.trace)
+        println(s"  ${entry.block.optBlockLabel} ${entry.condition}")
+      println("values:")
+      if (failure.values.isSuccess) {
+        val values = failure.values.get
+        for (qid <- failure.ids.sorted)
+          if (values.isDefinedAt(qid)) {
+            val i = qid.id.symbol.name
+            val v = values.get(qid).get.getTerm
+            println(s"  $i = $v")
+          }
+      }
+    }
+
+    //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
-        case None => println("Program is correct")
-        case Some(trace) =>
-          println("Program is incorrect. WItness trace follows")
-          printTrace(Trace(trace))
+        case None => 
+            println(Console.GREEN_B  + "Program is correct" + Console.RESET)
+        case Some(failTrace) =>
+          println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
+          printTrace(failTrace)
       }
       case Failure(e) => println(e.getMessage)
     }
 
-
-    def printTrace(trace: Trace) {
-      for (entry <- trace.entries) {
-        println(s"${entry.block.optBlockLabel} ${entry.condition}")
-      }
-    }
   }
 }

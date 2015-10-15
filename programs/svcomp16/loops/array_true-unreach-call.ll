@@ -1,4 +1,4 @@
-; ModuleID = 'array_false-unreach-call.i'
+; ModuleID = 'array_true-unreach-call.i'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
@@ -87,9 +87,10 @@ for.end:                                          ; preds = %for.cond
   %arrayidx7 = getelementptr inbounds i32, i32* %vla, i64 0
   %12 = load i32, i32* %arrayidx7, align 4
   %13 = load i32, i32* %menor, align 4
-  %cmp8 = icmp sgt i32 %12, %13
+  %cmp8 = icmp sge i32 %12, %13
   %conv = zext i1 %cmp8 to i32
   call void @__VERIFIER_assert(i32 %conv)
+  store i32 0, i32* %retval
   %14 = load i8*, i8** %saved_stack
   call void @llvm.stackrestore(i8* %14)
   %15 = load i32, i32* %retval

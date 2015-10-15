@@ -3,7 +3,7 @@ package au.edu.mq.comp.perentiemq
 import iml.IMLSyntax.Program
 import org.kiama.util.{CompilerBase, Config}
 
-abstract class IMLConfig (args : Seq[String]) extends Config (args) {
+abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
     lazy val cfgPrettyPrint = opt[Boolean] ("cfgprint", short = 'g',
                                             descr = "Pretty print the control flow graph of the target code")
     lazy val cfgDotPrint = opt[Boolean] ("cfgdotprint", short = 'd',
@@ -26,7 +26,7 @@ abstract class IMLConfig (args : Seq[String]) extends Config (args) {
                                           descr = "Verify the target code")
 }
 
-trait Driver extends CompilerBase[Program,IMLConfig] {
+trait Driver extends CompilerBase[Program,PerentieMQConfig] {
 
     import au.edu.mq.comp.dot.DOTPrettyPrinter
     import cfg.AssemblyCFG
@@ -41,13 +41,13 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
     override def createConfig (args : Seq[String],
                                out : Emitter = new OutputEmitter,
-                               err : Emitter = new ErrorEmitter) : IMLConfig =
-        new IMLConfig (args) {
+                               err : Emitter = new ErrorEmitter) : PerentieMQConfig =
+        new PerentieMQConfig (args) {
             lazy val output = out
             lazy val error = err
         }
 
-    override def makeast (source : Source, config : IMLConfig) : Either[Program,Messages] = {
+    override def makeast (source : Source, config : PerentieMQConfig) : Either[Program,Messages] = {
         if (config.compile () || config.sourcePrint () || config.sourcePrettyPrint ()) {
 
             // We're compiling so input file contains IML. Parse and process
@@ -77,7 +77,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
     }
 
-    def process (source : Source, program : Program, config : IMLConfig) {
+    def process (source : Source, program : Program, config : PerentieMQConfig) {
 
         if (config.sourcePrint ())
             config.error.emitln (pretty (any (program)).layout)
@@ -93,7 +93,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
     }
 
-    def processir (ir : IR, config : IMLConfig) {
+    def processir (ir : IR, config : PerentieMQConfig) {
 
         if (config.targetPrint ())
             config.error.emitln (AssemblyPrettyPrinter.pretty (AssemblyPrettyPrinter.any (ir)).layout)
@@ -118,7 +118,7 @@ trait Driver extends CompilerBase[Program,IMLConfig] {
 
             //  launch the verification
             if (config.verifyTarget ())
-                AssemblyCFG.verify (cfg, cfgAnalyser)
+                AssemblyCFG.verify (cfg, cfgAnalyser, config)
         }
 
         if (config.execute ()) {
