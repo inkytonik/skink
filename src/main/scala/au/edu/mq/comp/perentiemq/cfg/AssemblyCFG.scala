@@ -213,6 +213,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case Convert (Binding (to), _, IntT (_), from, IntT (n)) if n == 1 =>
                     Vector (nterm (to) === ! (vterm (from) === 0))
 
+                case Convert (Binding (to), _, IntT (n), from, IntT (_)) if n == 1 =>
+                    Vector (nterm (to) === vterm (from).ifElse (1, 0))
+
                 case Convert (Binding (to), _, _, from, _) =>
                     Vector (nterm (to) === vterm (from))
 
