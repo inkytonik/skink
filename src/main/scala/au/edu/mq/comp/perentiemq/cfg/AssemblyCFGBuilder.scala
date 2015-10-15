@@ -152,7 +152,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 insn.instruction match {
                     case Call (_, _, _, _, _, AssertFunction (),
                                Vector (ValueArg (IntT (size), Vector (), Named (arg))),
-                               Vector ())
+                               _)
                             if (size == 32) && (local == arg) =>
                         true
                     case _ =>
