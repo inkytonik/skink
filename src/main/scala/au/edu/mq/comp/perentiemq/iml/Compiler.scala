@@ -43,7 +43,8 @@ class Compiler (positions : Positions) {
 
     def finishBlock (terminator : TerminatorInstruction) {
         val label = if (labelStack.isEmpty) NoLabel () else BlockLabel (labelStack.pop ())
-        val block = Block (label, Vector (), None, insnBuffer.toVector, terminator)
+        val metaTerminator = MetaTerminatorInstruction (terminator, Metadata (Vector ()))
+        val block = Block (label, Vector (), None, insnBuffer.toVector, metaTerminator)
         blockBuffer.append (block)
     }
 

@@ -24,7 +24,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         function.functionBody.blocks.head == block
 
     def isExit (function : FunctionDefinition, block : Block) : Boolean =
-        block.terminatorInstruction match {
+        block.metaTerminatorInstruction.terminatorInstruction match {
             case _ : Ret | _ : RetVoid | _ : Unreachable =>
                 true
             case _ =>
@@ -38,7 +38,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         }
 
     def exitOf (function : FunctionDefinition, block : Block) : CFGExit[FunctionDefinition,Block] =
-        block.terminatorInstruction match {
+        block.metaTerminatorInstruction.terminatorInstruction match {
 
             // Any exit block
             case _ if (isExit (function, block)) =>
@@ -210,17 +210,19 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 val thisBlockLabel = BlockLabel (s"$blockname.$n")
                 if (n == numgroups - 1) {
                     // Last block gets the original terminator insn
-                    Block (thisBlockLabel, Vector (), None, group.insns, block.terminatorInstruction)
+                    Block (thisBlockLabel, Vector (), None, group.insns, block.metaTerminatorInstruction)
                 } else {
                     val nextLabel = Label (Local (s"$blockname.${n + 1}"))
-                    val terminator = BranchCond (group.value, nextLabel, errorLabel)
+                    val metaTerminator =
+                        MetaTerminatorInstruction (BranchCond (group.value, nextLabel, errorLabel),
+                                                   Metadata (Vector ()))
                     if (n == 0) {
                         // First block gets the original phi and landing pad insns,
                         // plus new terminator
-                        Block (block.optBlockLabel, block.optPhiInstructions, None, group.insns, terminator)
+                        Block (block.optBlockLabel, block.optMetaPhiInstructions, None, group.insns, metaTerminator)
                     } else {
                         // Other blocks just have the new terminator
-                        Block (thisBlockLabel, Vector (), None, group.insns, terminator)
+                        Block (thisBlockLabel, Vector (), None, group.insns, metaTerminator)
                     }
                 }
             }
@@ -243,7 +245,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         //    ret void
 
         val errorBlock = Block (BlockLabel (".error"), Vector (),
-                                None, Vector (), RetVoid ())
+                                None, Vector (),
+                                MetaTerminatorInstruction (RetVoid (), Metadata (Vector ())))
 
         val functionBodyWithErrorBlock =
             FunctionBody (functionBodyWithProcessedBlocks :+ errorBlock)

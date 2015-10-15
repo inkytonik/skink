@@ -157,12 +157,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 // Blocks
 
                 case block : Block =>
-                    (block.optPhiInstructions ++ block.optMetaInstructions).flatMap (terms)
+                    (block.optMetaPhiInstructions ++ block.optMetaInstructions).flatMap (terms)
 
-                // Instructions
+                // Meta instructions
+
+                case MetaPhiInstruction (insn, _) =>
+                    terms (insn)
 
                 case MetaInstruction (insn, _) =>
                     terms (insn)
+
+                // Instructions
 
                 case _ : Alloca =>
                     Vector ()
