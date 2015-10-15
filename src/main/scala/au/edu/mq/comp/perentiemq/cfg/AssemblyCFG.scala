@@ -303,10 +303,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
         case None => 
-            println(Console.GREEN_B  + "Program is correct" + Console.RESET)
+            println("Program is correct")
+            // println(Console.GREEN_B  + "Program is correct" + Console.RESET)
         case Some(failTrace) =>
-          println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
-          printTrace(failTrace)
+          println("Program is incorrect")
+          // println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
+          // printTrace(failTrace)
       }
       case Failure(e) => println(e.getMessage)
     }

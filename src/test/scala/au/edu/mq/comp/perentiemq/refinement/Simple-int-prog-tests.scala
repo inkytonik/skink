@@ -20,12 +20,11 @@ class SimpleIntProgs extends FunSuite with Matchers with Driver {
 
   // create an IML config for verification
   val conf = createAndInitConfig(Seq("-v"))
-  val path = "src/test/scala/au/edu/mq/comp/perentiemq/simple-example-programs/ll/"
+  val path = "programs/simple/"
 
   test( "Parse and verify" ) {
-    val IRCode = makeast(FileSource(path + "simple-if-false.ll"), conf)
+    val IRCode = makeast(FileSource(path + "simple-if-correct.ll"), conf)
     // processfile(path + "simple-if.ll", createConfig(Seq("-t", "-v")))
-    println(IRCode)
     assert(true)
   }
 

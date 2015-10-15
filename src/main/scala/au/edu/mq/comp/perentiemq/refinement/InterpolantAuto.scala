@@ -25,7 +25,7 @@ object InterpolantAutomaton {
     }.toSet
     val accepting = Set(numentries)
     val res = NFA(init, edges, accepting)
-    println(res)
+
     res
   }
 }
