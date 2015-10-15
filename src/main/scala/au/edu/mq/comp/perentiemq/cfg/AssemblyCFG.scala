@@ -189,13 +189,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          */
         lazy val vterm : Value => TypedTerm = {
             attr {
+                case Const (FalseC ()) =>
+                    false
                 case Const (IntC (i)) =>
                     i
+                case Const (TrueC ()) =>
+                    true
                 case Named (name) =>
                     nterm (name)
-                case _ =>
-                    // FIXME: dummy
-                    42
+                case value =>
+                    sys.error (s"vterm: unexpected value $value")
             }
         }
 
