@@ -2,4 +2,13 @@
 # Generate appropriate LLVM IR code for C programs on command-line.
 # We assume the latest clang which is 3.7.0.
 
-clang -S -emit-llvm -c $*
+for file in $*
+do
+  echo $file
+  base=${file%.*}
+  llfile=$base.ll
+
+  sed '/void __VERIFIER_assert(int cond) {/,/^}$/d' $file |
+  clang -S -emit-llvm -c -o - -x c - | \
+    opt -S -inline -o $llfile
+done

@@ -11,6 +11,19 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import smtlib.util.TypedTerm
 
     /**
+     * Return whether or not the named function is a special verifier
+     * function.
+     */
+    def isVerifierFunction (name : String) : Boolean =
+        name.startsWith ("__VERIFIER")
+
+    /**
+     * Return whether or not the named function is an LLVM intrinsic.
+     */
+    def isLLVMIntrinsic (name : String) : Boolean =
+        name.startsWith ("llvm")
+
+    /**
      * An alias for trace entries in an Assembly CFG.
      */
     type Entry = CFGEntry[FunctionDefinition,Block]
@@ -56,11 +69,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         def storesin (in : Product => StoreMap) : Product ==> StoreMap = {
             case _ : Trace =>
                 Map[String,Int] ()
-            case n @ Binary (Binding (name), _, _, _, _) =>
-                bumpcount (in (n), name)
-            case n @ Compare (Binding (name), _, _, _, _) =>
-                bumpcount (in (n), name)
-            case n @ Load (Binding (name), _, _, _, _, _) =>
+            case n @ Binding (name) =>
                 bumpcount (in (n), name)
             case n @ Store (_, _, _, _, Named (name), _) =>
                 bumpcount (in (n), name)
@@ -80,21 +89,84 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             s"$s@$index"
         }
 
-        /*
+        /**
+         * Extractor that recognises functions whose calls we want to ignore when
+         * generating effect terms. Currently:
+         *   - any LLVM intrinsic, such as llvm.stacksave
+         *   - special verifier fns, such as __VERIFIER_nondet_int
+         */
+        object IgnoredFunction {
+            def unapply (fn : Function) : Boolean =
+                fn match {
+                    case Function (Named (Global (s))) =>
+                        isLLVMIntrinsic (s) || isVerifierFunction (s)
+                    case _ =>
+                        false
+                }
+        }
+
+        /**
+         * Given a node in a trace, return the name of the previous block in
+         * the trace. We look up from the node to get the current entry then
+         * move to the previous entry and get its block name. If there is no
+         * previous entry, return None.
+         */
+        lazy val prevBlockName : Product => Option[String] =
+            attr {
+                case tree.prev (CFGEntry (Block (BlockLabel (name), _, _, _, _), _)) =>
+                    Some (name)
+                case tree.parent (p) =>
+                    prevBlockName (p)
+                case _ =>
+                    None
+            }
+
+        /**
+         * Return the terms that express the effect of a phi instruction.
+         * We find out the previous block from the trace and the effect
+         * is to bind the result to the value in the instruction that is
+         * associated with that previous block.
+         */
+        lazy val phiTerms : Phi => Vector[TypedTerm] =
+            attr {
+                case phi @ Phi (Binding (to), _, preds) =>
+                    prevBlockName (phi) match {
+                        case Some (source) =>
+                            preds.collectFirst {
+                                case PhiPredecessor (value, Label (Local (label))) if label == source =>
+                                    value
+                            } match {
+                                case Some (value) =>
+                                    Vector (nterm (to) === vterm (value))
+                                case None =>
+                                    sys.error (s"phiTerms: can't find previous block $source in preds: $phi")
+                            }
+                        case None =>
+                            sys.error (s"phiTerms: phi insn in first block: $phi")
+                    }
+            }
+
+        /**
+
          * Return terms that express the effect of an LLVM node.
          */
-        lazy val term : ASTNode => Vector[TypedTerm] =
+        lazy val terms : ASTNode => Vector[TypedTerm] =
             attr {
 
                 // Blocks
 
                 case block : Block =>
-                    block.optInstructions.flatMap (term)
+                    (block.optMetaPhiInstructions ++ block.optMetaInstructions).flatMap (terms)
+
+                // Meta instructions
+
+                case MetaPhiInstruction (insn, _) =>
+                    terms (insn)
+
+                case MetaInstruction (insn, _) =>
+                    terms (insn)
 
                 // Instructions
-
-                case InsnMeta (insn, _) =>
-                    term (insn)
 
                 case _ : Alloca =>
                     Vector ()
@@ -112,6 +184,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                                 9999
                         }
                     Vector (nterm (to) === exp)
+
+                case Call (_, _, _, _, _, Function (Named (Global ("__VERIFIER_assume"))),
+                           Vector (ValueArg (_, _, arg)), _) =>
+                    Vector (vterm (arg))
+
+                case Call (_, _, _, _, _, IgnoredFunction (), _, _) =>
+                    Vector ()
 
                 case Compare (Binding (to), ICmp (icond), _ : IntT, left, right) =>
                     val lterm = vterm (left)
@@ -131,11 +210,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                         }
                     Vector (nterm (to) === exp)
 
-                case Convert (Binding (to), _, _ : IntT, from, _ : IntT) =>
+                case Convert (Binding (to), _, IntT (_), from, IntT (n)) if n == 1 =>
+                    Vector (nterm (to) === ! (vterm (from) === 0))
+
+                case Convert (Binding (to), _, _, from, _) =>
                     Vector (nterm (to) === vterm (from))
 
                 case Load (Binding (to), _, tipe, _, from, _) =>
                     Vector (nterm (to) === vterm (from))
+
+                case phi : Phi =>
+                    phiTerms (phi)
 
                 case Store (_, tipe, from, _, to, _) =>
                     Vector (vterm (to) === vterm (from))
@@ -152,13 +237,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          */
         lazy val vterm : Value => TypedTerm = {
             attr {
+                case Const (FalseC ()) =>
+                    false
                 case Const (IntC (i)) =>
                     i
+                case Const (TrueC ()) =>
+                    true
                 case Named (name) =>
                     nterm (name)
-                case _ =>
-                    // FIXME: dummy
-                    42
+                case value =>
+                    sys.error (s"vterm: unexpected value $value")
             }
         }
 
@@ -201,7 +289,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     val id = nameToIndexedName (exitcond, s)
                     value match {
                         case b : Boolean =>
-                            Some (TypedTerm (id, Core.BoolSort ()) === b)
+                            val t = TypedTerm (id, Core.BoolSort ())
+                            Some (if (b) t else ! t)
                         case i : Int =>
                             Some (TypedTerm (id, Ints.IntSort ()) === i)
                         case _ =>
@@ -216,7 +305,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * the transition to the next entry in the trace, if there is one.
          */
         def entryToTerm (entry : Entry) : Vector[TypedTerm] =
-            term (entry.block) ++ exitcondToTerm (entry.condition)
+            terms (entry.block) ++ exitcondToTerm (entry.condition)
 
         // Return all of the terms arising from this trace
         tree.root.entries.flatMap (entryToTerm)
@@ -258,7 +347,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         // Return if we don't want to verify this function
         val fname = functionName (cfgAnalyser.function (cfg))
-        if (isNotToBeVerified (fname))
+        if (fname != "@main")
             return
 
         // Gather type information on variables in this CFG
@@ -379,6 +468,25 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 }
         }
 
+        /**
+         * Return whether or not the given variable name is of interest
+         * at the user level. At present we just ignore the temporary
+         * variables since they are easy to spot.
+         */
+        def isUserLevelVariable (name : String) : Boolean = {
+            val TempName = "%[0-9]+@[0-9]+".r
+            name match {
+                case TempName () =>
+                    false
+                case _ =>
+                    true
+            }
+        }
+
+        /**
+         * Print a failure trace. This is a placeholder until we can
+         * produce the appropriate output for the SV-COMP.
+         */
         def printTrace (failure : FailureTrace) {
             println ("trace:")
             for (entry <- failure.trace.entries)
@@ -389,8 +497,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 for (qid <- failure.ids.sorted)
                     if (values.isDefinedAt (qid)) {
                         val i = qid.id.symbol.name
-                        val v = values.get (qid).get.getTerm
-                        println (s"  $i = $v")
+                        if (isUserLevelVariable (i)) {
+                            val v = values.get (qid).get.getTerm
+                            println (s"  $i = $v")
+                        }
                     }
             }
         }

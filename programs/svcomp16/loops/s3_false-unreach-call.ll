@@ -1,4 +1,4 @@
-; ModuleID = 's3_false-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
@@ -211,7 +211,7 @@ if.else37:                                        ; preds = %if.end30
 if.end38:                                         ; preds = %if.else37, %if.end36
   br label %while.body
 
-while.body:                                       ; preds = %if.end38, %if.end592
+while.body:                                       ; preds = %if.end592, %if.end38
   br label %while_0_continue
 
 while_0_continue:                                 ; preds = %while.body
@@ -1716,13 +1716,15 @@ if.end598:                                        ; preds = %if.else597, %if.the
   ret i32 %276
 
 ERROR:                                            ; preds = %if.then335, %if.then322
-  call void (...) @__VERIFIER_error() #3
+  call void (...) @__VERIFIER_error() #4
   unreachable
 }
 
 ; Function Attrs: nounwind ssp uwtable
 define internal %struct.ssl_method_st* @ssl3_get_client_method(i32 %ver) #0 {
 entry:
+  %tmp.i = alloca i8*, align 8
+  %tmp___0.i = alloca %struct.ssl_method_st*, align 8
   %retval = alloca %struct.ssl_method_st*, align 8
   %ver.addr = alloca i32, align 4
   %tmp = alloca %struct.ssl_method_st*, align 8
@@ -1732,19 +1734,47 @@ entry:
   br i1 %cmp, label %if.then, label %if.else
 
 if.then:                                          ; preds = %entry
-  %call = call %struct.ssl_method_st* @SSLv3_client_method()
-  store %struct.ssl_method_st* %call, %struct.ssl_method_st** %tmp, align 8
-  %1 = load %struct.ssl_method_st*, %struct.ssl_method_st** %tmp, align 8
-  store %struct.ssl_method_st* %1, %struct.ssl_method_st** %retval
+  %1 = bitcast i8** %tmp.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %1)
+  %2 = bitcast %struct.ssl_method_st** %tmp___0.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %2)
+  %3 = load i32, i32* @init, align 4
+  %tobool.i = icmp ne i32 %3, 0
+  br i1 %tobool.i, label %if.then.i, label %if.else.i
+
+if.then.i:                                        ; preds = %if.then
+  store i32 0, i32* @init, align 4
+  %call.i = call %struct.ssl_method_st* @sslv3_base_method() #3
+  store %struct.ssl_method_st* %call.i, %struct.ssl_method_st** %tmp___0.i, align 8
+  %4 = load %struct.ssl_method_st*, %struct.ssl_method_st** %tmp___0.i, align 8
+  %5 = bitcast %struct.ssl_method_st* %4 to i8*
+  store i8* %5, i8** %tmp.i, align 8
+  %6 = load i8*, i8** %tmp.i, align 8
+  %call2.i = call i8* @memcpy(i8* bitcast (%struct.ssl_method_st* @SSLv3_client_data to i8*), i8* %6, i32 200) #3
+  store i32 (%struct.ssl_st*)* @ssl3_connect, i32 (%struct.ssl_st*)** getelementptr inbounds (%struct.ssl_method_st, %struct.ssl_method_st* @SSLv3_client_data, i32 0, i32 5), align 8
+  store %struct.ssl_method_st* (i32)* @ssl3_get_client_method, %struct.ssl_method_st* (i32)** getelementptr inbounds (%struct.ssl_method_st, %struct.ssl_method_st* @SSLv3_client_data, i32 0, i32 19), align 8
+  br label %SSLv3_client_method.exit
+
+if.else.i:                                        ; preds = %if.then
+  br label %SSLv3_client_method.exit
+
+SSLv3_client_method.exit:                         ; preds = %if.then.i, %if.else.i
+  %7 = bitcast i8** %tmp.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %7)
+  %8 = bitcast %struct.ssl_method_st** %tmp___0.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %8)
+  store %struct.ssl_method_st* @SSLv3_client_data, %struct.ssl_method_st** %tmp, align 8
+  %9 = load %struct.ssl_method_st*, %struct.ssl_method_st** %tmp, align 8
+  store %struct.ssl_method_st* %9, %struct.ssl_method_st** %retval
   br label %return
 
 if.else:                                          ; preds = %entry
   store %struct.ssl_method_st* null, %struct.ssl_method_st** %retval
   br label %return
 
-return:                                           ; preds = %if.else, %if.then
-  %2 = load %struct.ssl_method_st*, %struct.ssl_method_st** %retval
-  ret %struct.ssl_method_st* %2
+return:                                           ; preds = %if.else, %SSLv3_client_method.exit
+  %10 = load %struct.ssl_method_st*, %struct.ssl_method_st** %retval
+  ret %struct.ssl_method_st* %10
 }
 
 ; Function Attrs: nounwind ssp uwtable
@@ -1776,10 +1806,17 @@ declare i32 @__VERIFIER_nondet_int() #1
 ; Function Attrs: noreturn
 declare void @__VERIFIER_error(...) #2
 
+; Function Attrs: nounwind
+declare void @llvm.lifetime.start(i64, i8* nocapture) #3
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.end(i64, i8* nocapture) #3
+
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { noreturn }
+attributes #3 = { nounwind }
+attributes #4 = { noreturn }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}

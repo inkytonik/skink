@@ -1,31 +1,8 @@
-; ModuleID = 'linear_search_false-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 @SIZE = common global i32 0, align 4
-
-; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #4
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @linear_search(i32* %a, i32 %n, i32 %q) #0 {
@@ -98,6 +75,11 @@ return:                                           ; preds = %if.else, %if.then4
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
 entry:
+  %retval.i = alloca i32, align 4
+  %a.addr.i = alloca i32*, align 8
+  %n.addr.i = alloca i32, align 4
+  %q.addr.i = alloca i32, align 4
+  %j.i = alloca i32, align 4
   %saved_stack = alloca i8*
   %call = call i32 (...) @__VERIFIER_nondet_uint()
   %div = udiv i32 %call, 2
@@ -114,26 +96,108 @@ entry:
   %arrayidx = getelementptr inbounds i32, i32* %vla, i64 %idxprom
   store i32 3, i32* %arrayidx, align 4
   %4 = load i32, i32* @SIZE, align 4
-  %call2 = call i32 @linear_search(i32* %vla, i32 %4, i32 3)
-  call void @__VERIFIER_assert(i32 %call2)
-  %5 = load i8*, i8** %saved_stack
-  call void @llvm.stackrestore(i8* %5)
+  %5 = bitcast i32* %retval.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %5)
+  %6 = bitcast i32** %a.addr.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %6)
+  %7 = bitcast i32* %n.addr.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %7)
+  %8 = bitcast i32* %q.addr.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %8)
+  %9 = bitcast i32* %j.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %9)
+  store i32* %vla, i32** %a.addr.i, align 8
+  store i32 %4, i32* %n.addr.i, align 4
+  store i32 3, i32* %q.addr.i, align 4
+  store i32 0, i32* %j.i, align 4
+  br label %while.cond.i
+
+while.cond.i:                                     ; preds = %if.end.i, %entry
+  %10 = load i32, i32* %j.i, align 4
+  %11 = load i32, i32* %n.addr.i, align 4
+  %cmp.i = icmp ult i32 %10, %11
+  br i1 %cmp.i, label %land.rhs.i, label %land.end.i
+
+land.rhs.i:                                       ; preds = %while.cond.i
+  %12 = load i32, i32* %j.i, align 4
+  %idxprom.i = zext i32 %12 to i64
+  %13 = load i32*, i32** %a.addr.i, align 8
+  %arrayidx.i = getelementptr inbounds i32, i32* %13, i64 %idxprom.i
+  %14 = load i32, i32* %arrayidx.i, align 4
+  %15 = load i32, i32* %q.addr.i, align 4
+  %cmp1.i = icmp ne i32 %14, %15
+  br label %land.end.i
+
+land.end.i:                                       ; preds = %land.rhs.i, %while.cond.i
+  %16 = phi i1 [ false, %while.cond.i ], [ %cmp1.i, %land.rhs.i ]
+  br i1 %16, label %while.body.i, label %while.end.i
+
+while.body.i:                                     ; preds = %land.end.i
+  %17 = load i32, i32* %j.i, align 4
+  %inc.i = add i32 %17, 1
+  store i32 %inc.i, i32* %j.i, align 4
+  %18 = load i32, i32* %j.i, align 4
+  %cmp2.i = icmp eq i32 %18, 20
+  br i1 %cmp2.i, label %if.then.i, label %if.end.i
+
+if.then.i:                                        ; preds = %while.body.i
+  store i32 -1, i32* %j.i, align 4
+  br label %if.end.i
+
+if.end.i:                                         ; preds = %if.then.i, %while.body.i
+  br label %while.cond.i
+
+while.end.i:                                      ; preds = %land.end.i
+  %19 = load i32, i32* %j.i, align 4
+  %20 = load i32, i32* @SIZE, align 4
+  %cmp3.i = icmp ult i32 %19, %20
+  br i1 %cmp3.i, label %if.then4.i, label %if.else.i
+
+if.then4.i:                                       ; preds = %while.end.i
+  store i32 1, i32* %retval.i
+  br label %linear_search.exit
+
+if.else.i:                                        ; preds = %while.end.i
+  store i32 0, i32* %retval.i
+  br label %linear_search.exit
+
+linear_search.exit:                               ; preds = %if.then4.i, %if.else.i
+  %21 = load i32, i32* %retval.i
+  %22 = bitcast i32* %retval.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %22)
+  %23 = bitcast i32** %a.addr.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %23)
+  %24 = bitcast i32* %n.addr.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %24)
+  %25 = bitcast i32* %q.addr.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %25)
+  %26 = bitcast i32* %j.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %26)
+  %call3 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %21)
+  %27 = load i8*, i8** %saved_stack
+  call void @llvm.stackrestore(i8* %27)
   ret i32 0
 }
 
-declare i32 @__VERIFIER_nondet_uint(...) #2
+declare i32 @__VERIFIER_nondet_uint(...) #1
 
 ; Function Attrs: nounwind
-declare i8* @llvm.stacksave() #3
+declare i8* @llvm.stacksave() #2
+
+declare i32 @__VERIFIER_assert(...) #1
 
 ; Function Attrs: nounwind
-declare void @llvm.stackrestore(i8*) #3
+declare void @llvm.stackrestore(i8*) #2
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.start(i64, i8* nocapture) #2
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.end(i64, i8* nocapture) #2
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { nounwind }
-attributes #4 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
