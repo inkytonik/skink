@@ -457,6 +457,25 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 }
         }
 
+        /**
+         * Return whether or not the given variable name is of interest
+         * at the user level. At present we just ignore the temporary
+         * variables since they are easy to spot.
+         */
+        def isUserLevelVariable (name : String) : Boolean = {
+            val TempName = "%[0-9]+@[0-9]+".r
+            name match {
+                case TempName () =>
+                    false
+                case _ =>
+                    true
+            }
+        }
+
+        /**
+         * Print a failure trace. This is a placeholder until we can
+         * produce the appropriate output for the SV-COMP.
+         */
         def printTrace (failure : FailureTrace) {
             println ("trace:")
             for (entry <- failure.trace.entries)
@@ -467,8 +486,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 for (qid <- failure.ids.sorted)
                     if (values.isDefinedAt (qid)) {
                         val i = qid.id.symbol.name
-                        val v = values.get (qid).get.getTerm
-                        println (s"  $i = $v")
+                        if (isUserLevelVariable (i)) {
+                            val v = values.get (qid).get.getTerm
+                            println (s"  $i = $v")
+                        }
                     }
             }
         }
