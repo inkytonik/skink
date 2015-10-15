@@ -69,11 +69,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         def storesin (in : Product => StoreMap) : Product ==> StoreMap = {
             case _ : Trace =>
                 Map[String,Int] ()
-            case n @ Binary (Binding (name), _, _, _, _) =>
-                bumpcount (in (n), name)
-            case n @ Compare (Binding (name), _, _, _, _) =>
-                bumpcount (in (n), name)
-            case n @ Load (Binding (name), _, _, _, _, _) =>
+            case n @ Binding (name) =>
                 bumpcount (in (n), name)
             case n @ Store (_, _, _, _, Named (name), _) =>
                 bumpcount (in (n), name)
