@@ -30,7 +30,7 @@ class Compiler (positions : Positions) {
     // Buffering for block and instruction lists under construction
 
     val blockBuffer = mutable.ListBuffer[Block] ()
-    val insnBuffer = mutable.ListBuffer[Instruction] ()
+    val insnBuffer = mutable.ListBuffer[MetaInstruction] ()
 
     // Management of block labels, starting and finishing blocks
 
@@ -116,8 +116,8 @@ class Compiler (positions : Positions) {
 
     // Instruction emitters
 
-    def emit (instruction : Instruction) =
-        insnBuffer.append (instruction)
+    def emit (insn : Instruction) =
+        insnBuffer.append (MetaInstruction (insn, Metadata (Vector ())))
 
     def emitBinaryBool (binop : BinOp, l : IML.Predicate, r : IML.Predicate) : Value = {
         val lval = translatePredicate (l)

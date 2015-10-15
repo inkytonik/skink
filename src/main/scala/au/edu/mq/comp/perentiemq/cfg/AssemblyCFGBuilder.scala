@@ -106,7 +106,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
             val assertname = "__VERIFIER_assert"
 
-            type Instructions = Vector[Instruction]
+            type MetaInstructions = Vector[MetaInstruction]
 
             val blockname = blockName (function, block)
             val errorLabel = Label (Local (".error"))
@@ -116,8 +116,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              * an assert call. If one is found, return the value that is
              * converted and the value that it is converted to.
              */
-            def isAssertionConversion (insn : Instruction) : Option[(Named, Local)] =
-                insn match {
+            def isAssertionConversion (insn : MetaInstruction) : Option[(Named, Local)] =
+                insn.instruction match {
                     case Convert (Binding (to : Local), ZExt (), IntT (fromsize), from : Named, IntT (tosize))
                             if (fromsize == 1) && (tosize == 32) =>
                         Some ((from, to))
@@ -148,8 +148,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              * Predicate to identify an assert call in SV-COMP form. The value
              * should be the one that is asserted.
              */
-            def isAssertCall (insn : Instruction, local : Local) : Boolean =
-                insn match {
+            def isAssertCall (insn : MetaInstruction, local : Local) : Boolean =
+                insn.instruction match {
                     case Call (_, _, _, _, _, AssertFunction (),
                                Vector (ValueArg (IntT (size), Vector (), Named (arg))),
                                Vector ())
@@ -164,7 +164,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              * the value on which the call is made. Return None if there is no
              * assert call.
              */
-            def findAssert (insns : Instructions) : Option[(Instructions, Instructions, Named)] = {
+            def findAssert (insns : MetaInstructions) : Option[(MetaInstructions, MetaInstructions, Named)] = {
                 var index = 0
                 while (index < insns.size) {
                     isAssertionConversion (insns (index)) match {
@@ -185,13 +185,13 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              * A straight-line group of instructions from the original block
              * that terminate with an assertion on value.
              */
-            case class Group (insns : Instructions, value : Named)
+            case class Group (insns : MetaInstructions, value : Named)
 
             /**
              * Make groups of instructions. A new group is begun if an assert
              * call is detected. The value of the last group is a dummy.
              */
-            def makeGroups (insns : Instructions) : Vector[Group] =
+            def makeGroups (insns : MetaInstructions) : Vector[Group] =
                 findAssert (insns) match {
                     case None =>
                         Vector (Group (insns, Named (Local ("dummy"))))
@@ -199,7 +199,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                         Group (before, value) +: makeGroups (after)
                 }
 
-            val groups : Vector[Group] = makeGroups (block.optInstructions)
+            val groups : Vector[Group] = makeGroups (block.optMetaInstructions)
             val numgroups = groups.size
 
             /*
