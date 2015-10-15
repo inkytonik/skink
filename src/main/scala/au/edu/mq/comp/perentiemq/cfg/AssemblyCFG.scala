@@ -332,7 +332,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         // Return if we don't want to verify this function
         val fname = functionName (cfgAnalyser.function (cfg))
-        if (isVerifierFunction (fname.drop (1)))
+        if (fname != "@main")
             return
 
         // Gather type information on variables in this CFG
