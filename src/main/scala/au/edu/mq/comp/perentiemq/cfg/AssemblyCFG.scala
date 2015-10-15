@@ -110,18 +110,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         /**
          * Return terms that express the effect of an LLVM node.
          */
-        lazy val term : ASTNode => Vector[TypedTerm] =
+        lazy val terms : ASTNode => Vector[TypedTerm] =
             attr {
 
                 // Blocks
 
                 case block : Block =>
-                    block.optInstructions.flatMap (term)
+                    block.optInstructions.flatMap (terms)
 
                 // Instructions
 
                 case InsnMeta (insn, _) =>
-                    term (insn)
+                    terms (insn)
 
                 case _ : Alloca =>
                     Vector ()
@@ -254,7 +254,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * the transition to the next entry in the trace, if there is one.
          */
         def entryToTerm (entry : Entry) : Vector[TypedTerm] =
-            term (entry.block) ++ exitcondToTerm (entry.condition)
+            terms (entry.block) ++ exitcondToTerm (entry.condition)
 
         // Return all of the terms arising from this trace
         tree.root.entries.flatMap (entryToTerm)
