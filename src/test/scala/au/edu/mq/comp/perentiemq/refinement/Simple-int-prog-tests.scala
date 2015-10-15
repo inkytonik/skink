@@ -25,7 +25,7 @@ class SimpleIntProgs extends FunSuite with Matchers with Driver {
   test( "Parse and verify" ) {
     val IRCode = makeast(FileSource(path + "simple-if-correct.ll"), conf)
     // processfile(path + "simple-if.ll", createConfig(Seq("-t", "-v")))
-    assert(true)
+     assert(true)
   }
 
 }
