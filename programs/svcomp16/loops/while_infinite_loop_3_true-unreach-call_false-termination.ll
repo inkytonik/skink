@@ -1,31 +1,8 @@
-; ModuleID = 'while_infinite_loop_3_true-unreach-call_false-termination.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 @x = global i32 0, align 4
-
-; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #2
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
 define void @eval() #0 {
@@ -47,12 +24,12 @@ entry:
   store i32 0, i32* %retval
   br label %while.body
 
-while.body:                                       ; preds = %entry, %while.body
-  call void @eval()
+while.body:                                       ; preds = %while.body, %entry
+  store i32 0, i32* @x, align 4
   %0 = load i32, i32* @x, align 4
   %cmp = icmp eq i32 %0, 0
   %conv = zext i1 %cmp to i32
-  call void @__VERIFIER_assert(i32 %conv)
+  %call = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
   br label %while.body
 
 return:                                           ; No predecessors!
@@ -60,9 +37,10 @@ return:                                           ; No predecessors!
   ret i32 %1
 }
 
+declare i32 @__VERIFIER_assert(...) #1
+
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}

@@ -1,267 +1,261 @@
-; ModuleID = 'verisec_OpenSER__cases1_stripFullBoth_arr_false-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #3
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
-
-; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
 entry:
+  %retval.i = alloca i32, align 4
+  %str.addr.i = alloca i8*, align 8
+  %start.i = alloca i32, align 4
+  %i.i = alloca i32, align 4
+  %j.i = alloca i32, align 4
+  %str2.i = alloca [2 x i8], align 1
   %retval = alloca i32, align 4
   %A = alloca [9 x i8], align 1
   store i32 0, i32* %retval
   %arrayidx = getelementptr inbounds [9 x i8], [9 x i8]* %A, i32 0, i64 8
   store i8 0, i8* %arrayidx, align 1
   %arraydecay = getelementptr inbounds [9 x i8], [9 x i8]* %A, i32 0, i32 0
-  %call = call i32 @parse_expression_list(i8* %arraydecay)
+  %0 = bitcast i32* %retval.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %0)
+  %1 = bitcast i8** %str.addr.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %1)
+  %2 = bitcast i32* %start.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %2)
+  %3 = bitcast i32* %i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %3)
+  %4 = bitcast i32* %j.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %4)
+  %5 = bitcast [2 x i8]* %str2.i to i8*
+  call void @llvm.lifetime.start(i64 2, i8* %5)
+  store i8* %arraydecay, i8** %str.addr.i, align 8
+  store i32 0, i32* %start.i, align 4
+  store i32 -1, i32* %i.i, align 4
+  store i32 -1, i32* %j.i, align 4
+  %6 = load i8*, i8** %str.addr.i, align 8
+  %tobool.i = icmp ne i8* %6, null
+  br i1 %tobool.i, label %if.end.i, label %if.then.i
+
+if.then.i:                                        ; preds = %entry
+  store i32 -1, i32* %retval.i
+  br label %parse_expression_list.exit
+
+if.end.i:                                         ; preds = %entry
+  br label %do.body.i
+
+do.body.i:                                        ; preds = %sw.epilog.i, %if.end.i
+  %7 = load i32, i32* %i.i, align 4
+  %inc.i = add nsw i32 %7, 1
+  store i32 %inc.i, i32* %i.i, align 4
+  %8 = load i32, i32* %i.i, align 4
+  %idxprom.i = sext i32 %8 to i64
+  %9 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx.i = getelementptr inbounds i8, i8* %9, i64 %idxprom.i
+  %10 = load i8, i8* %arrayidx.i, align 1
+  %conv.i = sext i8 %10 to i32
+  %cond = icmp eq i32 %conv.i, 0
+  br i1 %cond, label %sw.bb.i, label %sw.epilog.i
+
+sw.bb.i:                                          ; preds = %do.body.i
+  br label %while.cond.i
+
+while.cond.i:                                     ; preds = %while.body.i, %sw.bb.i
+  %11 = load i32, i32* %start.i, align 4
+  %idxprom1.i = sext i32 %11 to i64
+  %12 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx2.i = getelementptr inbounds i8, i8* %12, i64 %idxprom1.i
+  %13 = load i8, i8* %arrayidx2.i, align 1
+  %conv3.i = sext i8 %13 to i32
+  %cmp.i = icmp eq i32 %conv3.i, 32
+  br i1 %cmp.i, label %lor.end.i, label %lor.rhs.i
+
+lor.rhs.i:                                        ; preds = %while.cond.i
+  %14 = load i32, i32* %start.i, align 4
+  %idxprom5.i = sext i32 %14 to i64
+  %15 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx6.i = getelementptr inbounds i8, i8* %15, i64 %idxprom5.i
+  %16 = load i8, i8* %arrayidx6.i, align 1
+  %conv7.i = sext i8 %16 to i32
+  %cmp8.i = icmp eq i32 %conv7.i, 9
+  br label %lor.end.i
+
+lor.end.i:                                        ; preds = %lor.rhs.i, %while.cond.i
+  %17 = phi i1 [ true, %while.cond.i ], [ %cmp8.i, %lor.rhs.i ]
+  br i1 %17, label %while.body.i, label %while.end.i
+
+while.body.i:                                     ; preds = %lor.end.i
+  %18 = load i32, i32* %start.i, align 4
+  %inc10.i = add nsw i32 %18, 1
+  store i32 %inc10.i, i32* %start.i, align 4
+  br label %while.cond.i
+
+while.end.i:                                      ; preds = %lor.end.i
+  %19 = load i32, i32* %start.i, align 4
+  %idxprom11.i = sext i32 %19 to i64
+  %20 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx12.i = getelementptr inbounds i8, i8* %20, i64 %idxprom11.i
+  %21 = load i8, i8* %arrayidx12.i, align 1
+  %conv13.i = sext i8 %21 to i32
+  %cmp14.i = icmp eq i32 %conv13.i, 34
+  br i1 %cmp14.i, label %if.then16.i, label %if.end18.i
+
+if.then16.i:                                      ; preds = %while.end.i
+  %22 = load i32, i32* %start.i, align 4
+  %inc17.i = add nsw i32 %22, 1
+  store i32 %inc17.i, i32* %start.i, align 4
+  br label %if.end18.i
+
+if.end18.i:                                       ; preds = %if.then16.i, %while.end.i
+  %23 = load i32, i32* %i.i, align 4
+  %sub.i = sub nsw i32 %23, 1
+  store i32 %sub.i, i32* %j.i, align 4
+  br label %while.cond19.i
+
+while.cond19.i:                                   ; preds = %while.body34.i, %if.end18.i
+  %24 = load i32, i32* %j.i, align 4
+  %cmp20.i = icmp slt i32 0, %24
+  br i1 %cmp20.i, label %land.rhs.i, label %land.end.i
+
+land.rhs.i:                                       ; preds = %while.cond19.i
+  %25 = load i32, i32* %j.i, align 4
+  %idxprom22.i = sext i32 %25 to i64
+  %26 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx23.i = getelementptr inbounds i8, i8* %26, i64 %idxprom22.i
+  %27 = load i8, i8* %arrayidx23.i, align 1
+  %conv24.i = sext i8 %27 to i32
+  %cmp25.i = icmp eq i32 %conv24.i, 32
+  br i1 %cmp25.i, label %lor.end33.i, label %lor.rhs27.i
+
+lor.rhs27.i:                                      ; preds = %land.rhs.i
+  %28 = load i32, i32* %j.i, align 4
+  %idxprom28.i = sext i32 %28 to i64
+  %29 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx29.i = getelementptr inbounds i8, i8* %29, i64 %idxprom28.i
+  %30 = load i8, i8* %arrayidx29.i, align 1
+  %conv30.i = sext i8 %30 to i32
+  %cmp31.i = icmp eq i32 %conv30.i, 9
+  br label %lor.end33.i
+
+lor.end33.i:                                      ; preds = %lor.rhs27.i, %land.rhs.i
+  %31 = phi i1 [ true, %land.rhs.i ], [ %cmp31.i, %lor.rhs27.i ]
+  br label %land.end.i
+
+land.end.i:                                       ; preds = %lor.end33.i, %while.cond19.i
+  %32 = phi i1 [ false, %while.cond19.i ], [ %31, %lor.end33.i ]
+  br i1 %32, label %while.body34.i, label %while.end35.i
+
+while.body34.i:                                   ; preds = %land.end.i
+  %33 = load i32, i32* %j.i, align 4
+  %dec.i = add nsw i32 %33, -1
+  store i32 %dec.i, i32* %j.i, align 4
+  br label %while.cond19.i
+
+while.end35.i:                                    ; preds = %land.end.i
+  %34 = load i32, i32* %j.i, align 4
+  %cmp36.i = icmp slt i32 0, %34
+  br i1 %cmp36.i, label %land.lhs.true.i, label %if.end45.i
+
+land.lhs.true.i:                                  ; preds = %while.end35.i
+  %35 = load i32, i32* %j.i, align 4
+  %idxprom38.i = sext i32 %35 to i64
+  %36 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx39.i = getelementptr inbounds i8, i8* %36, i64 %idxprom38.i
+  %37 = load i8, i8* %arrayidx39.i, align 1
+  %conv40.i = sext i8 %37 to i32
+  %cmp41.i = icmp eq i32 %conv40.i, 34
+  br i1 %cmp41.i, label %if.then43.i, label %if.end45.i
+
+if.then43.i:                                      ; preds = %land.lhs.true.i
+  %38 = load i32, i32* %j.i, align 4
+  %dec44.i = add nsw i32 %38, -1
+  store i32 %dec44.i, i32* %j.i, align 4
+  br label %if.end45.i
+
+if.end45.i:                                       ; preds = %if.then43.i, %land.lhs.true.i, %while.end35.i
+  %39 = load i32, i32* %start.i, align 4
+  %40 = load i32, i32* %j.i, align 4
+  %cmp46.i = icmp sle i32 %39, %40
+  br i1 %cmp46.i, label %if.then48.i, label %if.else.i
+
+if.then48.i:                                      ; preds = %if.end45.i
+  %arraydecay.i = getelementptr inbounds [2 x i8], [2 x i8]* %str2.i, i32 0, i32 0
+  %41 = load i8*, i8** %str.addr.i, align 8
+  %42 = load i32, i32* %start.i, align 4
+  %idx.ext.i = sext i32 %42 to i64
+  %add.ptr.i = getelementptr inbounds i8, i8* %41, i64 %idx.ext.i
+  %43 = load i32, i32* %j.i, align 4
+  %44 = load i32, i32* %start.i, align 4
+  %sub49.i = sub nsw i32 %43, %44
+  %add.i = add nsw i32 %sub49.i, 1
+  %call.i = call i8* @r_strncpy(i8* %arraydecay.i, i8* %add.ptr.i, i32 %add.i) #2
+  %45 = load i32, i32* %j.i, align 4
+  %46 = load i32, i32* %start.i, align 4
+  %sub50.i = sub nsw i32 %45, %46
+  %add51.i = add nsw i32 %sub50.i, 1
+  %cmp52.i = icmp slt i32 %add51.i, 2
+  %conv53.i = zext i1 %cmp52.i to i32
+  %call54.i = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv53.i) #2
+  %47 = load i32, i32* %j.i, align 4
+  %48 = load i32, i32* %start.i, align 4
+  %sub55.i = sub nsw i32 %47, %48
+  %add56.i = add nsw i32 %sub55.i, 1
+  %idxprom57.i = sext i32 %add56.i to i64
+  %arrayidx58.i = getelementptr inbounds [2 x i8], [2 x i8]* %str2.i, i32 0, i64 %idxprom57.i
+  store i8 0, i8* %arrayidx58.i, align 1
+  %49 = load i32, i32* %i.i, align 4
+  %add60.i = add nsw i32 %49, 1
+  store i32 %add60.i, i32* %start.i, align 4
+  br label %sw.epilog.i
+
+if.else.i:                                        ; preds = %if.end45.i
+  store i32 -1, i32* %retval.i
+  br label %parse_expression_list.exit
+
+sw.epilog.i:                                      ; preds = %do.body.i, %if.then48.i
+  %50 = load i32, i32* %i.i, align 4
+  %idxprom61.i = sext i32 %50 to i64
+  %51 = load i8*, i8** %str.addr.i, align 8
+  %arrayidx62.i = getelementptr inbounds i8, i8* %51, i64 %idxprom61.i
+  %52 = load i8, i8* %arrayidx62.i, align 1
+  %conv63.i = sext i8 %52 to i32
+  %cmp64.i = icmp ne i32 %conv63.i, 0
+  br i1 %cmp64.i, label %do.body.i, label %do.end.i
+
+do.end.i:                                         ; preds = %sw.epilog.i
+  store i32 0, i32* %retval.i
+  br label %parse_expression_list.exit
+
+parse_expression_list.exit:                       ; preds = %if.then.i, %if.else.i, %do.end.i
+  %53 = load i32, i32* %retval.i
+  %54 = bitcast i32* %retval.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %54)
+  %55 = bitcast i8** %str.addr.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %55)
+  %56 = bitcast i32* %start.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %56)
+  %57 = bitcast i32* %i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %57)
+  %58 = bitcast i32* %j.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %58)
+  %59 = bitcast [2 x i8]* %str2.i to i8*
+  call void @llvm.lifetime.end(i64 2, i8* %59)
   ret i32 0
 }
 
-; Function Attrs: nounwind ssp uwtable
-define internal i32 @parse_expression_list(i8* %str) #0 {
-entry:
-  %retval = alloca i32, align 4
-  %str.addr = alloca i8*, align 8
-  %start = alloca i32, align 4
-  %i = alloca i32, align 4
-  %j = alloca i32, align 4
-  %str2 = alloca [2 x i8], align 1
-  store i8* %str, i8** %str.addr, align 8
-  store i32 0, i32* %start, align 4
-  store i32 -1, i32* %i, align 4
-  store i32 -1, i32* %j, align 4
-  %0 = load i8*, i8** %str.addr, align 8
-  %tobool = icmp ne i8* %0, null
-  br i1 %tobool, label %if.end, label %if.then
+declare i8* @r_strncpy(i8*, i8*, i32) #1
 
-if.then:                                          ; preds = %entry
-  store i32 -1, i32* %retval
-  br label %return
+declare i32 @__VERIFIER_assert(...) #1
 
-if.end:                                           ; preds = %entry
-  br label %do.body
+; Function Attrs: nounwind
+declare void @llvm.lifetime.start(i64, i8* nocapture) #2
 
-do.body:                                          ; preds = %do.cond, %if.end
-  %1 = load i32, i32* %i, align 4
-  %inc = add nsw i32 %1, 1
-  store i32 %inc, i32* %i, align 4
-  %2 = load i32, i32* %i, align 4
-  %idxprom = sext i32 %2 to i64
-  %3 = load i8*, i8** %str.addr, align 8
-  %arrayidx = getelementptr inbounds i8, i8* %3, i64 %idxprom
-  %4 = load i8, i8* %arrayidx, align 1
-  %conv = sext i8 %4 to i32
-  switch i32 %conv, label %sw.epilog [
-    i32 0, label %sw.bb
-  ]
-
-sw.bb:                                            ; preds = %do.body
-  br label %while.cond
-
-while.cond:                                       ; preds = %while.body, %sw.bb
-  %5 = load i32, i32* %start, align 4
-  %idxprom1 = sext i32 %5 to i64
-  %6 = load i8*, i8** %str.addr, align 8
-  %arrayidx2 = getelementptr inbounds i8, i8* %6, i64 %idxprom1
-  %7 = load i8, i8* %arrayidx2, align 1
-  %conv3 = sext i8 %7 to i32
-  %cmp = icmp eq i32 %conv3, 32
-  br i1 %cmp, label %lor.end, label %lor.rhs
-
-lor.rhs:                                          ; preds = %while.cond
-  %8 = load i32, i32* %start, align 4
-  %idxprom5 = sext i32 %8 to i64
-  %9 = load i8*, i8** %str.addr, align 8
-  %arrayidx6 = getelementptr inbounds i8, i8* %9, i64 %idxprom5
-  %10 = load i8, i8* %arrayidx6, align 1
-  %conv7 = sext i8 %10 to i32
-  %cmp8 = icmp eq i32 %conv7, 9
-  br label %lor.end
-
-lor.end:                                          ; preds = %lor.rhs, %while.cond
-  %11 = phi i1 [ true, %while.cond ], [ %cmp8, %lor.rhs ]
-  br i1 %11, label %while.body, label %while.end
-
-while.body:                                       ; preds = %lor.end
-  %12 = load i32, i32* %start, align 4
-  %inc10 = add nsw i32 %12, 1
-  store i32 %inc10, i32* %start, align 4
-  br label %while.cond
-
-while.end:                                        ; preds = %lor.end
-  %13 = load i32, i32* %start, align 4
-  %idxprom11 = sext i32 %13 to i64
-  %14 = load i8*, i8** %str.addr, align 8
-  %arrayidx12 = getelementptr inbounds i8, i8* %14, i64 %idxprom11
-  %15 = load i8, i8* %arrayidx12, align 1
-  %conv13 = sext i8 %15 to i32
-  %cmp14 = icmp eq i32 %conv13, 34
-  br i1 %cmp14, label %if.then16, label %if.end18
-
-if.then16:                                        ; preds = %while.end
-  %16 = load i32, i32* %start, align 4
-  %inc17 = add nsw i32 %16, 1
-  store i32 %inc17, i32* %start, align 4
-  br label %if.end18
-
-if.end18:                                         ; preds = %if.then16, %while.end
-  %17 = load i32, i32* %i, align 4
-  %sub = sub nsw i32 %17, 1
-  store i32 %sub, i32* %j, align 4
-  br label %while.cond19
-
-while.cond19:                                     ; preds = %while.body34, %if.end18
-  %18 = load i32, i32* %j, align 4
-  %cmp20 = icmp slt i32 0, %18
-  br i1 %cmp20, label %land.rhs, label %land.end
-
-land.rhs:                                         ; preds = %while.cond19
-  %19 = load i32, i32* %j, align 4
-  %idxprom22 = sext i32 %19 to i64
-  %20 = load i8*, i8** %str.addr, align 8
-  %arrayidx23 = getelementptr inbounds i8, i8* %20, i64 %idxprom22
-  %21 = load i8, i8* %arrayidx23, align 1
-  %conv24 = sext i8 %21 to i32
-  %cmp25 = icmp eq i32 %conv24, 32
-  br i1 %cmp25, label %lor.end33, label %lor.rhs27
-
-lor.rhs27:                                        ; preds = %land.rhs
-  %22 = load i32, i32* %j, align 4
-  %idxprom28 = sext i32 %22 to i64
-  %23 = load i8*, i8** %str.addr, align 8
-  %arrayidx29 = getelementptr inbounds i8, i8* %23, i64 %idxprom28
-  %24 = load i8, i8* %arrayidx29, align 1
-  %conv30 = sext i8 %24 to i32
-  %cmp31 = icmp eq i32 %conv30, 9
-  br label %lor.end33
-
-lor.end33:                                        ; preds = %lor.rhs27, %land.rhs
-  %25 = phi i1 [ true, %land.rhs ], [ %cmp31, %lor.rhs27 ]
-  br label %land.end
-
-land.end:                                         ; preds = %lor.end33, %while.cond19
-  %26 = phi i1 [ false, %while.cond19 ], [ %25, %lor.end33 ]
-  br i1 %26, label %while.body34, label %while.end35
-
-while.body34:                                     ; preds = %land.end
-  %27 = load i32, i32* %j, align 4
-  %dec = add nsw i32 %27, -1
-  store i32 %dec, i32* %j, align 4
-  br label %while.cond19
-
-while.end35:                                      ; preds = %land.end
-  %28 = load i32, i32* %j, align 4
-  %cmp36 = icmp slt i32 0, %28
-  br i1 %cmp36, label %land.lhs.true, label %if.end45
-
-land.lhs.true:                                    ; preds = %while.end35
-  %29 = load i32, i32* %j, align 4
-  %idxprom38 = sext i32 %29 to i64
-  %30 = load i8*, i8** %str.addr, align 8
-  %arrayidx39 = getelementptr inbounds i8, i8* %30, i64 %idxprom38
-  %31 = load i8, i8* %arrayidx39, align 1
-  %conv40 = sext i8 %31 to i32
-  %cmp41 = icmp eq i32 %conv40, 34
-  br i1 %cmp41, label %if.then43, label %if.end45
-
-if.then43:                                        ; preds = %land.lhs.true
-  %32 = load i32, i32* %j, align 4
-  %dec44 = add nsw i32 %32, -1
-  store i32 %dec44, i32* %j, align 4
-  br label %if.end45
-
-if.end45:                                         ; preds = %if.then43, %land.lhs.true, %while.end35
-  %33 = load i32, i32* %start, align 4
-  %34 = load i32, i32* %j, align 4
-  %cmp46 = icmp sle i32 %33, %34
-  br i1 %cmp46, label %if.then48, label %if.else
-
-if.then48:                                        ; preds = %if.end45
-  %arraydecay = getelementptr inbounds [2 x i8], [2 x i8]* %str2, i32 0, i32 0
-  %35 = load i8*, i8** %str.addr, align 8
-  %36 = load i32, i32* %start, align 4
-  %idx.ext = sext i32 %36 to i64
-  %add.ptr = getelementptr inbounds i8, i8* %35, i64 %idx.ext
-  %37 = load i32, i32* %j, align 4
-  %38 = load i32, i32* %start, align 4
-  %sub49 = sub nsw i32 %37, %38
-  %add = add nsw i32 %sub49, 1
-  %call = call i8* @r_strncpy(i8* %arraydecay, i8* %add.ptr, i32 %add)
-  %39 = load i32, i32* %j, align 4
-  %40 = load i32, i32* %start, align 4
-  %sub50 = sub nsw i32 %39, %40
-  %add51 = add nsw i32 %sub50, 1
-  %cmp52 = icmp slt i32 %add51, 2
-  %conv53 = zext i1 %cmp52 to i32
-  call void @__VERIFIER_assert(i32 %conv53)
-  %41 = load i32, i32* %j, align 4
-  %42 = load i32, i32* %start, align 4
-  %sub54 = sub nsw i32 %41, %42
-  %add55 = add nsw i32 %sub54, 1
-  %idxprom56 = sext i32 %add55 to i64
-  %arrayidx57 = getelementptr inbounds [2 x i8], [2 x i8]* %str2, i32 0, i64 %idxprom56
-  store i8 0, i8* %arrayidx57, align 1
-  br label %if.end58
-
-if.else:                                          ; preds = %if.end45
-  store i32 -1, i32* %retval
-  br label %return
-
-if.end58:                                         ; preds = %if.then48
-  %43 = load i32, i32* %i, align 4
-  %add59 = add nsw i32 %43, 1
-  store i32 %add59, i32* %start, align 4
-  br label %sw.epilog
-
-sw.epilog:                                        ; preds = %if.end58, %do.body
-  br label %do.cond
-
-do.cond:                                          ; preds = %sw.epilog
-  %44 = load i32, i32* %i, align 4
-  %idxprom60 = sext i32 %44 to i64
-  %45 = load i8*, i8** %str.addr, align 8
-  %arrayidx61 = getelementptr inbounds i8, i8* %45, i64 %idxprom60
-  %46 = load i8, i8* %arrayidx61, align 1
-  %conv62 = sext i8 %46 to i32
-  %cmp63 = icmp ne i32 %conv62, 0
-  br i1 %cmp63, label %do.body, label %do.end
-
-do.end:                                           ; preds = %do.cond
-  store i32 0, i32* %retval
-  br label %return
-
-return:                                           ; preds = %do.end, %if.else, %if.then
-  %47 = load i32, i32* %retval
-  ret i32 %47
-}
-
-declare i8* @r_strncpy(i8*, i8*, i32) #2
+; Function Attrs: nounwind
+declare void @llvm.lifetime.end(i64, i8* nocapture) #2
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}

@@ -1,31 +1,8 @@
-; ModuleID = 'veris.c_NetBSD-libc__loop_true-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 @tmp = common global i32* null, align 8
-
-; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #2
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @glob2(i32* %pathbuf, i32* %pathlim) #0 {
@@ -50,7 +27,7 @@ for.body:                                         ; preds = %for.cond
   %4 = load i32*, i32** @tmp, align 8
   %cmp1 = icmp ule i32* %3, %4
   %conv = zext i1 %cmp1 to i32
-  call void @__VERIFIER_assert(i32 %conv)
+  %call = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
   %5 = load i32*, i32** %p, align 8
   store i32 1, i32* %5, align 4
   br label %for.inc
@@ -65,9 +42,14 @@ for.end:                                          ; preds = %for.cond
   ret i32 0
 }
 
+declare i32 @__VERIFIER_assert(...) #1
+
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
 entry:
+  %pathbuf.addr.i = alloca i32*, align 8
+  %pathlim.addr.i = alloca i32*, align 8
+  %p.i = alloca i32*, align 8
   %retval = alloca i32, align 4
   %pathbuf = alloca [2 x i32], align 4
   %bound = alloca i32*, align 8
@@ -82,13 +64,56 @@ entry:
   store i32* %add.ptr4, i32** @tmp, align 8
   %arraydecay5 = getelementptr inbounds [2 x i32], [2 x i32]* %pathbuf, i32 0, i32 0
   %0 = load i32*, i32** %bound, align 8
-  %call = call i32 @glob2(i32* %arraydecay5, i32* %0)
+  %1 = bitcast i32** %pathbuf.addr.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %1)
+  %2 = bitcast i32** %pathlim.addr.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %2)
+  %3 = bitcast i32** %p.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %3)
+  store i32* %arraydecay5, i32** %pathbuf.addr.i, align 8
+  store i32* %0, i32** %pathlim.addr.i, align 8
+  %4 = load i32*, i32** %pathbuf.addr.i, align 8
+  store i32* %4, i32** %p.i, align 8
+  br label %for.cond.i
+
+for.cond.i:                                       ; preds = %for.body.i, %entry
+  %5 = load i32*, i32** %p.i, align 8
+  %6 = load i32*, i32** %pathlim.addr.i, align 8
+  %cmp.i = icmp ule i32* %5, %6
+  br i1 %cmp.i, label %for.body.i, label %glob2.exit
+
+for.body.i:                                       ; preds = %for.cond.i
+  %7 = load i32*, i32** %p.i, align 8
+  %8 = load i32*, i32** @tmp, align 8
+  %cmp1.i = icmp ule i32* %7, %8
+  %conv.i = zext i1 %cmp1.i to i32
+  %call.i = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv.i) #2
+  %9 = load i32*, i32** %p.i, align 8
+  store i32 1, i32* %9, align 4
+  %10 = load i32*, i32** %p.i, align 8
+  %incdec.ptr.i = getelementptr inbounds i32, i32* %10, i32 1
+  store i32* %incdec.ptr.i, i32** %p.i, align 8
+  br label %for.cond.i
+
+glob2.exit:                                       ; preds = %for.cond.i
+  %11 = bitcast i32** %pathbuf.addr.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %11)
+  %12 = bitcast i32** %pathlim.addr.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %12)
+  %13 = bitcast i32** %p.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %13)
   ret i32 0
 }
 
+; Function Attrs: nounwind
+declare void @llvm.lifetime.start(i64, i8* nocapture) #2
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.end(i64, i8* nocapture) #2
+
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
