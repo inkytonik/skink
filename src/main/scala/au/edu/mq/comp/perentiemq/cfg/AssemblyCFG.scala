@@ -108,6 +108,47 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
 
         /**
+         * Given a node in a trace, return the name of the previous block in
+         * the trace. We look up from the node to get the current entry then
+         * move to the previous entry and get its block name. If there is no
+         * previous entry, return None.
+         */
+        lazy val prevBlockName : Product => Option[String] =
+            attr {
+                case tree.prev (CFGEntry (Block (BlockLabel (name), _, _, _, _), _)) =>
+                    Some (name)
+                case tree.parent (p) =>
+                    prevBlockName (p)
+                case _ =>
+                    None
+            }
+
+        /**
+         * Return the terms that express the effect of a phi instruction.
+         * We find out the previous block from the trace and the effect
+         * is to bind the result to the value in the instruction that is
+         * associated with that previous block.
+         */
+        lazy val phiTerms : Phi => Vector[TypedTerm] =
+            attr {
+                case phi @ Phi (Binding (to), _, preds) =>
+                    prevBlockName (phi) match {
+                        case Some (source) =>
+                            preds.collectFirst {
+                                case PhiPredecessor (value, Label (Local (label))) if label == source =>
+                                    value
+                            } match {
+                                case Some (value) =>
+                                    Vector (nterm (to) === vterm (value))
+                                case None =>
+                                    sys.error (s"phiTerms: can't find previous block $source in preds: $phi")
+                            }
+                        case None =>
+                            sys.error (s"phiTerms: phi insn in first block: $phi")
+                    }
+            }
+
+        /**
          * Return terms that express the effect of an LLVM node.
          */
         lazy val terms : ASTNode => Vector[TypedTerm] =
@@ -116,7 +157,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 // Blocks
 
                 case block : Block =>
-                    block.optInstructions.flatMap (terms)
+                    (block.optPhiInstructions ++ block.optInstructions).flatMap (terms)
 
                 // Instructions
 
@@ -173,6 +214,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
                 case Load (Binding (to), _, tipe, _, from, _) =>
                     Vector (nterm (to) === vterm (from))
+
+                case phi : Phi =>
+                    phiTerms (phi)
 
                 case Store (_, tipe, from, _, to, _) =>
                     Vector (vterm (to) === vterm (from))
