@@ -28,5 +28,26 @@ object InterpolantAutomaton {
 
     res
   }
+
+  import smtlib.util.{ TypedTerm }
+  import smtlib.interpreters.{ GenericSolver }
+  import smtlib.util.Logics.{ getInterpolants }
+  import scala.util.{ Failure, Success }
+  // import scala.collection.immutable.Seq.SeqBuilder
+
+  def getInductiveInterpolants(s: Seq[TypedTerm])(implicit solver: GenericSolver): Seq[TypedTerm] = {
+    //  we create a term per block and then filter out the True
+    //  s may contain True many times
+    //  this TypedTerm will cause problem as the same name will be pushed to
+    //  the solver many times. So we remove the True
+
+    getInterpolants(s)(solver) match {
+      case Success(i) => i
+        //  build an interpolant for s by inserting the msiing predicates for True
+        
+      case Failure(e) => sys.error(s"getInductiveInterpolants failed. e.getMessage")
+    }
+  }
+
 }
 

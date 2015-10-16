@@ -170,6 +170,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                     blockName (function (cfgBlock), block)
             }
 
+        
         // Name resolver
 
         /**
@@ -254,7 +255,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                     List (label, style)
                 },
                 (b : CFGBlock[F,B]) => '"' + name (b) + '"',
-                (l : CFGEntry[F,B]) => l.condition.toString
+                (l : CFGEntry[F,B]) =>  l.condition.toString
             )
 
         // Pretty-printer

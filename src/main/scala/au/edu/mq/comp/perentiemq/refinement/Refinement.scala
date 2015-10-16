@@ -10,10 +10,10 @@ import smtlib.util.{ TypedTerm, ValMap }
 import smtlib.interpreters.{ SMTSolver, GenericSolver }
 import smtlib.interpreters.Configurations._
 import smtlib.util.Logics.isSat
-import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus }
+import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
 import smtlib.parser.Commands.{ Exit, Reset }
 import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.Logics.{ getValues, isSat }
+import smtlib.util.Logics.{ getValues, isSat, getInterpolants }
 
 import scala.util.{ Try, Failure, Success }
 
@@ -21,7 +21,7 @@ import org.kiama.rewriting.Rewriter.collect
 
 // import com.typesafe.scalalogging.LazyLogging
 
-object TraceRefinement  { //extends LazyLogging removing for now as they are two logback.xml files conflicting
+object TraceRefinement { //extends LazyLogging removing for now as they are two logback.xml files conflicting
 
   /**
    * A feasible trace that leads to a program failure. `values`, if
@@ -54,8 +54,8 @@ object TraceRefinement  { //extends LazyLogging removing for now as they are two
    * present is feasible and demonstrates how the program is incorrect.
    */
   def traceRefinement[S1, L](cfg: NFA[S1, L],
-    traceToTerms: Seq[L] => Seq[TypedTerm],
-    maxIterations: Int = 10): Try[Option[FailureTrace[L]]] = {
+    traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
+    maxIterations: Int = 2): Try[Option[FailureTrace[L]]] = {
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
@@ -69,14 +69,29 @@ object TraceRefinement  { //extends LazyLogging removing for now as they are two
 
         case Some(entries) =>
           val trace = entries
-          val terms: Seq[TypedTerm] = traceToTerms(trace)
-
+          // the following Seq may contain many times True for gotos
+          val blockTerms: Seq[Vector[TypedTerm]] = traceToTerms(trace)
+          val terms = blockTerms.flatten
+          blockTerms map println
+          // println(blockTerms.size)
+          println(s"empty size is:  ${blockTerms.filter( _.isEmpty ).size}")
+          //
+          // build an AND of each blockTerm. Remove True terms for checking SAT
+          // we should check that False is not in!
+          val bTerms = blockTerms.map(_.reduceLeft(_ & _)).filter(_ == TypedTerm(true))
+          println(s"Size = ${bTerms.size}")
+         // import smtlib.util.Implicits._
+         // val bTerms2 = blockTerms.map(_.reduceLeft(_ & _)).zip(0 to blockTerms.size -1) map
+         //    {
+         //      case (e, k) if (e == TypedTerm(true)) => (e & k === k)
+         //      case (e, _) => e
+         //    }
           import org.kiama.output.PrettyPrinter.{ any, pretty }
-          val pp = terms.map(_.toString)
-          // logger.debug(s"trying terms ${pretty(any(pp)).layout}")
+          // val pp = bTerms2.map(_.toString)
+          // println(s"trying terms ${pretty(any(pp)).layout}")
 
           //    check if trace is feasible or not
-          val solver = SMTSolver(SMTInterpol, QFLIASatModelConfig).get
+          val solver = SMTSolver(SMTInterpol, QFLIAFullConfig).get
           isSat(terms)(solver) match {
             case Success(SatStatus) =>
               //  build a failure trace
@@ -86,12 +101,22 @@ object TraceRefinement  { //extends LazyLogging removing for now as they are two
               Success(Some(failTrace))
 
             case Success(UnsatStatus) =>
-              solver.eval(Exit())
               // logger.debug("trace was infeasible")
-              if (maxIterations > 0)
+              if (maxIterations > 0) {
+                val i: Seq[TypedTerm] = getInterpolants(terms)(solver).get
+                //  we get an interpolant for blockTerms that have been pruned of True terms
+                // i.map(_.unIndex).map(_.getTerm).map(println)
+                // println("---------------------------------")
+                // bTerms2 map println
+                // println(s"Iteration $maxIterations")
+                // i map println
+                //  we can re-insert intrpolants after the True terms
+                solver.eval(Exit())
                 refineRec(cfg, r + InterpolantAutomaton(trace), maxIterations - 1)
-              else
+              } else {
+                solver.eval(Exit())
                 Failure(new Exception(s"Maximum number of iterations reached"))
+              }
             case status =>
               Failure(new Exception(s"strange solver status: $status"))
             // sys.error(s"strange solver status: $status")

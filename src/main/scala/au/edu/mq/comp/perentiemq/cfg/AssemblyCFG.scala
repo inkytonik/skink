@@ -36,7 +36,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
   /**
    * Convert a trace into terms that express the effect of the trace.
    */
-  def traceToTerms(types: Map[Name, Type])(trace: Trace): Seq[TypedTerm] = {
+  def traceToTerms(types: Map[Name, Type])(trace: Trace): Seq[Vector[TypedTerm]] = {
 
     import org.kiama.==>
     import org.kiama.attribution.Decorators
@@ -302,19 +302,26 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             case _ =>
               sys.error(s"exitcondToTerm: unsupported value $value")
           }
+        case CFGGoto(_) =>
+            None
+            // Some(TypedTerm(true))
         case _ =>
-          None
+              sys.error(s"exitcondToTerm: unsupported type")
+          
       }
 
     /*
          * Return terms that express the effect of a trace entry, including
          * the transition to the next entry in the trace, if there is one.
          */
-    def entryToTerm(entry: Entry): Vector[TypedTerm] =
-      terms(entry.block) ++ exitcondToTerm(entry.condition)
+    def entryToTerm(entry: Entry): Vector[TypedTerm] = exitcondToTerm(entry.condition) match {
+        case None => terms(entry.block)
+        case c  => terms(entry.block) ++ c
+    }
 
     // Return all of the terms arising from this trace
-    tree.root.entries.flatMap(entryToTerm)
+    // tree.root.entries.flatMap(entryToTerm)
+    tree.root.entries.map(entryToTerm)
 
   }
 
@@ -344,8 +351,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
     if (fname != "@main") {
-    // if (isNotToBeVerified(fname))
-        config.output.emitln ("not a main")
+      // if (isNotToBeVerified(fname))
+      config.output.emitln("not a main")
       return
     }
     // Gather type information on variables in this CFG
@@ -357,6 +364,20 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     val cfganalyser = new CFGAnalyser(cfg)
     val nfa = cfganalyser.nfa(cfg)
 
+    import au.edu.mq.comp.dot.DOTPrettyPrinter.format
+    import reflect.io._
+    import au.edu.mq.comp.automat.lang.Lang
+
+    // println(Console.MAGENTA_B)
+    // val tt = Lang(nfa).getAcceptedTrace
+    // tt.get map println
+    // println(Console.GREEN_B)
+    // println(tt.get.head.block)
+    // println(tt.get.head.condition)
+    // println(Console.RESET)
+
+    // println(cfganalyser.toDot(nfa))
+    File("/tmp/nfa-perentieMQ.dot").writeAll(format(cfganalyser.toDot(nfa)).layout)
     // Regexp for breaking verified names apart
     val Name = "(.*)@([0-9]+)".r
 
@@ -419,14 +440,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
         case None =>
-          config.output.emitln ("program is correct")
+          config.output.emitln("program is correct")
         // println(Console.GREEN_B  + "Program is correct" + Console.RESET)
         case Some(failTrace) =>
-          config.output.emitln ("program is incorrect")
+          config.output.emitln("program is incorrect")
         // println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
         // printTrace(failTrace)
       }
-      case Failure(e) => config.output.emitln (e.getMessage)
+      case Failure(e) => config.output.emitln(e.getMessage)
     }
 
   }
