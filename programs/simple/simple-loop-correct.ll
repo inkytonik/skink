@@ -3,9 +3,11 @@ target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.10.0"
 
 ; Function Attrs: nounwind ssp uwtable
-define void @foo() #0 {
+define i32 @main() #0 {
 entry:
+  %retval = alloca i32, align 4
   %r = alloca i32, align 4
+  store i32 0, i32* %retval, align 4
   br label %while.cond
 
 while.cond:                                       ; preds = %while.body, %entry
@@ -28,7 +30,8 @@ while.end:                                        ; preds = %while.cond
   %cmp2 = icmp eq i32 %3, 0
   %conv3 = zext i1 %cmp2 to i32
   %call4 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv3)
-  ret void
+  %4 = load i32, i32* %retval, align 4
+  ret i32 %4
 }
 
 declare i32 @__VERIFIER_assert(...) #1
