@@ -9,6 +9,6 @@ do
   llfile=$base.ll
 
   sed '/void __VERIFIER_assert(int cond) {/,/^}$/d' $file |
-  clang -S -emit-llvm -c -o - -x c - | \
+  clang -Wno-implicit-function-declaration -S -emit-llvm -c -o - -x c - | \
     opt -S -inline -o $llfile
 done

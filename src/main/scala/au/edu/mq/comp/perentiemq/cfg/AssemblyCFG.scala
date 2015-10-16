@@ -343,10 +343,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
-    if (fname != "@main")
+    if (fname != "@main") {
     // if (isNotToBeVerified(fname))
+        config.output.emitln ("not a main")
       return
-
+    }
     // Gather type information on variables in this CFG
     val funtree = new Tree[ASTNode, FunctionDefinition](cfg.function.cross)
     val funanalyser = new Analyser(funtree)
