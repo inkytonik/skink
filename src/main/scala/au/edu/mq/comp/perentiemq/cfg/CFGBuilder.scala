@@ -76,7 +76,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
     /**
      * The type of NFAs made from the built CFGs.
      */
-    type CFGNFA = NFA[CFGBlock[F,B],CFGEntry[F,B]]
+    type CFGNFA = NFA[String,CFGEntry[F,B]]
 
     // Construction
 
@@ -217,15 +217,15 @@ abstract class CFGBuilder[F,B] extends Attribution {
         lazy val nfa : CFG[F,B] => CFGNFA =
             attr {
                 case cfg @ CFG (_, blocks) =>
-                    val init = Set (entry (cfg))
+                    val init = Set (name (entry (cfg)))
                     val edges = {
-                        val buf = new ListBuffer[Edge[CFGBlock[F,B],CFGEntry[F,B]]]
+                        val buf = new ListBuffer[Edge[String,CFGEntry[F,B]]]
                         for (srcblock <- cfgBlocks (cfg)) {
                             for (exitcond <- srcblock.exitInfo.conditions) {
                                 target (exitcond) match {
                                     case Some (tgtblock) =>
                                         val label = CFGEntry[F,B] (srcblock.block.cross, exitcond)
-                                        buf += (srcblock ~> tgtblock) (label)
+                                        buf += (name (srcblock) ~> name (tgtblock)) (label)
                                     case None =>
                                         // Do nothing
                                 }
@@ -233,18 +233,18 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         }
                         buf.toSet
                     }
-                    val accepting = resolveByName (".error") (cfg).toSet
+                    val accepting = Set (".error")
                     NFA (init, edges, accepting)
             }
 
         /**
          * Return the DOT representation of a CFG NFA.
          */
-        def toDot (nfa : NFA[CFGBlock[F,B],CFGEntry[F,B]]) : DotSpec =
+        def toDot (nfa : NFA[String,CFGEntry[F,B]]) : DotSpec =
             DotConverter.toDot (
                 nfa,
-                (b : CFGBlock[F,B]) => {
-                    val label = Attribute ("label", StringLit (name (b)))
+                (b : String) => {
+                    val label = Attribute ("label", StringLit (b))
                     val style =
                         Attribute ("shape", if (nfa.init.contains (b))
                                                 Ident ("circle")
@@ -254,8 +254,8 @@ abstract class CFGBuilder[F,B] extends Attribution {
                                                 Ident ("oval"))
                     List (label, style)
                 },
-                (b : CFGBlock[F,B]) => '"' + name (b) + '"',
-                (l : CFGEntry[F,B]) =>  l.condition.toString
+                (b : String) => '"' + b + '"',
+                (l : CFGEntry[F,B]) => l.condition.toString
             )
 
         // Pretty-printer
