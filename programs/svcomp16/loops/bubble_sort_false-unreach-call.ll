@@ -1,4 +1,4 @@
-; ModuleID = 'bubble_sort_false-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
@@ -10,54 +10,853 @@ target triple = "x86_64-apple-macosx10.11.0"
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
 entry:
+  %next.i = alloca %struct.list_head*, align 8
+  %__cil_tmp2.i = alloca %struct.list_head*, align 8
+  %__cil_tmp3.i = alloca i32, align 4
+  %__cil_tmp4.i = alloca i32, align 4
+  %__cil_tmp5.i = alloca %struct.list_head*, align 8
+  %__cil_tmp6.i = alloca %struct.node*, align 8
+  %__cil_tmp7.i = alloca i32, align 4
+  %__cil_tmp8.i = alloca i32, align 4
+  %__cil_tmp9.i = alloca %struct.list_head*, align 8
+  %__cil_tmp10.i = alloca i64, align 8
+  %__cil_tmp11.i = alloca i8*, align 8
+  %__cil_tmp12.i = alloca i8*, align 8
+  %__cil_tmp13.i = alloca %struct.node*, align 8
+  %__cil_tmp14.i = alloca i8*, align 8
+  %head.addr.i8.i.i = alloca %struct.list_head*, align 8
+  %entry1.i9.i.i = alloca %struct.node*, align 8
+  %__cil_tmp3.i10.i.i = alloca %struct.node*, align 8
+  %__cil_tmp4.i11.i.i = alloca i32, align 4
+  %__cil_tmp5.i12.i.i = alloca i32, align 4
+  %__cil_tmp6.i13.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp7.i14.i.i = alloca i64, align 8
+  %__cil_tmp8.i15.i.i = alloca i8*, align 8
+  %__cil_tmp9.i16.i.i = alloca i8*, align 8
+  %new.addr.i.i.i.i.i = alloca %struct.list_head*, align 8
+  %prev.addr.i.i.i.i.i = alloca %struct.list_head*, align 8
+  %next.addr.i.i.i.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp4.i.i.i.i.i = alloca i32, align 4
+  %__cil_tmp5.i.i.i.i.i = alloca i32, align 4
+  %__cil_tmp6.i.i.i.i.i = alloca i32, align 4
+  %__cil_tmp7.i.i.i.i.i = alloca i32, align 4
+  %new.addr.i.i.i.i1 = alloca %struct.list_head*, align 8
+  %head.addr.i.i.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp3.i1.i.i.i = alloca %struct.list_head*, align 8
+  %prev.addr.i.i.i.i2 = alloca %struct.list_head*, align 8
+  %next.addr.i.i.i.i3 = alloca %struct.list_head*, align 8
+  %__cil_tmp3.i.i.i.i = alloca i32, align 4
+  %__cil_tmp4.i.i.i.i4 = alloca i32, align 4
+  %list.addr.i.i.i = alloca %struct.list_head*, align 8
+  %head.addr.i1.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp3.i2.i.i = alloca i32, align 4
+  %__cil_tmp4.i3.i.i = alloca i32, align 4
+  %__cil_tmp5.i4.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp6.i5.i.i = alloca %struct.list_head*, align 8
+  %head.addr.i.i.i5 = alloca %struct.list_head*, align 8
+  %entry1.i.i.i = alloca %struct.node*, align 8
+  %__cil_tmp3.i.i.i6 = alloca %struct.node*, align 8
+  %__cil_tmp4.i.i.i = alloca i32, align 4
+  %__cil_tmp5.i.i.i = alloca i32, align 4
+  %__cil_tmp6.i.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp7.i.i.i = alloca i64, align 8
+  %__cil_tmp8.i.i.i = alloca i8*, align 8
+  %__cil_tmp9.i.i.i = alloca i8*, align 8
+  %any_change.i.i = alloca i8, align 1
+  %pos0.i.i = alloca %struct.list_head*, align 8
+  %pos1.i.i = alloca %struct.list_head*, align 8
+  %val0.i.i = alloca i32, align 4
+  %tmp.i.i7 = alloca i32, align 4
+  %val1.i.i = alloca i32, align 4
+  %tmp___0.i.i = alloca i32, align 4
+  %__cil_tmp8.i.i8 = alloca %struct.list_head*, align 8
+  %__cil_tmp9.i.i9 = alloca i32, align 4
+  %__cil_tmp10.i.i10 = alloca i32, align 4
+  %tmp.i11 = alloca i8, align 1
+  %new.addr.i.i.i.i = alloca %struct.list_head*, align 8
+  %prev.addr.i.i.i.i = alloca %struct.list_head*, align 8
+  %next.addr.i.i.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp4.i.i.i.i = alloca i32, align 4
+  %__cil_tmp5.i.i.i.i = alloca i32, align 4
+  %__cil_tmp6.i.i.i.i = alloca i32, align 4
+  %__cil_tmp7.i.i.i.i = alloca i32, align 4
+  %new.addr.i.i.i = alloca %struct.list_head*, align 8
+  %head.addr.i.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp3.i.i.i = alloca %struct.list_head*, align 8
+  %value.addr.i.i = alloca i32, align 4
+  %node.i.i = alloca %struct.node*, align 8
+  %tmp.i.i = alloca i8*, align 8
+  %__cil_tmp4.i.i = alloca i32, align 4
+  %__cil_tmp5.i.i = alloca i32, align 4
+  %__cil_tmp6.i.i = alloca i32, align 4
+  %__cil_tmp7.i.i = alloca %struct.list_head*, align 8
+  %__cil_tmp8.i.i = alloca i32, align 4
+  %__cil_tmp9.i.i = alloca i32, align 4
+  %__cil_tmp10.i.i = alloca i32, align 4
+  %__cil_tmp11.i.i = alloca i32, align 4
+  %__cil_tmp12.i.i = alloca i32, align 4
+  %__cil_tmp13.i.i = alloca i32, align 4
+  %__cil_tmp14.i.i = alloca i32, align 4
+  %__cil_tmp15.i.i = alloca i32, align 4
+  %tmp.i = alloca i32, align 4
+  %tmp___0.i = alloca i32, align 4
   %retval = alloca i32, align 4
   %__cil_tmp1 = alloca %struct.list_head*, align 8
   %__cil_tmp2 = alloca %struct.list_head*, align 8
   store i32 0, i32* %retval
-  call void @gl_read()
+  %0 = bitcast i32* %tmp.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %0)
+  %1 = bitcast i32* %tmp___0.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %1)
+  br label %while.body.i
+
+while.body.i:                                     ; preds = %if.then.i, %entry
+  %call.i = call i32 @__VERIFIER_nondet_int() #5
+  store i32 %call.i, i32* %tmp.i, align 4
+  %2 = load i32, i32* %tmp.i, align 4
+  %3 = bitcast i32* %value.addr.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %3) #5
+  %4 = bitcast %struct.node** %node.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %4) #5
+  %5 = bitcast i8** %tmp.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %5) #5
+  %6 = bitcast i32* %__cil_tmp4.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %6) #5
+  %7 = bitcast i32* %__cil_tmp5.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %7) #5
+  %8 = bitcast i32* %__cil_tmp6.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %8) #5
+  %9 = bitcast %struct.list_head** %__cil_tmp7.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %9) #5
+  %10 = bitcast i32* %__cil_tmp8.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %10) #5
+  %11 = bitcast i32* %__cil_tmp9.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %11) #5
+  %12 = bitcast i32* %__cil_tmp10.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %12) #5
+  %13 = bitcast i32* %__cil_tmp11.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %13) #5
+  %14 = bitcast i32* %__cil_tmp12.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %14) #5
+  %15 = bitcast i32* %__cil_tmp13.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %15) #5
+  %16 = bitcast i32* %__cil_tmp14.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %16) #5
+  %17 = bitcast i32* %__cil_tmp15.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %17) #5
+  store i32 %2, i32* %value.addr.i.i, align 4
+  store i32 20, i32* %__cil_tmp4.i.i, align 4
+  %18 = load i32, i32* %__cil_tmp4.i.i, align 4
+  %call.i.i = call noalias i8* @malloc(i32 %18) #5
+  store i8* %call.i.i, i8** %tmp.i.i, align 8
+  %19 = load i8*, i8** %tmp.i.i, align 8
+  %20 = bitcast i8* %19 to %struct.node*
+  store %struct.node* %20, %struct.node** %node.i.i, align 8
+  %21 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %tobool.i.i = icmp ne %struct.node* %21, null
+  br i1 %tobool.i.i, label %gl_insert.exit.i, label %if.then.i.i
+
+if.then.i.i:                                      ; preds = %while.body.i
+  call void @abort() #6
+  unreachable
+
+gl_insert.exit.i:                                 ; preds = %while.body.i
+  %22 = load i32, i32* %value.addr.i.i, align 4
+  %23 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %24 = bitcast %struct.node* %23 to i32*
+  store i32 %22, i32* %24, align 4
+  %25 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %26 = ptrtoint %struct.node* %25 to i32
+  store i32 %26, i32* %__cil_tmp5.i.i, align 4
+  %27 = load i32, i32* %__cil_tmp5.i.i, align 4
+  %add.i.i = add i32 %27, 4
+  store i32 %add.i.i, i32* %__cil_tmp6.i.i, align 4
+  %28 = load i32, i32* %__cil_tmp6.i.i, align 4
+  %conv.i.i = zext i32 %28 to i64
+  %29 = inttoptr i64 %conv.i.i to %struct.list_head*
+  store %struct.list_head* %29, %struct.list_head** %__cil_tmp7.i.i, align 8
+  %30 = load %struct.list_head*, %struct.list_head** %__cil_tmp7.i.i, align 8
+  %31 = bitcast %struct.list_head** %new.addr.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %31) #5
+  %32 = bitcast %struct.list_head** %head.addr.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %32) #5
+  %33 = bitcast %struct.list_head** %__cil_tmp3.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %33) #5
+  store %struct.list_head* %30, %struct.list_head** %new.addr.i.i.i, align 8
+  store %struct.list_head* @gl_list, %struct.list_head** %head.addr.i.i.i, align 8
+  %34 = load %struct.list_head*, %struct.list_head** %head.addr.i.i.i, align 8
+  %35 = bitcast %struct.list_head* %34 to %struct.list_head**
+  %36 = load %struct.list_head*, %struct.list_head** %35, align 8
+  store %struct.list_head* %36, %struct.list_head** %__cil_tmp3.i.i.i, align 8
+  %37 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i, align 8
+  %38 = load %struct.list_head*, %struct.list_head** %head.addr.i.i.i, align 8
+  %39 = load %struct.list_head*, %struct.list_head** %__cil_tmp3.i.i.i, align 8
+  %40 = bitcast %struct.list_head** %new.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %40) #5
+  %41 = bitcast %struct.list_head** %prev.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %41) #5
+  %42 = bitcast %struct.list_head** %next.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %42) #5
+  %43 = bitcast i32* %__cil_tmp4.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %43) #5
+  %44 = bitcast i32* %__cil_tmp5.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %44) #5
+  %45 = bitcast i32* %__cil_tmp6.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %45) #5
+  %46 = bitcast i32* %__cil_tmp7.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %46) #5
+  store %struct.list_head* %37, %struct.list_head** %new.addr.i.i.i.i, align 8
+  store %struct.list_head* %38, %struct.list_head** %prev.addr.i.i.i.i, align 8
+  store %struct.list_head* %39, %struct.list_head** %next.addr.i.i.i.i, align 8
+  %47 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i, align 8
+  %48 = ptrtoint %struct.list_head* %47 to i32
+  store i32 %48, i32* %__cil_tmp4.i.i.i.i, align 4
+  %49 = load i32, i32* %__cil_tmp4.i.i.i.i, align 4
+  %add.i.i.i.i = add i32 %49, 4
+  store i32 %add.i.i.i.i, i32* %__cil_tmp5.i.i.i.i, align 4
+  %50 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i, align 8
+  %51 = load i32, i32* %__cil_tmp5.i.i.i.i, align 4
+  %conv.i.i.i.i = zext i32 %51 to i64
+  %52 = inttoptr i64 %conv.i.i.i.i to %struct.list_head**
+  store %struct.list_head* %50, %struct.list_head** %52, align 8
+  %53 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i, align 8
+  %54 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i, align 8
+  %55 = bitcast %struct.list_head* %54 to %struct.list_head**
+  store %struct.list_head* %53, %struct.list_head** %55, align 8
+  %56 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i, align 8
+  %57 = ptrtoint %struct.list_head* %56 to i32
+  store i32 %57, i32* %__cil_tmp6.i.i.i.i, align 4
+  %58 = load i32, i32* %__cil_tmp6.i.i.i.i, align 4
+  %add1.i.i.i.i = add i32 %58, 4
+  store i32 %add1.i.i.i.i, i32* %__cil_tmp7.i.i.i.i, align 4
+  %59 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i, align 8
+  %60 = load i32, i32* %__cil_tmp7.i.i.i.i, align 4
+  %conv2.i.i.i.i = zext i32 %60 to i64
+  %61 = inttoptr i64 %conv2.i.i.i.i to %struct.list_head**
+  store %struct.list_head* %59, %struct.list_head** %61, align 8
+  %62 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i, align 8
+  %63 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i, align 8
+  %64 = bitcast %struct.list_head* %63 to %struct.list_head**
+  store %struct.list_head* %62, %struct.list_head** %64, align 8
+  %65 = bitcast %struct.list_head** %new.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %65) #5
+  %66 = bitcast %struct.list_head** %prev.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %66) #5
+  %67 = bitcast %struct.list_head** %next.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %67) #5
+  %68 = bitcast i32* %__cil_tmp4.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %68) #5
+  %69 = bitcast i32* %__cil_tmp5.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %69) #5
+  %70 = bitcast i32* %__cil_tmp6.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %70) #5
+  %71 = bitcast i32* %__cil_tmp7.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %71) #5
+  %72 = bitcast %struct.list_head** %new.addr.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %72) #5
+  %73 = bitcast %struct.list_head** %head.addr.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %73) #5
+  %74 = bitcast %struct.list_head** %__cil_tmp3.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %74) #5
+  %75 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %76 = ptrtoint %struct.node* %75 to i32
+  store i32 %76, i32* %__cil_tmp8.i.i, align 4
+  %77 = load i32, i32* %__cil_tmp8.i.i, align 4
+  %add13.i.i = add i32 %77, 12
+  store i32 %add13.i.i, i32* %__cil_tmp9.i.i, align 4
+  %78 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %79 = ptrtoint %struct.node* %78 to i32
+  store i32 %79, i32* %__cil_tmp10.i.i, align 4
+  %80 = load i32, i32* %__cil_tmp10.i.i, align 4
+  %add14.i.i = add i32 %80, 12
+  store i32 %add14.i.i, i32* %__cil_tmp11.i.i, align 4
+  %81 = load i32, i32* %__cil_tmp11.i.i, align 4
+  %conv15.i.i = zext i32 %81 to i64
+  %82 = inttoptr i64 %conv15.i.i to %struct.list_head*
+  %83 = load i32, i32* %__cil_tmp9.i.i, align 4
+  %conv16.i.i = zext i32 %83 to i64
+  %84 = inttoptr i64 %conv16.i.i to %struct.list_head**
+  store %struct.list_head* %82, %struct.list_head** %84, align 8
+  %85 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %86 = ptrtoint %struct.node* %85 to i32
+  store i32 %86, i32* %__cil_tmp12.i.i, align 4
+  %87 = load i32, i32* %__cil_tmp12.i.i, align 4
+  %add17.i.i = add i32 %87, 12
+  store i32 %add17.i.i, i32* %__cil_tmp13.i.i, align 4
+  %88 = load %struct.node*, %struct.node** %node.i.i, align 8
+  %89 = ptrtoint %struct.node* %88 to i32
+  store i32 %89, i32* %__cil_tmp14.i.i, align 4
+  %90 = load i32, i32* %__cil_tmp14.i.i, align 4
+  %add18.i.i = add i32 %90, 12
+  store i32 %add18.i.i, i32* %__cil_tmp15.i.i, align 4
+  %91 = load i32, i32* %__cil_tmp15.i.i, align 4
+  %conv19.i.i = zext i32 %91 to i64
+  %92 = inttoptr i64 %conv19.i.i to %struct.list_head*
+  %93 = load i32, i32* %__cil_tmp13.i.i, align 4
+  %conv20.i.i = zext i32 %93 to i64
+  %94 = inttoptr i64 %conv20.i.i to %struct.list_head**
+  store %struct.list_head* %92, %struct.list_head** %94, align 8
+  %95 = bitcast i32* %value.addr.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %95) #5
+  %96 = bitcast %struct.node** %node.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %96) #5
+  %97 = bitcast i8** %tmp.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %97) #5
+  %98 = bitcast i32* %__cil_tmp4.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %98) #5
+  %99 = bitcast i32* %__cil_tmp5.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %99) #5
+  %100 = bitcast i32* %__cil_tmp6.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %100) #5
+  %101 = bitcast %struct.list_head** %__cil_tmp7.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %101) #5
+  %102 = bitcast i32* %__cil_tmp8.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %102) #5
+  %103 = bitcast i32* %__cil_tmp9.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %103) #5
+  %104 = bitcast i32* %__cil_tmp10.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %104) #5
+  %105 = bitcast i32* %__cil_tmp11.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %105) #5
+  %106 = bitcast i32* %__cil_tmp12.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %106) #5
+  %107 = bitcast i32* %__cil_tmp13.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %107) #5
+  %108 = bitcast i32* %__cil_tmp14.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %108) #5
+  %109 = bitcast i32* %__cil_tmp15.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %109) #5
+  %call2.i = call i32 @__VERIFIER_nondet_int() #5
+  store i32 %call2.i, i32* %tmp___0.i, align 4
+  %110 = load i32, i32* %tmp___0.i, align 4
+  %tobool.i = icmp ne i32 %110, 0
+  br i1 %tobool.i, label %if.then.i, label %gl_read.exit
+
+if.then.i:                                        ; preds = %gl_insert.exit.i
+  br label %while.body.i
+
+gl_read.exit:                                     ; preds = %gl_insert.exit.i
+  %111 = bitcast i32* %tmp.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %111)
+  %112 = bitcast i32* %tmp___0.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %112)
   store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp1, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %__cil_tmp1, align 8
-  call void @inspect(%struct.list_head* %0)
-  call void @gl_sort()
+  %113 = load %struct.list_head*, %struct.list_head** %__cil_tmp1, align 8
+  call void @inspect(%struct.list_head* %113)
+  call void @llvm.lifetime.start(i64 1, i8* %tmp.i11)
+  br label %while.body.i12
+
+while.body.i12:                                   ; preds = %if.then.i18, %gl_read.exit
+  call void @llvm.lifetime.start(i64 1, i8* %any_change.i.i) #5
+  %114 = bitcast %struct.list_head** %pos0.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %114) #5
+  %115 = bitcast %struct.list_head** %pos1.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %115) #5
+  %116 = bitcast i32* %val0.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %116) #5
+  %117 = bitcast i32* %tmp.i.i7 to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %117) #5
+  %118 = bitcast i32* %val1.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %118) #5
+  %119 = bitcast i32* %tmp___0.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %119) #5
+  %120 = bitcast %struct.list_head** %__cil_tmp8.i.i8 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %120) #5
+  %121 = bitcast i32* %__cil_tmp9.i.i9 to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %121) #5
+  %122 = bitcast i32* %__cil_tmp10.i.i10 to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %122) #5
+  store i8 0, i8* %any_change.i.i, align 1
+  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp8.i.i8, align 8
+  %123 = load %struct.list_head*, %struct.list_head** %__cil_tmp8.i.i8, align 8
+  %124 = bitcast %struct.list_head* %123 to %struct.list_head**
+  %125 = load %struct.list_head*, %struct.list_head** %124, align 8
+  store %struct.list_head* %125, %struct.list_head** %pos0.i.i, align 8
+  br label %while.body.i.i
+
+while.body.i.i:                                   ; preds = %if.else9.i.i, %while.body.i12
+  br label %while_21_continue.i.i
+
+while_21_continue.i.i:                            ; preds = %if.then8.i.i, %while.body.i.i
+  %126 = load %struct.list_head*, %struct.list_head** %pos0.i.i, align 8
+  %127 = bitcast %struct.list_head* %126 to %struct.list_head**
+  %128 = load %struct.list_head*, %struct.list_head** %127, align 8
+  store %struct.list_head* %128, %struct.list_head** %pos1.i.i, align 8
+  %129 = load %struct.list_head*, %struct.list_head** %pos1.i.i, align 8
+  %130 = ptrtoint %struct.list_head* %129 to i32
+  store i32 %130, i32* %__cil_tmp9.i.i9, align 4
+  store i32 ptrtoint (%struct.list_head* @gl_list to i32), i32* %__cil_tmp10.i.i10, align 4
+  %131 = load i32, i32* %__cil_tmp10.i.i10, align 4
+  %132 = load i32, i32* %__cil_tmp9.i.i9, align 4
+  %cmp.i.i = icmp ne i32 %131, %132
+  br i1 %cmp.i.i, label %if.then.i.i13, label %gl_sort_pass.exit.i
+
+if.then.i.i13:                                    ; preds = %while_21_continue.i.i
+  %133 = load %struct.list_head*, %struct.list_head** %pos0.i.i, align 8
+  %134 = bitcast %struct.list_head** %head.addr.i.i.i5 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %134) #5
+  %135 = bitcast %struct.node** %entry1.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %135) #5
+  %136 = bitcast %struct.node** %__cil_tmp3.i.i.i6 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %136) #5
+  %137 = bitcast i32* %__cil_tmp4.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %137) #5
+  %138 = bitcast i32* %__cil_tmp5.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %138) #5
+  %139 = bitcast %struct.list_head** %__cil_tmp6.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %139) #5
+  %140 = bitcast i64* %__cil_tmp7.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %140) #5
+  %141 = bitcast i8** %__cil_tmp8.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %141) #5
+  %142 = bitcast i8** %__cil_tmp9.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %142) #5
+  store %struct.list_head* %133, %struct.list_head** %head.addr.i.i.i5, align 8
+  store %struct.node* null, %struct.node** %__cil_tmp3.i.i.i6, align 8
+  %143 = load %struct.node*, %struct.node** %__cil_tmp3.i.i.i6, align 8
+  %144 = ptrtoint %struct.node* %143 to i32
+  store i32 %144, i32* %__cil_tmp4.i.i.i, align 4
+  %145 = load i32, i32* %__cil_tmp4.i.i.i, align 4
+  %add.i.i.i = add i32 %145, 4
+  store i32 %add.i.i.i, i32* %__cil_tmp5.i.i.i, align 4
+  %146 = load i32, i32* %__cil_tmp5.i.i.i, align 4
+  %conv.i.i.i = zext i32 %146 to i64
+  %147 = inttoptr i64 %conv.i.i.i to %struct.list_head*
+  store %struct.list_head* %147, %struct.list_head** %__cil_tmp6.i.i.i, align 8
+  %148 = load %struct.list_head*, %struct.list_head** %__cil_tmp6.i.i.i, align 8
+  %149 = ptrtoint %struct.list_head* %148 to i64
+  store i64 %149, i64* %__cil_tmp7.i.i.i, align 8
+  %150 = load %struct.list_head*, %struct.list_head** %head.addr.i.i.i5, align 8
+  %151 = bitcast %struct.list_head* %150 to i8*
+  store i8* %151, i8** %__cil_tmp8.i.i.i, align 8
+  %152 = load i8*, i8** %__cil_tmp8.i.i.i, align 8
+  %153 = load i64, i64* %__cil_tmp7.i.i.i, align 8
+  %idx.neg.i.i.i = sub i64 0, %153
+  %add.ptr.i.i.i = getelementptr inbounds i8, i8* %152, i64 %idx.neg.i.i.i
+  store i8* %add.ptr.i.i.i, i8** %__cil_tmp9.i.i.i, align 8
+  %154 = load i8*, i8** %__cil_tmp9.i.i.i, align 8
+  %155 = bitcast i8* %154 to %struct.node*
+  store %struct.node* %155, %struct.node** %entry1.i.i.i, align 8
+  %156 = load %struct.node*, %struct.node** %entry1.i.i.i, align 8
+  %157 = bitcast %struct.node* %156 to i32*
+  %158 = load i32, i32* %157, align 4
+  %159 = bitcast %struct.list_head** %head.addr.i.i.i5 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %159) #5
+  %160 = bitcast %struct.node** %entry1.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %160) #5
+  %161 = bitcast %struct.node** %__cil_tmp3.i.i.i6 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %161) #5
+  %162 = bitcast i32* %__cil_tmp4.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %162) #5
+  %163 = bitcast i32* %__cil_tmp5.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %163) #5
+  %164 = bitcast %struct.list_head** %__cil_tmp6.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %164) #5
+  %165 = bitcast i64* %__cil_tmp7.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %165) #5
+  %166 = bitcast i8** %__cil_tmp8.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %166) #5
+  %167 = bitcast i8** %__cil_tmp9.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %167) #5
+  store i32 %158, i32* %tmp.i.i7, align 4
+  %168 = load i32, i32* %tmp.i.i7, align 4
+  store i32 %168, i32* %val0.i.i, align 4
+  %169 = load %struct.list_head*, %struct.list_head** %pos1.i.i, align 8
+  %170 = bitcast %struct.list_head** %head.addr.i8.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %170) #5
+  %171 = bitcast %struct.node** %entry1.i9.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %171) #5
+  %172 = bitcast %struct.node** %__cil_tmp3.i10.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %172) #5
+  %173 = bitcast i32* %__cil_tmp4.i11.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %173) #5
+  %174 = bitcast i32* %__cil_tmp5.i12.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %174) #5
+  %175 = bitcast %struct.list_head** %__cil_tmp6.i13.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %175) #5
+  %176 = bitcast i64* %__cil_tmp7.i14.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %176) #5
+  %177 = bitcast i8** %__cil_tmp8.i15.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %177) #5
+  %178 = bitcast i8** %__cil_tmp9.i16.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %178) #5
+  store %struct.list_head* %169, %struct.list_head** %head.addr.i8.i.i, align 8
+  store %struct.node* null, %struct.node** %__cil_tmp3.i10.i.i, align 8
+  %179 = load %struct.node*, %struct.node** %__cil_tmp3.i10.i.i, align 8
+  %180 = ptrtoint %struct.node* %179 to i32
+  store i32 %180, i32* %__cil_tmp4.i11.i.i, align 4
+  %181 = load i32, i32* %__cil_tmp4.i11.i.i, align 4
+  %add.i17.i.i = add i32 %181, 4
+  store i32 %add.i17.i.i, i32* %__cil_tmp5.i12.i.i, align 4
+  %182 = load i32, i32* %__cil_tmp5.i12.i.i, align 4
+  %conv.i18.i.i = zext i32 %182 to i64
+  %183 = inttoptr i64 %conv.i18.i.i to %struct.list_head*
+  store %struct.list_head* %183, %struct.list_head** %__cil_tmp6.i13.i.i, align 8
+  %184 = load %struct.list_head*, %struct.list_head** %__cil_tmp6.i13.i.i, align 8
+  %185 = ptrtoint %struct.list_head* %184 to i64
+  store i64 %185, i64* %__cil_tmp7.i14.i.i, align 8
+  %186 = load %struct.list_head*, %struct.list_head** %head.addr.i8.i.i, align 8
+  %187 = bitcast %struct.list_head* %186 to i8*
+  store i8* %187, i8** %__cil_tmp8.i15.i.i, align 8
+  %188 = load i8*, i8** %__cil_tmp8.i15.i.i, align 8
+  %189 = load i64, i64* %__cil_tmp7.i14.i.i, align 8
+  %idx.neg.i19.i.i = sub i64 0, %189
+  %add.ptr.i20.i.i = getelementptr inbounds i8, i8* %188, i64 %idx.neg.i19.i.i
+  store i8* %add.ptr.i20.i.i, i8** %__cil_tmp9.i16.i.i, align 8
+  %190 = load i8*, i8** %__cil_tmp9.i16.i.i, align 8
+  %191 = bitcast i8* %190 to %struct.node*
+  store %struct.node* %191, %struct.node** %entry1.i9.i.i, align 8
+  %192 = load %struct.node*, %struct.node** %entry1.i9.i.i, align 8
+  %193 = bitcast %struct.node* %192 to i32*
+  %194 = load i32, i32* %193, align 4
+  %195 = bitcast %struct.list_head** %head.addr.i8.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %195) #5
+  %196 = bitcast %struct.node** %entry1.i9.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %196) #5
+  %197 = bitcast %struct.node** %__cil_tmp3.i10.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %197) #5
+  %198 = bitcast i32* %__cil_tmp4.i11.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %198) #5
+  %199 = bitcast i32* %__cil_tmp5.i12.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %199) #5
+  %200 = bitcast %struct.list_head** %__cil_tmp6.i13.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %200) #5
+  %201 = bitcast i64* %__cil_tmp7.i14.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %201) #5
+  %202 = bitcast i8** %__cil_tmp8.i15.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %202) #5
+  %203 = bitcast i8** %__cil_tmp9.i16.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %203) #5
+  store i32 %194, i32* %tmp___0.i.i, align 4
+  %204 = load i32, i32* %tmp___0.i.i, align 4
+  store i32 %204, i32* %val1.i.i, align 4
+  %205 = load i32, i32* %val0.i.i, align 4
+  %206 = load i32, i32* %val1.i.i, align 4
+  %cmp7.i.i = icmp sle i32 %205, %206
+  br i1 %cmp7.i.i, label %if.then8.i.i, label %if.else9.i.i
+
+if.then8.i.i:                                     ; preds = %if.then.i.i13
+  %207 = load %struct.list_head*, %struct.list_head** %pos1.i.i, align 8
+  store %struct.list_head* %207, %struct.list_head** %pos0.i.i, align 8
+  br label %while_21_continue.i.i
+
+if.else9.i.i:                                     ; preds = %if.then.i.i13
+  store i8 1, i8* %any_change.i.i, align 1
+  %208 = load %struct.list_head*, %struct.list_head** %pos0.i.i, align 8
+  %209 = load %struct.list_head*, %struct.list_head** %pos1.i.i, align 8
+  %210 = bitcast %struct.list_head** %list.addr.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %210) #5
+  %211 = bitcast %struct.list_head** %head.addr.i1.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %211) #5
+  %212 = bitcast i32* %__cil_tmp3.i2.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %212) #5
+  %213 = bitcast i32* %__cil_tmp4.i3.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %213) #5
+  %214 = bitcast %struct.list_head** %__cil_tmp5.i4.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %214) #5
+  %215 = bitcast %struct.list_head** %__cil_tmp6.i5.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %215) #5
+  store %struct.list_head* %208, %struct.list_head** %list.addr.i.i.i, align 8
+  store %struct.list_head* %209, %struct.list_head** %head.addr.i1.i.i, align 8
+  %216 = load %struct.list_head*, %struct.list_head** %list.addr.i.i.i, align 8
+  %217 = ptrtoint %struct.list_head* %216 to i32
+  store i32 %217, i32* %__cil_tmp3.i2.i.i, align 4
+  %218 = load i32, i32* %__cil_tmp3.i2.i.i, align 4
+  %add.i6.i.i = add i32 %218, 4
+  store i32 %add.i6.i.i, i32* %__cil_tmp4.i3.i.i, align 4
+  %219 = load i32, i32* %__cil_tmp4.i3.i.i, align 4
+  %conv.i7.i.i = zext i32 %219 to i64
+  %220 = inttoptr i64 %conv.i7.i.i to %struct.list_head**
+  %221 = load %struct.list_head*, %struct.list_head** %220, align 8
+  store %struct.list_head* %221, %struct.list_head** %__cil_tmp5.i4.i.i, align 8
+  %222 = load %struct.list_head*, %struct.list_head** %list.addr.i.i.i, align 8
+  %223 = bitcast %struct.list_head* %222 to %struct.list_head**
+  %224 = load %struct.list_head*, %struct.list_head** %223, align 8
+  store %struct.list_head* %224, %struct.list_head** %__cil_tmp6.i5.i.i, align 8
+  %225 = load %struct.list_head*, %struct.list_head** %__cil_tmp5.i4.i.i, align 8
+  %226 = load %struct.list_head*, %struct.list_head** %__cil_tmp6.i5.i.i, align 8
+  %227 = bitcast %struct.list_head** %prev.addr.i.i.i.i2 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %227) #5
+  %228 = bitcast %struct.list_head** %next.addr.i.i.i.i3 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %228) #5
+  %229 = bitcast i32* %__cil_tmp3.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %229) #5
+  %230 = bitcast i32* %__cil_tmp4.i.i.i.i4 to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %230) #5
+  store %struct.list_head* %225, %struct.list_head** %prev.addr.i.i.i.i2, align 8
+  store %struct.list_head* %226, %struct.list_head** %next.addr.i.i.i.i3, align 8
+  %231 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i3, align 8
+  %232 = ptrtoint %struct.list_head* %231 to i32
+  store i32 %232, i32* %__cil_tmp3.i.i.i.i, align 4
+  %233 = load i32, i32* %__cil_tmp3.i.i.i.i, align 4
+  %add.i.i.i.i14 = add i32 %233, 4
+  store i32 %add.i.i.i.i14, i32* %__cil_tmp4.i.i.i.i4, align 4
+  %234 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i2, align 8
+  %235 = load i32, i32* %__cil_tmp4.i.i.i.i4, align 4
+  %conv.i.i.i.i15 = zext i32 %235 to i64
+  %236 = inttoptr i64 %conv.i.i.i.i15 to %struct.list_head**
+  store %struct.list_head* %234, %struct.list_head** %236, align 8
+  %237 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i3, align 8
+  %238 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i2, align 8
+  %239 = bitcast %struct.list_head* %238 to %struct.list_head**
+  store %struct.list_head* %237, %struct.list_head** %239, align 8
+  %240 = bitcast %struct.list_head** %prev.addr.i.i.i.i2 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %240) #5
+  %241 = bitcast %struct.list_head** %next.addr.i.i.i.i3 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %241) #5
+  %242 = bitcast i32* %__cil_tmp3.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %242) #5
+  %243 = bitcast i32* %__cil_tmp4.i.i.i.i4 to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %243) #5
+  %244 = load %struct.list_head*, %struct.list_head** %list.addr.i.i.i, align 8
+  %245 = load %struct.list_head*, %struct.list_head** %head.addr.i1.i.i, align 8
+  %246 = bitcast %struct.list_head** %new.addr.i.i.i.i1 to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %246) #5
+  %247 = bitcast %struct.list_head** %head.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %247) #5
+  %248 = bitcast %struct.list_head** %__cil_tmp3.i1.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %248) #5
+  store %struct.list_head* %244, %struct.list_head** %new.addr.i.i.i.i1, align 8
+  store %struct.list_head* %245, %struct.list_head** %head.addr.i.i.i.i, align 8
+  %249 = load %struct.list_head*, %struct.list_head** %head.addr.i.i.i.i, align 8
+  %250 = bitcast %struct.list_head* %249 to %struct.list_head**
+  %251 = load %struct.list_head*, %struct.list_head** %250, align 8
+  store %struct.list_head* %251, %struct.list_head** %__cil_tmp3.i1.i.i.i, align 8
+  %252 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i1, align 8
+  %253 = load %struct.list_head*, %struct.list_head** %head.addr.i.i.i.i, align 8
+  %254 = load %struct.list_head*, %struct.list_head** %__cil_tmp3.i1.i.i.i, align 8
+  %255 = bitcast %struct.list_head** %new.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %255) #5
+  %256 = bitcast %struct.list_head** %prev.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %256) #5
+  %257 = bitcast %struct.list_head** %next.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %257) #5
+  %258 = bitcast i32* %__cil_tmp4.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %258) #5
+  %259 = bitcast i32* %__cil_tmp5.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %259) #5
+  %260 = bitcast i32* %__cil_tmp6.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %260) #5
+  %261 = bitcast i32* %__cil_tmp7.i.i.i.i.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %261) #5
+  store %struct.list_head* %252, %struct.list_head** %new.addr.i.i.i.i.i, align 8
+  store %struct.list_head* %253, %struct.list_head** %prev.addr.i.i.i.i.i, align 8
+  store %struct.list_head* %254, %struct.list_head** %next.addr.i.i.i.i.i, align 8
+  %262 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i.i, align 8
+  %263 = ptrtoint %struct.list_head* %262 to i32
+  store i32 %263, i32* %__cil_tmp4.i.i.i.i.i, align 4
+  %264 = load i32, i32* %__cil_tmp4.i.i.i.i.i, align 4
+  %add.i.i.i.i.i = add i32 %264, 4
+  store i32 %add.i.i.i.i.i, i32* %__cil_tmp5.i.i.i.i.i, align 4
+  %265 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i.i, align 8
+  %266 = load i32, i32* %__cil_tmp5.i.i.i.i.i, align 4
+  %conv.i.i.i.i.i = zext i32 %266 to i64
+  %267 = inttoptr i64 %conv.i.i.i.i.i to %struct.list_head**
+  store %struct.list_head* %265, %struct.list_head** %267, align 8
+  %268 = load %struct.list_head*, %struct.list_head** %next.addr.i.i.i.i.i, align 8
+  %269 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i.i, align 8
+  %270 = bitcast %struct.list_head* %269 to %struct.list_head**
+  store %struct.list_head* %268, %struct.list_head** %270, align 8
+  %271 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i.i, align 8
+  %272 = ptrtoint %struct.list_head* %271 to i32
+  store i32 %272, i32* %__cil_tmp6.i.i.i.i.i, align 4
+  %273 = load i32, i32* %__cil_tmp6.i.i.i.i.i, align 4
+  %add1.i.i.i.i.i = add i32 %273, 4
+  store i32 %add1.i.i.i.i.i, i32* %__cil_tmp7.i.i.i.i.i, align 4
+  %274 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i.i, align 8
+  %275 = load i32, i32* %__cil_tmp7.i.i.i.i.i, align 4
+  %conv2.i.i.i.i.i = zext i32 %275 to i64
+  %276 = inttoptr i64 %conv2.i.i.i.i.i to %struct.list_head**
+  store %struct.list_head* %274, %struct.list_head** %276, align 8
+  %277 = load %struct.list_head*, %struct.list_head** %new.addr.i.i.i.i.i, align 8
+  %278 = load %struct.list_head*, %struct.list_head** %prev.addr.i.i.i.i.i, align 8
+  %279 = bitcast %struct.list_head* %278 to %struct.list_head**
+  store %struct.list_head* %277, %struct.list_head** %279, align 8
+  %280 = bitcast %struct.list_head** %new.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %280) #5
+  %281 = bitcast %struct.list_head** %prev.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %281) #5
+  %282 = bitcast %struct.list_head** %next.addr.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %282) #5
+  %283 = bitcast i32* %__cil_tmp4.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %283) #5
+  %284 = bitcast i32* %__cil_tmp5.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %284) #5
+  %285 = bitcast i32* %__cil_tmp6.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %285) #5
+  %286 = bitcast i32* %__cil_tmp7.i.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %286) #5
+  %287 = bitcast %struct.list_head** %new.addr.i.i.i.i1 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %287) #5
+  %288 = bitcast %struct.list_head** %head.addr.i.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %288) #5
+  %289 = bitcast %struct.list_head** %__cil_tmp3.i1.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %289) #5
+  %290 = bitcast %struct.list_head** %list.addr.i.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %290) #5
+  %291 = bitcast %struct.list_head** %head.addr.i1.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %291) #5
+  %292 = bitcast i32* %__cil_tmp3.i2.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %292) #5
+  %293 = bitcast i32* %__cil_tmp4.i3.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %293) #5
+  %294 = bitcast %struct.list_head** %__cil_tmp5.i4.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %294) #5
+  %295 = bitcast %struct.list_head** %__cil_tmp6.i5.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %295) #5
+  br label %while.body.i.i
+
+gl_sort_pass.exit.i:                              ; preds = %while_21_continue.i.i
+  %296 = load i8, i8* %any_change.i.i, align 1
+  %tobool.i.i16 = trunc i8 %296 to i1
+  call void @llvm.lifetime.end(i64 1, i8* %any_change.i.i) #5
+  %297 = bitcast %struct.list_head** %pos0.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %297) #5
+  %298 = bitcast %struct.list_head** %pos1.i.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %298) #5
+  %299 = bitcast i32* %val0.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %299) #5
+  %300 = bitcast i32* %tmp.i.i7 to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %300) #5
+  %301 = bitcast i32* %val1.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %301) #5
+  %302 = bitcast i32* %tmp___0.i.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %302) #5
+  %303 = bitcast %struct.list_head** %__cil_tmp8.i.i8 to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %303) #5
+  %304 = bitcast i32* %__cil_tmp9.i.i9 to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %304) #5
+  %305 = bitcast i32* %__cil_tmp10.i.i10 to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %305) #5
+  %frombool.i = zext i1 %tobool.i.i16 to i8
+  store i8 %frombool.i, i8* %tmp.i11, align 1
+  %306 = load i8, i8* %tmp.i11, align 1
+  %tobool.i17 = trunc i8 %306 to i1
+  br i1 %tobool.i17, label %if.then.i18, label %gl_sort.exit
+
+if.then.i18:                                      ; preds = %gl_sort_pass.exit.i
+  br label %while.body.i12
+
+gl_sort.exit:                                     ; preds = %gl_sort_pass.exit.i
+  call void @llvm.lifetime.end(i64 1, i8* %tmp.i11)
   store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp2, align 8
-  %1 = load %struct.list_head*, %struct.list_head** %__cil_tmp2, align 8
-  call void @inspect(%struct.list_head* %1)
-  call void @gl_destroy()
+  %307 = load %struct.list_head*, %struct.list_head** %__cil_tmp2, align 8
+  call void @inspect(%struct.list_head* %307)
+  %308 = bitcast %struct.list_head** %next.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %308)
+  %309 = bitcast %struct.list_head** %__cil_tmp2.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %309)
+  %310 = bitcast i32* %__cil_tmp3.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %310)
+  %311 = bitcast i32* %__cil_tmp4.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %311)
+  %312 = bitcast %struct.list_head** %__cil_tmp5.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %312)
+  %313 = bitcast %struct.node** %__cil_tmp6.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %313)
+  %314 = bitcast i32* %__cil_tmp7.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %314)
+  %315 = bitcast i32* %__cil_tmp8.i to i8*
+  call void @llvm.lifetime.start(i64 4, i8* %315)
+  %316 = bitcast %struct.list_head** %__cil_tmp9.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %316)
+  %317 = bitcast i64* %__cil_tmp10.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %317)
+  %318 = bitcast i8** %__cil_tmp11.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %318)
+  %319 = bitcast i8** %__cil_tmp12.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %319)
+  %320 = bitcast %struct.node** %__cil_tmp13.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %320)
+  %321 = bitcast i8** %__cil_tmp14.i to i8*
+  call void @llvm.lifetime.start(i64 8, i8* %321)
+  br label %while.body.i19
+
+while.body.i19:                                   ; preds = %if.then.i20, %gl_sort.exit
+  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp2.i, align 8
+  %322 = load %struct.list_head*, %struct.list_head** %__cil_tmp2.i, align 8
+  %323 = bitcast %struct.list_head* %322 to %struct.list_head**
+  %324 = load %struct.list_head*, %struct.list_head** %323, align 8
+  store %struct.list_head* %324, %struct.list_head** %next.i, align 8
+  %325 = load %struct.list_head*, %struct.list_head** %next.i, align 8
+  %326 = ptrtoint %struct.list_head* %325 to i32
+  store i32 %326, i32* %__cil_tmp3.i, align 4
+  store i32 ptrtoint (%struct.list_head* @gl_list to i32), i32* %__cil_tmp4.i, align 4
+  %327 = load i32, i32* %__cil_tmp4.i, align 4
+  %328 = load i32, i32* %__cil_tmp3.i, align 4
+  %cmp.i = icmp ne i32 %327, %328
+  br i1 %cmp.i, label %if.then.i20, label %gl_destroy.exit
+
+if.then.i20:                                      ; preds = %while.body.i19
+  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp5.i, align 8
+  %329 = load %struct.list_head*, %struct.list_head** %next.i, align 8
+  %330 = bitcast %struct.list_head* %329 to %struct.list_head**
+  %331 = load %struct.list_head*, %struct.list_head** %330, align 8
+  %332 = load %struct.list_head*, %struct.list_head** %__cil_tmp5.i, align 8
+  %333 = bitcast %struct.list_head* %332 to %struct.list_head**
+  store %struct.list_head* %331, %struct.list_head** %333, align 8
+  store %struct.node* null, %struct.node** %__cil_tmp6.i, align 8
+  %334 = load %struct.node*, %struct.node** %__cil_tmp6.i, align 8
+  %335 = ptrtoint %struct.node* %334 to i32
+  store i32 %335, i32* %__cil_tmp7.i, align 4
+  %336 = load i32, i32* %__cil_tmp7.i, align 4
+  %add.i = add i32 %336, 4
+  store i32 %add.i, i32* %__cil_tmp8.i, align 4
+  %337 = load i32, i32* %__cil_tmp8.i, align 4
+  %conv.i = zext i32 %337 to i64
+  %338 = inttoptr i64 %conv.i to %struct.list_head*
+  store %struct.list_head* %338, %struct.list_head** %__cil_tmp9.i, align 8
+  %339 = load %struct.list_head*, %struct.list_head** %__cil_tmp9.i, align 8
+  %340 = ptrtoint %struct.list_head* %339 to i64
+  store i64 %340, i64* %__cil_tmp10.i, align 8
+  %341 = load %struct.list_head*, %struct.list_head** %next.i, align 8
+  %342 = bitcast %struct.list_head* %341 to i8*
+  store i8* %342, i8** %__cil_tmp11.i, align 8
+  %343 = load i8*, i8** %__cil_tmp11.i, align 8
+  %344 = load i64, i64* %__cil_tmp10.i, align 8
+  %idx.neg.i = sub i64 0, %344
+  %add.ptr.i = getelementptr inbounds i8, i8* %343, i64 %idx.neg.i
+  store i8* %add.ptr.i, i8** %__cil_tmp12.i, align 8
+  %345 = load i8*, i8** %__cil_tmp12.i, align 8
+  %346 = bitcast i8* %345 to %struct.node*
+  store %struct.node* %346, %struct.node** %__cil_tmp13.i, align 8
+  %347 = load %struct.node*, %struct.node** %__cil_tmp13.i, align 8
+  %348 = bitcast %struct.node* %347 to i8*
+  store i8* %348, i8** %__cil_tmp14.i, align 8
+  %349 = load i8*, i8** %__cil_tmp14.i, align 8
+  call void @free(i8* %349) #5
+  br label %while.body.i19
+
+gl_destroy.exit:                                  ; preds = %while.body.i19
+  %350 = bitcast %struct.list_head** %next.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %350)
+  %351 = bitcast %struct.list_head** %__cil_tmp2.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %351)
+  %352 = bitcast i32* %__cil_tmp3.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %352)
+  %353 = bitcast i32* %__cil_tmp4.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %353)
+  %354 = bitcast %struct.list_head** %__cil_tmp5.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %354)
+  %355 = bitcast %struct.node** %__cil_tmp6.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %355)
+  %356 = bitcast i32* %__cil_tmp7.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %356)
+  %357 = bitcast i32* %__cil_tmp8.i to i8*
+  call void @llvm.lifetime.end(i64 4, i8* %357)
+  %358 = bitcast %struct.list_head** %__cil_tmp9.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %358)
+  %359 = bitcast i64* %__cil_tmp10.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %359)
+  %360 = bitcast i8** %__cil_tmp11.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %360)
+  %361 = bitcast i8** %__cil_tmp12.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %361)
+  %362 = bitcast %struct.node** %__cil_tmp13.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %362)
+  %363 = bitcast i8** %__cil_tmp14.i to i8*
+  call void @llvm.lifetime.end(i64 8, i8* %363)
   ret i32 0
-}
-
-; Function Attrs: nounwind ssp uwtable
-define internal void @gl_read() #0 {
-entry:
-  %tmp = alloca i32, align 4
-  %tmp___0 = alloca i32, align 4
-  br label %while.body
-
-while.body:                                       ; preds = %entry, %if.end
-  br label %while_19_continue
-
-while_19_continue:                                ; preds = %while.body
-  %call = call i32 @__VERIFIER_nondet_int()
-  store i32 %call, i32* %tmp, align 4
-  %0 = load i32, i32* %tmp, align 4
-  call void @gl_insert(i32 %0)
-  %call2 = call i32 @__VERIFIER_nondet_int()
-  store i32 %call2, i32* %tmp___0, align 4
-  %1 = load i32, i32* %tmp___0, align 4
-  %tobool = icmp ne i32 %1, 0
-  br i1 %tobool, label %if.then, label %if.else
-
-if.then:                                          ; preds = %while_19_continue
-  br label %if.end
-
-if.else:                                          ; preds = %while_19_continue
-  br label %while_19_break
-
-if.end:                                           ; preds = %if.then
-  br label %while.body
-
-while_19_break:                                   ; preds = %if.else
-  ret void
 }
 
 ; Function Attrs: nounwind ssp uwtable
@@ -197,13 +996,16 @@ while_0_continue:                                 ; preds = %while.body
   br i1 %tobool, label %if.else, label %if.then
 
 if.then:                                          ; preds = %while_0_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit:                                        ; No predecessors!
   br label %if.end
 
 if.else:                                          ; preds = %while_0_continue
   br label %if.end
 
-if.end:                                           ; preds = %if.else, %if.then
+if.end:                                           ; preds = %if.else, %fail.exit
   br label %while_0_break
 
 while_0_break:                                    ; preds = %if.end
@@ -233,13 +1035,16 @@ while_1_continue:                                 ; preds = %while.body1
   br i1 %tobool2, label %if.else4, label %if.then3
 
 if.then3:                                         ; preds = %while_1_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit1:                                       ; No predecessors!
   br label %if.end5
 
 if.else4:                                         ; preds = %while_1_continue
   br label %if.end5
 
-if.end5:                                          ; preds = %if.else4, %if.then3
+if.end5:                                          ; preds = %if.else4, %fail.exit1
   br label %while_1_break
 
 while_1_break:                                    ; preds = %if.end5
@@ -276,13 +1081,16 @@ while_2_continue:                                 ; preds = %while.body6
   br i1 %tobool10, label %if.else12, label %if.then11
 
 if.then11:                                        ; preds = %while_2_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit2:                                       ; No predecessors!
   br label %if.end13
 
 if.else12:                                        ; preds = %while_2_continue
   br label %if.end13
 
-if.end13:                                         ; preds = %if.else12, %if.then11
+if.end13:                                         ; preds = %if.else12, %fail.exit2
   br label %while_2_break
 
 while_2_break:                                    ; preds = %if.end13
@@ -310,13 +1118,16 @@ while_3_continue:                                 ; preds = %while.body16
   br i1 %tobool17, label %if.else19, label %if.then18
 
 if.then18:                                        ; preds = %while_3_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit3:                                       ; No predecessors!
   br label %if.end20
 
 if.else19:                                        ; preds = %while_3_continue
   br label %if.end20
 
-if.end20:                                         ; preds = %if.else19, %if.then18
+if.end20:                                         ; preds = %if.else19, %fail.exit3
   br label %while_3_break
 
 while_3_break:                                    ; preds = %if.end20
@@ -346,13 +1157,16 @@ while_4_continue:                                 ; preds = %while.body21
   br i1 %tobool24, label %if.else26, label %if.then25
 
 if.then25:                                        ; preds = %while_4_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit4:                                       ; No predecessors!
   br label %if.end27
 
 if.else26:                                        ; preds = %while_4_continue
   br label %if.end27
 
-if.end27:                                         ; preds = %if.else26, %if.then25
+if.end27:                                         ; preds = %if.else26, %fail.exit4
   br label %while_4_break
 
 while_4_break:                                    ; preds = %if.end27
@@ -389,13 +1203,16 @@ while_5_continue:                                 ; preds = %while.body28
   br i1 %tobool33, label %if.else35, label %if.then34
 
 if.then34:                                        ; preds = %while_5_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit5:                                       ; No predecessors!
   br label %if.end36
 
 if.else35:                                        ; preds = %while_5_continue
   br label %if.end36
 
-if.end36:                                         ; preds = %if.else35, %if.then34
+if.end36:                                         ; preds = %if.else35, %fail.exit5
   br label %while_5_break
 
 while_5_break:                                    ; preds = %if.end36
@@ -437,13 +1254,16 @@ while_6_continue:                                 ; preds = %while.body39
   br i1 %tobool40, label %if.else42, label %if.then41
 
 if.then41:                                        ; preds = %while_6_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit6:                                       ; No predecessors!
   br label %if.end43
 
 if.else42:                                        ; preds = %while_6_continue
   br label %if.end43
 
-if.end43:                                         ; preds = %if.else42, %if.then41
+if.end43:                                         ; preds = %if.else42, %fail.exit6
   br label %while_6_break
 
 while_6_break:                                    ; preds = %if.end43
@@ -490,13 +1310,16 @@ while_7_continue:                                 ; preds = %while.body44
   br i1 %tobool51, label %if.else53, label %if.then52
 
 if.then52:                                        ; preds = %while_7_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit7:                                       ; No predecessors!
   br label %if.end54
 
 if.else53:                                        ; preds = %while_7_continue
   br label %if.end54
 
-if.end54:                                         ; preds = %if.else53, %if.then52
+if.end54:                                         ; preds = %if.else53, %fail.exit7
   br label %while_7_break
 
 while_7_break:                                    ; preds = %if.end54
@@ -545,13 +1368,16 @@ while_8_continue:                                 ; preds = %while.body55
   br i1 %tobool62, label %if.else64, label %if.then63
 
 if.then63:                                        ; preds = %while_8_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit8:                                       ; No predecessors!
   br label %if.end65
 
 if.else64:                                        ; preds = %while_8_continue
   br label %if.end65
 
-if.end65:                                         ; preds = %if.else64, %if.then63
+if.end65:                                         ; preds = %if.else64, %fail.exit8
   br label %while_8_break
 
 while_8_break:                                    ; preds = %if.end65
@@ -598,13 +1424,16 @@ while_9_continue:                                 ; preds = %while.body66
   br i1 %tobool73, label %if.else75, label %if.then74
 
 if.then74:                                        ; preds = %while_9_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit9:                                       ; No predecessors!
   br label %if.end76
 
 if.else75:                                        ; preds = %while_9_continue
   br label %if.end76
 
-if.end76:                                         ; preds = %if.else75, %if.then74
+if.end76:                                         ; preds = %if.else75, %fail.exit9
   br label %while_9_break
 
 while_9_break:                                    ; preds = %if.end76
@@ -653,13 +1482,16 @@ while_10_continue:                                ; preds = %while.body77
   br i1 %tobool84, label %if.else86, label %if.then85
 
 if.then85:                                        ; preds = %while_10_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit10:                                      ; No predecessors!
   br label %if.end87
 
 if.else86:                                        ; preds = %while_10_continue
   br label %if.end87
 
-if.end87:                                         ; preds = %if.else86, %if.then85
+if.end87:                                         ; preds = %if.else86, %fail.exit10
   br label %while_10_break
 
 while_10_break:                                   ; preds = %if.end87
@@ -688,13 +1520,16 @@ while_11_continue:                                ; preds = %while.body88
   br i1 %tobool91, label %if.else93, label %if.then92
 
 if.then92:                                        ; preds = %while_11_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit11:                                      ; No predecessors!
   br label %if.end94
 
 if.else93:                                        ; preds = %while_11_continue
   br label %if.end94
 
-if.end94:                                         ; preds = %if.else93, %if.then92
+if.end94:                                         ; preds = %if.else93, %fail.exit11
   br label %while_11_break
 
 while_11_break:                                   ; preds = %if.end94
@@ -733,13 +1568,16 @@ while_12_continue:                                ; preds = %while.body95
   br i1 %tobool100, label %if.else102, label %if.then101
 
 if.then101:                                       ; preds = %while_12_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit12:                                      ; No predecessors!
   br label %if.end103
 
 if.else102:                                       ; preds = %while_12_continue
   br label %if.end103
 
-if.end103:                                        ; preds = %if.else102, %if.then101
+if.end103:                                        ; preds = %if.else102, %fail.exit12
   br label %while_12_break
 
 while_12_break:                                   ; preds = %if.end103
@@ -771,13 +1609,16 @@ while_13_continue:                                ; preds = %while.body104
   br i1 %tobool107, label %if.else109, label %if.then108
 
 if.then108:                                       ; preds = %while_13_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit13:                                      ; No predecessors!
   br label %if.end110
 
 if.else109:                                       ; preds = %while_13_continue
   br label %if.end110
 
-if.end110:                                        ; preds = %if.else109, %if.then108
+if.end110:                                        ; preds = %if.else109, %fail.exit13
   br label %while_13_break
 
 while_13_break:                                   ; preds = %if.end110
@@ -825,13 +1666,16 @@ while_14_continue:                                ; preds = %while.body111
   br i1 %tobool118, label %if.else120, label %if.then119
 
 if.then119:                                       ; preds = %while_14_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit14:                                      ; No predecessors!
   br label %if.end121
 
 if.else120:                                       ; preds = %while_14_continue
   br label %if.end121
 
-if.end121:                                        ; preds = %if.else120, %if.then119
+if.end121:                                        ; preds = %if.else120, %fail.exit14
   br label %while_14_break
 
 while_14_break:                                   ; preds = %if.end121
@@ -874,13 +1718,16 @@ while_15_continue:                                ; preds = %while.body122
   br i1 %tobool127, label %if.else129, label %if.then128
 
 if.then128:                                       ; preds = %while_15_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit15:                                      ; No predecessors!
   br label %if.end130
 
 if.else129:                                       ; preds = %while_15_continue
   br label %if.end130
 
-if.end130:                                        ; preds = %if.else129, %if.then128
+if.end130:                                        ; preds = %if.else129, %fail.exit15
   br label %while_15_break
 
 while_15_break:                                   ; preds = %if.end130
@@ -892,7 +1739,7 @@ while_15_break:                                   ; preds = %if.end130
   store %struct.list_head* %217, %struct.list_head** %head.addr, align 8
   br label %while.body131
 
-while.body131:                                    ; preds = %while_15_break, %if.end138
+while.body131:                                    ; preds = %if.end138, %while_15_break
   br label %while_16_continue
 
 while_16_continue:                                ; preds = %while.body131
@@ -980,241 +1827,23 @@ while_17_continue:                                ; preds = %while.body139
   br i1 %tobool146, label %if.else148, label %if.then147
 
 if.then147:                                       ; preds = %while_17_continue
-  call void @fail()
+  call void (...) @__VERIFIER_error() #6
+  unreachable
+
+fail.exit16:                                      ; No predecessors!
   br label %if.end149
 
 if.else148:                                       ; preds = %while_17_continue
   br label %if.end149
 
-if.end149:                                        ; preds = %if.else148, %if.then147
+if.end149:                                        ; preds = %if.else148, %fail.exit16
   br label %while_17_break
 
 while_17_break:                                   ; preds = %if.end149
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
-define internal void @gl_sort() #0 {
-entry:
-  %tmp = alloca i8, align 1
-  br label %while.body
-
-while.body:                                       ; preds = %entry, %if.end
-  br label %while_22_continue
-
-while_22_continue:                                ; preds = %while.body
-  %call = call zeroext i1 @gl_sort_pass()
-  %frombool = zext i1 %call to i8
-  store i8 %frombool, i8* %tmp, align 1
-  %0 = load i8, i8* %tmp, align 1
-  %tobool = trunc i8 %0 to i1
-  br i1 %tobool, label %if.then, label %if.else
-
-if.then:                                          ; preds = %while_22_continue
-  br label %if.end
-
-if.else:                                          ; preds = %while_22_continue
-  br label %while_22_break
-
-if.end:                                           ; preds = %if.then
-  br label %while.body
-
-while_22_break:                                   ; preds = %if.else
-  ret void
-}
-
-; Function Attrs: nounwind ssp uwtable
-define internal void @gl_destroy() #0 {
-entry:
-  %next = alloca %struct.list_head*, align 8
-  %__cil_tmp2 = alloca %struct.list_head*, align 8
-  %__cil_tmp3 = alloca i32, align 4
-  %__cil_tmp4 = alloca i32, align 4
-  %__cil_tmp5 = alloca %struct.list_head*, align 8
-  %__cil_tmp6 = alloca %struct.node*, align 8
-  %__cil_tmp7 = alloca i32, align 4
-  %__cil_tmp8 = alloca i32, align 4
-  %__cil_tmp9 = alloca %struct.list_head*, align 8
-  %__cil_tmp10 = alloca i64, align 8
-  %__cil_tmp11 = alloca i8*, align 8
-  %__cil_tmp12 = alloca i8*, align 8
-  %__cil_tmp13 = alloca %struct.node*, align 8
-  %__cil_tmp14 = alloca i8*, align 8
-  br label %while.body
-
-while.body:                                       ; preds = %entry, %if.end
-  br label %while_20_continue
-
-while_20_continue:                                ; preds = %while.body
-  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp2, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %__cil_tmp2, align 8
-  %1 = bitcast %struct.list_head* %0 to %struct.list_head**
-  %2 = load %struct.list_head*, %struct.list_head** %1, align 8
-  store %struct.list_head* %2, %struct.list_head** %next, align 8
-  %3 = load %struct.list_head*, %struct.list_head** %next, align 8
-  %4 = ptrtoint %struct.list_head* %3 to i32
-  store i32 %4, i32* %__cil_tmp3, align 4
-  store i32 ptrtoint (%struct.list_head* @gl_list to i32), i32* %__cil_tmp4, align 4
-  %5 = load i32, i32* %__cil_tmp4, align 4
-  %6 = load i32, i32* %__cil_tmp3, align 4
-  %cmp = icmp ne i32 %5, %6
-  br i1 %cmp, label %if.then, label %if.else
-
-if.then:                                          ; preds = %while_20_continue
-  br label %if.end
-
-if.else:                                          ; preds = %while_20_continue
-  br label %while_20_break
-
-if.end:                                           ; preds = %if.then
-  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp5, align 8
-  %7 = load %struct.list_head*, %struct.list_head** %next, align 8
-  %8 = bitcast %struct.list_head* %7 to %struct.list_head**
-  %9 = load %struct.list_head*, %struct.list_head** %8, align 8
-  %10 = load %struct.list_head*, %struct.list_head** %__cil_tmp5, align 8
-  %11 = bitcast %struct.list_head* %10 to %struct.list_head**
-  store %struct.list_head* %9, %struct.list_head** %11, align 8
-  store %struct.node* null, %struct.node** %__cil_tmp6, align 8
-  %12 = load %struct.node*, %struct.node** %__cil_tmp6, align 8
-  %13 = ptrtoint %struct.node* %12 to i32
-  store i32 %13, i32* %__cil_tmp7, align 4
-  %14 = load i32, i32* %__cil_tmp7, align 4
-  %add = add i32 %14, 4
-  store i32 %add, i32* %__cil_tmp8, align 4
-  %15 = load i32, i32* %__cil_tmp8, align 4
-  %conv = zext i32 %15 to i64
-  %16 = inttoptr i64 %conv to %struct.list_head*
-  store %struct.list_head* %16, %struct.list_head** %__cil_tmp9, align 8
-  %17 = load %struct.list_head*, %struct.list_head** %__cil_tmp9, align 8
-  %18 = ptrtoint %struct.list_head* %17 to i64
-  store i64 %18, i64* %__cil_tmp10, align 8
-  %19 = load %struct.list_head*, %struct.list_head** %next, align 8
-  %20 = bitcast %struct.list_head* %19 to i8*
-  store i8* %20, i8** %__cil_tmp11, align 8
-  %21 = load i8*, i8** %__cil_tmp11, align 8
-  %22 = load i64, i64* %__cil_tmp10, align 8
-  %idx.neg = sub i64 0, %22
-  %add.ptr = getelementptr inbounds i8, i8* %21, i64 %idx.neg
-  store i8* %add.ptr, i8** %__cil_tmp12, align 8
-  %23 = load i8*, i8** %__cil_tmp12, align 8
-  %24 = bitcast i8* %23 to %struct.node*
-  store %struct.node* %24, %struct.node** %__cil_tmp13, align 8
-  %25 = load %struct.node*, %struct.node** %__cil_tmp13, align 8
-  %26 = bitcast %struct.node* %25 to i8*
-  store i8* %26, i8** %__cil_tmp14, align 8
-  %27 = load i8*, i8** %__cil_tmp14, align 8
-  call void @free(i8* %27) #6
-  br label %while.body
-
-while_20_break:                                   ; preds = %if.else
-  ret void
-}
-
 declare i32 @__VERIFIER_nondet_int() #1
-
-; Function Attrs: nounwind ssp uwtable
-define internal void @gl_insert(i32 %value) #0 {
-entry:
-  %value.addr = alloca i32, align 4
-  %node = alloca %struct.node*, align 8
-  %tmp = alloca i8*, align 8
-  %__cil_tmp4 = alloca i32, align 4
-  %__cil_tmp5 = alloca i32, align 4
-  %__cil_tmp6 = alloca i32, align 4
-  %__cil_tmp7 = alloca %struct.list_head*, align 8
-  %__cil_tmp8 = alloca i32, align 4
-  %__cil_tmp9 = alloca i32, align 4
-  %__cil_tmp10 = alloca i32, align 4
-  %__cil_tmp11 = alloca i32, align 4
-  %__cil_tmp12 = alloca i32, align 4
-  %__cil_tmp13 = alloca i32, align 4
-  %__cil_tmp14 = alloca i32, align 4
-  %__cil_tmp15 = alloca i32, align 4
-  store i32 %value, i32* %value.addr, align 4
-  store i32 20, i32* %__cil_tmp4, align 4
-  %0 = load i32, i32* %__cil_tmp4, align 4
-  %call = call noalias i8* @malloc(i32 %0) #6
-  store i8* %call, i8** %tmp, align 8
-  %1 = load i8*, i8** %tmp, align 8
-  %2 = bitcast i8* %1 to %struct.node*
-  store %struct.node* %2, %struct.node** %node, align 8
-  %3 = load %struct.node*, %struct.node** %node, align 8
-  %tobool = icmp ne %struct.node* %3, null
-  br i1 %tobool, label %if.else, label %if.then
-
-if.then:                                          ; preds = %entry
-  call void @abort() #7
-  unreachable
-
-if.else:                                          ; preds = %entry
-  br label %if.end
-
-if.end:                                           ; preds = %if.else
-  %4 = load i32, i32* %value.addr, align 4
-  %5 = load %struct.node*, %struct.node** %node, align 8
-  %6 = bitcast %struct.node* %5 to i32*
-  store i32 %4, i32* %6, align 4
-  %7 = load %struct.node*, %struct.node** %node, align 8
-  %8 = ptrtoint %struct.node* %7 to i32
-  store i32 %8, i32* %__cil_tmp5, align 4
-  %9 = load i32, i32* %__cil_tmp5, align 4
-  %add = add i32 %9, 4
-  store i32 %add, i32* %__cil_tmp6, align 4
-  %10 = load i32, i32* %__cil_tmp6, align 4
-  %conv = zext i32 %10 to i64
-  %11 = inttoptr i64 %conv to %struct.list_head*
-  store %struct.list_head* %11, %struct.list_head** %__cil_tmp7, align 8
-  %12 = load %struct.list_head*, %struct.list_head** %__cil_tmp7, align 8
-  call void @list_add(%struct.list_head* %12, %struct.list_head* @gl_list)
-  br label %while.body
-
-while.body:                                       ; preds = %if.end
-  br label %while_18_continue
-
-while_18_continue:                                ; preds = %while.body
-  %13 = load %struct.node*, %struct.node** %node, align 8
-  %14 = ptrtoint %struct.node* %13 to i32
-  store i32 %14, i32* %__cil_tmp8, align 4
-  %15 = load i32, i32* %__cil_tmp8, align 4
-  %add13 = add i32 %15, 12
-  store i32 %add13, i32* %__cil_tmp9, align 4
-  %16 = load %struct.node*, %struct.node** %node, align 8
-  %17 = ptrtoint %struct.node* %16 to i32
-  store i32 %17, i32* %__cil_tmp10, align 4
-  %18 = load i32, i32* %__cil_tmp10, align 4
-  %add14 = add i32 %18, 12
-  store i32 %add14, i32* %__cil_tmp11, align 4
-  %19 = load i32, i32* %__cil_tmp11, align 4
-  %conv15 = zext i32 %19 to i64
-  %20 = inttoptr i64 %conv15 to %struct.list_head*
-  %21 = load i32, i32* %__cil_tmp9, align 4
-  %conv16 = zext i32 %21 to i64
-  %22 = inttoptr i64 %conv16 to %struct.list_head**
-  store %struct.list_head* %20, %struct.list_head** %22, align 8
-  %23 = load %struct.node*, %struct.node** %node, align 8
-  %24 = ptrtoint %struct.node* %23 to i32
-  store i32 %24, i32* %__cil_tmp12, align 4
-  %25 = load i32, i32* %__cil_tmp12, align 4
-  %add17 = add i32 %25, 12
-  store i32 %add17, i32* %__cil_tmp13, align 4
-  %26 = load %struct.node*, %struct.node** %node, align 8
-  %27 = ptrtoint %struct.node* %26 to i32
-  store i32 %27, i32* %__cil_tmp14, align 4
-  %28 = load i32, i32* %__cil_tmp14, align 4
-  %add18 = add i32 %28, 12
-  store i32 %add18, i32* %__cil_tmp15, align 4
-  %29 = load i32, i32* %__cil_tmp15, align 4
-  %conv19 = zext i32 %29 to i64
-  %30 = inttoptr i64 %conv19 to %struct.list_head*
-  %31 = load i32, i32* %__cil_tmp13, align 4
-  %conv20 = zext i32 %31 to i64
-  %32 = inttoptr i64 %conv20 to %struct.list_head**
-  store %struct.list_head* %30, %struct.list_head** %32, align 8
-  br label %while_18_break
-
-while_18_break:                                   ; preds = %while_18_continue
-  ret void
-}
 
 ; Function Attrs: nounwind
 declare noalias i8* @malloc(i32) #2
@@ -1222,286 +1851,25 @@ declare noalias i8* @malloc(i32) #2
 ; Function Attrs: noreturn nounwind
 declare void @abort() #3
 
-; Function Attrs: inlinehint nounwind ssp uwtable
-define internal void @list_add(%struct.list_head* %new, %struct.list_head* %head) #4 {
-entry:
-  %new.addr = alloca %struct.list_head*, align 8
-  %head.addr = alloca %struct.list_head*, align 8
-  %__cil_tmp3 = alloca %struct.list_head*, align 8
-  store %struct.list_head* %new, %struct.list_head** %new.addr, align 8
-  store %struct.list_head* %head, %struct.list_head** %head.addr, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %head.addr, align 8
-  %1 = bitcast %struct.list_head* %0 to %struct.list_head**
-  %2 = load %struct.list_head*, %struct.list_head** %1, align 8
-  store %struct.list_head* %2, %struct.list_head** %__cil_tmp3, align 8
-  %3 = load %struct.list_head*, %struct.list_head** %new.addr, align 8
-  %4 = load %struct.list_head*, %struct.list_head** %head.addr, align 8
-  %5 = load %struct.list_head*, %struct.list_head** %__cil_tmp3, align 8
-  call void @__list_add(%struct.list_head* %3, %struct.list_head* %4, %struct.list_head* %5)
-  ret void
-}
-
-; Function Attrs: inlinehint nounwind ssp uwtable
-define internal void @__list_add(%struct.list_head* %new, %struct.list_head* %prev, %struct.list_head* %next) #4 {
-entry:
-  %new.addr = alloca %struct.list_head*, align 8
-  %prev.addr = alloca %struct.list_head*, align 8
-  %next.addr = alloca %struct.list_head*, align 8
-  %__cil_tmp4 = alloca i32, align 4
-  %__cil_tmp5 = alloca i32, align 4
-  %__cil_tmp6 = alloca i32, align 4
-  %__cil_tmp7 = alloca i32, align 4
-  store %struct.list_head* %new, %struct.list_head** %new.addr, align 8
-  store %struct.list_head* %prev, %struct.list_head** %prev.addr, align 8
-  store %struct.list_head* %next, %struct.list_head** %next.addr, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %next.addr, align 8
-  %1 = ptrtoint %struct.list_head* %0 to i32
-  store i32 %1, i32* %__cil_tmp4, align 4
-  %2 = load i32, i32* %__cil_tmp4, align 4
-  %add = add i32 %2, 4
-  store i32 %add, i32* %__cil_tmp5, align 4
-  %3 = load %struct.list_head*, %struct.list_head** %new.addr, align 8
-  %4 = load i32, i32* %__cil_tmp5, align 4
-  %conv = zext i32 %4 to i64
-  %5 = inttoptr i64 %conv to %struct.list_head**
-  store %struct.list_head* %3, %struct.list_head** %5, align 8
-  %6 = load %struct.list_head*, %struct.list_head** %next.addr, align 8
-  %7 = load %struct.list_head*, %struct.list_head** %new.addr, align 8
-  %8 = bitcast %struct.list_head* %7 to %struct.list_head**
-  store %struct.list_head* %6, %struct.list_head** %8, align 8
-  %9 = load %struct.list_head*, %struct.list_head** %new.addr, align 8
-  %10 = ptrtoint %struct.list_head* %9 to i32
-  store i32 %10, i32* %__cil_tmp6, align 4
-  %11 = load i32, i32* %__cil_tmp6, align 4
-  %add1 = add i32 %11, 4
-  store i32 %add1, i32* %__cil_tmp7, align 4
-  %12 = load %struct.list_head*, %struct.list_head** %prev.addr, align 8
-  %13 = load i32, i32* %__cil_tmp7, align 4
-  %conv2 = zext i32 %13 to i64
-  %14 = inttoptr i64 %conv2 to %struct.list_head**
-  store %struct.list_head* %12, %struct.list_head** %14, align 8
-  %15 = load %struct.list_head*, %struct.list_head** %new.addr, align 8
-  %16 = load %struct.list_head*, %struct.list_head** %prev.addr, align 8
-  %17 = bitcast %struct.list_head* %16 to %struct.list_head**
-  store %struct.list_head* %15, %struct.list_head** %17, align 8
-  ret void
-}
-
-; Function Attrs: nounwind ssp uwtable
-define internal void @fail() #0 {
-entry:
-  br label %ERROR
-
-ERROR:                                            ; preds = %entry
-  call void (...) @__VERIFIER_error() #8
-  unreachable
-
-return:                                           ; No predecessors!
-  ret void
-}
-
 ; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #5
-
-; Function Attrs: nounwind ssp uwtable
-define internal zeroext i1 @gl_sort_pass() #0 {
-entry:
-  %any_change = alloca i8, align 1
-  %pos0 = alloca %struct.list_head*, align 8
-  %pos1 = alloca %struct.list_head*, align 8
-  %val0 = alloca i32, align 4
-  %tmp = alloca i32, align 4
-  %val1 = alloca i32, align 4
-  %tmp___0 = alloca i32, align 4
-  %__cil_tmp8 = alloca %struct.list_head*, align 8
-  %__cil_tmp9 = alloca i32, align 4
-  %__cil_tmp10 = alloca i32, align 4
-  store i8 0, i8* %any_change, align 1
-  store %struct.list_head* @gl_list, %struct.list_head** %__cil_tmp8, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %__cil_tmp8, align 8
-  %1 = bitcast %struct.list_head* %0 to %struct.list_head**
-  %2 = load %struct.list_head*, %struct.list_head** %1, align 8
-  store %struct.list_head* %2, %struct.list_head** %pos0, align 8
-  br label %while.body
-
-while.body:                                       ; preds = %entry, %if.end10
-  br label %while_21_continue
-
-while_21_continue:                                ; preds = %if.then8, %while.body
-  %3 = load %struct.list_head*, %struct.list_head** %pos0, align 8
-  %4 = bitcast %struct.list_head* %3 to %struct.list_head**
-  %5 = load %struct.list_head*, %struct.list_head** %4, align 8
-  store %struct.list_head* %5, %struct.list_head** %pos1, align 8
-  %6 = load %struct.list_head*, %struct.list_head** %pos1, align 8
-  %7 = ptrtoint %struct.list_head* %6 to i32
-  store i32 %7, i32* %__cil_tmp9, align 4
-  store i32 ptrtoint (%struct.list_head* @gl_list to i32), i32* %__cil_tmp10, align 4
-  %8 = load i32, i32* %__cil_tmp10, align 4
-  %9 = load i32, i32* %__cil_tmp9, align 4
-  %cmp = icmp ne i32 %8, %9
-  br i1 %cmp, label %if.then, label %if.else
-
-if.then:                                          ; preds = %while_21_continue
-  br label %if.end
-
-if.else:                                          ; preds = %while_21_continue
-  br label %while_21_break
-
-if.end:                                           ; preds = %if.then
-  %10 = load %struct.list_head*, %struct.list_head** %pos0, align 8
-  %call = call i32 @val_from_node(%struct.list_head* %10)
-  store i32 %call, i32* %tmp, align 4
-  %11 = load i32, i32* %tmp, align 4
-  store i32 %11, i32* %val0, align 4
-  %12 = load %struct.list_head*, %struct.list_head** %pos1, align 8
-  %call6 = call i32 @val_from_node(%struct.list_head* %12)
-  store i32 %call6, i32* %tmp___0, align 4
-  %13 = load i32, i32* %tmp___0, align 4
-  store i32 %13, i32* %val1, align 4
-  %14 = load i32, i32* %val0, align 4
-  %15 = load i32, i32* %val1, align 4
-  %cmp7 = icmp sle i32 %14, %15
-  br i1 %cmp7, label %if.then8, label %if.else9
-
-if.then8:                                         ; preds = %if.end
-  %16 = load %struct.list_head*, %struct.list_head** %pos1, align 8
-  store %struct.list_head* %16, %struct.list_head** %pos0, align 8
-  br label %while_21_continue
-
-if.else9:                                         ; preds = %if.end
-  br label %if.end10
-
-if.end10:                                         ; preds = %if.else9
-  store i8 1, i8* %any_change, align 1
-  %17 = load %struct.list_head*, %struct.list_head** %pos0, align 8
-  %18 = load %struct.list_head*, %struct.list_head** %pos1, align 8
-  call void @list_move(%struct.list_head* %17, %struct.list_head* %18)
-  br label %while.body
-
-while_21_break:                                   ; preds = %if.else
-  %19 = load i8, i8* %any_change, align 1
-  %tobool = trunc i8 %19 to i1
-  ret i1 %tobool
-}
-
-; Function Attrs: nounwind ssp uwtable
-define internal i32 @val_from_node(%struct.list_head* %head) #0 {
-entry:
-  %head.addr = alloca %struct.list_head*, align 8
-  %entry1 = alloca %struct.node*, align 8
-  %__cil_tmp3 = alloca %struct.node*, align 8
-  %__cil_tmp4 = alloca i32, align 4
-  %__cil_tmp5 = alloca i32, align 4
-  %__cil_tmp6 = alloca %struct.list_head*, align 8
-  %__cil_tmp7 = alloca i64, align 8
-  %__cil_tmp8 = alloca i8*, align 8
-  %__cil_tmp9 = alloca i8*, align 8
-  store %struct.list_head* %head, %struct.list_head** %head.addr, align 8
-  store %struct.node* null, %struct.node** %__cil_tmp3, align 8
-  %0 = load %struct.node*, %struct.node** %__cil_tmp3, align 8
-  %1 = ptrtoint %struct.node* %0 to i32
-  store i32 %1, i32* %__cil_tmp4, align 4
-  %2 = load i32, i32* %__cil_tmp4, align 4
-  %add = add i32 %2, 4
-  store i32 %add, i32* %__cil_tmp5, align 4
-  %3 = load i32, i32* %__cil_tmp5, align 4
-  %conv = zext i32 %3 to i64
-  %4 = inttoptr i64 %conv to %struct.list_head*
-  store %struct.list_head* %4, %struct.list_head** %__cil_tmp6, align 8
-  %5 = load %struct.list_head*, %struct.list_head** %__cil_tmp6, align 8
-  %6 = ptrtoint %struct.list_head* %5 to i64
-  store i64 %6, i64* %__cil_tmp7, align 8
-  %7 = load %struct.list_head*, %struct.list_head** %head.addr, align 8
-  %8 = bitcast %struct.list_head* %7 to i8*
-  store i8* %8, i8** %__cil_tmp8, align 8
-  %9 = load i8*, i8** %__cil_tmp8, align 8
-  %10 = load i64, i64* %__cil_tmp7, align 8
-  %idx.neg = sub i64 0, %10
-  %add.ptr = getelementptr inbounds i8, i8* %9, i64 %idx.neg
-  store i8* %add.ptr, i8** %__cil_tmp9, align 8
-  %11 = load i8*, i8** %__cil_tmp9, align 8
-  %12 = bitcast i8* %11 to %struct.node*
-  store %struct.node* %12, %struct.node** %entry1, align 8
-  %13 = load %struct.node*, %struct.node** %entry1, align 8
-  %14 = bitcast %struct.node* %13 to i32*
-  %15 = load i32, i32* %14, align 4
-  ret i32 %15
-}
-
-; Function Attrs: inlinehint nounwind ssp uwtable
-define internal void @list_move(%struct.list_head* %list, %struct.list_head* %head) #4 {
-entry:
-  %list.addr = alloca %struct.list_head*, align 8
-  %head.addr = alloca %struct.list_head*, align 8
-  %__cil_tmp3 = alloca i32, align 4
-  %__cil_tmp4 = alloca i32, align 4
-  %__cil_tmp5 = alloca %struct.list_head*, align 8
-  %__cil_tmp6 = alloca %struct.list_head*, align 8
-  store %struct.list_head* %list, %struct.list_head** %list.addr, align 8
-  store %struct.list_head* %head, %struct.list_head** %head.addr, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %list.addr, align 8
-  %1 = ptrtoint %struct.list_head* %0 to i32
-  store i32 %1, i32* %__cil_tmp3, align 4
-  %2 = load i32, i32* %__cil_tmp3, align 4
-  %add = add i32 %2, 4
-  store i32 %add, i32* %__cil_tmp4, align 4
-  %3 = load i32, i32* %__cil_tmp4, align 4
-  %conv = zext i32 %3 to i64
-  %4 = inttoptr i64 %conv to %struct.list_head**
-  %5 = load %struct.list_head*, %struct.list_head** %4, align 8
-  store %struct.list_head* %5, %struct.list_head** %__cil_tmp5, align 8
-  %6 = load %struct.list_head*, %struct.list_head** %list.addr, align 8
-  %7 = bitcast %struct.list_head* %6 to %struct.list_head**
-  %8 = load %struct.list_head*, %struct.list_head** %7, align 8
-  store %struct.list_head* %8, %struct.list_head** %__cil_tmp6, align 8
-  %9 = load %struct.list_head*, %struct.list_head** %__cil_tmp5, align 8
-  %10 = load %struct.list_head*, %struct.list_head** %__cil_tmp6, align 8
-  call void @__list_del(%struct.list_head* %9, %struct.list_head* %10)
-  %11 = load %struct.list_head*, %struct.list_head** %list.addr, align 8
-  %12 = load %struct.list_head*, %struct.list_head** %head.addr, align 8
-  call void @list_add(%struct.list_head* %11, %struct.list_head* %12)
-  ret void
-}
-
-; Function Attrs: inlinehint nounwind ssp uwtable
-define internal void @__list_del(%struct.list_head* %prev, %struct.list_head* %next) #4 {
-entry:
-  %prev.addr = alloca %struct.list_head*, align 8
-  %next.addr = alloca %struct.list_head*, align 8
-  %__cil_tmp3 = alloca i32, align 4
-  %__cil_tmp4 = alloca i32, align 4
-  store %struct.list_head* %prev, %struct.list_head** %prev.addr, align 8
-  store %struct.list_head* %next, %struct.list_head** %next.addr, align 8
-  %0 = load %struct.list_head*, %struct.list_head** %next.addr, align 8
-  %1 = ptrtoint %struct.list_head* %0 to i32
-  store i32 %1, i32* %__cil_tmp3, align 4
-  %2 = load i32, i32* %__cil_tmp3, align 4
-  %add = add i32 %2, 4
-  store i32 %add, i32* %__cil_tmp4, align 4
-  %3 = load %struct.list_head*, %struct.list_head** %prev.addr, align 8
-  %4 = load i32, i32* %__cil_tmp4, align 4
-  %conv = zext i32 %4 to i64
-  %5 = inttoptr i64 %conv to %struct.list_head**
-  store %struct.list_head* %3, %struct.list_head** %5, align 8
-  %6 = load %struct.list_head*, %struct.list_head** %next.addr, align 8
-  %7 = load %struct.list_head*, %struct.list_head** %prev.addr, align 8
-  %8 = bitcast %struct.list_head* %7 to %struct.list_head**
-  store %struct.list_head* %6, %struct.list_head** %8, align 8
-  ret void
-}
+declare void @__VERIFIER_error(...) #4
 
 ; Function Attrs: nounwind
 declare void @free(i8*) #2
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.start(i64, i8* nocapture) #5
+
+; Function Attrs: nounwind
+declare void @llvm.lifetime.end(i64, i8* nocapture) #5
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #3 = { noreturn nounwind "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #4 = { inlinehint nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #5 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #6 = { nounwind }
-attributes #7 = { noreturn nounwind }
-attributes #8 = { noreturn }
+attributes #4 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #5 = { nounwind }
+attributes #6 = { noreturn nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}

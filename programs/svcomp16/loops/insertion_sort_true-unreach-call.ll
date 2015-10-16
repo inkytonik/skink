@@ -1,29 +1,6 @@
-; ModuleID = 'insertion_sort_true-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
-
-; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #4
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
@@ -115,11 +92,11 @@ for.end:                                          ; preds = %for.cond
   store i32 1, i32* %k, align 4
   br label %for.cond13
 
-for.cond13:                                       ; preds = %for.inc22, %for.end
+for.cond13:                                       ; preds = %for.inc23, %for.end
   %20 = load i32, i32* %k, align 4
   %21 = load i32, i32* %SIZE, align 4
   %cmp14 = icmp ult i32 %20, %21
-  br i1 %cmp14, label %for.body15, label %for.end24
+  br i1 %cmp14, label %for.body15, label %for.end25
 
 for.body15:                                       ; preds = %for.cond13
   %22 = load i32, i32* %k, align 4
@@ -133,16 +110,16 @@ for.body15:                                       ; preds = %for.cond13
   %25 = load i32, i32* %arrayidx20, align 4
   %cmp21 = icmp sle i32 %23, %25
   %conv = zext i1 %cmp21 to i32
-  call void @__VERIFIER_assert(i32 %conv)
-  br label %for.inc22
+  %call22 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
+  br label %for.inc23
 
-for.inc22:                                        ; preds = %for.body15
+for.inc23:                                        ; preds = %for.body15
   %26 = load i32, i32* %k, align 4
-  %inc23 = add nsw i32 %26, 1
-  store i32 %inc23, i32* %k, align 4
+  %inc24 = add nsw i32 %26, 1
+  store i32 %inc24, i32* %k, align 4
   br label %for.cond13
 
-for.end24:                                        ; preds = %for.cond13
+for.end25:                                        ; preds = %for.cond13
   store i32 0, i32* %retval
   %27 = load i8*, i8** %saved_stack
   call void @llvm.stackrestore(i8* %27)
@@ -150,19 +127,19 @@ for.end24:                                        ; preds = %for.cond13
   ret i32 %28
 }
 
-declare i32 @__VERIFIER_nondet_uint(...) #2
+declare i32 @__VERIFIER_nondet_uint(...) #1
 
 ; Function Attrs: nounwind
-declare i8* @llvm.stacksave() #3
+declare i8* @llvm.stacksave() #2
+
+declare i32 @__VERIFIER_assert(...) #1
 
 ; Function Attrs: nounwind
-declare void @llvm.stackrestore(i8*) #3
+declare void @llvm.stackrestore(i8*) #2
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { nounwind }
-attributes #4 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}

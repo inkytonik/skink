@@ -1,31 +1,8 @@
-; ModuleID = 'nec20_false-unreach-call.i'
+; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx10.11.0"
 
 @b = common global i32 0, align 4
-
-; Function Attrs: nounwind ssp uwtable
-define void @__VERIFIER_assert(i32 %cond) #0 {
-entry:
-  %cond.addr = alloca i32, align 4
-  store i32 %cond, i32* %cond.addr, align 4
-  %0 = load i32, i32* %cond.addr, align 4
-  %tobool = icmp ne i32 %0, 0
-  br i1 %tobool, label %if.end, label %if.then
-
-if.then:                                          ; preds = %entry
-  br label %ERROR
-
-ERROR:                                            ; preds = %if.then
-  call void (...) @__VERIFIER_error() #3
-  unreachable
-
-if.end:                                           ; preds = %entry
-  ret void
-}
-
-; Function Attrs: noreturn
-declare void @__VERIFIER_error(...) #1
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
@@ -83,45 +60,45 @@ while.end:                                        ; preds = %while.cond
   %7 = load i32, i32* %j, align 4
   %cmp3 = icmp slt i32 %7, 1025
   %conv = zext i1 %cmp3 to i32
-  call void @__VERIFIER_assert(i32 %conv)
+  %call4 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
   %8 = load i32, i32* @b, align 4
-  %idxprom4 = sext i32 %8 to i64
-  %arrayidx5 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom4
-  store i32 0, i32* %arrayidx5, align 4
+  %idxprom5 = sext i32 %8 to i64
+  %arrayidx6 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom5
+  store i32 0, i32* %arrayidx6, align 4
   %9 = load i32, i32* @b, align 4
-  %cmp6 = icmp sge i32 %9, 0
-  br i1 %cmp6, label %land.lhs.true, label %if.else13
+  %cmp7 = icmp sge i32 %9, 0
+  br i1 %cmp7, label %land.lhs.true, label %if.else14
 
 land.lhs.true:                                    ; preds = %while.end
   %10 = load i32, i32* @b, align 4
-  %cmp8 = icmp slt i32 %10, 1023
-  br i1 %cmp8, label %if.then10, label %if.else13
+  %cmp9 = icmp slt i32 %10, 1023
+  br i1 %cmp9, label %if.then11, label %if.else14
 
-if.then10:                                        ; preds = %land.lhs.true
+if.then11:                                        ; preds = %land.lhs.true
   %11 = load i32, i32* @b, align 4
-  %idxprom11 = sext i32 %11 to i64
-  %arrayidx12 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom11
-  store i32 1, i32* %arrayidx12, align 4
-  br label %if.end16
+  %idxprom12 = sext i32 %11 to i64
+  %arrayidx13 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom12
+  store i32 1, i32* %arrayidx13, align 4
+  br label %if.end17
 
-if.else13:                                        ; preds = %land.lhs.true, %while.end
+if.else14:                                        ; preds = %land.lhs.true, %while.end
   %12 = load i32, i32* @b, align 4
   %rem = srem i32 %12, 1023
-  %idxprom14 = sext i32 %rem to i64
-  %arrayidx15 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom14
-  store i32 1, i32* %arrayidx15, align 4
-  br label %if.end16
+  %idxprom15 = sext i32 %rem to i64
+  %arrayidx16 = getelementptr inbounds [1025 x i32], [1025 x i32]* %a, i32 0, i64 %idxprom15
+  store i32 1, i32* %arrayidx16, align 4
+  br label %if.end17
 
-if.end16:                                         ; preds = %if.else13, %if.then10
+if.end17:                                         ; preds = %if.else14, %if.then11
   ret i32 1
 }
 
-declare zeroext i1 @__VERIFIER_nondet_bool(...) #2
+declare zeroext i1 @__VERIFIER_nondet_bool(...) #1
+
+declare i32 @__VERIFIER_assert(...) #1
 
 attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { noreturn "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { noreturn }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
