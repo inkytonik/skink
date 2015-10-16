@@ -186,8 +186,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     Vector (nterm (to) === exp)
 
                 case Call (_, _, _, _, _, Function (Named (Global ("__VERIFIER_assume"))),
-                           Vector (ValueArg (_, _, arg)), _) =>
-                    Vector (vterm (arg))
+                           Vector (ValueArg (IntT (n), _, arg)), _) =>
+                    if (n == 1)
+                        Vector (vterm (arg))
+                    else
+                        Vector (! (vterm (arg) === 0))
 
                 case Call (_, _, _, _, _, IgnoredFunction (), _, _) =>
                     Vector ()
