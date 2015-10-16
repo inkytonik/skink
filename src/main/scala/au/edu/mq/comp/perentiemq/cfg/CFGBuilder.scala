@@ -44,11 +44,20 @@ case class CFGChoice[F,B,T] (name : String, choice : T, target : String) extends
 case class CFGGoto[F,B] (target : String) extends CFGExitCond[F,B]
 
 /**
- * A CFG entry represents a step in the execution of the function represented
- * by the CFG. It means that the constituent block has been executed and the
- * condition describes how execution flows to the next block that is executed.
+ * A CFG entry represents a step in the execution of the function represented by the CFG.
  */
-case class CFGEntry[F,B] (block : B, condition : CFGExitCond[F,B])
+sealed abstract class CFGEntry[F,B]
+
+/**
+ * A block entry means that a step in the execution evaluated the specified block.
+ */
+case class CFGBlockEntry[F,B] (block : B) extends CFGEntry[F,B]
+
+/**
+ * An exit condition entry means that a step in the execution was taken because
+ * the given exit condition held.
+ */
+case class CFGExitCondEntry[F,B] (condition : CFGExitCond[F,B]) extends CFGEntry[F,B]
 
 /**
  * Abstract builder for control-flow graphs. The CFGs are layered on top of
@@ -213,11 +222,22 @@ abstract class CFGBuilder[F,B] extends Attribution {
                     val edges = {
                         val buf = new ListBuffer[Edge[String,CFGEntry[F,B]]]
                         for (srcblock <- cfgBlocks (cfg)) {
+                            val src = name (srcblock)
+                            val srcaux = s"$src.aux"
+                            val srceffect = srcblock.block.cross
                             for (exitcond <- srcblock.exitInfo.conditions) {
                                 target (exitcond) match {
                                     case Some (tgtblock) =>
-                                        val label = CFGEntry[F,B] (srcblock.block.cross, exitcond)
-                                        buf += (name (srcblock) ~> name (tgtblock)) (label)
+                                        val tgt = name (tgtblock)
+                                        exitcond match {
+                                            case _ : CFGChoice[_,_,_] =>
+                                                buf ++= Seq (
+                                                    (src ~> srcaux) (CFGBlockEntry (srceffect)),
+                                                    (srcaux ~> tgt) (CFGExitCondEntry (exitcond))
+                                                )
+                                            case _ : CFGGoto[_,_] =>
+                                                buf += (src ~> tgt) (CFGBlockEntry (srceffect))
+                                        }
                                     case None =>
                                         // Do nothing
                                 }
@@ -247,7 +267,12 @@ abstract class CFGBuilder[F,B] extends Attribution {
                     List (label, style)
                 },
                 (b : String) => '"' + b + '"',
-                (l : CFGEntry[F,B]) => l.condition.toString
+                (e : CFGEntry[F,B]) => e match {
+                                           case CFGBlockEntry (b) =>
+                                               blockName (b)
+                                           case CFGExitCondEntry (c) =>
+                                               c.toString
+                                       }
             )
 
         // Pretty-printer

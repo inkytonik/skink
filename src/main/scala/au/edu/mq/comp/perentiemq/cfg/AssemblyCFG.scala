@@ -77,8 +77,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     /*
          * Make the indexed name of a particular occurrence of a program variable
-         * in a trace. 
-         * 
+         * in a trace.
+         *
          * The base variable name is given a numeric index to reflect
          * the fact that it references a particular assigned or stored version of
          * the base name in the trace. E.g., the first use gets @1 and the
@@ -113,8 +113,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     lazy val prevBlockName: Product => Option[String] =
       attr {
-        case tree.prev(CFGEntry(Block(BlockLabel(name), _, _, _, _), _)) =>
-          Some(name)
+        case tree.prev(entry) =>
+          entry match {
+            case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
+              Some(name)
+            case CFGExitCondEntry(_) =>
+              prevBlockName(entry)
+          }
         case tree.parent(p) =>
           prevBlockName(p)
         case _ =>
@@ -303,21 +308,23 @@ object AssemblyCFG extends AssemblyCFGBuilder {
               sys.error(s"exitcondToTerm: unsupported value $value")
           }
         case CFGGoto(_) =>
-            None
-            // Some(TypedTerm(true))
+          None
+          // Some(TypedTerm(true))
         case _ =>
-              sys.error(s"exitcondToTerm: unsupported type")
-          
+          sys.error(s"exitcondToTerm: unsupported type")
       }
 
     /*
          * Return terms that express the effect of a trace entry, including
          * the transition to the next entry in the trace, if there is one.
          */
-    def entryToTerm(entry: Entry): Vector[TypedTerm] = exitcondToTerm(entry.condition) match {
-        case None => terms(entry.block)
-        case c  => terms(entry.block) ++ c
-    }
+    def entryToTerm(entry: Entry): Vector[TypedTerm] =
+      entry match {
+        case CFGBlockEntry(b) =>
+          terms (b)
+        case CFGExitCondEntry (c) =>
+          exitcondToTerm(c).toVector
+      }
 
     // Return all of the terms arising from this trace
     // tree.root.entries.flatMap(entryToTerm)
@@ -420,8 +427,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def printTrace(failure: FailureTrace[Entry]) {
       println("trace:")
-      for (entry <- failure.trace)
-        println(s"  ${entry.block.optBlockLabel} ${entry.condition}")
+      for (entry <- failure.trace) {
+          entry match {
+            case CFGBlockEntry(b) =>
+              println(s"  ${b.optBlockLabel}")
+            case CFGExitCondEntry(c) =>
+              println(s"  $c")
+          }
+      }
       println("values:")
       if (failure.values.isSuccess) {
         val values = failure.values.get
