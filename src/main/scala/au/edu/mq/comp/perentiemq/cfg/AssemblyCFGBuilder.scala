@@ -13,17 +13,14 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
     def render (astNode : ASTNode) : String =
         AssemblyPrettyPrinter.format (astNode).layout
 
-    def blockName (function : FunctionDefinition, block : Block) : String =
+    def blockName (block : Block) : String =
         block.optBlockLabel match {
             case BlockLabel (s)    => s
             case ImplicitLabel (i) => s"%$i"
             case NoLabel ()        => "<no label>"
         }
 
-    def isEntry (function : FunctionDefinition, block : Block) : Boolean =
-        function.functionBody.blocks.head == block
-
-    def isExit (function : FunctionDefinition, block : Block) : Boolean =
+    def isExit (block : Block) : Boolean =
         block.metaTerminatorInstruction.terminatorInstruction match {
             case _ : Ret | _ : RetVoid | _ : Unreachable =>
                 true
@@ -34,14 +31,14 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
     def blocksOf (function : FunctionDefinition) : Vector[CFGBlock[FunctionDefinition,Block]] =
         function.functionBody.blocks.map {
             case block =>
-                CFGBlock (Bridge (block), exitOf (function, block))
+                CFGBlock (Bridge (block), exitOf (block))
         }
 
-    def exitOf (function : FunctionDefinition, block : Block) : CFGExit[FunctionDefinition,Block] =
+    def exitOf (block : Block) : CFGExit[FunctionDefinition,Block] =
         block.metaTerminatorInstruction.terminatorInstruction match {
 
             // Any exit block
-            case _ if (isExit (function, block)) =>
+            case _ if (isExit (block)) =>
                 CFGExit (Vector ())
 
             // Unconditional branch
@@ -108,7 +105,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
             type MetaInstructions = Vector[MetaInstruction]
 
-            val blockname = blockName (function, block)
+            val blockname = blockName (block)
             val errorLabel = Label (Local (".error"))
 
             /*

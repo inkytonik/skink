@@ -65,11 +65,10 @@ abstract class CFGBuilder[F,B] extends Attribution {
 
     // Support methods that descendants must provide
 
-    def blockName (function : F, block : B) : String
+    def blockName (block : B) : String
     def blocksOf (function : F) : Vector[CFGBlock[F,B]]
     def functionName (function : F) : String
-    def isEntry (function : F, block : B) : Boolean
-    def isExit (function : F, block : B) : Boolean
+    def isExit (block : B) : Boolean
 
     // Types
 
@@ -130,21 +129,15 @@ abstract class CFGBuilder[F,B] extends Attribution {
             }
 
         /**
-         * The unique entry block for this CFG. It is a run-time error if the
-         * underlying function has more than one entry block.
+         * The unique entry block for this CFG. We assume that there is
+         * exactly one entry block and it's the first block in the function.
          */
         lazy val entry : CFGASTNode[F,B] => CFGBlock[F,B] =
             atRoot {
-                case CFG (Bridge (function), blocks) =>
-                    val entries = blocks.filter {
-                                      case CFGBlock (Bridge (block), _) =>
-                                          isEntry (function, block)
-                                  }
-                    if (entries.length == 0)
-                        sys.error (s"${functionName (function)}: no entry block")
-                    if (entries.length > 1)
-                        sys.error (s"${functionName (function)}: ${entries.length} entry blocks")
-                    entries.head
+                case CFG (Bridge (function), Vector ()) =>
+                    sys.error (s"entry: ${functionName (function)} has no blocks")
+                case CFG (_, entry +: _) =>
+                    entry
             }
 
         /**
@@ -155,7 +148,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                 case CFG (Bridge (function), blocks) =>
                     blocks.filter {
                         case CFGBlock (Bridge (block), _) =>
-                            isExit (function, block)
+                            isExit (block)
                     }
             }
 
@@ -167,10 +160,9 @@ abstract class CFGBuilder[F,B] extends Attribution {
         lazy val name : CFGBlock[F,B] => String =
             attr {
                 case cfgBlock @ CFGBlock (Bridge (block), _) =>
-                    blockName (function (cfgBlock), block)
+                    blockName (block)
             }
 
-        
         // Name resolver
 
         /**
@@ -303,7 +295,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
             }
 
         def toNameDoc (cfgBlock : CFGBlock[F,B]) : Doc =
-            text (blockName (function (cfgBlock), cfgBlock.block.cross))
+            text (blockName (cfgBlock.block.cross))
 
         def toTargetDoc (astNode : CFGASTNode[F,B], blockName : String) : Doc =
             resolveByName (blockName) (astNode).map (toNameDoc).getOrElse ("???")
