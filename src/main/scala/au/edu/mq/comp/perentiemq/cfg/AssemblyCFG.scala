@@ -343,8 +343,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
-    // if (fname != "@main")
-    if (isNotToBeVerified(fname))
+    if (fname != "@main")
+    // if (isNotToBeVerified(fname))
       return
 
     // Gather type information on variables in this CFG
@@ -418,14 +418,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
         case None =>
-          println("program is correct")
+          config.output.emitln ("program is correct")
         // println(Console.GREEN_B  + "Program is correct" + Console.RESET)
         case Some(failTrace) =>
-          println("program is incorrect")
+          config.output.emitln ("program is incorrect")
         // println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
         // printTrace(failTrace)
       }
-      case Failure(e) => println(e.getMessage)
+      case Failure(e) => config.output.emitln (e.getMessage)
     }
 
   }
