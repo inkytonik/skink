@@ -8,7 +8,7 @@ import org.kiama.util.TestCompilerWithConfig
  */
 class SimpleVerificationTests extends Driver with TestCompilerWithConfig[Program,PerentieMQConfig] {
 
-    // filetests ("Simple C verification", "programs/simple", ".ll", ".verif",
-    //            argslist = List (Array ("-v")))
+    filetests ("Simple C verification", "programs/simple", ".ll", ".verif",
+               argslist = List (Array ("-v")))
 
 }

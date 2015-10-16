@@ -343,8 +343,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
-    if (fname != "@main")
-            return
+    // if (fname != "@main")
+    if (isNotToBeVerified(fname))
+      return
 
     // Gather type information on variables in this CFG
     val funtree = new Tree[ASTNode, FunctionDefinition](cfg.function.cross)
@@ -413,15 +414,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
     }
 
-
     //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
         case None =>
-          println("Program is correct")
+          println("program is correct")
         // println(Console.GREEN_B  + "Program is correct" + Console.RESET)
         case Some(failTrace) =>
-          println("Program is incorrect")
+          println("program is incorrect")
         // println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
         // printTrace(failTrace)
       }
