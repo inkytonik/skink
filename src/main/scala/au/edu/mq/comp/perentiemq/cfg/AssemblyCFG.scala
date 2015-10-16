@@ -34,10 +34,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     case class Trace (entries : Seq[Entry])
 
-    /**
+/**
      * Convert a trace into terms that express the effect of the trace.
      */
-  def traceToTerms(types: Map[Name, Type])(trace: Trace): Seq[TypedTerm] = {
+    def traceToTerms (types : Map[Name,Type])(trace : Trace)  : Seq[TypedTerm] = {
 
         import org.kiama.==>
         import org.kiama.attribution.Decorators
@@ -76,7 +76,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 bumpcount (in (n), name)
         }
 
-    /*
+        /*
          * Make the indexed name of a particular occurrence of a program variable
          * in a trace. 
          * 
@@ -85,10 +85,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * the base name in the trace. E.g., the first use gets @1 and the
          * second gets @2.
          */
-    def nameToIndexedName(use: Product, s: String): String = {
-      val index = stores(use).getOrElse(s, 0)
-      s"$s@$index"
-    }
+        def nameToIndexedName (use : Product, s : String) : String = {
+            val index = stores (use).getOrElse (s, 0)
+            s"$s@$index"
+        }
 
         /**
          * Extractor that recognises functions whose calls we want to ignore when
@@ -236,54 +236,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     println (s"terms not found for $node")
                     Vector ()
 
-        case Binary(Binding(to), op, _: IntT, left, right) =>
-          val lterm = vterm(left)
-          val rterm = vterm(right)
-          val exp: TypedTerm =
-            op match {
-              case _: Add => lterm + rterm
-              case _: Mul => lterm * rterm
-              case _: Sub => lterm - rterm
-              case _ =>
-                println(s"binary int op $op not handled")
-                9999
             }
-          Vector(nterm(to) === exp)
 
-        case Compare(Binding(to), ICmp(icond), _: IntT, left, right) =>
-          val lterm = vterm(left)
-          val rterm = vterm(right)
-          val exp =
-            icond match {
-              case EQ() => lterm === rterm
-              case NE() => !(lterm === rterm)
-              case UGT() => lterm > rterm
-              case UGE() => lterm >= rterm
-              case ULT() => lterm < rterm
-              case ULE() => lterm <= rterm
-              case SGT() => lterm > rterm
-              case SGE() => lterm >= rterm
-              case SLT() => lterm < rterm
-              case SLE() => lterm <= rterm
-            }
-          Vector(nterm(to) === exp)
-
-        case Convert(Binding(to), _, _: IntT, from, _: IntT) =>
-          Vector(nterm(to) === vterm(from))
-
-        case Load(Binding(to), _, tipe, _, from, _) =>
-          Vector(nterm(to) === vterm(from))
-
-        case Store(_, tipe, from, _, to, _) =>
-          Vector(vterm(to) === vterm(from))
-
-        case node =>
-          println(s"terms not found for $node")
-          Vector()
-
-      }
-
-    /*
+        /*
          * Return a term that expresses an LLVM value.
          * FIXME: currently only does integer constants and names.
          */
@@ -302,34 +257,34 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
         }
 
-    /*
+        /*
          * Return the sort that should be used for variable name.
          * FIXME: currently only handled Booleans, integers and pointers to integers.
          */
-    def typeToSort(tipe: Type): Sort =
-      tipe match {
-        case IntT(n) if n == 1 =>
-          Core.BoolSort()
-        case IntT(_) =>
-          Ints.IntSort()
-        case PointerT(_, DefaultAddrSpace()) =>
-          Ints.IntSort()
-        case _ =>
-          sys.error(s"variable type $tipe not supported")
-      }
+        def typeToSort (tipe : Type) : Sort =
+            tipe match {
+                case IntT (n) if n == 1 =>
+                    Core.BoolSort ()
+                case IntT (_) =>
+                    Ints.IntSort ()
+                case PointerT (_, DefaultAddrSpace ()) =>
+                    Ints.IntSort ()
+                case _ =>
+                    sys.error (s"variable type $tipe not supported")
+            }
 
-    /*
+        /*
          * Return a term that expresses an LLVM name.
          */
-    lazy val nterm: Name => TypedTerm = {
-      attr {
-        case name =>
-          TypedTerm(nameToIndexedName(name, render(name)),
-            typeToSort(types(name)))
-      }
-    }
+        lazy val nterm : Name => TypedTerm = {
+            attr {
+                case name =>
+                    TypedTerm (nameToIndexedName (name, render (name)),
+                               typeToSort (types (name)))
+            }
+        }
 
-    /*
+        /*
          * Return a term that expresses the condition that must be true if
          * an exit condition is used to exit from a block. None is returned
          * if it's not a choice exit condition (so the condition is really
@@ -359,52 +314,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         def entryToTerm (entry : Entry) : Vector[TypedTerm] =
             terms (entry.block) ++ exitcondToTerm (entry.condition)
 
-    def entryToTerm(entry: Entry): Vector[TypedTerm] =
-      term(entry.block) ++ exitcondToTerm(entry.condition)
+        // Return all of the terms arising from this trace
+        tree.root.entries.flatMap (entryToTerm)
 
-    // Return all of the terms arising from this trace
-    tree.root.entries.flatMap(entryToTerm)
-
-
-  // }
-        /*
-         * Return whether or not the named function should be verified.
-         */
-        def isNotToBeVerified (name : String) : Boolean =
-            name.startsWith (SVCompVerifierPrefix)
-
-        // Return if we don't want to verify this function
-        val fname = functionName (cfgAnalyser.function (cfg))
-        if (fname != "@main")
-            return
-
-        // Gather type information on variables in this CFG
-        val funtree = new Tree[ASTNode,FunctionDefinition] (cfg.function.cross)
-        val funanalyser = new Analyser (funtree)
-        val types = funanalyser.typesOfFunction (cfg.function.cross)
-
-        // Make the NFA for this CFG
-        val cfganalyser = new CFGAnalyser (cfg)
-        val nfa = cfganalyser.nfa (cfg)
-
-        /*
-         * Return an interpolant automata for a trace.
-         * FIXME: for now this just returns the trivial automaton that
-         * just accepts the trace. Will be replaced by something less
-         * hacky...
-         */
-        // def interpolantAutomata (trace : Trace) : NFA[Int,CFGEntry[FunctionDefinition,Block]] = {
-        //     val numentries = trace.entries.length
-        //     val init = (0 to numentries).toSet
-        //     val edges = trace.entries.zipWithIndex.map {
-        //                     case (entry, index) =>
-        //                         (index ~> (index + 1)) (entry)
-        //                 }.toSet
-        //     val accepting = Set (numentries)
-        //     val res = NFA (init, edges, accepting)
-        //     println (res)
-        //     res
-        // }
+    }
 
   /**
    * Verify the given CFG. The IR is assumed to have been processed by
@@ -452,17 +365,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * An ordering of qualified identifiers that breaks the name apart and
      * orders in increasing order of integer index and then name.
      */
-    // implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
-    //   def compare(a: QualifiedIdentifier, b: QualifiedIdentifier): Int =
-    //     (a.id.symbol.name, b.id.symbol.name) match {
-    //       case (Name(avar, aind), Name(bvar, bind)) =>
-    //         val ai = aind.toInt
-    //         val bi = bind.toInt
-    //         if (ai == bi)
-    //           avar compare bvar
-    //         else
-    //           ai - bi
-
+    implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
+      def compare(a: QualifiedIdentifier, b: QualifiedIdentifier): Int =
+        (a.id.symbol.name, b.id.symbol.name) match {
+          case (Name(avar, aind), Name(bvar, bind)) =>
+            val ai = aind.toInt
+            val bi = bind.toInt
+            if (ai == bi)
+              avar compare bvar
+            else
+              ai - bi
+        }
+         }     
         /**
          * Return whether or not the given variable name is of interest
          * at the user level. At present we just ignore the temporary
@@ -482,9 +396,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
          * Print a failure trace. This is a placeholder until we can
          * produce the appropriate output for the SV-COMP.
          */
-        def printTrace (failure : FailureTrace) {
+        def printTrace (failure : FailureTrace[Entry]) {
             println ("trace:")
-            for (entry <- failure.trace.entries)
+            for (entry <- failure.trace)
                 println (s"  ${entry.block.optBlockLabel} ${entry.condition}")
             println ("values:")
             if (failure.values.isSuccess) {
@@ -499,23 +413,22 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     }
             }
         }
-    }
 
-    def printTrace(failure: FailureTrace[Entry]) {
-      println("trace:")
-      for (entry <- failure.trace)
-        println(s"  ${entry.block.optBlockLabel} ${entry.condition}")
-      println("values:")
-      if (failure.values.isSuccess) {
-        val values = failure.values.get
-        for (qid <- failure.ids.sorted)
-          if (values.isDefinedAt(qid)) {
-            val i = qid.id.symbol.name
-            val v = values.get(qid).get.getTerm
-            println(s"  $i = $v")
-          }
-      }
-    }
+    // def printTrace(failure: FailureTrace[Entry]) {
+    //   println("trace:")
+    //   for (entry <- failure.trace)
+    //     println(s"  ${entry.block.optBlockLabel} ${entry.condition}")
+    //   println("values:")
+    //   if (failure.values.isSuccess) {
+    //     val values = failure.values.get
+    //     for (qid <- failure.ids.sorted)
+    //       if (values.isDefinedAt(qid)) {
+    //         val i = qid.id.symbol.name
+    //         val v = values.get(qid).get.getTerm
+    //         println(s"  $i = $v")
+    //       }
+    //   }
+    // }
 
     //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
     traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
