@@ -31,8 +31,13 @@ while.body:                                       ; preds = %while.cond
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
-  %5 = load i32, i32* %retval, align 4
-  ret i32 %5
+  %5 = load i32, i32* %i, align 4
+  %6 = load i32, i32* %n, align 4
+  %cmp2 = icmp sge i32 %5, %6
+  %conv3 = zext i1 %cmp2 to i32
+  %call4 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv3)
+  %7 = load i32, i32* %retval, align 4
+  ret i32 %7
 }
 
 declare i32 @__VERIFIER_assert(...) #1
@@ -44,4 +49,4 @@ attributes #1 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.8.0 (http://llvm.org/git/clang.git fb7d1d842ea81555a442590e2b5293618e1eaa67) (http://llvm.org/git/llvm.git df57a6779d4438ca07ca2b6e2ae4a452155c2496)"}
+!1 = !{!"clang version 3.8.0 (trunk 250262) (llvm/trunk 250264)"}

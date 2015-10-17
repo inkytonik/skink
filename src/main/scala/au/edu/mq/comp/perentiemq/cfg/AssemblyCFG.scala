@@ -309,7 +309,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           }
         case CFGGoto(_) =>
           None
-          // Some(TypedTerm(true))
+        // Some(TypedTerm(true))
         case _ =>
           sys.error(s"exitcondToTerm: unsupported type")
       }
@@ -321,8 +321,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     def entryToTerm(entry: Entry): Vector[TypedTerm] =
       entry match {
         case CFGBlockEntry(b) =>
-          terms (b)
-        case CFGExitCondEntry (c) =>
+          terms(b)
+        case CFGExitCondEntry(c) =>
           exitcondToTerm(c).toVector
       }
 
@@ -371,6 +371,31 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     val cfganalyser = new CFGAnalyser(cfg)
     val nfa = cfganalyser.nfa(cfg)
 
+    //  sanitise the CFGNFA
+
+    //  sanitise the CFGNFA by removing the edges that do not have any effect
+    //  LLVM instructions are either skip of it comes from a fake
+    //  edge we introduce
+
+    //  collect 'dummy' which are states that are source of an empty effect
+    //  and record their successor in a Map
+    val dummyStatesMap  = (nfa.edges.filter {
+      e => traceToTerms(types)(Trace(Seq(e.lab))).flatten.isEmpty
+    }).map(e => (e.src, e.tgt)).toMap
+
+    //  now we remove each edge s2 - l -> dummyState(s2) with no effect and
+    //  use the dummy states map to replace each incoming edge s1 - l -> s2 
+    //  (where s2 is dummy) by s1 - l -> dummyState(s2) 
+    import au.edu.mq.comp.automat.edge.Edge
+    val nfa2 = NFA(nfa.init,
+      (nfa.edges filterNot {
+        e => traceToTerms(types)(Trace(Seq(e.lab))).flatten.isEmpty
+      }) map {
+        case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, dummyStatesMap(e.tgt))
+        case e => e
+      },
+      nfa.accepting)
+
     import au.edu.mq.comp.dot.DOTPrettyPrinter.format
     import reflect.io._
     import au.edu.mq.comp.automat.lang.Lang
@@ -385,6 +410,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // println(cfganalyser.toDot(nfa))
     File("/tmp/nfa-perentieMQ.dot").writeAll(format(cfganalyser.toDot(nfa)).layout)
+    File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(cfganalyser.toDot(nfa2)).layout)
     // Regexp for breaking verified names apart
     val Name = "(.*)@([0-9]+)".r
 
@@ -428,12 +454,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     def printTrace(failure: FailureTrace[Entry]) {
       println("trace:")
       for (entry <- failure.trace) {
-          entry match {
-            case CFGBlockEntry(b) =>
-              println(s"  ${b.optBlockLabel}")
-            case CFGExitCondEntry(c) =>
-              println(s"  $c")
-          }
+        entry match {
+          case CFGBlockEntry(b) =>
+            println(s"  ${b.optBlockLabel}")
+          case CFGExitCondEntry(c) =>
+            println(s"  $c")
+        }
       }
       println("values:")
       if (failure.values.isSuccess) {
@@ -450,7 +476,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-    traceRefinement(nfa, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
+    traceRefinement(nfa2, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
       case Success(witnessTrace) => witnessTrace match {
         case None =>
           config.output.emitln("program is correct")

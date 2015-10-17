@@ -8,4 +8,5 @@ int main () {
     i++;
   __VERIFIER_assert(i >= n);
   }
+  __VERIFIER_assert(i >= n);
 }

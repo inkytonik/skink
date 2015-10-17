@@ -23,6 +23,8 @@ import org.kiama.rewriting.Rewriter.collect
 
 object TraceRefinement { //extends LazyLogging removing for now as they are two logback.xml files conflicting
 
+  
+
   /**
    * A feasible trace that leads to a program failure. `values`, if
    * present, reports on the values that lead to the failure. It
