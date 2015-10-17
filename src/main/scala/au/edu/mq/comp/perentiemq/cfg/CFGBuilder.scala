@@ -245,7 +245,7 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         }
                         buf.toSet
                     }
-                    val accepting = Set (".error")
+                    val accepting = Set ("%.error")
                     NFA (init, edges, accepting)
             }
 

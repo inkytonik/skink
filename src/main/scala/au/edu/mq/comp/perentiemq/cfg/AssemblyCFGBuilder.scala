@@ -42,24 +42,24 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 CFGExit (Vector ())
 
             // Unconditional branch
-            case Branch (Label (Local (label))) =>
-                CFGExit (Vector (CFGGoto (label)))
+            case Branch (Label (label)) =>
+                CFGExit (Vector (CFGGoto (render (label))))
 
             // Two-sided conditional branch
-            case BranchCond (cmp, Label (Local (trueLabel)), Label (Local (falseLabel))) =>
+            case BranchCond (cmp, Label (trueLabel), Label (falseLabel)) =>
                 val name = render (cmp)
-                CFGExit (Vector (CFGChoice (name, true, trueLabel),
-                                 CFGChoice (name, false, falseLabel)))
+                CFGExit (Vector (CFGChoice (name, true, render (trueLabel)),
+                                 CFGChoice (name, false, render (falseLabel))))
 
             // Multi-way branch
-            case Switch (IntT (_), cmp, Label (Local (dfltlabel)), cases) =>
+            case Switch (IntT (_), cmp, Label (dfltLabel), cases) =>
                 val name = render (cmp)
                 val caseToExitCond : Case => CFGExitCond[FunctionDefinition,Block] = {
-                    case Case (_, value, Label (Local (label))) =>
-                        CFGChoice (name, value, label)
+                    case Case (_, value, Label (label)) =>
+                        CFGChoice (name, value, render (label))
                 }
                 val choices = cases.map (caseToExitCond)
-                CFGExit (choices :+ CFGGoto (dfltlabel))
+                CFGExit (choices :+ CFGGoto (render (dfltLabel)))
 
             case i =>
                 sys.error (s"exitOf: terminator not handled: $i")
@@ -209,7 +209,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                     // Last block gets the original terminator insn
                     Block (thisBlockLabel, Vector (), None, group.insns, block.metaTerminatorInstruction)
                 } else {
-                    val nextLabel = Label (Local (s"$blockname.${n + 1}"))
+                    val nextLabel = Label (Local (s"${blockname.drop(1)}.${n + 1}"))
                     val metaTerminator =
                         MetaTerminatorInstruction (BranchCond (group.value, nextLabel, errorLabel),
                                                    Metadata (Vector ()))
@@ -241,7 +241,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         //  .error:
         //    ret void
 
-        val errorBlock = Block (BlockLabel (".error"), Vector (),
+        val errorBlock = Block (BlockLabel ("%.error"), Vector (),
                                 None, Vector (),
                                 MetaTerminatorInstruction (RetVoid (), Metadata (Vector ())))
 
