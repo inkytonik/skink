@@ -117,8 +117,8 @@ trait Driver extends CompilerBase[Program,PerentieMQConfig] {
             }
 
             //  launch the verification
-            if (config.verifyTarget ()) 
-                AssemblyCFG.verify (cfg, cfgAnalyser, config)
+            if (config.verifyTarget ())
+                AssemblyCFG.verify (ir, cfg, cfgAnalyser, config)
         }
 
         if (config.execute ()) {

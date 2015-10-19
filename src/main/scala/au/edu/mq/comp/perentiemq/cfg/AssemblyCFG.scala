@@ -339,13 +339,15 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
    */
-  def verify(cfg: CFG[FunctionDefinition, Block], cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
+  def verify(program : Program, cfg: CFG[FunctionDefinition, Block],
+             cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
 
     import au.edu.mq.comp.automat.auto.{ NFA }
     import org.scalallvm.assembly.Analyser
     import scala.annotation.tailrec
     import scala.util.{ Try, Failure, Success }
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
+
     /*
          * The prefix used by the SV-COMP to signify special functions.
          */
@@ -365,10 +367,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       config.output.emitln("not a main")
       return
     }
+
     // Gather type information on variables in this CFG
-    val funtree = new Tree[ASTNode, FunctionDefinition](cfg.function.cross)
+    val function = cfg.function.cross
+    val funtree = new Tree[ASTNode, FunctionDefinition](function)
     val funanalyser = new Analyser(funtree)
-    val types = funanalyser.typesOfFunction(cfg.function.cross)
+    val types = funanalyser.typesOfFunction(function)
 
     // Make the NFA for this CFG
     val cfganalyser = new CFGAnalyser(cfg)
@@ -435,19 +439,36 @@ object AssemblyCFG extends AssemblyCFGBuilder {
               ai - bi
         }
     }
+
     /**
      * Return whether or not the given variable name is of interest
-     * at the user level. At present we just ignore the temporary
-     * variables since they are easy to spot.
+     * at the user level, i.e., isn't a temporary. In the case of a
+     * successful match, we also return the basename of the variable.
+     * E.g., `%i@1` returns `%i`.
      */
-    def isUserLevelVariable(name: String): Boolean = {
+    def isUserLevelVariable(name: String): Option[String] = {
+      val BaseName = "%(.+)@[0-9]+".r
       val TempName = "%[0-9]+@[0-9]+".r
       name match {
         case TempName() =>
-          false
+          None
+        case BaseName (base) =>
+          Some(base)
         case _ =>
-          true
+          None
       }
+    }
+
+    /**
+     * Print the defining position of a given variable.
+     */
+    def printDefiningPosition (name : String) {
+        funanalyser.definingPosition(program,function,name) match {
+            case Some(position) =>
+                print(s" at ${position.source.optName.get}:${position.line}:${position.column}")
+            case None =>
+                print(s" at unknown position")
+        }
     }
 
     /**
@@ -470,9 +491,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         for (qid <- failure.ids.sorted)
           if (values.isDefinedAt(qid)) {
             val i = qid.id.symbol.name
-            if (isUserLevelVariable(i)) {
-              val v = values.get(qid).get.getTerm
-              println(s"  $i = $v")
+            isUserLevelVariable(i) match {
+              case Some(base) =>
+                val v = values.get(qid).get.getTerm
+                print (s"  $base = $v")
+                printDefiningPosition (base)
+                println
+              case None =>
+                // Do nothing
             }
           }
       }
