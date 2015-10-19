@@ -335,8 +335,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     r
   }
 
-  
-
   /**
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
@@ -384,7 +382,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     //  collect 'dummy' which are states that are source of an empty effect
     //  and record their successor in a Map
-    val dummyStatesMap  = (nfa.edges.filter {
+    val dummyStatesMap = (nfa.edges.filter {
       e => traceToTerms(types)(Trace(Seq(e.lab))).flatten.isEmpty
     }).map(e => (e.src, e.tgt)).toMap
 
@@ -481,18 +479,22 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-    traceRefinement(nfa2, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) } , cfganalyser.name) match {
-      case Success(witnessTrace) => witnessTrace match {
-        case None =>
-          config.output.emitln("program is correct")
-        // println(Console.GREEN_B  + "Program is correct" + Console.RESET)
-        case Some(failTrace) =>
-          config.output.emitln("program is incorrect")
-        // println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" +Console.RESET)
-        // printTrace(failTrace)
+    traceRefinement(
+      nfa2,
+      { s: Seq[Entry] => traceToTerms(types)(Trace(s)) },
+      { b: CFGBlock[FunctionDefinition, Block] => b.toString },
+      { b: Entry => b.isBlockEntry }) match {
+        case Success(witnessTrace) => witnessTrace match {
+          case None =>
+            config.output.emitln("program is correct")
+            println(Console.GREEN_B + "Program is correct" + Console.RESET)
+          case Some(failTrace) =>
+            config.output.emitln("program is incorrect")
+            println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" + Console.RESET)
+            printTrace(failTrace)
+        }
+        case Failure(e) => config.output.emitln(e.getMessage)
       }
-      case Failure(e) => config.output.emitln(e.getMessage)
-    }
 
   }
 }

@@ -4,50 +4,131 @@ import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{ Entry, Trace }
-import au.edu.mq.comp.automat.edge.Implicits._
+// import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.Edge
+import smtlib.util.{ TypedTerm }
+import smtlib.interpreters.{ GenericSolver }
+import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
+import smtlib.util.Logics.{ isSat, getInterpolants }
+import scala.collection.mutable.ListBuffer
 
 /**
  * Build an interpolant automaton from a trace.
  */
 object InterpolantAutomaton {
+ 
   /**
-   * Build an interpolant automaton from a trace
+   * Compute an interpolanta automaton
    *
+   * @param trace An infeasible trace.
+   * @param traceToTerms An mapping that can produce the SSA form of
+   * a sequence of entries
+   * @param  solver An SMT solver. The last command issued to the solver
+   * is CheckSat, resulted in UNSAT. The SSA terms that correspond to the trace
+   * has been pushed to the solver
+   * @param isBlockEntry Determines whether an element of the trace has sied effecs
+   * or not. Typically, CFGBlockEntry do and CFGChoice don't
+   * @param L is the type of the elements in a trace. Should be Entry.
+   * @return An interpolant automaton that accepts trace and other infeasible
+   * traces.
    */
-  def apply[L](trace: Seq[L]): NFA[Int, L] = {
-    //  Build a linear NFA from a trace
-    val numentries = trace.length
-    val init = (0 to numentries).toSet
-    val edges = trace.zipWithIndex.map {
-      case (entry, index) =>
-        (index ~> (index + 1))(entry)
-    }.toSet
-    val accepting = Set(numentries)
-    val res = NFA(init, edges, accepting)
+  def apply[L](trace: Seq[L],
+    traceTerms: Seq[TypedTerm],
+    k: Int,
+    traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
+    isBlockEntry: L => Boolean)(implicit solver: GenericSolver): NFA[Int, L] = {
 
-    res
+    import scala.language.postfixOps
+
+    //  build a single trace acceptor
+
+    //  `trace` is UNSAT and the solver is in the state 
+    //  it was after the last CheckSat which produced UNSAT
+    //  First build a linear automaton that accepts trace only
+    val singleTraceAcceptor = NFA[Int, L](
+      Set(0),
+      trace.zipWithIndex map {
+        case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
+      } toSet,
+      Set(trace.size),
+      name = s"Linear automaton, iteration $k"
+    )
+
+    //  log the linear automaton
+
+    logAuto(singleTraceAcceptor,
+      { x: Int => TypedTerm(true) },
+      { e: L => getBlockLabel(e) },
+      s"/tmp/linear-auto-$k.dot")
+
+    //  determine repeated CFGBlockEntry blocks 
+
+    //  CFGChoice are not to be considered as they have no side effects
+    val tNames: Seq[(L, Int)] = trace.zipWithIndex.filter(b => isBlockEntry(b._1))
+    //  Group the entries and compute the indices at which they occur
+    //  Each entry in trace is mapped to the set of indices it appears
+    //  in trace
+    val blockEnt: Map[L, Seq[(L, Int)]] = tNames.groupBy(l => l._1)
+    val q = blockEnt map {
+      case x => (x._1, x._2.unzip._2)
+    } toList
+    //  l contains the repeated blocks
+    val l = q filter (_._2.size > 1)
+
+    if (l.isEmpty) {
+      //  if emtpy no repetition, we return the singleTraceAcceptor
+      singleTraceAcceptor
+    } else {
+
+      //  compute interpolants
+
+      //  We should check that the logic and solver support it 
+      val i: Seq[TypedTerm] = 
+        TypedTerm(true) +:
+        getInterpolants(traceTerms)(solver).get.map(_.unIndex) :+ 
+        TypedTerm(false)
+
+      //  try to add new edges
+
+      //  if entry e appears in the trace at location k and j, k -- e -> k + 1
+      //  and j -- e -> j + 1, and  k < j, 
+      //  we can try to add an edge j  - e -> (k + 1)
+      //  In theory we can try all the pairs for an entry but
+      //  we restrict for now to all the pairs with first index as the
+      //  first component
+      val newEdges = new ListBuffer[Edge[Int, L]]()
+      for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
+
+        //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+
+        if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+          newEdges += Edge[Int, L](j, entry, k + 1)
+        }
+      }
+
+      //  interpolant automaton
+
+      val interpolantAuto = NFA[Int, L](
+        Set(0),
+        singleTraceAcceptor.edges ++ newEdges,
+        Set(trace.size),
+        name = s"Interpolant automaton, iteration $k"
+      )
+
+      //  log the interpolant automaton
+
+      logAuto(interpolantAuto,
+        { x: Int => i(x) },
+        { e: L => getBlockLabel(e) },
+        s"/tmp/interpolantAuto-$k.dot")
+      interpolantAuto
+    }
   }
 
   import smtlib.util.{ TypedTerm }
   import smtlib.interpreters.{ GenericSolver }
   import smtlib.util.Logics.{ getInterpolants }
   import scala.util.{ Failure, Success }
-  // import scala.collection.immutable.Seq.SeqBuilder
-
-  def getInductiveInterpolants(s: Seq[TypedTerm])(implicit solver: GenericSolver): Seq[TypedTerm] = {
-    //  we create a term per block and then filter out the True
-    //  s may contain True many times
-    //  this TypedTerm will cause problem as the same name will be pushed to
-    //  the solver many times. So we remove the True
-
-    getInterpolants(s)(solver) match {
-      case Success(i) => i
-      //  build an interpolant for s by inserting the msiing predicates for True
-
-      case Failure(e) => sys.error(s"getInductiveInterpolants failed. e.getMessage")
-    }
-  }
 
   import org.scalallvm.assembly.AssemblySyntax._
   import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
@@ -83,81 +164,17 @@ object InterpolantAutomaton {
       },
       labelDotName = {
         x: L => labelToString(x) //.toString
+      },
+      graphProp = {
+        () => List(Attribute("rankdir", Ident("TB")))
+      },
+      graphDirective = {
+        () => List(s"rank = source ; N0", s"rank = sink ; N${a.accepting.head}")
       })
     File(filename).writeAll(format(dotiAuto).layout)
   }
 
-  def computeInterpolantAuto[L](i: Seq[TypedTerm], t: Seq[L], traceToTerms: Seq[L] => Seq[Vector[TypedTerm]], k: Int): NFA[Int, L] = {
-    println("---------------------------------")
-    println("Trace is:")
-    ((0 to t.size - 1) zip (t map getBlockLabel)) map { case (i, t) => println(s"$i : $t") }
-    println("Interpolants are :")
-    ((0 to i.size + 1) zip (TypedTerm(true) +: (i.map(_.unIndex)) :+ TypedTerm(false))) map {
-      case (i, p) => println(s"I_$i : ${p.getTerm}")
-    }
-    //  get the block entries in the trace t
-    val blockEntries = t.filter(_.isInstanceOf[CFGBlockEntry[_, _]])
-
-    //  debug: build a linear automaton with trace and interpolants as labels
-    //  
-    val numToTerm = ((0 to i.size + 1) zip (TypedTerm(true) +: (i.map(_.unIndex)) :+ TypedTerm(false))).toMap
-    val bb = (0 to t.size - 1) zip (1 to t.size)
-    val iAuto = NFA[Int, String](
-      Set(0),
-      ((bb zip t) map { case ((src, tgt), l) => (src ~> tgt)(getBlockLabel(l)) }).toSet,
-      Set(i.size + 1))
-    logAuto(iAuto, numToTerm, { e: String => e }, s"/tmp/interpolantAuto-$k.dot")
-
-    //  compute repeated entry blocks and the indices at which they appear
-    //  
-    val tNames = ((t zip (0 to t.size - 1)).filter(_._1.isInstanceOf[CFGBlockEntry[_, _]]))
-    // map { b => (getBlockLabel(b._1), b._2) } 
-    val blockEnt = tNames.groupBy(l => l._1) map {
-      case (x, k) => (x, k.map(_._2))
-    }
-    // println("Entry repetitions are")
-    // blockEnt map println
-    //  determine repetitions and check post-condition
-    import scala.collection.mutable.ListBuffer
-    val newEdges = new ListBuffer[Edge[Int, L]]()
-    blockEnt foreach {
-      case (e, k) if k.size > 1 =>
-        // println(getBlockLabel(e) + " is repeated " + k.size)
-        //  printout the post conditions to be checked
-        //  first instance we assume we take all the pairs (i,j) with i the first
-        //  index in k, and j ranging over the tail of k
-        k.tail foreach {
-          case x =>
-            println(s"Have to check Post(I_${x}, ${getBlockLabel(e)}) subseteq I_${k.head + 1}")
-            val b = Semantics.checkPost(numToTerm(x), traceToTerms(Seq(e)), numToTerm(k.head + 1))
-            println("Post included ? " + b)
-            if (b)
-              newEdges += Edge[Int, L](x, e, k.head + 1)
-        }
-      case _ => ()
-    }
-    // println("new edges")
-    // newEdges map println
-    //  create the interpolant autoamton
-    val iAuto2 = NFA[Int, L](
-      Set(0),
-      ((bb zip t) map { case ((src, tgt), l) => (src ~> tgt)(l) }).toSet ++ newEdges.toSet,
-      Set(i.size + 1))
-    logAuto(iAuto2, numToTerm, { e: L => getBlockLabel(e) }, s"/tmp/interpolantAuto-augmented-$k.dot")
-
-    println("---------------------------------")
-    iAuto2
-  }
-
 }
-
-// nodeProp: S ⇒ List[Attribute] = { s: S ⇒ List[Attribute]() },
-//                    nodeDotName: S ⇒ String = { s: S ⇒ s.toString },
-//                    labelDotName: L ⇒ String = { l: L ⇒ l.toString } ): DotSpec = {
-
-// val nfa1Dot: DotSpec = toDot( nfa1 )
-//    //  print automaton in a file
-//    File( "/tmp/nfa1.dot" ).writeAll( format( nfa1Dot ).layout )
 
 /**
  * Pre/post condition computation
@@ -177,12 +194,12 @@ object Semantics {
     // println(flattenEntry.getVars)
     // println(minmap)
     // println(maxmap)
-    // println("Entry term is : " + entry)
+    // println("Entry term is : " + flattenEntry.getTerm)
     //  build indexed srcP
     val t = srcP index { case v if minmap.isDefinedAt(v) => minmap(v) }
-    // println(t)
+    // println(t.getTerm)
     val p = tgtP index { case v if minmap.isDefinedAt(v) => maxmap(v) }
-    // println(p)
+    // println(p.getTerm)
     //  check whether srcP and entry and !tgtP is SAT
     import smtlib.interpreters.{ SMTSolver, GenericSolver }
     import smtlib.util.Logics.isSat
@@ -203,12 +220,5 @@ object Semantics {
     // true
   }
 
-  /**
-   * Generate SSA form TypedTerm for Entry block
-   *
-   */
-  // def toSSA[L](traceToTerms: Seq[L] => Seq[Vector[TypedTerm]])(e: Entry) = {
-  //   traceToTerms(Trace(e))
-  // }
 }
 

@@ -46,18 +46,24 @@ case class CFGGoto[F,B] (target : String) extends CFGExitCond[F,B]
 /**
  * A CFG entry represents a step in the execution of the function represented by the CFG.
  */
-sealed abstract class CFGEntry[F,B]
+sealed abstract class CFGEntry[F,B] {
+    val isBlockEntry : Boolean
+}
 
 /**
  * A block entry means that a step in the execution evaluated the specified block.
  */
-case class CFGBlockEntry[F,B] (block : B) extends CFGEntry[F,B]
+case class CFGBlockEntry[F,B] (block : B) extends CFGEntry[F,B] {
+    val isBlockEntry = true
+}
 
 /**
  * An exit condition entry means that a step in the execution was taken because
  * the given exit condition held.
  */
-case class CFGExitCondEntry[F,B] (condition : CFGExitCond[F,B]) extends CFGEntry[F,B]
+case class CFGExitCondEntry[F,B] (condition : CFGExitCond[F,B]) extends CFGEntry[F,B] {
+    val isBlockEntry = false
+}
 
 /**
  * Abstract builder for control-flow graphs. The CFGs are layered on top of
