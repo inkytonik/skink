@@ -328,9 +328,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // Return all of the terms arising from this trace
     // tree.root.entries.flatMap(entryToTerm)
-    tree.root.entries.map(entryToTerm)
 
+    val r = tree.root.entries.map(entryToTerm)
+    // println("Store is")
+    // stores(tree.root) map println
+    r
   }
+
+  
 
   /**
    * Verify the given CFG. The IR is assumed to have been processed by
@@ -476,7 +481,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-    traceRefinement(nfa2, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) }) match {
+    traceRefinement(nfa2, { s: Seq[Entry] => traceToTerms(types)(Trace(s)) } , cfganalyser.name) match {
       case Success(witnessTrace) => witnessTrace match {
         case None =>
           config.output.emitln("program is correct")

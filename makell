@@ -1,0 +1,12 @@
+#!/bin/bash
+
+path="src/test/scala/au/edu/mq/comp/perentiemq/simple-example-programs/"
+
+echo -n "Making .ll file for $1"
+
+filename=$(basename "$1")
+tgtll="${filename%.*}".ll
+
+clang -S -emit-llvm -c -Wno-implicit-function-declaration $path/C/$1 -o $path/ll/$tgtll
+
+echo " [DONE]"
