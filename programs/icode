@@ -8,7 +8,10 @@ do
   base=${file%.*}
   llfile=$base.ll
 
+  clangwargs="-Wno-implicit-function-declaration"
+  clangargs="-c -emit-llvm -o - -S -x c $clangwargs"
+
   sed '/void __VERIFIER_assert(int cond) {/,/^}$/d' $file |
-  clang -Wno-implicit-function-declaration -S -emit-llvm -c -o - -x c - | \
+  clang $clangargs - | \
     opt -S -inline -o $llfile
 done
