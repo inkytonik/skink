@@ -208,7 +208,7 @@ object Semantics {
     import smtlib.interpreters.Configurations._
     import smtlib.parser.Commands.{ Exit, Reset }
 
-    val solver = SMTSolver(Z3, QFLIAFullConfig).get
+    val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
     val answer = isSat(t & flattenEntry & !p)(solver)
     solver.eval(Exit())
     answer match {
