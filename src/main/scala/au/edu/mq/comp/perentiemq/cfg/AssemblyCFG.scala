@@ -76,14 +76,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /*
-         * Make the indexed name of a particular occurrence of a program variable
-         * in a trace.
-         *
-         * The base variable name is given a numeric index to reflect
-         * the fact that it references a particular assigned or stored version of
-         * the base name in the trace. E.g., the first use gets @1 and the
-         * second gets @2.
-         */
+     * Make the indexed name of a particular occurrence of a program variable
+     * in a trace.
+     *
+     * The base variable name is given a numeric index to reflect
+     * the fact that it references a particular assigned or stored version of
+     * the base name in the trace. E.g., the first use gets @1 and the
+     * second gets @2.
+     */
     def nameToIndexedName(use: Product, s: String): String = {
       val index = stores(use).getOrElse(s, 0)
       s"$s@$index"
@@ -243,9 +243,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
 
     /*
-         * Return a term that expresses an LLVM value.
-         * FIXME: currently only does integer constants and names.
-         */
+     * Return a term that expresses an LLVM value.
+     * FIXME: currently only does integer constants and names.
+     */
     lazy val vterm: Value => TypedTerm = {
       attr {
         case Const(FalseC()) =>
@@ -262,9 +262,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /*
-         * Return the sort that should be used for variable name.
-         * FIXME: currently only handled Booleans, integers and pointers to integers.
-         */
+     * Return the sort that should be used for variable name.
+     * FIXME: currently only handled Booleans, integers and pointers to integers.
+     */
     def typeToSort(tipe: Type): Sort =
       tipe match {
         case IntT(n) if n == 1 =>
@@ -289,11 +289,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /*
-         * Return a term that expresses the condition that must be true if
-         * an exit condition is used to exit from a block. None is returned
-         * if it's not a choice exit condition (so the condition is really
-         * "true").
-         */
+     * Return a term that expresses the condition that must be true if
+     * an exit condition is used to exit from a block. None is returned
+     * if it's not a choice exit condition (so the condition is really
+     * "true").
+     */
     def exitcondToTerm(exitcond: CFGExitCond[FunctionDefinition, Block]): Option[TypedTerm] =
       exitcond match {
         case CFGChoice(s, value, _) =>
@@ -315,9 +315,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
 
     /*
-         * Return terms that express the effect of a trace entry, including
-         * the transition to the next entry in the trace, if there is one.
-         */
+     * Return terms that express the effect of a trace entry, including
+     * the transition to the next entry in the trace, if there is one.
+     */
     def entryToTerm(entry: Entry): Vector[TypedTerm] =
       entry match {
         case CFGBlockEntry(b) =>
@@ -346,14 +346,15 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import scala.annotation.tailrec
     import scala.util.{ Try, Failure, Success }
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
+
     /*
-         * The prefix used by the SV-COMP to signify special functions.
-         */
+     * The prefix used by the SV-COMP to signify special functions.
+     */
     val SVCompVerifierPrefix = "@__VERIFIER"
 
     /*
-         * Return whether or not the named function should be verified.
-         */
+     * Return whether or not the named function should be verified.
+     */
 
     def isNotToBeVerified(name: String): Boolean =
       name.startsWith(SVCompVerifierPrefix)
@@ -365,6 +366,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       config.output.emitln("not a main")
       return
     }
+
     // Gather type information on variables in this CFG
     val funtree = new Tree[ASTNode, FunctionDefinition](cfg.function.cross)
     val funanalyser = new Analyser(funtree)
