@@ -97,7 +97,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
           //  get a solver and check if the trace is
           //  is feasible or not
-          val solver = SMTSolver(SMTInterpol, QFLIAFullConfig).get
+          val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
 
           isSat(traceTerms)(solver) match {
             case Success(SatStatus) =>
