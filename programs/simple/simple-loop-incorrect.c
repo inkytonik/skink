@@ -1,3 +1,4 @@
+
 void foo () {
   int r;
   while (r > 0) {

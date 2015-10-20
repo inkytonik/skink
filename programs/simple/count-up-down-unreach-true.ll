@@ -5,33 +5,42 @@ target triple = "x86_64-apple-macosx10.10.0"
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
   %1 = alloca i32, align 4
-  %r = alloca i32, align 4
+  %n = alloca i32, align 4
+  %x = alloca i32, align 4
+  %y = alloca i32, align 4
   store i32 0, i32* %1
-  br label %2
+  %2 = call i32 (...) @__VERIFIER_nondet_uint()
+  store i32 %2, i32* %n, align 4
+  %3 = load i32, i32* %n, align 4
+  store i32 %3, i32* %x, align 4
+  store i32 0, i32* %y, align 4
+  br label %4
 
-; <label>:2                                       ; preds = %5, %0
-  %3 = load i32, i32* %r, align 4
-  %4 = icmp sgt i32 %3, 0
-  br i1 %4, label %5, label %12
+; <label>:4                                       ; preds = %7, %0
+  %5 = load i32, i32* %x, align 4
+  %6 = icmp ugt i32 %5, 0
+  br i1 %6, label %7, label %12
 
-; <label>:5                                       ; preds = %2
-  %6 = load i32, i32* %r, align 4
-  %7 = icmp sgt i32 %6, 0
-  %8 = zext i1 %7 to i32
-  %9 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %8)
-  %10 = load i32, i32* %r, align 4
-  %11 = sub nsw i32 %10, 1
-  store i32 %11, i32* %r, align 4
-  br label %2
+; <label>:7                                       ; preds = %4
+  %8 = load i32, i32* %x, align 4
+  %9 = add i32 %8, -1
+  store i32 %9, i32* %x, align 4
+  %10 = load i32, i32* %y, align 4
+  %11 = add i32 %10, 1
+  store i32 %11, i32* %y, align 4
+  br label %4
 
-; <label>:12                                      ; preds = %2
-  %13 = load i32, i32* %r, align 4
-  %14 = icmp sle i32 %13, 0
-  %15 = zext i1 %14 to i32
-  %16 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %15)
-  %17 = load i32, i32* %1
-  ret i32 %17
+; <label>:12                                      ; preds = %4
+  %13 = load i32, i32* %y, align 4
+  %14 = load i32, i32* %n, align 4
+  %15 = icmp ne i32 %13, %14
+  %16 = zext i1 %15 to i32
+  %17 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %16)
+  %18 = load i32, i32* %1
+  ret i32 %18
 }
+
+declare i32 @__VERIFIER_nondet_uint(...) #1
 
 declare i32 @__VERIFIER_assert(...) #1
 
