@@ -42,6 +42,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import org.kiama.==>
     import org.kiama.attribution.Decorators
     import org.scalallvm.assembly.AssemblyPrettyPrinter
+    import scala.annotation.tailrec
     import smtlib.parser.Terms.Sort
     import smtlib.theories.{ArraysEx, Core, Ints}
     import smtlib.util.Implicits._
@@ -113,24 +114,56 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
-     * Given a node in a trace, return the name of the previous block in
-     * the trace. We look up from the node to get the current entry then
-     * move to the previous entry and get its block name. If there is no
-     * previous entry, return None.
+     * Given a phi instruction in a trace, return the block that it's in.
      */
-    lazy val prevBlockName: Product => Option[String] =
+    lazy val blockOf: ASTNode => Option[Block] =
       attr {
-        case tree.prev(entry) =>
-          entry match {
-            case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
-              Some(name)
-            case CFGExitCondEntry(_) =>
-              prevBlockName(entry)
-          }
-        case tree.parent(p) =>
-          prevBlockName(p)
+        case block : Block =>
+          Some(block)
+        case tree.parent(p : ASTNode) =>
+          blockOf(p)
         case _ =>
           None
+      }
+
+    /**
+     * Find the most recent block entry in the trace starting at
+     * the given index.
+     */
+    @tailrec
+    def prevBlockEntry (index : Int) : Option[Entry] = {
+        if (index > 0) {
+          val entry = trace.entries(index)
+          if (entry.isBlockEntry)
+            Some(entry)
+          else
+            prevBlockEntry(index - 1)
+        } else
+          None
+    }
+
+    /**
+     * Given a phi instruction in a trace, return the name of the previous
+     * block in the trace. We look up from the node to get the block it's
+     * in, then get the block entry above it, then its previous entry.
+     * Then extract the name from that entry.
+     */
+    lazy val prevBlockName: Phi => Option[String] =
+      attr {
+        case phi =>
+          blockOf(phi) match {
+            case Some(tree.parent(tree.prev(entry))) =>
+              prevBlockEntry(tree.index(entry)) match {
+                case Some(CFGBlockEntry(Block(BlockLabel(name), _, _, _, _))) =>
+                  Some(name)
+                case Some(CFGBlockEntry(Block(ImplicitLabel(num), _, _, _, _))) =>
+                  Some(s"%$num")
+                case _ =>
+                  None
+              }
+            case _ =>
+              None
+          }
       }
 
     /**
