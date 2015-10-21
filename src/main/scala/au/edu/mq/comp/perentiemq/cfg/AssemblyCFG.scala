@@ -217,23 +217,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Matcher for assumption function names.
      */
     object AssumeName {
-      def unapply (s : String) : Boolean =
-        (s == "__VERIFIER_assume")
-    }
-
-    /**
-     * Extractor to match various forms of calls to assume function.
-     */
-    object AssumeFunction {
-      def unapply (v : CalledValue) : Boolean =
-        v match {
-          case Function (Named (Global (AssumeName ()))) =>
-            true
-          case Function (Const (ConvertC (Bitcast (), _, NameC (Global (AssumeName ())), _))) =>
-            true
-          case _ =>
-            false
-        }
+      def unapply (name : Name) : Boolean =
+        name == Global ("__VERIFIER_assume")
     }
 
     /**
@@ -275,7 +260,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
           Vector(nterm(to) === exp)
 
-        case Call (_, _, _, _, _, AssumeFunction (), Vector (ValueArg (IntT (size), Vector (), arg)), _) =>
+        case Call (_, _, _, _, _, VerifierFunction (AssumeName ()),
+                   Vector (ValueArg (IntT (size), Vector (), arg)), _) =>
           if (size == 1)
             Vector(vterm(arg))
           else
