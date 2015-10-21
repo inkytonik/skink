@@ -6,8 +6,7 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %string_entrada = alloca [10 x i8], align 1
   %vetor_vogais = alloca [11 x i8], align 1
   %i = alloca i32, align 4
@@ -16,174 +15,174 @@ entry:
   %tam_string = alloca i32, align 4
   %n_caracter = alloca i32, align 4
   %cont_aux = alloca i32, align 4
-  store i32 0, i32* %retval
-  %0 = bitcast [11 x i8]* %vetor_vogais to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* getelementptr inbounds ([11 x i8], [11 x i8]* @main.vetor_vogais, i32 0, i32 0), i64 11, i32 1, i1 false)
+  store i32 0, i32* %1
+  %2 = bitcast [11 x i8]* %vetor_vogais to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* getelementptr inbounds ([11 x i8], [11 x i8]* @main.vetor_vogais, i32 0, i32 0), i64 11, i32 1, i1 false)
   store i32 0, i32* %i, align 4
-  br label %for.cond
+  br label %3
 
-for.cond:                                         ; preds = %for.inc, %entry
-  %1 = load i32, i32* %i, align 4
-  %cmp = icmp ult i32 %1, 10
-  br i1 %cmp, label %for.body, label %for.end
+; <label>:3                                       ; preds = %11, %0
+  %4 = load i32, i32* %i, align 4
+  %5 = icmp ult i32 %4, 10
+  br i1 %5, label %6, label %14
 
-for.body:                                         ; preds = %for.cond
-  %call = call signext i8 (...) @__VERIFIER_nondet_char()
-  %2 = load i32, i32* %i, align 4
-  %idxprom = zext i32 %2 to i64
-  %arrayidx = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %idxprom
-  store i8 %call, i8* %arrayidx, align 1
-  br label %for.inc
+; <label>:6                                       ; preds = %3
+  %7 = call signext i8 (...) @__VERIFIER_nondet_char()
+  %8 = load i32, i32* %i, align 4
+  %9 = zext i32 %8 to i64
+  %10 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %9
+  store i8 %7, i8* %10, align 1
+  br label %11
 
-for.inc:                                          ; preds = %for.body
-  %3 = load i32, i32* %i, align 4
-  %inc = add i32 %3, 1
-  store i32 %inc, i32* %i, align 4
-  br label %for.cond
+; <label>:11                                      ; preds = %6
+  %12 = load i32, i32* %i, align 4
+  %13 = add i32 %12, 1
+  store i32 %13, i32* %i, align 4
+  br label %3
 
-for.end:                                          ; preds = %for.cond
-  %arrayidx1 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 9
-  store i8 0, i8* %arrayidx1, align 1
+; <label>:14                                      ; preds = %3
+  %15 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 9
+  store i8 0, i8* %15, align 1
   store i32 0, i32* %n_caracter, align 4
-  br label %while.cond
+  br label %16
 
-while.cond:                                       ; preds = %while.body, %for.end
-  %4 = load i32, i32* %n_caracter, align 4
-  %idxprom2 = zext i32 %4 to i64
-  %arrayidx3 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %idxprom2
-  %5 = load i8, i8* %arrayidx3, align 1
-  %conv = sext i8 %5 to i32
-  %cmp4 = icmp ne i32 %conv, 0
-  br i1 %cmp4, label %while.body, label %while.end
+; <label>:16                                      ; preds = %23, %14
+  %17 = load i32, i32* %n_caracter, align 4
+  %18 = zext i32 %17 to i64
+  %19 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %18
+  %20 = load i8, i8* %19, align 1
+  %21 = sext i8 %20 to i32
+  %22 = icmp ne i32 %21, 0
+  br i1 %22, label %23, label %26
 
-while.body:                                       ; preds = %while.cond
-  %6 = load i32, i32* %n_caracter, align 4
-  %inc6 = add i32 %6, 1
-  store i32 %inc6, i32* %n_caracter, align 4
-  br label %while.cond
+; <label>:23                                      ; preds = %16
+  %24 = load i32, i32* %n_caracter, align 4
+  %25 = add i32 %24, 1
+  store i32 %25, i32* %n_caracter, align 4
+  br label %16
 
-while.end:                                        ; preds = %while.cond
+; <label>:26                                      ; preds = %16
   store i32 0, i32* %cont, align 4
   store i32 0, i32* %i, align 4
-  br label %for.cond7
+  br label %27
 
-for.cond7:                                        ; preds = %for.inc27, %while.end
-  %7 = load i32, i32* %i, align 4
-  %8 = load i32, i32* %n_caracter, align 4
-  %cmp8 = icmp ult i32 %7, %8
-  br i1 %cmp8, label %for.body10, label %for.end29
+; <label>:27                                      ; preds = %55, %26
+  %28 = load i32, i32* %i, align 4
+  %29 = load i32, i32* %n_caracter, align 4
+  %30 = icmp ult i32 %28, %29
+  br i1 %30, label %31, label %58
 
-for.body10:                                       ; preds = %for.cond7
+; <label>:31                                      ; preds = %27
   store i32 0, i32* %j, align 4
-  br label %for.cond11
+  br label %32
 
-for.cond11:                                       ; preds = %for.inc24, %for.body10
-  %9 = load i32, i32* %j, align 4
-  %cmp12 = icmp ult i32 %9, 8
-  br i1 %cmp12, label %for.body14, label %for.end26
+; <label>:32                                      ; preds = %51, %31
+  %33 = load i32, i32* %j, align 4
+  %34 = icmp ult i32 %33, 8
+  br i1 %34, label %35, label %54
 
-for.body14:                                       ; preds = %for.cond11
-  %10 = load i32, i32* %i, align 4
-  %idxprom15 = zext i32 %10 to i64
-  %arrayidx16 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %idxprom15
-  %11 = load i8, i8* %arrayidx16, align 1
-  %conv17 = sext i8 %11 to i32
-  %12 = load i32, i32* %j, align 4
-  %idxprom18 = zext i32 %12 to i64
-  %arrayidx19 = getelementptr inbounds [11 x i8], [11 x i8]* %vetor_vogais, i32 0, i64 %idxprom18
-  %13 = load i8, i8* %arrayidx19, align 1
-  %conv20 = sext i8 %13 to i32
-  %cmp21 = icmp eq i32 %conv17, %conv20
-  br i1 %cmp21, label %if.then, label %if.end
+; <label>:35                                      ; preds = %32
+  %36 = load i32, i32* %i, align 4
+  %37 = zext i32 %36 to i64
+  %38 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %37
+  %39 = load i8, i8* %38, align 1
+  %40 = sext i8 %39 to i32
+  %41 = load i32, i32* %j, align 4
+  %42 = zext i32 %41 to i64
+  %43 = getelementptr inbounds [11 x i8], [11 x i8]* %vetor_vogais, i32 0, i64 %42
+  %44 = load i8, i8* %43, align 1
+  %45 = sext i8 %44 to i32
+  %46 = icmp eq i32 %40, %45
+  br i1 %46, label %47, label %50
 
-if.then:                                          ; preds = %for.body14
-  %14 = load i32, i32* %cont, align 4
-  %inc23 = add i32 %14, 1
-  store i32 %inc23, i32* %cont, align 4
-  br label %if.end
+; <label>:47                                      ; preds = %35
+  %48 = load i32, i32* %cont, align 4
+  %49 = add i32 %48, 1
+  store i32 %49, i32* %cont, align 4
+  br label %50
 
-if.end:                                           ; preds = %if.then, %for.body14
-  br label %for.inc24
+; <label>:50                                      ; preds = %47, %35
+  br label %51
 
-for.inc24:                                        ; preds = %if.end
-  %15 = load i32, i32* %j, align 4
-  %inc25 = add i32 %15, 1
-  store i32 %inc25, i32* %j, align 4
-  br label %for.cond11
+; <label>:51                                      ; preds = %50
+  %52 = load i32, i32* %j, align 4
+  %53 = add i32 %52, 1
+  store i32 %53, i32* %j, align 4
+  br label %32
 
-for.end26:                                        ; preds = %for.cond11
-  br label %for.inc27
+; <label>:54                                      ; preds = %32
+  br label %55
 
-for.inc27:                                        ; preds = %for.end26
-  %16 = load i32, i32* %i, align 4
-  %inc28 = add i32 %16, 1
-  store i32 %inc28, i32* %i, align 4
-  br label %for.cond7
+; <label>:55                                      ; preds = %54
+  %56 = load i32, i32* %i, align 4
+  %57 = add i32 %56, 1
+  store i32 %57, i32* %i, align 4
+  br label %27
 
-for.end29:                                        ; preds = %for.cond7
+; <label>:58                                      ; preds = %27
   store i32 0, i32* %i, align 4
   store i32 0, i32* %cont_aux, align 4
-  br label %while.cond30
+  br label %59
 
-while.cond30:                                     ; preds = %for.end54, %for.end29
-  %17 = load i32, i32* %i, align 4
-  %idxprom31 = zext i32 %17 to i64
-  %arrayidx32 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %idxprom31
-  %18 = load i8, i8* %arrayidx32, align 1
-  %conv33 = sext i8 %18 to i32
-  %cmp34 = icmp ne i32 %conv33, 0
-  br i1 %cmp34, label %while.body36, label %while.end56
+; <label>:59                                      ; preds = %89, %58
+  %60 = load i32, i32* %i, align 4
+  %61 = zext i32 %60 to i64
+  %62 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %61
+  %63 = load i8, i8* %62, align 1
+  %64 = sext i8 %63 to i32
+  %65 = icmp ne i32 %64, 0
+  br i1 %65, label %66, label %92
 
-while.body36:                                     ; preds = %while.cond30
+; <label>:66                                      ; preds = %59
   store i32 0, i32* %j, align 4
-  br label %for.cond37
+  br label %67
 
-for.cond37:                                       ; preds = %for.inc52, %while.body36
-  %19 = load i32, i32* %j, align 4
-  %cmp38 = icmp ult i32 %19, 10
-  br i1 %cmp38, label %for.body40, label %for.end54
+; <label>:67                                      ; preds = %86, %66
+  %68 = load i32, i32* %j, align 4
+  %69 = icmp ult i32 %68, 10
+  br i1 %69, label %70, label %89
 
-for.body40:                                       ; preds = %for.cond37
-  %20 = load i32, i32* %i, align 4
-  %idxprom41 = zext i32 %20 to i64
-  %arrayidx42 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %idxprom41
-  %21 = load i8, i8* %arrayidx42, align 1
-  %conv43 = sext i8 %21 to i32
-  %22 = load i32, i32* %j, align 4
-  %idxprom44 = zext i32 %22 to i64
-  %arrayidx45 = getelementptr inbounds [11 x i8], [11 x i8]* %vetor_vogais, i32 0, i64 %idxprom44
-  %23 = load i8, i8* %arrayidx45, align 1
-  %conv46 = sext i8 %23 to i32
-  %cmp47 = icmp eq i32 %conv43, %conv46
-  br i1 %cmp47, label %if.then49, label %if.end51
+; <label>:70                                      ; preds = %67
+  %71 = load i32, i32* %i, align 4
+  %72 = zext i32 %71 to i64
+  %73 = getelementptr inbounds [10 x i8], [10 x i8]* %string_entrada, i32 0, i64 %72
+  %74 = load i8, i8* %73, align 1
+  %75 = sext i8 %74 to i32
+  %76 = load i32, i32* %j, align 4
+  %77 = zext i32 %76 to i64
+  %78 = getelementptr inbounds [11 x i8], [11 x i8]* %vetor_vogais, i32 0, i64 %77
+  %79 = load i8, i8* %78, align 1
+  %80 = sext i8 %79 to i32
+  %81 = icmp eq i32 %75, %80
+  br i1 %81, label %82, label %85
 
-if.then49:                                        ; preds = %for.body40
-  %24 = load i32, i32* %cont_aux, align 4
-  %inc50 = add nsw i32 %24, 1
-  store i32 %inc50, i32* %cont_aux, align 4
-  br label %if.end51
+; <label>:82                                      ; preds = %70
+  %83 = load i32, i32* %cont_aux, align 4
+  %84 = add nsw i32 %83, 1
+  store i32 %84, i32* %cont_aux, align 4
+  br label %85
 
-if.end51:                                         ; preds = %if.then49, %for.body40
-  br label %for.inc52
+; <label>:85                                      ; preds = %82, %70
+  br label %86
 
-for.inc52:                                        ; preds = %if.end51
-  %25 = load i32, i32* %j, align 4
-  %inc53 = add i32 %25, 1
-  store i32 %inc53, i32* %j, align 4
-  br label %for.cond37
+; <label>:86                                      ; preds = %85
+  %87 = load i32, i32* %j, align 4
+  %88 = add i32 %87, 1
+  store i32 %88, i32* %j, align 4
+  br label %67
 
-for.end54:                                        ; preds = %for.cond37
-  %26 = load i32, i32* %i, align 4
-  %inc55 = add i32 %26, 1
-  store i32 %inc55, i32* %i, align 4
-  br label %while.cond30
+; <label>:89                                      ; preds = %67
+  %90 = load i32, i32* %i, align 4
+  %91 = add i32 %90, 1
+  store i32 %91, i32* %i, align 4
+  br label %59
 
-while.end56:                                      ; preds = %while.cond30
-  %27 = load i32, i32* %cont_aux, align 4
-  %28 = load i32, i32* %cont, align 4
-  %cmp57 = icmp eq i32 %27, %28
-  %conv58 = zext i1 %cmp57 to i32
-  %call59 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv58)
+; <label>:92                                      ; preds = %59
+  %93 = load i32, i32* %cont_aux, align 4
+  %94 = load i32, i32* %cont, align 4
+  %95 = icmp eq i32 %93, %94
+  %96 = zext i1 %95 to i32
+  %97 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %96)
   ret i32 0
 }
 
@@ -194,12 +193,12 @@ declare signext i8 @__VERIFIER_nondet_char(...) #2
 
 declare i32 @__VERIFIER_assert(...) #2
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}

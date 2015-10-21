@@ -4,74 +4,73 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %SIZE = alloca i32, align 4
   %j = alloca i32, align 4
   %k = alloca i32, align 4
-  %saved_stack = alloca i8*
+  %2 = alloca i8*
   %menor = alloca i32, align 4
-  store i32 0, i32* %retval
+  store i32 0, i32* %1
   store i32 1, i32* %SIZE, align 4
-  %0 = load i32, i32* %SIZE, align 4
-  %1 = zext i32 %0 to i64
-  %2 = call i8* @llvm.stacksave()
-  store i8* %2, i8** %saved_stack
-  %vla = alloca i32, i64 %1, align 16
-  %call = call i32 (...) @__VERIFIER_nondet_int()
-  store i32 %call, i32* %menor, align 4
+  %3 = load i32, i32* %SIZE, align 4
+  %4 = zext i32 %3 to i64
+  %5 = call i8* @llvm.stacksave()
+  store i8* %5, i8** %2
+  %6 = alloca i32, i64 %4, align 16
+  %7 = call i32 (...) @__VERIFIER_nondet_int()
+  store i32 %7, i32* %menor, align 4
   store i32 0, i32* %j, align 4
-  br label %for.cond
+  br label %8
 
-for.cond:                                         ; preds = %for.inc, %entry
-  %3 = load i32, i32* %j, align 4
-  %4 = load i32, i32* %SIZE, align 4
-  %cmp = icmp ult i32 %3, %4
-  br i1 %cmp, label %for.body, label %for.end
-
-for.body:                                         ; preds = %for.cond
-  %call1 = call i32 (...) @__VERIFIER_nondet_int()
-  %5 = load i32, i32* %j, align 4
-  %idxprom = zext i32 %5 to i64
-  %arrayidx = getelementptr inbounds i32, i32* %vla, i64 %idxprom
-  store i32 %call1, i32* %arrayidx, align 4
-  %6 = load i32, i32* %j, align 4
-  %idxprom2 = zext i32 %6 to i64
-  %arrayidx3 = getelementptr inbounds i32, i32* %vla, i64 %idxprom2
-  %7 = load i32, i32* %arrayidx3, align 4
-  %8 = load i32, i32* %menor, align 4
-  %cmp4 = icmp sle i32 %7, %8
-  br i1 %cmp4, label %if.then, label %if.end
-
-if.then:                                          ; preds = %for.body
+; <label>:8                                       ; preds = %29, %0
   %9 = load i32, i32* %j, align 4
-  %idxprom5 = zext i32 %9 to i64
-  %arrayidx6 = getelementptr inbounds i32, i32* %vla, i64 %idxprom5
-  %10 = load i32, i32* %arrayidx6, align 4
-  store i32 %10, i32* %menor, align 4
-  br label %if.end
+  %10 = load i32, i32* %SIZE, align 4
+  %11 = icmp ult i32 %9, %10
+  br i1 %11, label %12, label %32
 
-if.end:                                           ; preds = %if.then, %for.body
-  br label %for.inc
+; <label>:12                                      ; preds = %8
+  %13 = call i32 (...) @__VERIFIER_nondet_int()
+  %14 = load i32, i32* %j, align 4
+  %15 = zext i32 %14 to i64
+  %16 = getelementptr inbounds i32, i32* %6, i64 %15
+  store i32 %13, i32* %16, align 4
+  %17 = load i32, i32* %j, align 4
+  %18 = zext i32 %17 to i64
+  %19 = getelementptr inbounds i32, i32* %6, i64 %18
+  %20 = load i32, i32* %19, align 4
+  %21 = load i32, i32* %menor, align 4
+  %22 = icmp sle i32 %20, %21
+  br i1 %22, label %23, label %28
 
-for.inc:                                          ; preds = %if.end
-  %11 = load i32, i32* %j, align 4
-  %inc = add i32 %11, 1
-  store i32 %inc, i32* %j, align 4
-  br label %for.cond
+; <label>:23                                      ; preds = %12
+  %24 = load i32, i32* %j, align 4
+  %25 = zext i32 %24 to i64
+  %26 = getelementptr inbounds i32, i32* %6, i64 %25
+  %27 = load i32, i32* %26, align 4
+  store i32 %27, i32* %menor, align 4
+  br label %28
 
-for.end:                                          ; preds = %for.cond
-  %arrayidx7 = getelementptr inbounds i32, i32* %vla, i64 0
-  %12 = load i32, i32* %arrayidx7, align 4
-  %13 = load i32, i32* %menor, align 4
-  %cmp8 = icmp sge i32 %12, %13
-  %conv = zext i1 %cmp8 to i32
-  %call9 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
-  store i32 0, i32* %retval
-  %14 = load i8*, i8** %saved_stack
-  call void @llvm.stackrestore(i8* %14)
-  %15 = load i32, i32* %retval
-  ret i32 %15
+; <label>:28                                      ; preds = %23, %12
+  br label %29
+
+; <label>:29                                      ; preds = %28
+  %30 = load i32, i32* %j, align 4
+  %31 = add i32 %30, 1
+  store i32 %31, i32* %j, align 4
+  br label %8
+
+; <label>:32                                      ; preds = %8
+  %33 = getelementptr inbounds i32, i32* %6, i64 0
+  %34 = load i32, i32* %33, align 4
+  %35 = load i32, i32* %menor, align 4
+  %36 = icmp sge i32 %34, %35
+  %37 = zext i1 %36 to i32
+  %38 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %37)
+  store i32 0, i32* %1
+  %39 = load i8*, i8** %2
+  call void @llvm.stackrestore(i8* %39)
+  %40 = load i32, i32* %1
+  ret i32 %40
 }
 
 ; Function Attrs: nounwind
@@ -84,12 +83,12 @@ declare i32 @__VERIFIER_assert(...) #2
 ; Function Attrs: nounwind
 declare void @llvm.stackrestore(i8*) #1
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}

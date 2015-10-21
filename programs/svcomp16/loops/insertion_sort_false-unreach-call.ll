@@ -4,135 +4,134 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %SIZE = alloca i32, align 4
   %i = alloca i32, align 4
   %j = alloca i32, align 4
   %k = alloca i32, align 4
   %key = alloca i32, align 4
-  %saved_stack = alloca i8*
-  store i32 0, i32* %retval
-  %call = call i32 (...) @__VERIFIER_nondet_uint()
-  store i32 %call, i32* %SIZE, align 4
-  %0 = load i32, i32* %SIZE, align 4
-  %1 = zext i32 %0 to i64
-  %2 = call i8* @llvm.stacksave()
-  store i8* %2, i8** %saved_stack
-  %vla = alloca i32, i64 %1, align 16
-  store i32 1, i32* %j, align 4
-  br label %for.cond
-
-for.cond:                                         ; preds = %for.inc, %entry
-  %3 = load i32, i32* %j, align 4
+  %2 = alloca i8*
+  store i32 0, i32* %1
+  %3 = call i32 (...) @__VERIFIER_nondet_uint()
+  store i32 %3, i32* %SIZE, align 4
   %4 = load i32, i32* %SIZE, align 4
-  %cmp = icmp ult i32 %3, %4
-  br i1 %cmp, label %for.body, label %for.end
+  %5 = zext i32 %4 to i64
+  %6 = call i8* @llvm.stacksave()
+  store i8* %6, i8** %2
+  %7 = alloca i32, i64 %5, align 16
+  store i32 1, i32* %j, align 4
+  br label %8
 
-for.body:                                         ; preds = %for.cond
-  %5 = load i32, i32* %j, align 4
-  %idxprom = sext i32 %5 to i64
-  %arrayidx = getelementptr inbounds i32, i32* %vla, i64 %idxprom
-  %6 = load i32, i32* %arrayidx, align 4
-  store i32 %6, i32* %key, align 4
-  %7 = load i32, i32* %j, align 4
-  %sub = sub nsw i32 %7, 1
-  store i32 %sub, i32* %i, align 4
-  br label %while.cond
+; <label>:8                                       ; preds = %52, %0
+  %9 = load i32, i32* %j, align 4
+  %10 = load i32, i32* %SIZE, align 4
+  %11 = icmp ult i32 %9, %10
+  br i1 %11, label %12, label %55
 
-while.cond:                                       ; preds = %if.end, %for.body
-  %8 = load i32, i32* %i, align 4
-  %cmp1 = icmp sge i32 %8, 0
-  br i1 %cmp1, label %land.rhs, label %land.end
+; <label>:12                                      ; preds = %8
+  %13 = load i32, i32* %j, align 4
+  %14 = sext i32 %13 to i64
+  %15 = getelementptr inbounds i32, i32* %7, i64 %14
+  %16 = load i32, i32* %15, align 4
+  store i32 %16, i32* %key, align 4
+  %17 = load i32, i32* %j, align 4
+  %18 = sub nsw i32 %17, 1
+  store i32 %18, i32* %i, align 4
+  br label %19
 
-land.rhs:                                         ; preds = %while.cond
-  %9 = load i32, i32* %i, align 4
-  %idxprom2 = sext i32 %9 to i64
-  %arrayidx3 = getelementptr inbounds i32, i32* %vla, i64 %idxprom2
-  %10 = load i32, i32* %arrayidx3, align 4
-  %11 = load i32, i32* %key, align 4
-  %cmp4 = icmp sgt i32 %10, %11
-  br label %land.end
+; <label>:19                                      ; preds = %43, %12
+  %20 = load i32, i32* %i, align 4
+  %21 = icmp sge i32 %20, 0
+  br i1 %21, label %22, label %29
 
-land.end:                                         ; preds = %land.rhs, %while.cond
-  %12 = phi i1 [ false, %while.cond ], [ %cmp4, %land.rhs ]
-  br i1 %12, label %while.body, label %while.end
+; <label>:22                                      ; preds = %19
+  %23 = load i32, i32* %i, align 4
+  %24 = sext i32 %23 to i64
+  %25 = getelementptr inbounds i32, i32* %7, i64 %24
+  %26 = load i32, i32* %25, align 4
+  %27 = load i32, i32* %key, align 4
+  %28 = icmp sgt i32 %26, %27
+  br label %29
 
-while.body:                                       ; preds = %land.end
-  %13 = load i32, i32* %i, align 4
-  %cmp5 = icmp slt i32 %13, 2
-  br i1 %cmp5, label %if.then, label %if.end
+; <label>:29                                      ; preds = %22, %19
+  %30 = phi i1 [ false, %19 ], [ %28, %22 ]
+  br i1 %30, label %31, label %46
 
-if.then:                                          ; preds = %while.body
-  %14 = load i32, i32* %i, align 4
-  %idxprom6 = sext i32 %14 to i64
-  %arrayidx7 = getelementptr inbounds i32, i32* %vla, i64 %idxprom6
-  %15 = load i32, i32* %arrayidx7, align 4
-  %16 = load i32, i32* %i, align 4
-  %add = add nsw i32 %16, 1
-  %idxprom8 = sext i32 %add to i64
-  %arrayidx9 = getelementptr inbounds i32, i32* %vla, i64 %idxprom8
-  store i32 %15, i32* %arrayidx9, align 4
-  br label %if.end
+; <label>:31                                      ; preds = %29
+  %32 = load i32, i32* %i, align 4
+  %33 = icmp slt i32 %32, 2
+  br i1 %33, label %34, label %43
 
-if.end:                                           ; preds = %if.then, %while.body
-  %17 = load i32, i32* %i, align 4
-  %sub10 = sub nsw i32 %17, 1
-  store i32 %sub10, i32* %i, align 4
-  br label %while.cond
+; <label>:34                                      ; preds = %31
+  %35 = load i32, i32* %i, align 4
+  %36 = sext i32 %35 to i64
+  %37 = getelementptr inbounds i32, i32* %7, i64 %36
+  %38 = load i32, i32* %37, align 4
+  %39 = load i32, i32* %i, align 4
+  %40 = add nsw i32 %39, 1
+  %41 = sext i32 %40 to i64
+  %42 = getelementptr inbounds i32, i32* %7, i64 %41
+  store i32 %38, i32* %42, align 4
+  br label %43
 
-while.end:                                        ; preds = %land.end
-  %18 = load i32, i32* %key, align 4
-  %19 = load i32, i32* %i, align 4
-  %add11 = add nsw i32 %19, 1
-  %idxprom12 = sext i32 %add11 to i64
-  %arrayidx13 = getelementptr inbounds i32, i32* %vla, i64 %idxprom12
-  store i32 %18, i32* %arrayidx13, align 4
-  br label %for.inc
+; <label>:43                                      ; preds = %34, %31
+  %44 = load i32, i32* %i, align 4
+  %45 = sub nsw i32 %44, 1
+  store i32 %45, i32* %i, align 4
+  br label %19
 
-for.inc:                                          ; preds = %while.end
-  %20 = load i32, i32* %j, align 4
-  %inc = add nsw i32 %20, 1
-  store i32 %inc, i32* %j, align 4
-  br label %for.cond
+; <label>:46                                      ; preds = %29
+  %47 = load i32, i32* %key, align 4
+  %48 = load i32, i32* %i, align 4
+  %49 = add nsw i32 %48, 1
+  %50 = sext i32 %49 to i64
+  %51 = getelementptr inbounds i32, i32* %7, i64 %50
+  store i32 %47, i32* %51, align 4
+  br label %52
 
-for.end:                                          ; preds = %for.cond
+; <label>:52                                      ; preds = %46
+  %53 = load i32, i32* %j, align 4
+  %54 = add nsw i32 %53, 1
+  store i32 %54, i32* %j, align 4
+  br label %8
+
+; <label>:55                                      ; preds = %8
   store i32 1, i32* %k, align 4
-  br label %for.cond14
+  br label %56
 
-for.cond14:                                       ; preds = %for.inc24, %for.end
-  %21 = load i32, i32* %k, align 4
-  %22 = load i32, i32* %SIZE, align 4
-  %cmp15 = icmp ult i32 %21, %22
-  br i1 %cmp15, label %for.body16, label %for.end26
+; <label>:56                                      ; preds = %73, %55
+  %57 = load i32, i32* %k, align 4
+  %58 = load i32, i32* %SIZE, align 4
+  %59 = icmp ult i32 %57, %58
+  br i1 %59, label %60, label %76
 
-for.body16:                                       ; preds = %for.cond14
-  %23 = load i32, i32* %k, align 4
-  %sub17 = sub nsw i32 %23, 1
-  %idxprom18 = sext i32 %sub17 to i64
-  %arrayidx19 = getelementptr inbounds i32, i32* %vla, i64 %idxprom18
-  %24 = load i32, i32* %arrayidx19, align 4
-  %25 = load i32, i32* %k, align 4
-  %idxprom20 = sext i32 %25 to i64
-  %arrayidx21 = getelementptr inbounds i32, i32* %vla, i64 %idxprom20
-  %26 = load i32, i32* %arrayidx21, align 4
-  %cmp22 = icmp sle i32 %24, %26
-  %conv = zext i1 %cmp22 to i32
-  %call23 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv)
-  br label %for.inc24
+; <label>:60                                      ; preds = %56
+  %61 = load i32, i32* %k, align 4
+  %62 = sub nsw i32 %61, 1
+  %63 = sext i32 %62 to i64
+  %64 = getelementptr inbounds i32, i32* %7, i64 %63
+  %65 = load i32, i32* %64, align 4
+  %66 = load i32, i32* %k, align 4
+  %67 = sext i32 %66 to i64
+  %68 = getelementptr inbounds i32, i32* %7, i64 %67
+  %69 = load i32, i32* %68, align 4
+  %70 = icmp sle i32 %65, %69
+  %71 = zext i1 %70 to i32
+  %72 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %71)
+  br label %73
 
-for.inc24:                                        ; preds = %for.body16
-  %27 = load i32, i32* %k, align 4
-  %inc25 = add nsw i32 %27, 1
-  store i32 %inc25, i32* %k, align 4
-  br label %for.cond14
+; <label>:73                                      ; preds = %60
+  %74 = load i32, i32* %k, align 4
+  %75 = add nsw i32 %74, 1
+  store i32 %75, i32* %k, align 4
+  br label %56
 
-for.end26:                                        ; preds = %for.cond14
-  store i32 0, i32* %retval
-  %28 = load i8*, i8** %saved_stack
-  call void @llvm.stackrestore(i8* %28)
-  %29 = load i32, i32* %retval
-  ret i32 %29
+; <label>:76                                      ; preds = %56
+  store i32 0, i32* %1
+  %77 = load i8*, i8** %2
+  call void @llvm.stackrestore(i8* %77)
+  %78 = load i32, i32* %1
+  ret i32 %78
 }
 
 declare i32 @__VERIFIER_nondet_uint(...) #1
@@ -145,12 +144,12 @@ declare i32 @__VERIFIER_assert(...) #1
 ; Function Attrs: nounwind
 declare void @llvm.stackrestore(i8*) #2
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}

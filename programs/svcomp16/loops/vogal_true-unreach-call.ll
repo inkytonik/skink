@@ -6,8 +6,7 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %input_string = alloca [5 x i8], align 1
   %vogal_array = alloca [11 x i8], align 1
   %i = alloca i32, align 4
@@ -16,178 +15,178 @@ entry:
   %tam_string = alloca i32, align 4
   %n_caracter = alloca i32, align 4
   %cont_aux = alloca i32, align 4
-  store i32 0, i32* %retval
-  %0 = bitcast [11 x i8]* %vogal_array to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* getelementptr inbounds ([11 x i8], [11 x i8]* @main.vogal_array, i32 0, i32 0), i64 11, i32 1, i1 false)
+  store i32 0, i32* %1
+  %2 = bitcast [11 x i8]* %vogal_array to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %2, i8* getelementptr inbounds ([11 x i8], [11 x i8]* @main.vogal_array, i32 0, i32 0), i64 11, i32 1, i1 false)
   store i32 0, i32* %i, align 4
-  br label %for.cond
+  br label %3
 
-for.cond:                                         ; preds = %for.inc, %entry
-  %1 = load i32, i32* %i, align 4
-  %cmp = icmp ult i32 %1, 5
-  br i1 %cmp, label %for.body, label %for.end
+; <label>:3                                       ; preds = %11, %0
+  %4 = load i32, i32* %i, align 4
+  %5 = icmp ult i32 %4, 5
+  br i1 %5, label %6, label %14
 
-for.body:                                         ; preds = %for.cond
-  %call = call signext i8 (...) @__VERIFIER_nondet_char()
-  %2 = load i32, i32* %i, align 4
-  %idxprom = zext i32 %2 to i64
-  %arrayidx = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %idxprom
-  store i8 %call, i8* %arrayidx, align 1
-  br label %for.inc
+; <label>:6                                       ; preds = %3
+  %7 = call signext i8 (...) @__VERIFIER_nondet_char()
+  %8 = load i32, i32* %i, align 4
+  %9 = zext i32 %8 to i64
+  %10 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %9
+  store i8 %7, i8* %10, align 1
+  br label %11
 
-for.inc:                                          ; preds = %for.body
-  %3 = load i32, i32* %i, align 4
-  %inc = add i32 %3, 1
-  store i32 %inc, i32* %i, align 4
-  br label %for.cond
+; <label>:11                                      ; preds = %6
+  %12 = load i32, i32* %i, align 4
+  %13 = add i32 %12, 1
+  store i32 %13, i32* %i, align 4
+  br label %3
 
-for.end:                                          ; preds = %for.cond
-  %arrayidx1 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 4
-  %4 = load i8, i8* %arrayidx1, align 1
-  %conv = sext i8 %4 to i32
-  %cmp2 = icmp eq i32 %conv, 0
-  %conv3 = zext i1 %cmp2 to i32
-  call void @__VERIFIER_assume(i32 %conv3)
+; <label>:14                                      ; preds = %3
+  %15 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 4
+  %16 = load i8, i8* %15, align 1
+  %17 = sext i8 %16 to i32
+  %18 = icmp eq i32 %17, 0
+  %19 = zext i1 %18 to i32
+  call void @__VERIFIER_assume(i32 %19)
   store i32 0, i32* %n_caracter, align 4
-  br label %while.cond
+  br label %20
 
-while.cond:                                       ; preds = %while.body, %for.end
-  %5 = load i32, i32* %n_caracter, align 4
-  %idxprom4 = zext i32 %5 to i64
-  %arrayidx5 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %idxprom4
-  %6 = load i8, i8* %arrayidx5, align 1
-  %conv6 = sext i8 %6 to i32
-  %cmp7 = icmp ne i32 %conv6, 0
-  br i1 %cmp7, label %while.body, label %while.end
+; <label>:20                                      ; preds = %27, %14
+  %21 = load i32, i32* %n_caracter, align 4
+  %22 = zext i32 %21 to i64
+  %23 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %22
+  %24 = load i8, i8* %23, align 1
+  %25 = sext i8 %24 to i32
+  %26 = icmp ne i32 %25, 0
+  br i1 %26, label %27, label %30
 
-while.body:                                       ; preds = %while.cond
-  %7 = load i32, i32* %n_caracter, align 4
-  %inc9 = add i32 %7, 1
-  store i32 %inc9, i32* %n_caracter, align 4
-  br label %while.cond
+; <label>:27                                      ; preds = %20
+  %28 = load i32, i32* %n_caracter, align 4
+  %29 = add i32 %28, 1
+  store i32 %29, i32* %n_caracter, align 4
+  br label %20
 
-while.end:                                        ; preds = %while.cond
+; <label>:30                                      ; preds = %20
   store i32 0, i32* %cont, align 4
   store i32 0, i32* %i, align 4
-  br label %for.cond10
+  br label %31
 
-for.cond10:                                       ; preds = %for.inc30, %while.end
-  %8 = load i32, i32* %i, align 4
-  %9 = load i32, i32* %n_caracter, align 4
-  %cmp11 = icmp ult i32 %8, %9
-  br i1 %cmp11, label %for.body13, label %for.end32
+; <label>:31                                      ; preds = %59, %30
+  %32 = load i32, i32* %i, align 4
+  %33 = load i32, i32* %n_caracter, align 4
+  %34 = icmp ult i32 %32, %33
+  br i1 %34, label %35, label %62
 
-for.body13:                                       ; preds = %for.cond10
+; <label>:35                                      ; preds = %31
   store i32 0, i32* %j, align 4
-  br label %for.cond14
+  br label %36
 
-for.cond14:                                       ; preds = %for.inc27, %for.body13
-  %10 = load i32, i32* %j, align 4
-  %cmp15 = icmp ult i32 %10, 2
-  br i1 %cmp15, label %for.body17, label %for.end29
+; <label>:36                                      ; preds = %55, %35
+  %37 = load i32, i32* %j, align 4
+  %38 = icmp ult i32 %37, 2
+  br i1 %38, label %39, label %58
 
-for.body17:                                       ; preds = %for.cond14
-  %11 = load i32, i32* %i, align 4
-  %idxprom18 = zext i32 %11 to i64
-  %arrayidx19 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %idxprom18
-  %12 = load i8, i8* %arrayidx19, align 1
-  %conv20 = sext i8 %12 to i32
-  %13 = load i32, i32* %j, align 4
-  %idxprom21 = zext i32 %13 to i64
-  %arrayidx22 = getelementptr inbounds [11 x i8], [11 x i8]* %vogal_array, i32 0, i64 %idxprom21
-  %14 = load i8, i8* %arrayidx22, align 1
-  %conv23 = sext i8 %14 to i32
-  %cmp24 = icmp eq i32 %conv20, %conv23
-  br i1 %cmp24, label %if.then, label %if.end
+; <label>:39                                      ; preds = %36
+  %40 = load i32, i32* %i, align 4
+  %41 = zext i32 %40 to i64
+  %42 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %41
+  %43 = load i8, i8* %42, align 1
+  %44 = sext i8 %43 to i32
+  %45 = load i32, i32* %j, align 4
+  %46 = zext i32 %45 to i64
+  %47 = getelementptr inbounds [11 x i8], [11 x i8]* %vogal_array, i32 0, i64 %46
+  %48 = load i8, i8* %47, align 1
+  %49 = sext i8 %48 to i32
+  %50 = icmp eq i32 %44, %49
+  br i1 %50, label %51, label %54
 
-if.then:                                          ; preds = %for.body17
-  %15 = load i32, i32* %cont, align 4
-  %inc26 = add i32 %15, 1
-  store i32 %inc26, i32* %cont, align 4
-  br label %if.end
+; <label>:51                                      ; preds = %39
+  %52 = load i32, i32* %cont, align 4
+  %53 = add i32 %52, 1
+  store i32 %53, i32* %cont, align 4
+  br label %54
 
-if.end:                                           ; preds = %if.then, %for.body17
-  br label %for.inc27
+; <label>:54                                      ; preds = %51, %39
+  br label %55
 
-for.inc27:                                        ; preds = %if.end
-  %16 = load i32, i32* %j, align 4
-  %inc28 = add i32 %16, 1
-  store i32 %inc28, i32* %j, align 4
-  br label %for.cond14
+; <label>:55                                      ; preds = %54
+  %56 = load i32, i32* %j, align 4
+  %57 = add i32 %56, 1
+  store i32 %57, i32* %j, align 4
+  br label %36
 
-for.end29:                                        ; preds = %for.cond14
-  br label %for.inc30
+; <label>:58                                      ; preds = %36
+  br label %59
 
-for.inc30:                                        ; preds = %for.end29
-  %17 = load i32, i32* %i, align 4
-  %inc31 = add i32 %17, 1
-  store i32 %inc31, i32* %i, align 4
-  br label %for.cond10
+; <label>:59                                      ; preds = %58
+  %60 = load i32, i32* %i, align 4
+  %61 = add i32 %60, 1
+  store i32 %61, i32* %i, align 4
+  br label %31
 
-for.end32:                                        ; preds = %for.cond10
+; <label>:62                                      ; preds = %31
   store i32 0, i32* %i, align 4
   store i32 0, i32* %cont_aux, align 4
-  br label %while.cond33
+  br label %63
 
-while.cond33:                                     ; preds = %for.end57, %for.end32
-  %18 = load i32, i32* %i, align 4
-  %idxprom34 = zext i32 %18 to i64
-  %arrayidx35 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %idxprom34
-  %19 = load i8, i8* %arrayidx35, align 1
-  %conv36 = sext i8 %19 to i32
-  %cmp37 = icmp ne i32 %conv36, 0
-  br i1 %cmp37, label %while.body39, label %while.end59
+; <label>:63                                      ; preds = %93, %62
+  %64 = load i32, i32* %i, align 4
+  %65 = zext i32 %64 to i64
+  %66 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %65
+  %67 = load i8, i8* %66, align 1
+  %68 = sext i8 %67 to i32
+  %69 = icmp ne i32 %68, 0
+  br i1 %69, label %70, label %96
 
-while.body39:                                     ; preds = %while.cond33
+; <label>:70                                      ; preds = %63
   store i32 0, i32* %j, align 4
-  br label %for.cond40
+  br label %71
 
-for.cond40:                                       ; preds = %for.inc55, %while.body39
-  %20 = load i32, i32* %j, align 4
-  %cmp41 = icmp ult i32 %20, 2
-  br i1 %cmp41, label %for.body43, label %for.end57
+; <label>:71                                      ; preds = %90, %70
+  %72 = load i32, i32* %j, align 4
+  %73 = icmp ult i32 %72, 2
+  br i1 %73, label %74, label %93
 
-for.body43:                                       ; preds = %for.cond40
-  %21 = load i32, i32* %i, align 4
-  %idxprom44 = zext i32 %21 to i64
-  %arrayidx45 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %idxprom44
-  %22 = load i8, i8* %arrayidx45, align 1
-  %conv46 = sext i8 %22 to i32
-  %23 = load i32, i32* %j, align 4
-  %idxprom47 = zext i32 %23 to i64
-  %arrayidx48 = getelementptr inbounds [11 x i8], [11 x i8]* %vogal_array, i32 0, i64 %idxprom47
-  %24 = load i8, i8* %arrayidx48, align 1
-  %conv49 = sext i8 %24 to i32
-  %cmp50 = icmp eq i32 %conv46, %conv49
-  br i1 %cmp50, label %if.then52, label %if.end54
+; <label>:74                                      ; preds = %71
+  %75 = load i32, i32* %i, align 4
+  %76 = zext i32 %75 to i64
+  %77 = getelementptr inbounds [5 x i8], [5 x i8]* %input_string, i32 0, i64 %76
+  %78 = load i8, i8* %77, align 1
+  %79 = sext i8 %78 to i32
+  %80 = load i32, i32* %j, align 4
+  %81 = zext i32 %80 to i64
+  %82 = getelementptr inbounds [11 x i8], [11 x i8]* %vogal_array, i32 0, i64 %81
+  %83 = load i8, i8* %82, align 1
+  %84 = sext i8 %83 to i32
+  %85 = icmp eq i32 %79, %84
+  br i1 %85, label %86, label %89
 
-if.then52:                                        ; preds = %for.body43
-  %25 = load i32, i32* %cont_aux, align 4
-  %inc53 = add nsw i32 %25, 1
-  store i32 %inc53, i32* %cont_aux, align 4
-  br label %if.end54
+; <label>:86                                      ; preds = %74
+  %87 = load i32, i32* %cont_aux, align 4
+  %88 = add nsw i32 %87, 1
+  store i32 %88, i32* %cont_aux, align 4
+  br label %89
 
-if.end54:                                         ; preds = %if.then52, %for.body43
-  br label %for.inc55
+; <label>:89                                      ; preds = %86, %74
+  br label %90
 
-for.inc55:                                        ; preds = %if.end54
-  %26 = load i32, i32* %j, align 4
-  %inc56 = add i32 %26, 1
-  store i32 %inc56, i32* %j, align 4
-  br label %for.cond40
+; <label>:90                                      ; preds = %89
+  %91 = load i32, i32* %j, align 4
+  %92 = add i32 %91, 1
+  store i32 %92, i32* %j, align 4
+  br label %71
 
-for.end57:                                        ; preds = %for.cond40
-  %27 = load i32, i32* %i, align 4
-  %inc58 = add i32 %27, 1
-  store i32 %inc58, i32* %i, align 4
-  br label %while.cond33
+; <label>:93                                      ; preds = %71
+  %94 = load i32, i32* %i, align 4
+  %95 = add i32 %94, 1
+  store i32 %95, i32* %i, align 4
+  br label %63
 
-while.end59:                                      ; preds = %while.cond33
-  %28 = load i32, i32* %cont_aux, align 4
-  %29 = load i32, i32* %cont, align 4
-  %cmp60 = icmp eq i32 %28, %29
-  %conv61 = zext i1 %cmp60 to i32
-  %call62 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv61)
+; <label>:96                                      ; preds = %63
+  %97 = load i32, i32* %cont_aux, align 4
+  %98 = load i32, i32* %cont, align 4
+  %99 = icmp eq i32 %97, %98
+  %100 = zext i1 %99 to i32
+  %101 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %100)
   ret i32 0
 }
 
@@ -200,12 +199,12 @@ declare void @__VERIFIER_assume(i32) #2
 
 declare i32 @__VERIFIER_assert(...) #2
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}

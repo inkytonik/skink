@@ -4,125 +4,124 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %max = alloca i32, align 4
-  %saved_stack = alloca i8*
+  %2 = alloca i8*
   %i = alloca i32, align 4
   %j = alloca i32, align 4
-  store i32 0, i32* %retval
+  store i32 0, i32* %1
   store i32 5, i32* %max, align 4
-  %0 = load i32, i32* %max, align 4
-  %1 = zext i32 %0 to i64
-  %2 = call i8* @llvm.stacksave()
-  store i8* %2, i8** %saved_stack
-  %vla = alloca i8, i64 %1, align 16
   %3 = load i32, i32* %max, align 4
   %4 = zext i32 %3 to i64
-  %vla1 = alloca i8, i64 %4, align 16
+  %5 = call i8* @llvm.stacksave()
+  store i8* %5, i8** %2
+  %6 = alloca i8, i64 %4, align 16
+  %7 = load i32, i32* %max, align 4
+  %8 = zext i32 %7 to i64
+  %9 = alloca i8, i64 %8, align 16
   store i32 0, i32* %i, align 4
-  br label %for.cond
+  br label %10
 
-for.cond:                                         ; preds = %for.inc, %entry
-  %5 = load i32, i32* %i, align 4
-  %6 = load i32, i32* %max, align 4
-  %cmp = icmp ult i32 %5, %6
-  br i1 %cmp, label %for.body, label %for.end
-
-for.body:                                         ; preds = %for.cond
-  %call = call signext i8 (...) @__VERIFIER_nondet_char()
-  %7 = load i32, i32* %i, align 4
-  %idxprom = sext i32 %7 to i64
-  %arrayidx = getelementptr inbounds i8, i8* %vla, i64 %idxprom
-  store i8 %call, i8* %arrayidx, align 1
-  br label %for.inc
-
-for.inc:                                          ; preds = %for.body
-  %8 = load i32, i32* %i, align 4
-  %inc = add nsw i32 %8, 1
-  store i32 %inc, i32* %i, align 4
-  br label %for.cond
-
-for.end:                                          ; preds = %for.cond
-  %9 = load i32, i32* %max, align 4
-  %sub = sub i32 %9, 1
-  %idxprom2 = zext i32 %sub to i64
-  %arrayidx3 = getelementptr inbounds i8, i8* %vla, i64 %idxprom2
-  store i8 0, i8* %arrayidx3, align 1
-  store i32 0, i32* %j, align 4
-  %10 = load i32, i32* %max, align 4
-  %sub4 = sub i32 %10, 1
-  store i32 %sub4, i32* %i, align 4
-  br label %for.cond5
-
-for.cond5:                                        ; preds = %for.inc13, %for.end
+; <label>:10                                      ; preds = %19, %0
   %11 = load i32, i32* %i, align 4
-  %cmp6 = icmp sge i32 %11, 0
-  br i1 %cmp6, label %for.body7, label %for.end14
+  %12 = load i32, i32* %max, align 4
+  %13 = icmp ult i32 %11, %12
+  br i1 %13, label %14, label %22
 
-for.body7:                                        ; preds = %for.cond5
-  %12 = load i32, i32* %i, align 4
-  %idxprom8 = sext i32 %12 to i64
-  %arrayidx9 = getelementptr inbounds i8, i8* %vla, i64 %idxprom8
-  %13 = load i8, i8* %arrayidx9, align 1
-  %14 = load i32, i32* %j, align 4
-  %idxprom10 = sext i32 %14 to i64
-  %arrayidx11 = getelementptr inbounds i8, i8* %vla1, i64 %idxprom10
-  store i8 %13, i8* %arrayidx11, align 1
-  %15 = load i32, i32* %j, align 4
-  %inc12 = add nsw i32 %15, 1
-  store i32 %inc12, i32* %j, align 4
-  br label %for.inc13
-
-for.inc13:                                        ; preds = %for.body7
+; <label>:14                                      ; preds = %10
+  %15 = call signext i8 (...) @__VERIFIER_nondet_char()
   %16 = load i32, i32* %i, align 4
-  %dec = add nsw i32 %16, -1
-  store i32 %dec, i32* %i, align 4
-  br label %for.cond5
+  %17 = sext i32 %16 to i64
+  %18 = getelementptr inbounds i8, i8* %6, i64 %17
+  store i8 %15, i8* %18, align 1
+  br label %19
 
-for.end14:                                        ; preds = %for.cond5
-  %17 = load i32, i32* %max, align 4
-  %sub15 = sub i32 %17, 1
-  store i32 %sub15, i32* %j, align 4
-  store i32 0, i32* %i, align 4
-  br label %for.cond16
-
-for.cond16:                                       ; preds = %for.inc28, %for.end14
-  %18 = load i32, i32* %i, align 4
-  %19 = load i32, i32* %max, align 4
-  %cmp17 = icmp ult i32 %18, %19
-  br i1 %cmp17, label %for.body18, label %for.end30
-
-for.body18:                                       ; preds = %for.cond16
+; <label>:19                                      ; preds = %14
   %20 = load i32, i32* %i, align 4
-  %idxprom19 = sext i32 %20 to i64
-  %arrayidx20 = getelementptr inbounds i8, i8* %vla, i64 %idxprom19
-  %21 = load i8, i8* %arrayidx20, align 1
-  %conv = sext i8 %21 to i32
-  %22 = load i32, i32* %j, align 4
-  %idxprom21 = sext i32 %22 to i64
-  %arrayidx22 = getelementptr inbounds i8, i8* %vla1, i64 %idxprom21
-  %23 = load i8, i8* %arrayidx22, align 1
-  %conv23 = sext i8 %23 to i32
-  %cmp24 = icmp eq i32 %conv, %conv23
-  %conv25 = zext i1 %cmp24 to i32
-  %call26 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv25)
-  %24 = load i32, i32* %j, align 4
-  %dec27 = add nsw i32 %24, -1
-  store i32 %dec27, i32* %j, align 4
-  br label %for.inc28
+  %21 = add nsw i32 %20, 1
+  store i32 %21, i32* %i, align 4
+  br label %10
 
-for.inc28:                                        ; preds = %for.body18
-  %25 = load i32, i32* %i, align 4
-  %inc29 = add nsw i32 %25, 1
-  store i32 %inc29, i32* %i, align 4
-  br label %for.cond16
+; <label>:22                                      ; preds = %10
+  %23 = load i32, i32* %max, align 4
+  %24 = sub i32 %23, 1
+  %25 = zext i32 %24 to i64
+  %26 = getelementptr inbounds i8, i8* %6, i64 %25
+  store i8 0, i8* %26, align 1
+  store i32 0, i32* %j, align 4
+  %27 = load i32, i32* %max, align 4
+  %28 = sub i32 %27, 1
+  store i32 %28, i32* %i, align 4
+  br label %29
 
-for.end30:                                        ; preds = %for.cond16
-  %26 = load i8*, i8** %saved_stack
-  call void @llvm.stackrestore(i8* %26)
-  %27 = load i32, i32* %retval
-  ret i32 %27
+; <label>:29                                      ; preds = %42, %22
+  %30 = load i32, i32* %i, align 4
+  %31 = icmp sge i32 %30, 0
+  br i1 %31, label %32, label %45
+
+; <label>:32                                      ; preds = %29
+  %33 = load i32, i32* %i, align 4
+  %34 = sext i32 %33 to i64
+  %35 = getelementptr inbounds i8, i8* %6, i64 %34
+  %36 = load i8, i8* %35, align 1
+  %37 = load i32, i32* %j, align 4
+  %38 = sext i32 %37 to i64
+  %39 = getelementptr inbounds i8, i8* %9, i64 %38
+  store i8 %36, i8* %39, align 1
+  %40 = load i32, i32* %j, align 4
+  %41 = add nsw i32 %40, 1
+  store i32 %41, i32* %j, align 4
+  br label %42
+
+; <label>:42                                      ; preds = %32
+  %43 = load i32, i32* %i, align 4
+  %44 = add nsw i32 %43, -1
+  store i32 %44, i32* %i, align 4
+  br label %29
+
+; <label>:45                                      ; preds = %29
+  %46 = load i32, i32* %max, align 4
+  %47 = sub i32 %46, 1
+  store i32 %47, i32* %j, align 4
+  store i32 0, i32* %i, align 4
+  br label %48
+
+; <label>:48                                      ; preds = %68, %45
+  %49 = load i32, i32* %i, align 4
+  %50 = load i32, i32* %max, align 4
+  %51 = icmp ult i32 %49, %50
+  br i1 %51, label %52, label %71
+
+; <label>:52                                      ; preds = %48
+  %53 = load i32, i32* %i, align 4
+  %54 = sext i32 %53 to i64
+  %55 = getelementptr inbounds i8, i8* %6, i64 %54
+  %56 = load i8, i8* %55, align 1
+  %57 = sext i8 %56 to i32
+  %58 = load i32, i32* %j, align 4
+  %59 = sext i32 %58 to i64
+  %60 = getelementptr inbounds i8, i8* %9, i64 %59
+  %61 = load i8, i8* %60, align 1
+  %62 = sext i8 %61 to i32
+  %63 = icmp eq i32 %57, %62
+  %64 = zext i1 %63 to i32
+  %65 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %64)
+  %66 = load i32, i32* %j, align 4
+  %67 = add nsw i32 %66, -1
+  store i32 %67, i32* %j, align 4
+  br label %68
+
+; <label>:68                                      ; preds = %52
+  %69 = load i32, i32* %i, align 4
+  %70 = add nsw i32 %69, 1
+  store i32 %70, i32* %i, align 4
+  br label %48
+
+; <label>:71                                      ; preds = %48
+  %72 = load i8*, i8** %2
+  call void @llvm.stackrestore(i8* %72)
+  %73 = load i32, i32* %1
+  ret i32 %73
 }
 
 ; Function Attrs: nounwind
@@ -135,12 +134,12 @@ declare i32 @__VERIFIER_assert(...) #2
 ; Function Attrs: nounwind
 declare void @llvm.stackrestore(i8*) #1
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}
