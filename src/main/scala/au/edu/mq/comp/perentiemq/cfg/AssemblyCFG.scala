@@ -320,14 +320,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
               case PointerT(_, _) =>
                 Ints.IntSort()
               case _ =>
-                sys.error(s"variable type $tipe not supported")
+                sys.error(s"variable type $tipe for $name not supported")
             }
         }
       optSort.getOrElse (sys.error(s"can't find type property for variable $name"))
     }
 
     /**
-     *
+     * Make a term for the named variable where `id` is the base name identifier.
      */
     def varTerm (name : Name, id : String) : TypedTerm =
       TypedTerm(id, typeToSort(name))
