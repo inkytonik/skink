@@ -17,7 +17,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         block.optBlockLabel match {
             case BlockLabel (s)    => s
             case ImplicitLabel (i) => s"%$i"
-            case NoLabel ()        => "<no label>"
+            case NoLabel ()        => "%0"
         }
 
     def isExit (block : Block) : Boolean =

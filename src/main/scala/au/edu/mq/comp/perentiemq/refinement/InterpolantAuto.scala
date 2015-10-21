@@ -137,7 +137,7 @@ object InterpolantAutomaton {
     case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
       name
     case CFGBlockEntry(Block(NoLabel(), _, _, _, _)) =>
-      "<no label>"
+      "%0"
     case CFGBlockEntry(Block(ImplicitLabel(k), _, _, _, _)) =>
       "%" + k.toString
 
