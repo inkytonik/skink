@@ -222,6 +222,22 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
+     * Matcher for nondet function names. Successful matches return the
+     * identifier of the type that is returned by the matched function.
+     */
+    object NondetFunctionName {
+      def unapply (name : Name) : Option[String] = {
+        val NondetName = "__VERIFIER_nondet_(.+)$".r
+        name match {
+          case Global(NondetName(tipe)) =>
+            Some(tipe)
+          case _ =>
+            None
+        }
+      }
+    }
+
+    /**
      *
      * Return terms that express the effect of an LLVM node.
      */
@@ -266,6 +282,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             Vector(vterm(arg))
           else
             Vector(!(vterm(arg) === 0))
+
+        case Call (Binding(to), _, _, _, _, VerifierFunction (NondetFunctionName (tipe)), Vector (), _) =>
+          tipe match {
+            case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
+              Vector(nterm(to) >= 0)
+            case _ =>
+              Vector()
+          }
 
         case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
           Vector()
