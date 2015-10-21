@@ -4,79 +4,78 @@ target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @main() #0 {
-entry:
-  %retval = alloca i32, align 4
+  %1 = alloca i32, align 4
   %in = alloca [11 x i8], align 1
   %s = alloca i8*, align 8
   %c = alloca i8, align 1
   %i = alloca i32, align 4
   %j = alloca i32, align 4
   %idx_in = alloca i32, align 4
-  store i32 0, i32* %retval
-  %arrayidx = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 10
-  store i8 0, i8* %arrayidx, align 1
+  store i32 0, i32* %1
+  %2 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 10
+  store i8 0, i8* %2, align 1
   store i32 0, i32* %idx_in, align 4
-  %arraydecay = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i32 0
-  store i8* %arraydecay, i8** %s, align 8
+  %3 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i32 0
+  store i8* %3, i8** %s, align 8
   store i32 0, i32* %i, align 4
-  %0 = load i32, i32* %idx_in, align 4
-  %idxprom = sext i32 %0 to i64
-  %arrayidx1 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 %idxprom
-  %1 = load i8, i8* %arrayidx1, align 1
-  store i8 %1, i8* %c, align 1
-  br label %while.cond
+  %4 = load i32, i32* %idx_in, align 4
+  %5 = sext i32 %4 to i64
+  %6 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 %5
+  %7 = load i8, i8* %6, align 1
+  store i8 %7, i8* %c, align 1
+  br label %8
 
-while.cond:                                       ; preds = %while.body, %entry
-  %2 = load i8, i8* %c, align 1
-  %conv = zext i8 %2 to i32
-  %cmp = icmp sle i32 48, %conv
-  br i1 %cmp, label %land.rhs, label %land.end
+; <label>:8                                       ; preds = %18, %0
+  %9 = load i8, i8* %c, align 1
+  %10 = zext i8 %9 to i32
+  %11 = icmp sle i32 48, %10
+  br i1 %11, label %12, label %16
 
-land.rhs:                                         ; preds = %while.cond
-  %3 = load i8, i8* %c, align 1
-  %conv3 = zext i8 %3 to i32
-  %cmp4 = icmp sle i32 %conv3, 57
-  br label %land.end
+; <label>:12                                      ; preds = %8
+  %13 = load i8, i8* %c, align 1
+  %14 = zext i8 %13 to i32
+  %15 = icmp sle i32 %14, 57
+  br label %16
 
-land.end:                                         ; preds = %land.rhs, %while.cond
-  %4 = phi i1 [ false, %while.cond ], [ %cmp4, %land.rhs ]
-  br i1 %4, label %while.body, label %while.end
+; <label>:16                                      ; preds = %12, %8
+  %17 = phi i1 [ false, %8 ], [ %15, %12 ]
+  br i1 %17, label %18, label %32
 
-while.body:                                       ; preds = %land.end
-  %5 = load i8, i8* %c, align 1
-  %conv6 = zext i8 %5 to i32
-  %sub = sub nsw i32 %conv6, 48
-  store i32 %sub, i32* %j, align 4
-  %6 = load i32, i32* %i, align 4
-  %mul = mul i32 %6, 10
-  %7 = load i32, i32* %j, align 4
-  %add = add i32 %mul, %7
-  store i32 %add, i32* %i, align 4
-  %8 = load i32, i32* %idx_in, align 4
-  %inc = add nsw i32 %8, 1
-  store i32 %inc, i32* %idx_in, align 4
-  %9 = load i32, i32* %idx_in, align 4
-  %idxprom7 = sext i32 %9 to i64
-  %arrayidx8 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 %idxprom7
-  %10 = load i8, i8* %arrayidx8, align 1
-  store i8 %10, i8* %c, align 1
-  br label %while.cond
+; <label>:18                                      ; preds = %16
+  %19 = load i8, i8* %c, align 1
+  %20 = zext i8 %19 to i32
+  %21 = sub nsw i32 %20, 48
+  store i32 %21, i32* %j, align 4
+  %22 = load i32, i32* %i, align 4
+  %23 = mul i32 %22, 10
+  %24 = load i32, i32* %j, align 4
+  %25 = add i32 %23, %24
+  store i32 %25, i32* %i, align 4
+  %26 = load i32, i32* %idx_in, align 4
+  %27 = add nsw i32 %26, 1
+  store i32 %27, i32* %idx_in, align 4
+  %28 = load i32, i32* %idx_in, align 4
+  %29 = sext i32 %28 to i64
+  %30 = getelementptr inbounds [11 x i8], [11 x i8]* %in, i32 0, i64 %29
+  %31 = load i8, i8* %30, align 1
+  store i8 %31, i8* %c, align 1
+  br label %8
 
-while.end:                                        ; preds = %land.end
-  %11 = load i32, i32* %i, align 4
-  %cmp9 = icmp uge i32 %11, 0
-  %conv10 = zext i1 %cmp9 to i32
-  %call = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %conv10)
+; <label>:32                                      ; preds = %16
+  %33 = load i32, i32* %i, align 4
+  %34 = icmp uge i32 %33, 0
+  %35 = zext i1 %34 to i32
+  %36 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assert to i32 (i32, ...)*)(i32 %35)
   ret i32 0
 }
 
 declare i32 @__VERIFIER_assert(...) #1
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"PIC Level", i32 2}
-!1 = !{!"clang version 3.7.0  (http://llvm.org/git/llvm.git 8d00f2ad795306ae061b96a7ba71d87c790f3e2c)"}
+!1 = !{!"clang version 3.7.0 (tags/RELEASE_370/final)"}

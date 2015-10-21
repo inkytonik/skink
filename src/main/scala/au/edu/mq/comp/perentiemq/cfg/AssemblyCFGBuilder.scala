@@ -17,7 +17,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         block.optBlockLabel match {
             case BlockLabel (s)    => s
             case ImplicitLabel (i) => s"%$i"
-            case NoLabel ()        => "<no label>"
+            case NoLabel ()        => "%0"
         }
 
     def isExit (block : Block) : Boolean =
@@ -72,6 +72,26 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
     // Verification support
 
     /**
+     * Extractor to match various forms of calls to verifier functions,
+     * returning the function name. The main reason for the differences
+     * between the forms seems to be whether a correct prototype is
+     * available when the LLVM IR is produced. To simplify things, we
+     * don't assume that the proper prototype is there, so we support
+     * these multiple forms.
+     */
+    object VerifierFunction {
+        def unapply (v : CalledValue) : Option[Name] =
+            v match {
+                case Function (Named (name)) =>
+                    Some (name)
+                case Function (Const (ConvertC (Bitcast (), _, NameC (name), _))) =>
+                    Some (name)
+                case _ =>
+                    None
+            }
+    }
+
+    /**
      * Prepare the IR of a function for verification and return the
      * new IR form. The transformations are:
      *
@@ -98,10 +118,10 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         // where name is a generated name for the rest of the block. In
         // other words, the block is split at this point and control only
         // transfer to the rest of the block if the condition is true.
+        //
+        // We also accept calls to plain "assert" instead of "__VERIFIER_assert".
 
         def expandAssertCalls (block : Block) : Vector[Block] = {
-
-            val assertname = "__VERIFIER_assert"
 
             type MetaInstructions = Vector[MetaInstruction]
 
@@ -123,22 +143,12 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 }
 
             /**
-             * Extractor to match various forms of calls to assert function.
-             * The main reason for the differences seems to be whether a
-             * correct prototype is available when the LLVM IR is produced.
-             * To simplify things, we don't assume that the proper prototype
-             * is there, so we support these multiple forms.
+             * Matcher for assertion function names.
              */
-            object AssertFunction {
-                def unapply (v : CalledValue) : Boolean =
-                    v match {
-                        case Function (Named (Global (`assertname`))) =>
-                            true
-                        case Function (Const (ConvertC (Bitcast (), _, NameC (Global (`assertname`)), _))) =>
-                            true
-                        case _ =>
-                            false
-                    }
+            object AssertName {
+                def unapply (name : Name) : Boolean =
+                    (name == Global ("__VERIFIER_assert")) ||
+                    (name == Global ("assert"))
             }
 
             /**
@@ -147,7 +157,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
              */
             def isAssertCall (insn : MetaInstruction, local : Local) : Boolean =
                 insn.instruction match {
-                    case Call (_, _, _, _, _, AssertFunction (),
+                    case Call (_, _, _, _, _, VerifierFunction (AssertName ()),
                                Vector (ValueArg (IntT (size), Vector (), Named (arg))),
                                _)
                             if (size == 32) && (local == arg) =>

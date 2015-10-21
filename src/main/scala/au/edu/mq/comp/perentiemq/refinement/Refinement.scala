@@ -73,7 +73,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
         //  if None, the program is correct
         case None =>
-          println(Console.GREEN_B + s"Refinement steps : ${MAX_ITERATION - remainingIterations - 1}" + Console.RESET)
+          println(Console.GREEN_B + s"Refinement steps : ${MAX_ITERATION - remainingIterations}" + Console.RESET)
           Success(None)
 
         //  otherwise we investigate further.
@@ -97,7 +97,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
           //  get a solver and check if the trace is
           //  is feasible or not
-          val solver = SMTSolver(SMTInterpol, QFLIAFullConfig).get
+          val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
 
           isSat(traceTerms)(solver) match {
             case Success(SatStatus) =>

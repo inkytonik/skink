@@ -137,7 +137,7 @@ object InterpolantAutomaton {
     case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
       name
     case CFGBlockEntry(Block(NoLabel(), _, _, _, _)) =>
-      "<no label>"
+      "%0"
     case CFGBlockEntry(Block(ImplicitLabel(k), _, _, _, _)) =>
       "%" + k.toString
 
@@ -208,7 +208,7 @@ object Semantics {
     import smtlib.interpreters.Configurations._
     import smtlib.parser.Commands.{ Exit, Reset }
 
-    val solver = SMTSolver(Z3, QFLIAFullConfig).get
+    val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
     val answer = isSat(t & flattenEntry & !p)(solver)
     solver.eval(Exit())
     answer match {

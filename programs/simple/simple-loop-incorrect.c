@@ -1,4 +1,5 @@
-int main () {
+
+void foo () {
   int r;
   while (r > 0) {
       __VERIFIER_assert(r > 0);
