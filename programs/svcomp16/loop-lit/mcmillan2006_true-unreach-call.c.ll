@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @main() #0 {
@@ -22,11 +22,12 @@ define void @main() #0 {
 ; <label>:7                                       ; preds = %4, %0
   %8 = phi i1 [ false, %0 ], [ %6, %4 ]
   %9 = zext i1 %8 to i32
-  %10 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assume to i32 (i32, ...)*)(i32 %9)
-  %11 = load i32, i32* %n, align 4
-  %12 = sext i32 %11 to i64
-  %13 = mul i64 %12, 4
-  %14 = call i8* @malloc(i64 %13)
+  call void @__VERIFIER_assume(i32 %9)
+  %10 = load i32, i32* %n, align 4
+  %11 = sext i32 %10 to i64
+  %12 = mul i64 %11, 4
+  %13 = trunc i64 %12 to i32
+  %14 = call noalias i8* @malloc(i32 %13) #3
   %15 = bitcast i8* %14 to i32*
   store i32* %15, i32** %x, align 8
   store i32 0, i32* %i, align 4
@@ -85,14 +86,17 @@ define void @main() #0 {
 
 declare i32 @__VERIFIER_nondet_int(...) #1
 
-declare i32 @__VERIFIER_assume(...) #1
+declare void @__VERIFIER_assume(i32) #1
 
-declare i8* @malloc(i64) #1
+; Function Attrs: nounwind
+declare noalias i8* @malloc(i32) #2
 
 declare i32 @__VERIFIER_assert(...) #1
 
 attributes #0 = { nounwind ssp uwtable "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #2 = { nounwind "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="core2" "target-features"="+cx16,+sse,+sse2,+sse3,+ssse3" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #3 = { nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
