@@ -62,12 +62,12 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
   def traceRefinement[S1, L](cfg: NFA[S1, L],
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     blockName: CFGBlock[FunctionDefinition, Block] => String,
-    isBlockEntry : L => Boolean,
+    isBlockEntry: L => Boolean,
     remainingIterations: Int = MAX_ITERATION): Try[Option[FailureTrace[L]]] = {
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
-    def refineRec[S2](cfg: NFA[S1, L], r: DetAuto[S2, L],remainingIterations: Int): Try[Option[FailureTrace[L]]] =
+    def refineRec[S2](cfg: NFA[S1, L], r: DetAuto[S2, L], remainingIterations: Int): Try[Option[FailureTrace[L]]] =
 
       (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
@@ -98,9 +98,10 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           //  get a solver and check if the trace is
           //  is feasible or not
           val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
-
-          isSat(traceTerms)(solver) match {
-            case Success(SatStatus) =>
+          // traceTerms map { case t => println(t.getNamedTerm) }
+          val res =  isSat(traceTerms, withNaming = true)(solver)
+          res  match {
+            case Success((SatStatus, _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
               val failTrace = makeFailureTrace(entries, traceTerms, solver)
@@ -109,7 +110,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               // logger.debug("trace was feasible")
               Success(Some(failTrace))
 
-            case Success(UnsatStatus) =>
+            case Success((UnsatStatus, Some(nameMap))) =>
               // logger.debug("trace was infeasible")
               if (remainingIterations > 0) {
                 // val i: Seq[TypedTerm] = getInterpolants(traceTerms)(solver).get
@@ -117,14 +118,15 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 //  
                 // val ia = computeInterpolantAuto(i, trace, traceToTerms, MAX_ITERATION -remainingIterations)
                 val ia = InterpolantAutomaton(
-                  trace, 
-                  traceTerms ,  
-                  MAX_ITERATION -remainingIterations,
+                  trace,
+                  traceTerms,
+                  nameMap,
+                  MAX_ITERATION - remainingIterations,
                   traceToTerms,
-                  isBlockEntry )(solver)
+                  isBlockEntry)(solver)
 
                 solver.eval(Exit())
-                refineRec(cfg, r + ia,remainingIterations - 1)
+                refineRec(cfg, r + ia, remainingIterations - 1)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {
                 //  we ran out resources
@@ -133,7 +135,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               }
 
             case status =>
-              Failure(new Exception(s"strange solver status: $status"))
+              Failure(new Exception(s"[refineRec] strange solver status: $status"))
             // sys.error(s"strange solver status: $status")
           }
       }

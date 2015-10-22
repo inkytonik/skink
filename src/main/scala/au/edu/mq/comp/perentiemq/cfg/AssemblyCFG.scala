@@ -184,10 +184,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 case Some(value) =>
                   Vector(nterm(to) === vterm(value))
                 case None =>
-                  sys.error(s"phiTerms: can't find previous block $source in preds: $phi")
+                  Vector()
+                  // sys.error(s"phiTerms: can't find previous block $source in preds: $phi")
               }
             case None =>
-              sys.error(s"phiTerms: phi insn in first block: $phi")
+              Vector()
+              // sys.error(s"phiTerms: phi insn in first block: $phi")
           }
       }
 

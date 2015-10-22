@@ -8,6 +8,7 @@ import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{ Entry, Trace }
 import au.edu.mq.comp.automat.edge.Edge
 import smtlib.util.{ TypedTerm }
 import smtlib.interpreters.{ GenericSolver }
+import smtlib.parser.Terms.SSymbol
 import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
 import smtlib.util.Logics.{ isSat, getInterpolants }
 import scala.collection.mutable.ListBuffer
@@ -16,7 +17,7 @@ import scala.collection.mutable.ListBuffer
  * Build an interpolant automaton from a trace.
  */
 object InterpolantAutomaton {
- 
+
   /**
    * Compute an interpolanta automaton
    *
@@ -34,6 +35,7 @@ object InterpolantAutomaton {
    */
   def apply[L](trace: Seq[L],
     traceTerms: Seq[TypedTerm],
+    traceTermsNameMap : Map[TypedTerm, SSymbol],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     isBlockEntry: L => Boolean)(implicit solver: GenericSolver): NFA[Int, L] = {
@@ -51,8 +53,7 @@ object InterpolantAutomaton {
         case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
       } toSet,
       Set(trace.size),
-      name = s"Linear automaton, iteration $k"
-    )
+      name = s"Linear automaton, iteration $k")
 
     //  log the linear automaton
 
@@ -83,10 +84,18 @@ object InterpolantAutomaton {
       //  compute interpolants
 
       //  We should check that the logic and solver support it 
-      val i: Seq[TypedTerm] = 
+      //  DEBUG
+      // val i0: Seq[TypedTerm] =
+      //   TypedTerm(true) +:
+      //     getInterpolants(traceTerms)(solver).get :+
+      //     TypedTerm(false)
+      // println("---------------------------------------")
+      // i0 map { x => println(x.getTerm) }
+      // println("---------------------------------------")
+      val i: Seq[TypedTerm] =
         TypedTerm(true) +:
-        getInterpolants(traceTerms)(solver).get.map(_.unIndex) :+ 
-        TypedTerm(false)
+          getInterpolants(traceTermsNameMap)(solver).get.map(_.unIndex) :+
+          TypedTerm(false)
 
       //  try to add new edges
 
@@ -112,8 +121,7 @@ object InterpolantAutomaton {
         Set(0),
         singleTraceAcceptor.edges ++ newEdges,
         Set(trace.size),
-        name = s"Interpolant automaton, iteration $k"
-      )
+        name = s"Interpolant automaton, iteration $k")
 
       //  log the interpolant automaton
 
@@ -212,8 +220,8 @@ object Semantics {
     val answer = isSat(t & flattenEntry & !p)(solver)
     solver.eval(Exit())
     answer match {
-      case Success(SatStatus) => false
-      case Success(UnsatStatus) => true
+      case Success((SatStatus, _)) => false
+      case Success((UnsatStatus, _)) => true
       case status =>
         sys.error(s"strange solver status: $status")
     }
