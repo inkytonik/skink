@@ -113,85 +113,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
     }
 
-    /**
-     * Given a phi instruction in a trace, return the block that it's in.
-     */
-    lazy val blockOf: ASTNode => Option[Block] =
-      attr {
-        case block : Block =>
-          Some(block)
-        case tree.parent(p : ASTNode) =>
-          blockOf(p)
-        case _ =>
-          None
-      }
-
-    /**
-     * Find the most recent block entry in the trace starting at
-     * the given index.
-     */
-    @tailrec
-    def prevBlockEntry (index : Int) : Option[Entry] = {
-        if (index > 0) {
-          val entry = trace.entries(index)
-          if (entry.isBlockEntry)
-            Some(entry)
-          else
-            prevBlockEntry(index - 1)
-        } else
-          None
-    }
-
-    /**
-     * Given a phi instruction in a trace, return the name of the previous
-     * block in the trace. We look up from the node to get the block it's
-     * in, then get the block entry above it, then its previous entry.
-     * Then extract the name from that entry.
-     */
-    lazy val prevBlockName: Phi => Option[String] =
-      attr {
-        case phi =>
-          blockOf(phi) match {
-            case Some(tree.parent(tree.prev(entry))) =>
-              prevBlockEntry(tree.index(entry)) match {
-                case Some(CFGBlockEntry(Block(BlockLabel(name), _, _, _, _))) =>
-                  Some(name)
-                case Some(CFGBlockEntry(Block(ImplicitLabel(num), _, _, _, _))) =>
-                  Some(s"%$num")
-                case _ =>
-                  None
-              }
-            case _ =>
-              None
-          }
-      }
-
-    /**
-     * Return the terms that express the effect of a phi instruction.
-     * We find out the previous block from the trace and the effect
-     * is to bind the result to the value in the instruction that is
-     * associated with that previous block.
-     */
-    lazy val phiTerms: Phi => Vector[TypedTerm] =
-      attr {
-        case phi @ Phi(Binding(to), _, preds) =>
-          prevBlockName(phi) match {
-            case Some(source) =>
-              preds.collectFirst {
-                case PhiPredecessor(value, Label(Local(label))) if label == source =>
-                  value
-              } match {
-                case Some(value) =>
-                  Vector(nterm(to) === vterm(value))
-                case None =>
-                  sys.error(s"phiTerms: can't find previous block $source in preds: $phi")
-              }
-            case None =>
-              sys.error(s"phiTerms: phi insn in first block: $phi")
-          }
-      }
-
-    /**
+     /**
      * Extractor to match stores to array elements. Currently only looks for
      * array element references that have a zero index (to deref the array
      * pointer), followed by the actual index.
@@ -312,6 +234,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
           Vector(nterm(to) === exp)
 
+        case Convert(Binding(to), _, IntT(m), from, IntT(n)) if m == n =>
+          Vector(nterm(to) === vterm(from))
+
         case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
           Vector(nterm(to) === !(vterm(from) === 0))
 
@@ -334,7 +259,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           Vector(nterm(to) === vterm(from))
 
         case phi: Phi =>
-          phiTerms(phi)
+          Vector ()
 
         case Store(_, tipe, from, _, ArrayElement (array, index), _) =>
           Vector(nterm(array) === (prevnterm(array) += (vterm(index), vterm(from))))
@@ -504,7 +429,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // Make the NFA for this CFG
     val cfganalyser = new CFGAnalyser(cfg)
-    val nfa = cfganalyser.nfa(cfg)
+    val nfa = AssemblyCFG.nfa(cfg)
 
     //  sanitise the CFGNFA
 
@@ -544,8 +469,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // println(Console.RESET)
 
     // println(cfganalyser.toDot(nfa))
-    File("/tmp/nfa-perentieMQ.dot").writeAll(format(cfganalyser.toDot(nfa)).layout)
-    File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(cfganalyser.toDot(nfa2)).layout)
+    File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
+    File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
     // Regexp for breaking verified names apart
     val Name = "(.*)@([0-9]+)".r
 
