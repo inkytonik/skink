@@ -196,9 +196,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           val rterm = vterm(right)
           val exp: TypedTerm =
             op match {
-              case _: Add => lterm + rterm
-              case _: Mul => lterm * rterm
-              case _: Sub => lterm - rterm
+              case _: Add  => lterm + rterm
+              case _: And  => lterm & rterm
+              case _: Mul  => lterm * rterm
+              case _: Or   => lterm | rterm
+              case _: SDiv => lterm / rterm
+              case _: SRem => lterm % rterm
+              case _: Sub  => lterm - rterm
+              case _: UDiv => lterm / rterm
+              case _: URem => lterm % rterm
+              case _: XOr  => lterm ^ rterm
               case _ =>
                 println(s"binary int op $op not handled")
                 9999
