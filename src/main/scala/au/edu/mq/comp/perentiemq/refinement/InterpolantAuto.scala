@@ -34,7 +34,7 @@ object InterpolantAutomaton {
    * traces.
    */
   def apply[L](trace: Seq[L],
-    traceTerms: Seq[TypedTerm],
+    // traceTerms: Seq[TypedTerm],
     traceTermsNameMap : Map[TypedTerm, SSymbol],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
@@ -58,7 +58,8 @@ object InterpolantAutomaton {
     //  log the linear automaton
 
     logAuto(singleTraceAcceptor,
-      { x: Int => TypedTerm(true) },
+      { x: Int => x.toString },
+      // { e: L => e.toString },
       { e: L => getBlockLabel(e) },
       s"/tmp/linear-auto-$k.dot")
 
@@ -126,7 +127,7 @@ object InterpolantAutomaton {
       //  log the interpolant automaton
 
       logAuto(interpolantAuto,
-        { x: Int => i(x) },
+        { x: Int => i(x).unIndex.getTerm.toString },
         { e: L => getBlockLabel(e) },
         s"/tmp/interpolantAuto-$k.dot")
       interpolantAuto
@@ -157,7 +158,7 @@ object InterpolantAutomaton {
     }
   }
 
-  private def logAuto[L](a: NFA[Int, L], numToTerm: Int => TypedTerm, labelToString: L => String, filename: String) {
+  private def logAuto[L](a: NFA[Int, L], numToTerm: Int => String, labelToString: L => String, filename: String) {
     import reflect.io._
     import au.edu.mq.comp.automat.util.DotConverter.toDot
     import au.edu.mq.comp.dot.DOTPrettyPrinter.format
@@ -165,7 +166,7 @@ object InterpolantAutomaton {
 
     val dotiAuto = toDot(a,
       nodeProp = {
-        x: Int ⇒ List(Attribute("label", StringLit(s"$x : ${numToTerm(x).unIndex.getTerm.toString}")))
+        x: Int ⇒ List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
       },
       nodeDotName = {
         x: Int ⇒ "N" + x.toString

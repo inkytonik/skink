@@ -1,6 +1,8 @@
 package au.edu.mq.comp.perentiemq.refinement
 
 import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
+import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 
@@ -13,7 +15,7 @@ import smtlib.util.Logics.isSat
 import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
 import smtlib.parser.Commands.{ Exit, Reset }
 import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.Logics.{ getValues, isSat, getInterpolants }
+import smtlib.util.Logics.{ getValues, isSat, isSatIncr, getInterpolants }
 
 import scala.util.{ Try, Failure, Success }
 
@@ -67,7 +69,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
-    def refineRec[S2](cfg: NFA[S1, L], r: DetAuto[S2, L], remainingIterations: Int): Try[Option[FailureTrace[L]]] =
+    def refineRec[S, S2](cfg: NFA[S, L], r: DetAuto[S2, L], remainingIterations: Int): Try[Option[FailureTrace[L]]] =
       (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
         //  if None, the program is correct
@@ -100,9 +102,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           //  is feasible or not
           val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
           // traceTerms map { case t => println(t.getNamedTerm) }
-          val res = isSat(traceTerms, withNaming = true)(solver)
+          val res = isSatIncr(traceTerms, withNaming = true)(solver)
           res match {
-            case Success((SatStatus, _)) =>
+            case Success((SatStatus, _, _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
               val failTrace = makeFailureTrace(entries, traceTerms, solver)
@@ -111,7 +113,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               // logger.debug("trace was feasible")
               Success(Some(failTrace))
 
-            case Success((UnsatStatus, Some(nameMap))) =>
+            case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
+              println(feasibleLength)
+              println(nameMap)
               // logger.debug("trace was infeasible")
               if (remainingIterations > 0) {
                 // val i: Seq[TypedTerm] = getInterpolants(traceTerms)(solver).get
@@ -119,8 +123,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 //  
                 // val ia = computeInterpolantAuto(i, trace, traceToTerms, MAX_ITERATION -remainingIterations)
                 val ia = InterpolantAutomaton(
-                  trace,
-                  traceTerms,
+                  trace.take(feasibleLength),
+                  // traceTerms,
                   nameMap,
                   MAX_ITERATION - remainingIterations,
                   traceToTerms,
@@ -129,6 +133,11 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 solver.eval(Exit())
                 println(Console.RED_B + s"Refining - step ${MAX_ITERATION - remainingIterations}" + Console.RESET)
 
+                // refineRec(toDetNFA(cfg - ia), NFA[Set[Int], L](Set(), Set(), Set()) , remainingIterations - 1)
+                import reflect.io._
+                import au.edu.mq.comp.automat.util.DotConverter.toDot
+                import au.edu.mq.comp.dot.DOTPrettyPrinter.format
+                File("/tmp/ia.dot").writeAll(format(toDot(ia)).layout)
                 refineRec(cfg, r + ia, remainingIterations - 1)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {
