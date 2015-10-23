@@ -52,6 +52,7 @@ object InterpolantAutomaton {
       trace.zipWithIndex map {
         case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
       } toSet,
+      Set(trace.size), 
       Set(trace.size),
       name = s"Linear automaton, iteration $k")
 
@@ -122,6 +123,7 @@ object InterpolantAutomaton {
         Set(0),
         singleTraceAcceptor.edges ++ newEdges,
         Set(trace.size),
+        Set(trace.size),
         name = s"Interpolant automaton, iteration $k")
 
       //  log the interpolant automaton
@@ -130,6 +132,7 @@ object InterpolantAutomaton {
         { x: Int => i(x).unIndex.getTerm.toString },
         { e: L => getBlockLabel(e) },
         s"/tmp/interpolantAuto-$k.dot")
+
       interpolantAuto
     }
   }
@@ -142,7 +145,7 @@ object InterpolantAutomaton {
   import org.scalallvm.assembly.AssemblySyntax._
   import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
 
-  private def getBlockLabel[L](b: L): String = b match {
+  def getBlockLabel[L](b: L): String = b match {
     case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
       name
     case CFGBlockEntry(Block(NoLabel(), _, _, _, _)) =>

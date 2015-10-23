@@ -1,0 +1,26 @@
+#! /bin/sh
+# Generate appropriate LLVM IR code for C programs on command-line.
+# We assume the latest clang which is 3.7.0.
+
+# This version remove sthe implementation of __VERIFIER_assert if
+# present since we don't need it and we don't want to inline it.
+# Since we are sending stdin to clang, the debug information that
+# it produces refers to stdin as the filename. The sed command at
+# the end of the pipeline fixes that up so we get useful filenames
+# in the position metadata.
+
+for file in $*
+do
+  echo $file
+  base=${file%.*}
+  llfile=$base.ll
+
+  clangwargs="-Wno-implicit-function-declaration"
+  clangargs="-c -emit-llvm -g -o - -S -x c $clangwargs"
+
+  sed '/void __VERIFIER_assert(int cond) {/,/^}$/d' $file |
+  clang $clangargs - | \
+    opt -S -inline -o - | \
+    sed -e "s/\"-\"/\"$file\"/" -e "s/\"<stdin>\"/\"$file\"/" \
+    >$llfile
+done

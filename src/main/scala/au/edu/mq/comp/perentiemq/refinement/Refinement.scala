@@ -25,6 +25,7 @@ import org.kiama.rewriting.Rewriter.collect
 // import com.typesafe.scalalogging.LazyLogging
 
 import au.edu.mq.comp.perentiemq.cfg._
+import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.Entry
 import org.scalallvm.assembly.AssemblySyntax._
 
 object TraceRefinement { //extends LazyLogging removing for now as they are two logback.xml files conflicting
@@ -61,7 +62,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
    * Implement the refinement loop, returning an optional trace that if
    * present is feasible and demonstrates how the program is incorrect.
    */
-  def traceRefinement[S1, L](cfg: NFA[S1, L],
+  def traceRefinement[S1, L](ircfg: NFA[S1, L],
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     blockName: CFGBlock[FunctionDefinition, Block] => String,
     isBlockEntry: L => Boolean,
@@ -80,7 +81,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         //  otherwise we investigate further.
         //  Is the trace spurious or not?
         case Some(entries) =>
-          println(Console.RED_B + s"Found trace" + Console.RESET)
+          println(Console.RED_B + s"Found trace size ${entries.size}" + Console.RESET)
+          // println(cfg.isFinal(cfg.succ(cfg.getInit, entries)))
+          // println(r.isFinal(r.succ(r.getInit, entries)))
 
           val trace = entries
           // Encode the trace into an SSA formula to check feasibility
@@ -104,7 +107,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           // traceTerms map { case t => println(t.getNamedTerm) }
           val res = isSatIncr(traceTerms, withNaming = true)(solver)
           res match {
-            case Success((SatStatus, _, _)) =>
+            // case Success((SatStatus, _)) =>
+              case Success((SatStatus, _ , _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
               val failTrace = makeFailureTrace(entries, traceTerms, solver)
@@ -113,9 +117,17 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               // logger.debug("trace was feasible")
               Success(Some(failTrace))
 
-            case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
-              println(feasibleLength)
-              println(nameMap)
+            // case Success((UnsatStatus, Some(nameMap))) =>
+              case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
+              // check result
+              // val solver2 = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
+              // traceTerms map { case t => println(t.getNamedTerm) }
+              // val res2 = isSat(traceTerms.take(feasibleLength))(solver2)
+              // solver2.eval(Exit())
+
+              // println(s"Result of check : $res2")
+              // println(s"First infeasible after: $feasibleLength steps")
+              // println(nameMap)
               // logger.debug("trace was infeasible")
               if (remainingIterations > 0) {
                 // val i: Seq[TypedTerm] = getInterpolants(traceTerms)(solver).get
@@ -123,6 +135,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 //  
                 // val ia = computeInterpolantAuto(i, trace, traceToTerms, MAX_ITERATION -remainingIterations)
                 val ia = InterpolantAutomaton(
+                  // trace,
                   trace.take(feasibleLength),
                   // traceTerms,
                   nameMap,
@@ -131,13 +144,26 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                   isBlockEntry)(solver)
 
                 solver.eval(Exit())
+
+                // assert(ia.isFinal(ia.succ(ia.getInit, trace.take(feasibleLength))))
+
                 println(Console.RED_B + s"Refining - step ${MAX_ITERATION - remainingIterations}" + Console.RESET)
 
-                // refineRec(toDetNFA(cfg - ia), NFA[Set[Int], L](Set(), Set(), Set()) , remainingIterations - 1)
                 import reflect.io._
                 import au.edu.mq.comp.automat.util.DotConverter.toDot
                 import au.edu.mq.comp.dot.DOTPrettyPrinter.format
                 File("/tmp/ia.dot").writeAll(format(toDot(ia)).layout)
+
+                // assert((cfg - ia).isFinal((cfg - ia).succ((cfg - ia).getInit, trace.take(feasibleLength))))
+                // File(s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(cfg - ia))).layout)
+
+                // InterpolantAutomaton.logAuto(toDetNFA(cfg - ia),
+                //   { x: Entry => InterpolantAutomaton.getBlockLabel(x) },
+                //   { e: Entry => InterpolantAutomaton.getBlockLabel(e) },
+                //   s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot")
+
+                // refineRec(toDetNFA(cfg - ia), NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations - 1)
+
                 refineRec(cfg, r + ia, remainingIterations - 1)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {
@@ -152,6 +178,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           }
       }
 
-    refineRec(cfg, NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations)
+    refineRec(ircfg, NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations)
   }
 }
