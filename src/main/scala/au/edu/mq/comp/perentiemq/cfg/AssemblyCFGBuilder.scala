@@ -19,7 +19,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
     def blockName (block : Block) : String =
         block.optBlockLabel match {
-            case BlockLabel (s)    => s
+            case BlockLabel (s)    => s"%$s"
             case ImplicitLabel (i) => s"%$i"
             case NoLabel ()        => "%0"
         }
@@ -99,163 +99,50 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
      * Prepare the IR of a function for verification and return the
      * new IR form. The transformations are:
      *
-     * - remove calls to __VERIFIER_assert and replace them with
+     * - remove calls to __VERIFIER_error and replace them with
      * transfers to a special .error block. We assume there is no
      * such block already.
      */
     def makeVerifiable (function : FunctionDefinition) : FunctionDefinition = {
 
-        import org.kiama.rewriting.Rewriter.{everywhere, rewrite, rule}
-        import scala.collection.mutable.ListBuffer
-
-        // Process each block looking for __VERIFIER_assert calls. We
-        // assume they are of the following form which is how clang
-        // generates them at present from the SV-COMP code:
-        //    %conv = zext i1 %cmp to i32
-        //    call void @__VERIFIER_assert(i32 %conv)
-        //    ... rest of block ...
-        // %cmp contains the actual condition being tested.
-        // We find pairs of instructions of this form and replace them with:
-        //    br i1 %cmp, label %name, label .error
-        //  name:
-        //    ... rest of block ...
-        // where name is a generated name for the rest of the block. In
-        // other words, the block is split at this point and control only
-        // transfer to the rest of the block if the condition is true.
+        // Replace blocks that contain a call to the __VERIFIER_error
+        // function after an assertion has failed to a branch to the
+        // .error block. In detail, look for a block of this form
         //
-        // We also accept calls to plain "assert" instead of "__VERIFIER_assert".
+        // ; <label>:14
+        //   call void (...) @__VERIFIER_error() #4
+        //   <any terminator>
+        //
+        // and replace it with one of this form
+        //
+        // ; <label>:14
+        //   br label .error
+        //
+        // Blocks that don't look like this are left alone.
 
-        def expandAssertCalls (block : Block) : Vector[Block] = {
-
-            type MetaInstructions = Vector[MetaInstruction]
-
-            val blockname = blockName (block)
-            val errorLabel = Label (Local (".error"))
-
-            /*
-             * Predicate to identify the conversion operation that precedes
-             * an assert call. If one is found, return the value that is
-             * converted and the value that it is converted to.
-             */
-            def isAssertionConversion (insn : MetaInstruction) : Option[(Named, Local)] =
-                insn.instruction match {
-                    case Convert (Binding (to : Local), ZExt (), IntT (fromsize), from : Named, IntT (tosize))
-                            if (fromsize == 1) && (tosize == 32) =>
-                        Some ((from, to))
-                    case _ =>
-                        None
-                }
-
-            /**
-             * Matcher for assertion function names.
-             */
-            object AssertName {
-                def unapply (name : Name) : Boolean =
-                    (name == Global ("__VERIFIER_assert")) ||
-                    (name == Global ("assert"))
+        def replaceErrorCalls (block : Block) : Block =
+            block match {
+                case Block (label, Vector (), None,
+                            Vector (MetaInstruction (
+                                       Call (_, _, _, _, _,
+                                             VerifierFunction (Global ("__VERIFIER_error")), _, _),
+                                       _)),
+                            MetaTerminatorInstruction (_, _)) =>
+                    Block (label, Vector (), None, Vector (),
+                           MetaTerminatorInstruction (Branch (Label (Local (".error"))),
+                                                      Metadata (Vector ())))
+                case _ =>
+                    block
             }
-
-            /**
-             * Predicate to identify an assert call in SV-COMP form. The value
-             * should be the one that is asserted.
-             */
-            def isAssertCall (insn : MetaInstruction, local : Local) : Boolean =
-                insn.instruction match {
-                    case Call (_, _, _, _, _, VerifierFunction (AssertName ()),
-                               Vector (ValueArg (IntT (size), Vector (), Named (arg))),
-                               _)
-                            if (size == 32) && (local == arg) =>
-                        true
-                    case _ =>
-                        false
-                }
-
-            /*
-             * Find next assert call, return instructions before and after, plus
-             * the value on which the call is made. Return None if there is no
-             * assert call.
-             */
-            def findAssert (insns : MetaInstructions) : Option[(MetaInstructions, MetaInstructions, Named)] = {
-                var index = 0
-                while (index < insns.size) {
-                    isAssertionConversion (insns (index)) match {
-                        case Some ((from, to)) =>
-                            if ((index < insns.size - 1) && isAssertCall (insns (index + 1), to)) {
-                                val (before, after) = insns.splitAt (index)
-                                return Some ((before, after.tail.tail, from))
-                            } else
-                                index = index + 1
-                        case None =>
-                            index = index + 1
-                    }
-                }
-                None
-            }
-
-            /*
-             * A straight-line group of instructions from the original block
-             * that terminate with an assertion on value.
-             */
-            case class Group (insns : MetaInstructions, value : Named)
-
-            /*
-             * Make groups of instructions. A new group is begun if an assert
-             * call is detected. The value of the last group is a dummy.
-             */
-            def makeGroups (insns : MetaInstructions) : Vector[Group] =
-                findAssert (insns) match {
-                    case None =>
-                        Vector (Group (insns, Named (Local ("dummy"))))
-                    case Some ((before, after, value)) =>
-                        Group (before, value) +: makeGroups (after)
-                }
-
-            val groups : Vector[Group] = makeGroups (block.optMetaInstructions)
-            val numgroups = groups.size
-
-            /*
-             * Make a new block for the given group which is the nth group in the
-             * block of which there are numgroups groups.
-             */
-            def makeBlock (group : Group, n : Int, numgroups : Int) : Block = {
-                val thisBlockLabel = BlockLabel (s"$blockname.$n")
-                if (n == numgroups - 1) {
-                    // Last block gets the original terminator insn
-                    Block (thisBlockLabel, Vector (), None, group.insns, block.metaTerminatorInstruction)
-                } else {
-                    val nextLabel = Label (Local (s"${blockname.drop(1)}.${n + 1}"))
-                    val metaTerminator =
-                        MetaTerminatorInstruction (BranchCond (group.value, nextLabel, errorLabel),
-                                                   Metadata (Vector ()))
-                    if (n == 0) {
-                        // First block gets the original phi and landing pad insns,
-                        // plus new terminator
-                        Block (block.optBlockLabel, block.optMetaPhiInstructions, None, group.insns, metaTerminator)
-                    } else {
-                        // Other blocks just have the new terminator
-                        Block (thisBlockLabel, Vector (), None, group.insns, metaTerminator)
-                    }
-                }
-            }
-
-            numgroups match {
-                case 1 =>
-                    Vector (block)
-                case numgroups =>
-                    for ((group, index) <- groups.zipWithIndex)
-                        yield makeBlock (group, index, numgroups)
-            }
-
-        }
 
         val functionBodyWithProcessedBlocks =
-            function.functionBody.blocks.flatMap (expandAssertCalls)
+            function.functionBody.blocks.map (replaceErrorCalls)
 
         // Add the error block.
         //  .error:
         //    ret void
 
-        val errorBlock = Block (BlockLabel ("%.error"), Vector (),
+        val errorBlock = Block (BlockLabel (".error"), Vector (),
                                 None, Vector (),
                                 MetaTerminatorInstruction (RetVoid (), Metadata (Vector ())))
 
