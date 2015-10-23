@@ -68,7 +68,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
     def refineRec[S2](cfg: NFA[S1, L], r: DetAuto[S2, L], remainingIterations: Int): Try[Option[FailureTrace[L]]] =
-
       (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
         //  if None, the program is correct
@@ -79,6 +78,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         //  otherwise we investigate further.
         //  Is the trace spurious or not?
         case Some(entries) =>
+          println(Console.RED_B + s"Found trace" + Console.RESET)
+
           val trace = entries
           // Encode the trace into an SSA formula to check feasibility
           // Each entry e in entries is mapped to a Vector[TypedTerm]
@@ -99,8 +100,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           //  is feasible or not
           val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
           // traceTerms map { case t => println(t.getNamedTerm) }
-          val res =  isSat(traceTerms, withNaming = true)(solver)
-          res  match {
+          val res = isSat(traceTerms, withNaming = true)(solver)
+          res match {
             case Success((SatStatus, _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
@@ -126,6 +127,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                   isBlockEntry)(solver)
 
                 solver.eval(Exit())
+                println(Console.RED_B + s"Refining - step ${MAX_ITERATION - remainingIterations}" + Console.RESET)
+
                 refineRec(cfg, r + ia, remainingIterations - 1)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {

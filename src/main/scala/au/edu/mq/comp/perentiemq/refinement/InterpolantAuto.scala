@@ -84,10 +84,10 @@ object InterpolantAutomaton {
       //  compute interpolants
 
       //  We should check that the logic and solver support it 
-      //  DEBUG
+       // DEBUG
       // val i0: Seq[TypedTerm] =
       //   TypedTerm(true) +:
-      //     getInterpolants(traceTerms)(solver).get :+
+      //     getInterpolants(traceTermsNameMap)(solver).get :+
       //     TypedTerm(false)
       // println("---------------------------------------")
       // i0 map { x => println(x.getTerm) }
@@ -223,7 +223,7 @@ object Semantics {
       case Success((SatStatus, _)) => false
       case Success((UnsatStatus, _)) => true
       case status =>
-        sys.error(s"strange solver status: $status")
+        sys.error(s"[CheckPost] strange solver status: $status")
     }
     // true
   }
