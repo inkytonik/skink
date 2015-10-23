@@ -8,7 +8,7 @@ do
   base=${file%.*}
   llfile=$base.ll
 
-  clangwargs="-Wno-implicit-function-declaration"
+  clangwargs="-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
   clangargs="-c -emit-llvm -g -o - -S -x c $clangwargs"
 
   clang $clangargs $file | opt -S -inline -o $llfile
