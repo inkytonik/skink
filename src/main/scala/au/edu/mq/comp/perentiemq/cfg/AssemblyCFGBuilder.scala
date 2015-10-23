@@ -111,7 +111,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         //
         // ; <label>:14
         //   call void (...) @__VERIFIER_error() #4
-        //   unreachable
+        //   <any terminator>
         //
         // and replace it with one of this form
         //
@@ -127,7 +127,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                                        Call (_, _, _, _, _,
                                              VerifierFunction (Global ("__VERIFIER_error")), _, _),
                                        _)),
-                            MetaTerminatorInstruction (Unreachable (), _)) =>
+                            MetaTerminatorInstruction (_, _)) =>
                     Block (label, Vector (), None, Vector (),
                            MetaTerminatorInstruction (Branch (Label (Local (".error"))),
                                                       Metadata (Vector ())))
