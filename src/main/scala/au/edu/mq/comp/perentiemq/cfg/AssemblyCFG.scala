@@ -409,6 +409,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
              cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
 
     import au.edu.mq.comp.automat.auto.{ NFA }
+    import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
     import org.scalallvm.assembly.Analyser
     import scala.annotation.tailrec
     import scala.util.{ Try, Failure, Success }
@@ -563,12 +564,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       { b: Entry => b.isBlockEntry }) match {
         case Success(witnessTrace) => witnessTrace match {
           case None =>
-            config.output.emitln("program is correct")
+            config.output.emitln("TRUE")
             println(Console.GREEN_B + "Program is correct" + Console.RESET)
           case Some(failTrace) =>
-            config.output.emitln("program is incorrect")
+            config.output.emitln("FALSE")
             println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" + Console.RESET)
             printTrace(failTrace)
+            printWitness(config, program, function, funanalyser, failTrace)
         }
         case Failure(e) => config.output.emitln(e.getMessage)
       }
