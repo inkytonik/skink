@@ -119,8 +119,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
     }
 
-
-     /**
+    /**
      * Extractor to match stores to array elements. Currently only looks for
      * array element references that have a zero index (to deref the array
      * pointer), followed by the actual index.
@@ -415,25 +414,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import scala.util.{ Try, Failure, Success }
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
 
-    /*
-     * The prefix used by the SV-COMP to signify special functions.
-     */
-    val SVCompVerifierPrefix = "@__VERIFIER"
-
-    /*
-     * Return whether or not the named function should be verified.
-     */
-
-    def isNotToBeVerified(name: String): Boolean =
-      name.startsWith(SVCompVerifierPrefix)
-
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
-    if (fname != "@main") {
-      // if (isNotToBeVerified(fname))
-      config.output.emitln("not a main")
+    if (fname != "@main")
       return
-    }
 
     // Gather type information on variables in this CFG
     val function = cfg.function.cross
