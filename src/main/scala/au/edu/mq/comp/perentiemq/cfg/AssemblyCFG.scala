@@ -25,6 +25,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     name.startsWith("llvm")
 
   /**
+   * Return whether or not the named function is a memory allcoation function.
+   */
+  def isMemoryAllocFunction(name: String): Boolean =
+    List ("alloca", "calloc", "free", "malloc") contains name
+
+  /**
    * An alias for trace entries in an Assembly CFG.
    */
   type Entry = CFGEntry[FunctionDefinition, Block]
@@ -107,7 +113,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       def unapply(fn: Function): Boolean =
         fn match {
           case Function(Named(Global(s))) =>
-            isLLVMIntrinsic(s) || isVerifierFunction(s)
+            isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s)
           case _ =>
             false
         }
