@@ -77,6 +77,8 @@ case class CFGExitCondEntry[F,B] (condition : CFGExitCond[F,B]) extends CFGEntry
 abstract class CFGBuilder[F,B] extends Attribution {
 
     import au.edu.mq.comp.automat.auto.NFA
+    import au.edu.mq.comp.automat.util.DotConverter
+    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
 
     // Support methods that descendants must provide
 
@@ -103,19 +105,42 @@ abstract class CFGBuilder[F,B] extends Attribution {
                 CFG (Bridge (function), blocksOf (function))
         }
 
+    // NFA support
+
+    /**
+     * Return the DOT representation of a CFG NFA.
+     */
+    def toDot (nfa : NFA[String,CFGEntry[F,B]]) : DotSpec =
+        DotConverter.toDot (
+            nfa,
+            (b : String) => {
+                val label = Attribute ("label", StringLit (b))
+                val style =
+                    Attribute ("shape", if (nfa.init.contains (b))
+                                            Ident ("circle")
+                                        else if (nfa.accepting.contains (b))
+                                            Ident ("doublecircle")
+                                        else
+                                            Ident ("oval"))
+                List (label, style)
+            },
+            (b : String) => '"' + b + '"',
+            (e : CFGEntry[F,B]) => e match {
+                                       case CFGBlockEntry (b) =>
+                                           blockName (b)
+                                       case CFGExitCondEntry (c) =>
+                                           c.toString
+                                   }
+        )
+
     // CFG analysis
 
     class CFGAnalyser (cfg : CFG[F,B]) {
 
-        import au.edu.mq.comp.automat.edge.Edge
-        import au.edu.mq.comp.automat.edge.Implicits._
-        import au.edu.mq.comp.automat.util.DotConverter
-        import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
         import org.kiama.attribution.Decorators
         import org.kiama.output.PrettyPrinter._
         import org.kiama.output.PrettyPrinterTypes.Document
         import org.kiama.relation.Tree
-        import scala.collection.mutable.ListBuffer
 
         val tree = new Tree[CFGASTNode[F,B],CFG[F,B]] (cfg)
         val decorators = new Decorators (tree)
@@ -212,74 +237,6 @@ abstract class CFGBuilder[F,B] extends Attribution {
                         cfgBlocks (node).find { case b => b.block.cross == block }
                 )
             }
-
-        // Conversion to an NFA
-
-        /**
-         * Build an NFA that represents the error traces through this CFG.
-         * States are blocks of the CFG. Edges are labelled with entries that
-         * describe the transition represented by the edge. The only accepting
-         * state of the NFA is the .error block (if it exists).
-         */
-        lazy val nfa : CFG[F,B] => CFGNFA =
-            attr {
-                case cfg @ CFG (_, blocks) =>
-                    val init = Set (name (entry (cfg)))
-                    val edges = {
-                        val buf = new ListBuffer[Edge[String,CFGEntry[F,B]]]
-                        for (srcblock <- cfgBlocks (cfg)) {
-                            val src = name (srcblock)
-                            val srcaux = s"$src.aux"
-                            val srceffect = srcblock.block.cross
-                            for (exitcond <- srcblock.exitInfo.conditions) {
-                                target (exitcond) match {
-                                    case Some (tgtblock) =>
-                                        val tgt = name (tgtblock)
-                                        exitcond match {
-                                            case _ : CFGChoice[_,_,_] =>
-                                                buf ++= Seq (
-                                                    (src ~> srcaux) (CFGBlockEntry (srceffect)),
-                                                    (srcaux ~> tgt) (CFGExitCondEntry (exitcond))
-                                                )
-                                            case _ : CFGGoto[_,_] =>
-                                                buf += (src ~> tgt) (CFGBlockEntry (srceffect))
-                                        }
-                                    case None =>
-                                        // Do nothing
-                                }
-                            }
-                        }
-                        buf.toSet
-                    }
-                    val accepting = Set ("%.error")
-                    NFA (init, edges, accepting)
-            }
-
-        /**
-         * Return the DOT representation of a CFG NFA.
-         */
-        def toDot (nfa : NFA[String,CFGEntry[F,B]]) : DotSpec =
-            DotConverter.toDot (
-                nfa,
-                (b : String) => {
-                    val label = Attribute ("label", StringLit (b))
-                    val style =
-                        Attribute ("shape", if (nfa.init.contains (b))
-                                                Ident ("circle")
-                                            else if (nfa.accepting.contains (b))
-                                                Ident ("doublecircle")
-                                            else
-                                                Ident ("oval"))
-                    List (label, style)
-                },
-                (b : String) => '"' + b + '"',
-                (e : CFGEntry[F,B]) => e match {
-                                           case CFGBlockEntry (b) =>
-                                               blockName (b)
-                                           case CFGExitCondEntry (c) =>
-                                               c.toString
-                                       }
-            )
 
         // Pretty-printer
 

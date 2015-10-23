@@ -7,8 +7,12 @@ import org.scalallvm.assembly.AssemblySyntax._
  */
 trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
+    import au.edu.mq.comp.automat.auto.NFA
+    import au.edu.mq.comp.automat.edge.Edge
+    import au.edu.mq.comp.automat.edge.Implicits._
     import org.kiama.relation.Bridge
     import org.scalallvm.assembly.AssemblyPrettyPrinter
+    import scala.collection.mutable.ListBuffer
 
     def render (astNode : ASTNode) : String =
         AssemblyPrettyPrinter.format (astNode).layout
@@ -275,5 +279,139 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
             case fd : FunctionDefinition =>
                 cfg (if (forVerification) makeVerifiable (fd) else fd)
         }
+
+    // Conversion of CFG to an NFA
+
+    /**
+     * Build an NFA that represents the error traces through this CFG.
+     * States are blocks of the CFG. Edges are labelled with entries that
+     * describe the transition represented by the edge. The only accepting
+     * state of the NFA is the .error block (if it exists).
+     *
+     * We have two main cases for encoding a possible transition src->tgt
+     * from the CFG in the NFA:
+     *
+     *  1. The transition is unconditional (CFGGoto). The NFA gets an edge
+     *  from src->tgt labelled with the effect of src.
+     *
+     *  2. The transition is conditional (CFGChoice). We introduce an
+     *  intermediate node srcaux and two edges: one from src->srcaux
+     *  labelled with the effect of src, and one from srcaux->tgt labelled
+     *  with the exit condition frmo the choice.
+     *
+     * These cases are adjusted if a block begins with phi insns. If there
+     * are no phi insns, then the block is represented by a single state in
+     * the NFA. If phi insns such as
+     *     %10 = phi i1 [ false, %0 ], [ %8, %6 ]
+     *     %11 = phi i32 [ 0, %0 ], [ %nextindvar, %6 ]
+     * are present at the start of a block tgt, we express the effect of the
+     * phi in the NFA, not in the main effect of tgt. In this example, we
+     * get:
+     *   - n tgt.phi.p blocks, where n is the number of predecessor blocks
+     *     and p is the name of the predecessor, e.g.
+     *       tgt.phi.%0, tgt.phi.%6
+     *   - the content of the tgt.phi.p blocks is the effect of making the
+     *     nth choice, e.g.,
+     *       tgt.phi.%0: %10 := false; %11 := 0
+     *       tgt.phi.%6: %10 := %8; %11 := %nextindvar
+     *   - edges from the relevant src to tgt.phi.p, e.g.
+     *       %0->tgt.phi.%0 and %6->tgt.phi.%6
+     *   - block tgt which contains the non-phi contents of the original block
+     *   - edges tgt.phi.p->tgt
+     */
+    lazy val nfa : CFG[FunctionDefinition,Block] => CFGNFA = {
+        attr {
+            case cfg @ CFG (_, blocks) =>
+
+                val analyser = new CFGAnalyser (cfg)
+                import analyser._
+
+                val init = Set (name (entry (cfg)))
+                val buf = new ListBuffer[Edge[String,CFGEntry[FunctionDefinition,Block]]]
+                val accepting = Set ("%.error")
+
+                /**
+                 * The block name representing entry to `tgtblock` from a block
+                 * named `src`. If `tgtblock` doesn't have any phi instructions, then
+                 * this is just the name of `tgtblock`. Otherwise it is that name
+                 * with `phi.src` appended.
+                 */
+                def phiBlockName (tgtblock : CFGBlock[FunctionDefinition,Block], src : String) : String = {
+                    val tgt = name (tgtblock)
+                    val tgteffect = tgtblock.block.cross
+                    if (tgteffect.optMetaPhiInstructions.isEmpty)
+                        tgt
+                    else
+                        s"$tgt.phi.$src"
+                }
+
+                /**
+                 * If a src block has no phi insns, return it unchanged. Otherwise,
+                 * create the blocks that encapsulate the effects of the phi insns
+                 * for each predecessor. Add NFA edges to link the phi blocks with
+                 * the predecessors and the returned block which is the src block
+                 * with the phi insns removed.
+                 */
+                def processPhis (srcblock : CFGBlock[FunctionDefinition,Block]) : Block = {
+                    val block = srcblock.block.cross
+                    val effectMap =
+                        block.optMetaPhiInstructions.flatMap {
+                            case MetaPhiInstruction (Phi (Binding (to), tipe, preds), _) =>
+                                for (PhiPredecessor (v, l) <- preds)
+                                    yield (l, (to, tipe, v))
+                        }.groupBy (_._1)
+                    if (effectMap.isEmpty)
+                        block
+                    else {
+                        val src = name (srcblock)
+                        for ((Label (fromlocal), effects) <- effectMap) {
+                            val insns =
+                                effects.map {
+                                    case (_, (to, tipe, v)) =>
+                                        MetaInstruction (
+                                            Convert (Binding (to), Bitcast (), tipe, v, tipe),
+                                            Metadata (Vector ()))
+                                }
+                            val term = MetaTerminatorInstruction (Branch (Label (Local (src))),
+                                                                  Metadata (Vector ()))
+                            val from = render (fromlocal)
+                            val phi = phiBlockName (srcblock, from)
+                            val phieffect = Block (BlockLabel (phi), Vector (), None, insns, term)
+                            buf += (phi ~> src) (CFGBlockEntry (phieffect))
+                        }
+                        block.copy (optMetaPhiInstructions = Vector ())
+                    }
+                }
+
+                val edges = {
+                    for (srcblock <- cfgBlocks (cfg)) {
+                        val src = name (srcblock)
+                        val srcaux = s"$src.aux"
+                        val srceffect = processPhis (srcblock)
+                        for (exitcond <- srcblock.exitInfo.conditions) {
+                            target (exitcond) match {
+                                case Some (tgtblock) =>
+                                    val tgt = phiBlockName (tgtblock, src)
+                                    exitcond match {
+                                        case _ : CFGGoto[_,_] =>
+                                            buf += (src ~> tgt) (CFGBlockEntry (srceffect))
+                                        case _ : CFGChoice[_,_,_] =>
+                                            buf ++= Seq (
+                                                (src ~> srcaux) (CFGBlockEntry (srceffect)),
+                                                (srcaux ~> tgt) (CFGExitCondEntry (exitcond))
+                                            )
+                                    }
+                                case None =>
+                                    // Do nothing
+                            }
+                        }
+                    }
+                    buf.toSet
+                }
+
+                NFA (init, edges, accepting)
+        }
+
+    }
 
 }

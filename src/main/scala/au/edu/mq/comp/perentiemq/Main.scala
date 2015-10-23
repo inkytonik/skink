@@ -110,15 +110,15 @@ trait Driver extends CompilerBase[Program,PerentieMQConfig] {
                 config.error.emitln (cfgAnalyser.formatString (cfg))
 
             if (config.cfgDotPrint ()) {
-                val nfa = cfgAnalyser.nfa (cfg)
-                val dot = cfgAnalyser.toDot (nfa)
+                val nfa = AssemblyCFG.nfa (cfg)
+                val dot = AssemblyCFG.toDot (nfa)
                 config.error.emitln
                 config.error.emitln (DOTPrettyPrinter.format (dot).layout)
             }
 
             //  launch the verification
-            if (config.verifyTarget ()) 
-                AssemblyCFG.verify (cfg, cfgAnalyser, config)
+            if (config.verifyTarget ())
+                AssemblyCFG.verify (ir, cfg, cfgAnalyser, config)
         }
 
         if (config.execute ()) {
