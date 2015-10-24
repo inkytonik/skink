@@ -399,8 +399,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // tree.root.entries.flatMap(entryToTerm)
 
     val r = tree.root.entries.map(entryToTerm)
-    // println("Store is")
-    // stores(tree.root) map println
+    println("Store is")
+    stores(tree.root) map println
     r
   }
 
