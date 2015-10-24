@@ -34,7 +34,7 @@ object InterpolantAutomaton {
    * traces.
    */
   def apply[L](trace: Seq[L],
-    traceTerms: Seq[TypedTerm],
+    // traceTerms: Seq[TypedTerm],
     traceTermsNameMap : Map[TypedTerm, SSymbol],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
@@ -52,13 +52,15 @@ object InterpolantAutomaton {
       trace.zipWithIndex map {
         case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
       } toSet,
+      Set(trace.size), 
       Set(trace.size),
       name = s"Linear automaton, iteration $k")
 
     //  log the linear automaton
 
     logAuto(singleTraceAcceptor,
-      { x: Int => TypedTerm(true) },
+      { x: Int => x.toString },
+      // { e: L => e.toString },
       { e: L => getBlockLabel(e) },
       s"/tmp/linear-auto-$k.dot")
 
@@ -84,10 +86,10 @@ object InterpolantAutomaton {
       //  compute interpolants
 
       //  We should check that the logic and solver support it 
-      //  DEBUG
+       // DEBUG
       // val i0: Seq[TypedTerm] =
       //   TypedTerm(true) +:
-      //     getInterpolants(traceTerms)(solver).get :+
+      //     getInterpolants(traceTermsNameMap)(solver).get :+
       //     TypedTerm(false)
       // println("---------------------------------------")
       // i0 map { x => println(x.getTerm) }
@@ -121,14 +123,16 @@ object InterpolantAutomaton {
         Set(0),
         singleTraceAcceptor.edges ++ newEdges,
         Set(trace.size),
+        Set(trace.size),
         name = s"Interpolant automaton, iteration $k")
 
       //  log the interpolant automaton
 
       logAuto(interpolantAuto,
-        { x: Int => i(x) },
+        { x: Int => i(x).unIndex.getTerm.toString },
         { e: L => getBlockLabel(e) },
         s"/tmp/interpolantAuto-$k.dot")
+
       interpolantAuto
     }
   }
@@ -141,7 +145,7 @@ object InterpolantAutomaton {
   import org.scalallvm.assembly.AssemblySyntax._
   import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
 
-  private def getBlockLabel[L](b: L): String = b match {
+  def getBlockLabel[L](b: L): String = b match {
     case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
       name
     case CFGBlockEntry(Block(NoLabel(), _, _, _, _)) =>
@@ -157,7 +161,7 @@ object InterpolantAutomaton {
     }
   }
 
-  private def logAuto[L](a: NFA[Int, L], numToTerm: Int => TypedTerm, labelToString: L => String, filename: String) {
+  private def logAuto[L](a: NFA[Int, L], numToTerm: Int => String, labelToString: L => String, filename: String) {
     import reflect.io._
     import au.edu.mq.comp.automat.util.DotConverter.toDot
     import au.edu.mq.comp.dot.DOTPrettyPrinter.format
@@ -165,7 +169,7 @@ object InterpolantAutomaton {
 
     val dotiAuto = toDot(a,
       nodeProp = {
-        x: Int ⇒ List(Attribute("label", StringLit(s"$x : ${numToTerm(x).unIndex.getTerm.toString}")))
+        x: Int ⇒ List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
       },
       nodeDotName = {
         x: Int ⇒ "N" + x.toString
@@ -223,7 +227,7 @@ object Semantics {
       case Success((SatStatus, _)) => false
       case Success((UnsatStatus, _)) => true
       case status =>
-        sys.error(s"strange solver status: $status")
+        sys.error(s"[CheckPost] strange solver status: $status")
     }
     // true
   }

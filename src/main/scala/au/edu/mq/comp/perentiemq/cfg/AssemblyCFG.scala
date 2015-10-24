@@ -455,6 +455,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       },
       nfa.accepting)
 
+    // nfa2.edges map println
+
     import au.edu.mq.comp.dot.DOTPrettyPrinter.format
     import reflect.io._
     import au.edu.mq.comp.automat.lang.Lang
