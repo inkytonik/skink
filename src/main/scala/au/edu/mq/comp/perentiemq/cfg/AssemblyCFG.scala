@@ -275,9 +275,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case phi: Phi =>
           Vector ()
 
-        case e@Store(_, tipe, from, _, ArrayElement (array, index), _) =>
-          println(s"Using rule 1 for $e")
-          Vector(nterm(array) === (prevnterm(array) += (vterm(index), vterm(from))))
+        case insn @ Store(_, tipe, from, _, ArrayElement (array, index), _) =>
+          println(s"Using rule 1 for $insn")
+          Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
+                                             (vtermAt(insn, index), vterm(from))))
 
         case e@Store(_, tipe, from, _, to, _) =>
           println(s"Using rule 2 for $e")
@@ -288,6 +289,32 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           Vector()
 
       }
+
+    /**
+     * Make a term for the named variable where `id` is the base name identifier.
+     */
+    def varTerm (name : Name, id : String) : TypedTerm =
+      TypedTerm(id, typeToSort(name))
+
+    /*
+     * Return a term that expresses a name when referenced from node.
+     */
+    def ntermAt (node : ASTNode, name : Name) : TypedTerm =
+      varTerm(name, nameToIndexedName(node, render(name)))
+
+    /*
+     * Return a term that expresses the previous version of a name when
+     * referenced from node.
+     */
+    def prevnTermAt (node : ASTNode, name : Name) : TypedTerm =
+      varTerm(name, nameToIndexedName(node, render(name), _ - 1))
+
+    /*
+     * Return a term that expresses an LLVM name when referenced from
+     * that name node.
+     */
+    def nterm (name : Name) : TypedTerm =
+      ntermAt(name, name)
 
     /*
      * Return a term that expresses an LLVM value.
@@ -307,6 +334,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           sys.error(s"vterm: unexpected value $value")
       }
     }
+
+    /*
+     * Return a term that expresses a value when referenced from node.
+     */
+    def vtermAt (node : ASTNode, value : Value) : TypedTerm =
+      value match {
+        case Named(name) =>
+          ntermAt(node, name)
+        case _ =>
+          vterm(value)
+      }
 
     /*
      * Return the sort that should be used for variable name.
@@ -331,31 +369,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
       optSort.getOrElse (sys.error(s"can't find type property for variable $name"))
     }
-
-    /**
-     * Make a term for the named variable where `id` is the base name identifier.
-     */
-    def varTerm (name : Name, id : String) : TypedTerm =
-      TypedTerm(id, typeToSort(name))
-
-    /*
-     * Return a term that expresses an LLVM name.
-     */
-    lazy val nterm: Name => TypedTerm =
-      attr {
-        case name =>
-          varTerm(name, nameToIndexedName(name, render(name)))
-      }
-
-    /*
-     * As for `nterm` but uses the previous index. Useful for making terms
-     * that define the new value of the name in terms of the old value.
-     */
-    lazy val prevnterm: Name => TypedTerm =
-      attr {
-        case name =>
-          varTerm(name, nameToIndexedName(name, render(name), _ - 1))
-      }
 
     /*
      * Return a term that expresses the condition that must be true if
