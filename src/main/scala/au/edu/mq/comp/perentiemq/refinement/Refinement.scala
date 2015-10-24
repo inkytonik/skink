@@ -81,10 +81,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         //  otherwise we investigate further.
         //  Is the trace spurious or not?
         case Some(entries) =>
-          println(Console.RED_B + s"Found trace size ${entries.size}" + Console.RESET)
-          // println(cfg.isFinal(cfg.succ(cfg.getInit, entries)))
-          // println(r.isFinal(r.succ(r.getInit, entries)))
-
+          println(Console.RED_B + s"Found trace size ${entries.size}")
+          // entries map println
+          println(Console.RESET)
           val trace = entries
           // Encode the trace into an SSA formula to check feasibility
           // Each entry e in entries is mapped to a Vector[TypedTerm]
@@ -96,6 +95,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
+          println("Trace encoding --------------------")
+          traceTerms.zipWithIndex map (  x => println(x._2 + " : " + x._1.getTerm)) 
+          println("-----------------------------------")
           // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
           // import org.kiama.output.PrettyPrinter.{ any, pretty }
           // val pp = bTerms2.map(_.toString)
@@ -119,6 +121,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
             // case Success((UnsatStatus, Some(nameMap))) =>
               case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
+              println(Console.RED_B + s"trace is infeasible term number ${feasibleLength -1}" + Console.RESET)
               // check result
               // val solver2 = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
               // traceTerms map { case t => println(t.getNamedTerm) }
@@ -137,7 +140,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 val ia = InterpolantAutomaton(
                   // trace,
                   trace.take(feasibleLength),
-                  // traceTerms,
+                  traceTerms.take(feasibleLength),
                   nameMap,
                   MAX_ITERATION - remainingIterations,
                   traceToTerms,

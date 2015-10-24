@@ -34,7 +34,7 @@ object InterpolantAutomaton {
    * traces.
    */
   def apply[L](trace: Seq[L],
-    // traceTerms: Seq[TypedTerm],
+    traceTerms: Seq[TypedTerm],
     traceTermsNameMap : Map[TypedTerm, SSymbol],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
@@ -96,7 +96,7 @@ object InterpolantAutomaton {
       // println("---------------------------------------")
       val i: Seq[TypedTerm] =
         TypedTerm(true) +:
-          getInterpolants(traceTermsNameMap)(solver).get.map(_.unIndex) :+
+          getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex) :+
           TypedTerm(false)
 
       //  try to add new edges
@@ -199,15 +199,25 @@ object Semantics {
   def checkPost(srcP: TypedTerm, entry: Seq[Vector[TypedTerm]], tgtP: TypedTerm): Boolean = {
     //  get the index range in entry
     val flattenEntry = (entry.head).reduceLeft(_ & _)
+    assert(entry.size == 1)
+
     val indexMap: Map[TypedTerm, Set[Int]] = flattenEntry.getIndexMap
+
     val minmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).min) }).toMap
     val maxmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).max) }).toMap
     //  compute indexing for srcP
+    println(Console.MAGENTA_B + "checking Post for")
+    println(srcP.getTerm)
+    
+    println(tgtP.getTerm)
+    println(Console.GREEN_B)
+
     // println(flattenEntry.getVars)
     // println(minmap)
     // println(maxmap)
-    // println("Entry term is : " + flattenEntry.getTerm)
+    println("Entry term is : " + flattenEntry.getTerm)
     //  build indexed srcP
+    println(Console.RESET)
     val t = srcP index { case v if minmap.isDefinedAt(v) => minmap(v) }
     // println(t.getTerm)
     val p = tgtP index { case v if minmap.isDefinedAt(v) => maxmap(v) }
@@ -222,6 +232,7 @@ object Semantics {
 
     val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
     val answer = isSat(t & flattenEntry & !p)(solver)
+    println(Console.RED_B + "Result included or not " + answer + Console.RESET)
     solver.eval(Exit())
     answer match {
       case Success((SatStatus, _)) => false

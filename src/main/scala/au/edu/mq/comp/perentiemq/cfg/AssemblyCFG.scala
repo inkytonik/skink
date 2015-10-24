@@ -80,6 +80,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       case n @ Binding(name) =>
         bumpcount(in(n), name)
       case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
+        println(s"Bumping for $n")
         bumpcount(in(n), name)
       case n @ Store(_, _, _, _, Named(name), _) =>
         bumpcount(in(n), name)
@@ -274,10 +275,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case phi: Phi =>
           Vector ()
 
-        case Store(_, tipe, from, _, ArrayElement (array, index), _) =>
+        case e@Store(_, tipe, from, _, ArrayElement (array, index), _) =>
+          println(s"Using rule 1 for $e")
           Vector(nterm(array) === (prevnterm(array) += (vterm(index), vterm(from))))
 
-        case Store(_, tipe, from, _, to, _) =>
+        case e@Store(_, tipe, from, _, to, _) =>
+          println(s"Using rule 2 for $e")
           Vector(vterm(to) === vterm(from))
 
         case node =>
