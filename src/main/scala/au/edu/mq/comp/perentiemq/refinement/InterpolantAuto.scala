@@ -161,7 +161,7 @@ object InterpolantAutomaton {
     }
   }
 
-  private def logAuto[L](a: NFA[Int, L], numToTerm: Int => String, labelToString: L => String, filename: String) {
+  def logAuto[L](a: NFA[Int, L], numToTerm: Int => String, labelToString: L => String, filename: String) {
     import reflect.io._
     import au.edu.mq.comp.automat.util.DotConverter.toDot
     import au.edu.mq.comp.dot.DOTPrettyPrinter.format
@@ -169,7 +169,10 @@ object InterpolantAutomaton {
 
     val dotiAuto = toDot(a,
       nodeProp = {
-        x: Int ⇒ List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
+        x: Int ⇒ if (a.blocking.contains(x))
+             List(Attribute("shape", Ident("rectangle")),Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
+             else 
+            List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
       },
       nodeDotName = {
         x: Int ⇒ "N" + x.toString
@@ -206,18 +209,18 @@ object Semantics {
     val minmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).min) }).toMap
     val maxmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).max) }).toMap
     //  compute indexing for srcP
-    println(Console.MAGENTA_B + "checking Post for")
-    println(srcP.getTerm)
+    // println(Console.MAGENTA_B + "checking Post for")
+    // println(srcP.getTerm)
     
-    println(tgtP.getTerm)
-    println(Console.GREEN_B)
+    // println(tgtP.getTerm)
+    // println(Console.GREEN_B)
 
     // println(flattenEntry.getVars)
     // println(minmap)
     // println(maxmap)
-    println("Entry term is : " + flattenEntry.getTerm)
+    // println("Entry term is : " + flattenEntry.getTerm)
     //  build indexed srcP
-    println(Console.RESET)
+    // println(Console.RESET)
     val t = srcP index { case v if minmap.isDefinedAt(v) => minmap(v) }
     // println(t.getTerm)
     val p = tgtP index { case v if minmap.isDefinedAt(v) => maxmap(v) }
@@ -232,7 +235,7 @@ object Semantics {
 
     val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
     val answer = isSat(t & flattenEntry & !p)(solver)
-    println(Console.RED_B + "Result included or not " + answer + Console.RESET)
+    // println(Console.RED_B + "Result included or not " + answer + Console.RESET)
     solver.eval(Exit())
     answer match {
       case Success((SatStatus, _)) => false

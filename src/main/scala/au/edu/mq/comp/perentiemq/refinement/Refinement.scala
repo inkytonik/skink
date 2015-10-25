@@ -96,9 +96,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
-          println("Trace encoding --------------------")
-          traceTerms.zipWithIndex map (  x => println(x._2 + " : " + x._1.getTerm)) 
-          println("-----------------------------------")
+          // println("Trace encoding --------------------")
+          // traceTerms.zipWithIndex map (  x => println(x._2 + " : " + x._1.getTerm)) 
+          // println("-----------------------------------")
           // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
           // import org.kiama.output.PrettyPrinter.{ any, pretty }
           // val pp = bTerms2.map(_.toString)
@@ -111,7 +111,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val res = isSatIncr(traceTerms, withNaming = true)(solver)
           res match {
             // case Success((SatStatus, _)) =>
-              case Success((SatStatus, _ , _)) =>
+            case Success((SatStatus, _, _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
               val failTrace = makeFailureTrace(entries, traceTerms, solver)
@@ -121,8 +121,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               Success(Some(failTrace))
 
             // case Success((UnsatStatus, Some(nameMap))) =>
-              case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
-              println(Console.RED_B + s"trace is infeasible term number ${feasibleLength -1}" + Console.RESET)
+            case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
+              println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
               // check result
               // val solver2 = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
               // traceTerms map { case t => println(t.getNamedTerm) }
@@ -156,7 +156,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 import reflect.io._
                 import au.edu.mq.comp.automat.util.DotConverter.toDot
                 import au.edu.mq.comp.dot.DOTPrettyPrinter.format
-                File("/tmp/ia.dot").writeAll(format(toDot(ia)).layout)
+                // File(s"/tmp/ia-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(ia)).layout)
 
                 // assert((cfg - ia).isFinal((cfg - ia).succ((cfg - ia).getInit, trace.take(feasibleLength))))
                 // File(s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(cfg - ia))).layout)
@@ -165,10 +165,29 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 //   { x: Entry => InterpolantAutomaton.getBlockLabel(x) },
                 //   { e: Entry => InterpolantAutomaton.getBlockLabel(e) },
                 //   s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot")
-
+                import InterpolantAutomaton.{ getBlockLabel, logAuto }
                 // refineRec(toDetNFA(cfg - ia), NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations - 1)
+                logAuto(toDetNFA(r + ia),
+                  { x: Int => x.toString },
+                  { e: L => getBlockLabel(e) },
+                  s"/tmp/det-${maxIterations - remainingIterations}.dot")
 
-                refineRec(cfg, r + ia, remainingIterations - 1)
+                if (remainingIterations < maxIterations) {
+                logAuto(toDetNFA(r),
+                  { x: Int => x.toString },
+                  { e: L => getBlockLabel(e) },
+                  s"/tmp/r-${maxIterations - remainingIterations}.dot")
+              }
+
+                logAuto(toDetNFA(ia),
+                  { x: Int => x.toString },
+                  { e: L => getBlockLabel(e) },
+                  s"/tmp/ia-${maxIterations - remainingIterations}.dot")
+
+                // File(s"/tmp/det-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r + ia))).layout)
+                // File(s"/tmp/r-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r))).layout)
+                // File(s"/tmp/detia-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(ia))).layout)
+                refineRec(cfg, toDetNFA(r + ia), remainingIterations - 1)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {
                 //  we ran out resources
