@@ -579,7 +579,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       nfa2,
       { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
       { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-      { b: Entry => b.isBlockEntry }) match {
+      { b: Entry => b.isBlockEntry },
+      config.maxIterations()) match {
         case Success(witnessTrace) => witnessTrace match {
           case None =>
             config.output.emitln("TRUE")

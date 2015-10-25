@@ -24,6 +24,9 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
                                                descr = "Pretty-print the target code")
     lazy val verifyTarget = opt[Boolean] ("verify", short = 'v',
                                           descr = "Verify the target code")
+    lazy val maxIterations = opt[Int] ("max", short = 'm',
+                                          descr = "Maximum number of refinement iterations",
+                                          default = Some(10))
 }
 
 trait Driver extends CompilerBase[Program,PerentieMQConfig] {

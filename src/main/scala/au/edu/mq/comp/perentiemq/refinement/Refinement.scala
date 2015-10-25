@@ -56,7 +56,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
   //  maximum number of iterations
   //  should define a proper scallop config
-  val MAX_ITERATION = 10
+  // val MAX_ITERATION = 10
 
   /**
    * Implement the refinement loop, returning an optional trace that if
@@ -66,7 +66,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     blockName: CFGBlock[FunctionDefinition, Block] => String,
     isBlockEntry: L => Boolean,
-    remainingIterations: Int = MAX_ITERATION): Try[Option[FailureTrace[L]]] = {
+    maxIterations: Int): Try[Option[FailureTrace[L]]] = {
+
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
@@ -75,7 +76,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
         //  if None, the program is correct
         case None =>
-          println(Console.GREEN_B + s"Refinement steps : ${MAX_ITERATION - remainingIterations}" + Console.RESET)
+          println(Console.GREEN_B + s"Refinement steps : ${maxIterations - remainingIterations}" + Console.RESET)
           Success(None)
 
         //  otherwise we investigate further.
@@ -136,13 +137,13 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 // val i: Seq[TypedTerm] = getInterpolants(traceTerms)(solver).get
                 //  compute a refinement, interpolant automaton
                 //  
-                // val ia = computeInterpolantAuto(i, trace, traceToTerms, MAX_ITERATION -remainingIterations)
+                // val ia = computeInterpolantAuto(i, trace, traceToTerms, maxIterations -remainingIterations)
                 val ia = InterpolantAutomaton(
                   // trace,
                   trace.take(feasibleLength),
                   traceTerms.take(feasibleLength),
                   nameMap,
-                  MAX_ITERATION - remainingIterations,
+                  maxIterations - remainingIterations,
                   traceToTerms,
                   isBlockEntry)(solver)
 
@@ -150,7 +151,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                 // assert(ia.isFinal(ia.succ(ia.getInit, trace.take(feasibleLength))))
 
-                println(Console.RED_B + s"Refining - step ${MAX_ITERATION - remainingIterations}" + Console.RESET)
+                println(Console.RED_B + s"Refining - step ${maxIterations - remainingIterations}" + Console.RESET)
 
                 import reflect.io._
                 import au.edu.mq.comp.automat.util.DotConverter.toDot
@@ -181,6 +182,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           }
       }
 
-    refineRec(ircfg, NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations)
+    refineRec(ircfg, NFA[Set[Int], L](Set(), Set(), Set()), maxIterations)
   }
 }
