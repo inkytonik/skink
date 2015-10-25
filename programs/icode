@@ -9,7 +9,8 @@ do
   llfile=$base.ll
 
   clangwargs="-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-  clangargs="-c -emit-llvm -g -o - -S -x c $clangwargs"
+  clangdefs="-Dassert=__VERIFIER_assert"
+  clangargs="-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
 
   clang $clangargs $file | opt -S -inline -o $llfile
 done
