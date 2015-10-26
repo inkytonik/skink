@@ -4,7 +4,6 @@ import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{ Entry, Trace }
-// import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.Edge
 import smtlib.util.{ TypedTerm }
 import smtlib.interpreters.{ GenericSolver }
@@ -17,6 +16,43 @@ import scala.collection.mutable.ListBuffer
  * Build an interpolant automaton from a trace.
  */
 object InterpolantAutomaton {
+
+  /**
+   * Make a simple linear automaton accepting a trace
+   */
+  private def linearInterAuto[L](trace: Seq[L]) = {
+    //  set of edges is given by the trace
+    //  if the trace is t_1 t_2 ... t_k the automaton
+    //  is 0 - t1 -> 1 - t_2 -> 2 - t_3 -> ..... - t_k -> k + 1
+    import scala.language.postfixOps
+    NFA[Int, L](
+      Set(0),
+      trace.zipWithIndex map {
+        case (l, i) => Edge[Int, L](i, l, (i + 1))
+      } toSet,
+      accepting = Set(trace.size), //  set of final states
+      blocking = Set(trace.size), //  set of blocking states
+      name = "Linear interpolant automaton")
+  }
+
+  /**
+   * Compute labels that are reapeated on a trace
+   */
+  private def repeatedLabels[L](trace: Seq[L]): Map[L, Seq[Int]] = {
+    //  index each label and group them according to the label
+    trace.zipWithIndex.groupBy(l => l._1) map {
+      case x => (x._1, x._2.unzip._2)
+    } filter (_._2.size > 1)
+  }
+
+  /**
+   * Get interpolants
+   */
+  private def interpolantsFor(namedTerms: Seq[(TypedTerm, SSymbol)])(implicit solver: GenericSolver): Seq[TypedTerm] = {
+    TypedTerm(true) +:
+      getInterpolants(namedTerms)(solver).get.map(_.unIndex) :+
+      TypedTerm(false)
+  }
 
   /**
    * Compute an interpolanta automaton
@@ -34,12 +70,10 @@ object InterpolantAutomaton {
    * traces.
    */
   def apply[L](trace: Seq[L],
-    traceTerms: Seq[TypedTerm],
-    traceTermsNameMap : Map[TypedTerm, SSymbol],
+    traceTerms: Seq[(TypedTerm, SSymbol)],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
-    isBlockEntry: L => Boolean,
-    backward: Boolean = false)(implicit solver: GenericSolver): NFA[Int, L] = {
+    isBlockEntry: L => Boolean)(implicit solver: GenericSolver): NFA[Int, L] = {
 
     import scala.language.postfixOps
 
@@ -48,46 +82,94 @@ object InterpolantAutomaton {
     //  `trace` is UNSAT and the solver is in the state 
     //  it was after the last CheckSat which produced UNSAT
     //  First build a linear automaton that accepts trace only
-    val singleTraceAcceptor = NFA[Int, L](
-      Set(0),
-      (if (backward) trace.reverse else trace).zipWithIndex map {
-        case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
-      } toSet,
-      Set(trace.size), 
-      Set(trace.size),
-      name = s"${if (backward) "Reverse " else ""}Linear automaton, iteration $k")
+    // val singleTraceAcceptor = NFA[Int, L](
+    //   Set(0),
+    //   (if (backward) trace.reverse else trace).zipWithIndex map {
+    //     case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
+    //   } toSet,
+    //   Set(trace.size),
+    //   Set(trace.size),
+    //   name = s"${if (backward) "Reverse " else ""}Linear automaton, iteration $k")
 
+    val linearNFA = linearInterAuto(trace)
     //  log the linear automaton
-
-    logAuto(singleTraceAcceptor,
+    logAuto(linearNFA,
       { x: Int => x.toString },
       // { e: L => e.toString },
       { e: L => getBlockLabel(e) },
-      s"/tmp/${if (backward) "Rev-" else ""}linear-auto-$k.dot")
+      s"/tmp/linear-auto-$k.dot")
 
     //  determine repeated CFGBlockEntry blocks 
 
     //  CFGChoice are not to be considered as they have no side effects
-    val tNames: Seq[(L, Int)] = (if (backward) trace.reverse else trace).zipWithIndex.filter(b => isBlockEntry(b._1))
-    //  Group the entries and compute the indices at which they occur
-    //  Each entry in trace is mapped to the set of indices it appears
-    //  in trace
-    val blockEnt: Map[L, Seq[(L, Int)]] = tNames.groupBy(l => l._1)
-    val q = blockEnt map {
-      case x => (x._1, x._2.unzip._2)
-    } toList
-    //  l contains the repeated blocks
-    val l = q filter (_._2.size > 1)
+    // val tNames: Seq[(L, Int)] = (if (backward) trace.reverse else trace).zipWithIndex.filter(b => isBlockEntry(b._1))
+    // //  Group the entries and compute the indices at which they occur
+    // //  Each entry in trace is mapped to the set of indices it appears
+    // //  in trace
+    // val blockEnt: Map[L, Seq[(L, Int)]] = tNames.groupBy(l => l._1)
+    // val q = blockEnt map {
+    //   case x => (x._1, x._2.unzip._2)
+    // } toList
+    // //  l contains the repeated blocks
+    // val l = q filter (_._2.size > 1)
 
-    if (l.isEmpty) {
-      //  if empty no repetition, we return the singleTraceAcceptor
-      singleTraceAcceptor
-    } else {
+    repeatedLabels(trace) match {
+
+      case m if (m.size == 0) => linearNFA
+
+      case m =>
+
+        //  get the interpolants
+        val i = interpolantsFor(traceTerms)(solver)
+
+        //  try to add new edges
+
+        //  if entry e appears in the trace at location k and j, k -- e -> k + 1
+        //  and j -- e -> j + 1, and  k < j, 
+        //  we can try to add an edge j  - e -> (k + 1)
+        //  In theory we can try all the pairs for an entry but
+        //  we restrict for now to all the pairs with first index as the
+        //  first component
+        val newEdges = new ListBuffer[Edge[Int, L]]()
+        // println(s"--{$k}--")
+        for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
+
+          //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+          // println(s"$entry")
+          // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
+          if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+            // println(s"Included, adding edge $j to ${k+1}")
+            newEdges += Edge[Int, L](j, entry, k + 1)
+          }
+        }
+
+        //  return the linear auto + the new edges
+        val interpolantAuto = NFA[Int, L](
+          Set(0),
+          linearNFA.edges ++ newEdges,
+          Set(trace.size),
+          Set(trace.size),
+          name = s"Interpolant automaton, iteration $k")
+
+        //  log the interpolant automaton
+
+        logAuto(interpolantAuto,
+          { x: Int => i(x).unIndex.getTerm.toString },
+          { e: L => getBlockLabel(e) },
+          s"/tmp/interpolantAuto-$k.dot")
+
+        interpolantAuto
+    }
+
+    // if (l.isEmpty) {
+    //   //  if empty no repetition, we return the singleTraceAcceptor
+    //   singleTraceAcceptor
+    // } else {
 
       //  compute interpolants
 
       //  We should check that the logic and solver support it 
-       // DEBUG
+      // DEBUG
       // val i0: Seq[TypedTerm] =
       //   TypedTerm(true) +:
       //     getInterpolants(traceTermsNameMap)(solver).get :+
@@ -95,16 +177,14 @@ object InterpolantAutomaton {
       // println("---------------------------------------")
       // i0 map { x => println(x.getTerm) }
       // println("---------------------------------------")
-      val i: Seq[TypedTerm] =
-        TypedTerm(true) +:
-          (
-            if (backward)
-              getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex).reverse.map(!_)
-            else
-              getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex)
-          ) :+
-          TypedTerm(false)
-
+      // val i: Seq[TypedTerm] =
+      //   TypedTerm(true) +:
+      //     (
+      //       if (backward)
+      //         getInterpolants(traceTerms)(solver).get.map(_.unIndex).reverse.map(!_)
+      //       else
+      //         getInterpolants(traceTerms)(solver).get.map(_.unIndex)) :+
+      //       TypedTerm(false)
 
       //  try to add new edges
 
@@ -114,37 +194,37 @@ object InterpolantAutomaton {
       //  In theory we can try all the pairs for an entry but
       //  we restrict for now to all the pairs with first index as the
       //  first component
-      val newEdges = new ListBuffer[Edge[Int, L]]()
-      // println(s"--{$k}--")
-      for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
+      // val newEdges = new ListBuffer[Edge[Int, L]]()
+      // // println(s"--{$k}--")
+      // for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
 
-        //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-        // println(s"$entry")
-        // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
-        if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k+1))) {
-          // println(s"Included, adding edge $j to ${k+1}")
-          newEdges += Edge[Int, L](j, entry, k + 1)
-        }
-      }
+      //   //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+      //   // println(s"$entry")
+      //   // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
+      //   if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+      //     // println(s"Included, adding edge $j to ${k+1}")
+      //     newEdges += Edge[Int, L](j, entry, k + 1)
+      //   }
+      // }
 
       //  interpolant automaton
 
-      val interpolantAuto = NFA[Int, L](
-        Set(0),
-        singleTraceAcceptor.edges ++ newEdges,
-        Set(trace.size),
-        Set(trace.size),
-        name = s"${if (backward) "Reverse " else ""}Interpolant automaton, iteration $k")
+    //   val interpolantAuto = NFA[Int, L](
+    //     Set(0),
+    //     singleTraceAcceptor.edges ++ newEdges,
+    //     Set(trace.size),
+    //     Set(trace.size),
+    //     name = s"${if (backward) "Reverse " else ""}Interpolant automaton, iteration $k")
 
-      //  log the interpolant automaton
+    //   //  log the interpolant automaton
 
-      logAuto(interpolantAuto,
-        { x: Int => i(x).unIndex.getTerm.toString },
-        { e: L => getBlockLabel(e) },
-        s"/tmp/interpolantAuto${if (backward) "-rev" else ""}-$k.dot")
+    //   logAuto(interpolantAuto,
+    //     { x: Int => i(x).unIndex.getTerm.toString },
+    //     { e: L => getBlockLabel(e) },
+    //     s"/tmp/interpolantAuto${if (backward) "-rev" else ""}-$k.dot")
 
-      interpolantAuto
-    }
+    //   interpolantAuto
+    // }
   }
 
   import smtlib.util.{ TypedTerm }
@@ -179,9 +259,10 @@ object InterpolantAutomaton {
 
     val dotiAuto = toDot(a,
       nodeProp = {
-        x: Int ⇒ if (a.blocking.contains(x))
-             List(Attribute("shape", Ident("rectangle")),Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
-             else 
+        x: Int ⇒
+          if (a.blocking.contains(x))
+            List(Attribute("shape", Ident("rectangle")), Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
+          else
             List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
       },
       nodeDotName = {
@@ -221,7 +302,7 @@ object Semantics {
     //  compute indexing for srcP
     // println(Console.MAGENTA_B + "checking Post for")
     // println(srcP.getTerm)
-    
+
     // println(tgtP.getTerm)
     // println(Console.GREEN_B)
 

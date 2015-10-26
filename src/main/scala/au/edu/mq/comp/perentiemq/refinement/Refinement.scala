@@ -15,7 +15,7 @@ import smtlib.util.Logics.isSat
 import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
 import smtlib.parser.Commands.{ Exit, Reset, Pop, Push }
 import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.Logics.{ getValues, isSat, isSatIncr, getInterpolants }
+import smtlib.util.Logics.{ getValues, isSat, getInterpolants }
 
 import scala.util.{ Try, Failure, Success }
 
@@ -118,7 +118,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           // traceTerms map { case t => println(t.getNamedTerm) }
           solver.eval(Push(1))
           val res = if (config.incrSat())
-            isSatIncr(traceTerms, withNaming = true)(solver)
+            isSat(traceTerms, withNaming = true)(solver)
           else
             isSat(traceTerms, withNaming = true)(solver)
 
@@ -134,7 +134,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               Success(Some(failTrace))
 
             // case Success((UnsatStatus, Some(nameMap))) =>
-            case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
+            case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
               val newCulpritMap = if (config.incrSat()) {
                 // record the condition that made the trace infeasible
@@ -160,8 +160,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 val ia = InterpolantAutomaton(
                   // trace,
                   trace.take(feasibleLength),
-                  traceTerms.take(feasibleLength),
-                  nameMap,
+                  // traceTerms.take(feasibleLength),
+                  namedTerms,
                   maxIterations - remainingIterations,
                   traceToTerms,
                   isBlockEntry)(solver)
