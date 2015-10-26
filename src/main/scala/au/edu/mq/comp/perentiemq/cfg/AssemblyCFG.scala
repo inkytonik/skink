@@ -266,8 +266,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           // the element properties of the name.
           Vector()
 
-        case Load(Binding(to), _, tipe, _, ArrayElement (array, index), _) =>
-          Vector(nterm(to) === nterm(array).at(vterm(index)))
+        case insn @ Load(Binding(to), _, tipe, _, ArrayElement (array, index), _) =>
+          Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
 
         case Load(Binding(to), _, tipe, _, from, _) =>
           Vector(nterm(to) === vterm(from))
