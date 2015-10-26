@@ -103,9 +103,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
-          // println("Trace encoding --------------------")
-          // traceTerms.zipWithIndex map (  x => println(x._2 + " : " + x._1.getTerm)) 
-          // println("-----------------------------------")
+          println("Trace encoding --------------------")
+          traceTerms.zipWithIndex map (  x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(entries(x._2))}" + " : " + x._1.getTerm)) 
+          println("-----------------------------------")
           // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
           // import org.kiama.output.PrettyPrinter.{ any, pretty }
           // val pp = bTerms2.map(_.toString)
