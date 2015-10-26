@@ -263,7 +263,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                                                                   Metadata (Vector ()))
                             val from = render (fromlocal)
                             val phi = phiBlockName (srcblock, from)
-                            val phieffect = Block (BlockLabel (phi), Vector (), None, insns, term)
+                            val phieffect = Block (BlockLabel (phi.drop (1)), Vector (), None, insns, term)
                             buf += (phi ~> src) (CFGBlockEntry (phieffect))
                         }
                         block.copy (optMetaPhiInstructions = Vector ())
