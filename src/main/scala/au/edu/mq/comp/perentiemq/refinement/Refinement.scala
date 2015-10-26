@@ -138,7 +138,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
               val newCulpritMap = if (config.incrSat()) {
                 // record the condition that made the trace infeasible
-                  println(s"Culprit is ${entries(feasibleLength -1)}")
+                  // println(s"Culprit is ${entries(feasibleLength -1)}")
                   culpritMap
               }
               else culpritMap

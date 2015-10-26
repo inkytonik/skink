@@ -119,8 +119,8 @@ object InterpolantAutomaton {
       for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
 
         //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-        println(s"$entry")
-        println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
+        // println(s"$entry")
+        // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
         if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k+1))) {
           // println(s"Included, adding edge $j to ${k+1}")
           newEdges += Edge[Int, L](j, entry, k + 1)
@@ -219,18 +219,18 @@ object Semantics {
     val minmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).min) }).toMap
     val maxmap = (srcP.getVars map { x => (TypedTerm(x), indexMap.getOrElse(TypedTerm(x), Set(0)).max) }).toMap
     //  compute indexing for srcP
-    println(Console.MAGENTA_B + "checking Post for")
-    println(srcP.getTerm)
+    // println(Console.MAGENTA_B + "checking Post for")
+    // println(srcP.getTerm)
     
-    println(tgtP.getTerm)
-    println(Console.GREEN_B)
+    // println(tgtP.getTerm)
+    // println(Console.GREEN_B)
 
     // println(flattenEntry.getVars)
     // println(minmap)
     // println(maxmap)
-    println("Entry term is : " + flattenEntry.getTerm)
+    // println("Entry term is : " + flattenEntry.getTerm)
     //  build indexed srcP
-    println(Console.RESET)
+    // println(Console.RESET)
     val t = srcP index { case v if minmap.isDefinedAt(v) => minmap(v) }
     // println(t.getTerm)
     val p = tgtP index { case v if minmap.isDefinedAt(v) => maxmap(v) }
