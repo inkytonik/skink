@@ -179,7 +179,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
     }
 
-    /**
+    /*
      *
      * Return terms that express the effect of an LLVM node.
      */
@@ -304,7 +304,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
       }
 
-    /**
+    /*
      * Make a term for the named variable where `id` is the base name identifier.
      */
     def varTerm (name : Name, id : String) : TypedTerm =
@@ -507,7 +507,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     import smtlib.parser.Terms.QualifiedIdentifier
 
-    /**
+    /*
      * An ordering of qualified identifiers that breaks the name apart and
      * orders in increasing order of integer index and then name.
      */
@@ -524,7 +524,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
     }
 
-    /**
+    /*
      * Return whether or not the given variable name is of interest
      * at the user level, i.e., isn't a temporary. In the case of a
      * successful match, we also return the basename of the variable.
@@ -543,7 +543,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
     }
 
-    /**
+    /*
      * Print the defining position of a given variable.
      */
     def printDefiningPosition (name : String) {
@@ -555,7 +555,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         }
     }
 
-    /**
+    /*
      * Print a failure trace. This is a placeholder until we can
      * produce the appropriate output for the SV-COMP.
      */

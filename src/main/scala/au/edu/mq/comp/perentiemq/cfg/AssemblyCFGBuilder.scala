@@ -217,7 +217,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                 val buf = new ListBuffer[Edge[String,CFGEntry[FunctionDefinition,Block]]]
                 val accepting = Set ("%.error")
 
-                /**
+                /*
                  * The block name representing entry to `tgtblock` from a block
                  * named `src`. If `tgtblock` doesn't have any phi instructions, then
                  * this is just the name of `tgtblock`. Otherwise it is that name
@@ -232,7 +232,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                         s"$tgt.phi.$src"
                 }
 
-                /**
+                /*
                  * If a src block has no phi insns, return it unchanged. Otherwise,
                  * create the blocks that encapsulate the effects of the phi insns
                  * for each predecessor. Add NFA edges to link the phi blocks with
