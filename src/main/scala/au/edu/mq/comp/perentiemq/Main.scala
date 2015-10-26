@@ -28,7 +28,7 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
                                           descr = "Maximum number of refinement iterations",
                                           default = Some(10))
      lazy val trackValues = opt[Boolean] ("track", short = 'k',
-                                          descr = "Trakc values",
+                                          descr = "Track values",
                                           default = Some(false))
 }
 
