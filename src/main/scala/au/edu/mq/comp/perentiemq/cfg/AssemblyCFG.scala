@@ -207,23 +207,24 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case Binary(Binding(to), op, _: IntT, left, right) =>
           val lterm = vterm(left)
           val rterm = vterm(right)
-          val exp: TypedTerm =
+          val (exp, signed) : (TypedTerm, Boolean) =
             op match {
-              case _: Add  => lterm + rterm
-              case _: And  => lterm & rterm
-              case _: Mul  => lterm * rterm
-              case _: Or   => lterm | rterm
-              case _: SDiv => lterm / rterm
-              case _: SRem => lterm % rterm
-              case _: Sub  => lterm - rterm
-              case _: UDiv => lterm / rterm
-              case _: URem => lterm % rterm
-              case _: XOr  => lterm ^ rterm
+              case _: Add  => (lterm + rterm, true)
+              case _: And  => (lterm & rterm, true)
+              case _: Mul  => (lterm * rterm, true)
+              case _: Or   => (lterm | rterm, true)
+              case _: SDiv => (lterm / rterm, true)
+              case _: SRem => (lterm % rterm, true)
+              case _: Sub  => (lterm - rterm, true)
+              case _: UDiv => (lterm / rterm, false)
+              case _: URem => (lterm % rterm, false)
+              case _: XOr  => (lterm ^ rterm, true)
               case _ =>
                 println(s"binary int op $op not handled")
-                9999
+                (9999, true)
             }
-          Vector(nterm(to) === exp)
+          val eqterm = nterm(to) === exp
+          if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
 
         case Call (_, _, _, _, _, VerifierFunction (AssumeName ()),
                    Vector (ValueArg (IntT (size), Vector (), arg)), _) =>
