@@ -80,7 +80,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       case n @ Binding(name) =>
         bumpcount(in(n), name)
       case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-        println(s"Bumping for $n")
+        // println(s"Bumping for $n")
         bumpcount(in(n), name)
       case n @ Store(_, _, _, _, Named(name), _) =>
         bumpcount(in(n), name)
@@ -276,12 +276,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           Vector ()
 
         case insn @ Store(_, tipe, from, _, ArrayElement (array, index), _) =>
-          println(s"Using rule 1 for $insn")
+          // println(s"Using rule 1 for $insn")
           Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
                                              (vtermAt(insn, index), vterm(from))))
 
         case e@Store(_, tipe, from, _, to, _) =>
-          println(s"Using rule 2 for $e")
+          // println(s"Using rule 2 for $e")
           Vector(vterm(to) === vterm(from))
 
         case node =>
@@ -412,8 +412,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // tree.root.entries.flatMap(entryToTerm)
 
     val r = tree.root.entries.map(entryToTerm)
-    println("Store is")
-    stores(tree.root) map println
+    // println("Store is")
+    // stores(tree.root) map println
     r
   }
 
@@ -579,7 +579,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       nfa2,
       { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
       { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-      { b: Entry => b.isBlockEntry }) match {
+      { b: Entry => b.isBlockEntry },
+      config) match {
         case Success(witnessTrace) => witnessTrace match {
           case None =>
             config.output.emitln("TRUE")
