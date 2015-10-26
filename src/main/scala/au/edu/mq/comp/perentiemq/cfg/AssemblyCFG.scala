@@ -80,7 +80,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       case n @ Binding(name) =>
         bumpcount(in(n), name)
       case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-        println(s"Bumping for $n")
+        // println(s"Bumping for $n")
         bumpcount(in(n), name)
       case n @ Store(_, _, _, _, Named(name), _) =>
         bumpcount(in(n), name)
@@ -580,7 +580,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
       { b: CFGBlock[FunctionDefinition, Block] => b.toString },
       { b: Entry => b.isBlockEntry },
-      config.maxIterations()) match {
+      config) match {
         case Success(witnessTrace) => witnessTrace match {
           case None =>
             config.output.emitln("TRUE")

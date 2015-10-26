@@ -27,6 +27,9 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
     lazy val maxIterations = opt[Int] ("max", short = 'm',
                                           descr = "Maximum number of refinement iterations",
                                           default = Some(10))
+     lazy val incrSat = opt[Boolean] ("inc", short = 'i',
+                                          descr = "Use incremental SAT",
+                                          default = Some(false))
 }
 
 trait Driver extends CompilerBase[Program,PerentieMQConfig] {

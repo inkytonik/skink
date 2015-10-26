@@ -38,7 +38,8 @@ object InterpolantAutomaton {
     traceTermsNameMap : Map[TypedTerm, SSymbol],
     k: Int,
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
-    isBlockEntry: L => Boolean)(implicit solver: GenericSolver): NFA[Int, L] = {
+    isBlockEntry: L => Boolean,
+    backward: Boolean = false)(implicit solver: GenericSolver): NFA[Int, L] = {
 
     import scala.language.postfixOps
 
@@ -49,12 +50,12 @@ object InterpolantAutomaton {
     //  First build a linear automaton that accepts trace only
     val singleTraceAcceptor = NFA[Int, L](
       Set(0),
-      trace.zipWithIndex map {
+      (if (backward) trace.reverse else trace).zipWithIndex map {
         case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
       } toSet,
       Set(trace.size), 
       Set(trace.size),
-      name = s"Linear automaton, iteration $k")
+      name = s"${if (backward) "Reverse " else ""}Linear automaton, iteration $k")
 
     //  log the linear automaton
 
@@ -62,12 +63,12 @@ object InterpolantAutomaton {
       { x: Int => x.toString },
       // { e: L => e.toString },
       { e: L => getBlockLabel(e) },
-      s"/tmp/linear-auto-$k.dot")
+      s"/tmp/${if (backward) "Rev-" else ""}linear-auto-$k.dot")
 
     //  determine repeated CFGBlockEntry blocks 
 
     //  CFGChoice are not to be considered as they have no side effects
-    val tNames: Seq[(L, Int)] = trace.zipWithIndex.filter(b => isBlockEntry(b._1))
+    val tNames: Seq[(L, Int)] = (if (backward) trace.reverse else trace).zipWithIndex.filter(b => isBlockEntry(b._1))
     //  Group the entries and compute the indices at which they occur
     //  Each entry in trace is mapped to the set of indices it appears
     //  in trace
@@ -79,7 +80,7 @@ object InterpolantAutomaton {
     val l = q filter (_._2.size > 1)
 
     if (l.isEmpty) {
-      //  if emtpy no repetition, we return the singleTraceAcceptor
+      //  if empty no repetition, we return the singleTraceAcceptor
       singleTraceAcceptor
     } else {
 
@@ -96,8 +97,14 @@ object InterpolantAutomaton {
       // println("---------------------------------------")
       val i: Seq[TypedTerm] =
         TypedTerm(true) +:
-          getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex) :+
+          (
+            if (backward)
+              getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex).reverse.map(!_)
+            else
+              getInterpolants(traceTerms, traceTermsNameMap)(solver).get.map(_.unIndex)
+          ) :+
           TypedTerm(false)
+
 
       //  try to add new edges
 
@@ -108,11 +115,13 @@ object InterpolantAutomaton {
       //  we restrict for now to all the pairs with first index as the
       //  first component
       val newEdges = new ListBuffer[Edge[Int, L]]()
+      // println(s"--{$k}--")
       for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
 
         //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-
-        if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+        // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
+        if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k+1))) {
+          // println(s"Included, adding edge $j to ${k+1}")
           newEdges += Edge[Int, L](j, entry, k + 1)
         }
       }
@@ -124,14 +133,14 @@ object InterpolantAutomaton {
         singleTraceAcceptor.edges ++ newEdges,
         Set(trace.size),
         Set(trace.size),
-        name = s"Interpolant automaton, iteration $k")
+        name = s"${if (backward) "Reverse " else ""}Interpolant automaton, iteration $k")
 
       //  log the interpolant automaton
 
       logAuto(interpolantAuto,
         { x: Int => i(x).unIndex.getTerm.toString },
         { e: L => getBlockLabel(e) },
-        s"/tmp/interpolantAuto-$k.dot")
+        s"/tmp/interpolantAuto${if (backward) "-rev" else ""}-$k.dot")
 
       interpolantAuto
     }
@@ -238,8 +247,8 @@ object Semantics {
     // println(Console.RED_B + "Result included or not " + answer + Console.RESET)
     solver.eval(Exit())
     answer match {
-      case Success((SatStatus, _)) => false
-      case Success((UnsatStatus, _)) => true
+      case Success((SatStatus, _, _)) => false
+      case Success((UnsatStatus, _, _)) => true
       case status =>
         sys.error(s"[CheckPost] strange solver status: $status")
     }

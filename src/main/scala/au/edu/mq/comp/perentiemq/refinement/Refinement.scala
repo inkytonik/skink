@@ -13,7 +13,7 @@ import smtlib.interpreters.{ SMTSolver, GenericSolver }
 import smtlib.interpreters.Configurations._
 import smtlib.util.Logics.isSat
 import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
-import smtlib.parser.Commands.{ Exit, Reset }
+import smtlib.parser.Commands.{ Exit, Reset, Pop, Push }
 import smtlib.parser.Terms.QualifiedIdentifier
 import smtlib.util.Logics.{ getValues, isSat, isSatIncr, getInterpolants }
 
@@ -58,6 +58,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
   //  should define a proper scallop config
   // val MAX_ITERATION = 10
 
+  import au.edu.mq.comp.perentiemq.PerentieMQConfig
+
   /**
    * Implement the refinement loop, returning an optional trace that if
    * present is feasible and demonstrates how the program is incorrect.
@@ -66,12 +68,17 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     blockName: CFGBlock[FunctionDefinition, Block] => String,
     isBlockEntry: L => Boolean,
-    maxIterations: Int): Try[Option[FailureTrace[L]]] = {
+    // maxIterations: Int,
+    config: PerentieMQConfig): Try[Option[FailureTrace[L]]] = {
+
+    val maxIterations = config.maxIterations()
 
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
-    def refineRec[S, S2](cfg: NFA[S, L], r: DetAuto[S2, L], remainingIterations: Int): Try[Option[FailureTrace[L]]] =
+    def refineRec[S, S2](cfg: NFA[S, L], r: DetAuto[S2, L], 
+      remainingIterations: Int,
+      culpritMap: Map[CFGBlock[FunctionDefinition, Block], Int]): Try[Option[FailureTrace[L]]] =
       (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
         //  if None, the program is correct
@@ -102,13 +109,19 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
           // import org.kiama.output.PrettyPrinter.{ any, pretty }
           // val pp = bTerms2.map(_.toString)
-          // println(s"trying terms ${pretty(any(pp)).layout}")
+          // println(s"trying terms ${pretty(any(pp)).layout}") 
 
           //  get a solver and check if the trace is
           //  is feasible or not
-          val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
+          val solver = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
+
           // traceTerms map { case t => println(t.getNamedTerm) }
-          val res = isSatIncr(traceTerms, withNaming = true)(solver)
+          solver.eval(Push(1))
+          val res = if (config.incrSat())
+            isSatIncr(traceTerms, withNaming = true)(solver)
+          else
+            isSat(traceTerms, withNaming = true)(solver)
+
           res match {
             // case Success((SatStatus, _)) =>
             case Success((SatStatus, _, _)) =>
@@ -123,6 +136,12 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
             // case Success((UnsatStatus, Some(nameMap))) =>
             case Success((UnsatStatus, Some(nameMap), Some(feasibleLength))) =>
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
+              val newCulpritMap = if (config.incrSat()) {
+                // record the condition that made the trace infeasible
+                  println(s"Culprit is ${entries(feasibleLength -1)}")
+                  culpritMap
+              }
+              else culpritMap
               // check result
               // val solver2 = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
               // traceTerms map { case t => println(t.getNamedTerm) }
@@ -146,7 +165,11 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                   maxIterations - remainingIterations,
                   traceToTerms,
                   isBlockEntry)(solver)
+                solver.eval(Pop(1))
 
+                //  now compute an interpolant from the end
+
+                //   
                 solver.eval(Exit())
 
                 // assert(ia.isFinal(ia.succ(ia.getInit, trace.take(feasibleLength))))
@@ -173,21 +196,26 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                   s"/tmp/det-${maxIterations - remainingIterations}.dot")
 
                 if (remainingIterations < maxIterations) {
-                logAuto(toDetNFA(r),
-                  { x: Int => x.toString },
-                  { e: L => getBlockLabel(e) },
-                  s"/tmp/r-${maxIterations - remainingIterations}.dot")
-              }
+                  logAuto(toDetNFA(r),
+                    { x: Int => x.toString },
+                    { e: L => getBlockLabel(e) },
+                    s"/tmp/r-${maxIterations - remainingIterations}.dot")
+                }
 
                 logAuto(toDetNFA(ia),
                   { x: Int => x.toString },
                   { e: L => getBlockLabel(e) },
                   s"/tmp/ia-${maxIterations - remainingIterations}.dot")
 
+                // logAuto(toDetNFA(iaReverse),
+                //  { x: Int => x.toString },
+                //  { e: L => getBlockLabel(e) },
+                //  s"/tmp/iaR-${maxIterations - remainingIterations}.dot")
+
                 // File(s"/tmp/det-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r + ia))).layout)
                 // File(s"/tmp/r-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r))).layout)
                 // File(s"/tmp/detia-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(ia))).layout)
-                refineRec(cfg, toDetNFA(r + ia), remainingIterations - 1)
+                refineRec(cfg, toDetNFA(r + ia), remainingIterations - 1, newCulpritMap)
                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
               } else {
                 //  we ran out resources
@@ -201,6 +229,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           }
       }
 
-    refineRec(ircfg, NFA[Set[Int], L](Set(), Set(), Set()), maxIterations)
+    refineRec(ircfg, NFA[Set[Int], L](Set(), Set(), Set()), config.maxIterations(), Map())
   }
 }
