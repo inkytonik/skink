@@ -167,6 +167,19 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
+     * Matcher for types that we support comparisons between.
+     */
+    object ComparisonType {
+      def unapply (tipe : Type) : Boolean =
+        tipe match {
+          case _ : IntT | _ : PointerT =>
+            true
+          case _ =>
+            false
+        }
+    }
+
+    /**
      *
      * Return terms that express the effect of an LLVM node.
      */
@@ -230,7 +243,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
           Vector()
 
-        case Compare(Binding(to), ICmp(icond), _: IntT, left, right) =>
+        case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
           val lterm = vterm(left)
           val rterm = vterm(right)
           val exp =
