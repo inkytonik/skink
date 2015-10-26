@@ -103,9 +103,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
-          // println("Trace encoding --------------------")
-          // traceTerms.zipWithIndex map (  x => println(x._2 + " : " + x._1.getTerm)) 
-          // println("-----------------------------------")
+          println("Trace encoding --------------------")
+          traceTerms.zipWithIndex map (  x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(entries(x._2))}" + " : " + x._1.getTerm)) 
+          println("-----------------------------------")
           // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
           // import org.kiama.output.PrettyPrinter.{ any, pretty }
           // val pp = bTerms2.map(_.toString)
@@ -138,7 +138,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
               val newCulpritMap = if (config.incrSat()) {
                 // record the condition that made the trace infeasible
-                  println(s"Culprit is ${entries(feasibleLength -1)}")
+                  // println(s"Culprit is ${entries(feasibleLength -1)}")
                   culpritMap
               }
               else culpritMap

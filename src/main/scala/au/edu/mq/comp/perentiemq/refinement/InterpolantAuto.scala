@@ -119,6 +119,7 @@ object InterpolantAutomaton {
       for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
 
         //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+        // println(s"$entry")
         // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
         if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k+1))) {
           // println(s"Included, adding edge $j to ${k+1}")
