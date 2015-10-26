@@ -220,8 +220,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
               case _: URem => (lterm % rterm, false)
               case _: XOr  => (lterm ^ rterm, true)
               case _ =>
-                println(s"binary int op $op not handled")
-                (9999, true)
+                sys.error(s"binary int op $op not handled")
             }
           val eqterm = nterm(to) === exp
           if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
@@ -299,8 +298,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           Vector(vterm(to) === vterm(from))
 
         case node =>
-          println(s"terms not found for $node")
-          Vector()
+          sys.error(s"terms not found for $node")
 
       }
 
