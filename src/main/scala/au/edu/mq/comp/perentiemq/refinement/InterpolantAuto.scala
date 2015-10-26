@@ -77,20 +77,7 @@ object InterpolantAutomaton {
 
     import scala.language.postfixOps
 
-    //  build a single trace acceptor
-
-    //  `trace` is UNSAT and the solver is in the state 
-    //  it was after the last CheckSat which produced UNSAT
-    //  First build a linear automaton that accepts trace only
-    // val singleTraceAcceptor = NFA[Int, L](
-    //   Set(0),
-    //   (if (backward) trace.reverse else trace).zipWithIndex map {
-    //     case k => Edge[Int, L](k._2, k._1, (k._2 + 1))
-    //   } toSet,
-    //   Set(trace.size),
-    //   Set(trace.size),
-    //   name = s"${if (backward) "Reverse " else ""}Linear automaton, iteration $k")
-
+    //  get the linear NFA from the trace
     val linearNFA = linearInterAuto(trace)
     //  log the linear automaton
     logAuto(linearNFA,
@@ -99,21 +86,8 @@ object InterpolantAutomaton {
       { e: L => getBlockLabel(e) },
       s"/tmp/linear-auto-$k.dot")
 
-    //  determine repeated CFGBlockEntry blocks 
-
-    //  CFGChoice are not to be considered as they have no side effects
-    // val tNames: Seq[(L, Int)] = (if (backward) trace.reverse else trace).zipWithIndex.filter(b => isBlockEntry(b._1))
-    // //  Group the entries and compute the indices at which they occur
-    // //  Each entry in trace is mapped to the set of indices it appears
-    // //  in trace
-    // val blockEnt: Map[L, Seq[(L, Int)]] = tNames.groupBy(l => l._1)
-    // val q = blockEnt map {
-    //   case x => (x._1, x._2.unzip._2)
-    // } toList
-    // //  l contains the repeated blocks
-    // val l = q filter (_._2.size > 1)
-
-    repeatedLabels(trace) match {
+    //  check if any repeated block, omit CFGChoice
+    repeatedLabels(trace).filter(b => isBlockEntry(b._1)) match {
 
       case m if (m.size == 0) => linearNFA
 
@@ -131,14 +105,10 @@ object InterpolantAutomaton {
         //  we restrict for now to all the pairs with first index as the
         //  first component
         val newEdges = new ListBuffer[Edge[Int, L]]()
-        // println(s"--{$k}--")
         for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
 
           //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-          // println(s"$entry")
-          // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
           if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
-            // println(s"Included, adding edge $j to ${k+1}")
             newEdges += Edge[Int, L](j, entry, k + 1)
           }
         }
@@ -161,70 +131,6 @@ object InterpolantAutomaton {
         interpolantAuto
     }
 
-    // if (l.isEmpty) {
-    //   //  if empty no repetition, we return the singleTraceAcceptor
-    //   singleTraceAcceptor
-    // } else {
-
-      //  compute interpolants
-
-      //  We should check that the logic and solver support it 
-      // DEBUG
-      // val i0: Seq[TypedTerm] =
-      //   TypedTerm(true) +:
-      //     getInterpolants(traceTermsNameMap)(solver).get :+
-      //     TypedTerm(false)
-      // println("---------------------------------------")
-      // i0 map { x => println(x.getTerm) }
-      // println("---------------------------------------")
-      // val i: Seq[TypedTerm] =
-      //   TypedTerm(true) +:
-      //     (
-      //       if (backward)
-      //         getInterpolants(traceTerms)(solver).get.map(_.unIndex).reverse.map(!_)
-      //       else
-      //         getInterpolants(traceTerms)(solver).get.map(_.unIndex)) :+
-      //       TypedTerm(false)
-
-      //  try to add new edges
-
-      //  if entry e appears in the trace at location k and j, k -- e -> k + 1
-      //  and j -- e -> j + 1, and  k < j, 
-      //  we can try to add an edge j  - e -> (k + 1)
-      //  In theory we can try all the pairs for an entry but
-      //  we restrict for now to all the pairs with first index as the
-      //  first component
-      // val newEdges = new ListBuffer[Edge[Int, L]]()
-      // // println(s"--{$k}--")
-      // for ((entry, listIndex) <- l; k = listIndex.head; j <- listIndex.tail) {
-
-      //   //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-      //   // println(s"$entry")
-      //   // println(s"($backward) Checking Post($j:${i(j).getTerm}) via ${getBlockLabel(entry)} implies ${k+1}:${i(k+1).getTerm}")
-      //   if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
-      //     // println(s"Included, adding edge $j to ${k+1}")
-      //     newEdges += Edge[Int, L](j, entry, k + 1)
-      //   }
-      // }
-
-      //  interpolant automaton
-
-    //   val interpolantAuto = NFA[Int, L](
-    //     Set(0),
-    //     singleTraceAcceptor.edges ++ newEdges,
-    //     Set(trace.size),
-    //     Set(trace.size),
-    //     name = s"${if (backward) "Reverse " else ""}Interpolant automaton, iteration $k")
-
-    //   //  log the interpolant automaton
-
-    //   logAuto(interpolantAuto,
-    //     { x: Int => i(x).unIndex.getTerm.toString },
-    //     { e: L => getBlockLabel(e) },
-    //     s"/tmp/interpolantAuto${if (backward) "-rev" else ""}-$k.dot")
-
-    //   interpolantAuto
-    // }
   }
 
   import smtlib.util.{ TypedTerm }
@@ -247,7 +153,6 @@ object InterpolantAutomaton {
       case CFGChoice(name, choice, tgt) =>
         s"$name is $choice"
       case CFGGoto(tgt) => s"Goto($tgt)"
-      // s"C(${c.target})"
     }
   }
 
@@ -334,7 +239,6 @@ object Semantics {
       case status =>
         sys.error(s"[CheckPost] strange solver status: $status")
     }
-    // true
   }
 
 }

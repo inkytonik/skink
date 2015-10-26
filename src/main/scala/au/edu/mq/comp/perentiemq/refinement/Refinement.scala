@@ -54,10 +54,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     FailureTrace(trace, ids, values)
   }
 
-  //  maximum number of iterations
-  //  should define a proper scallop config
-  // val MAX_ITERATION = 10
-
   import au.edu.mq.comp.perentiemq.PerentieMQConfig
 
   /**
@@ -68,7 +64,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     traceToTerms: Seq[L] => Seq[Vector[TypedTerm]],
     blockName: CFGBlock[FunctionDefinition, Block] => String,
     isBlockEntry: L => Boolean,
-    // maxIterations: Int,
     config: PerentieMQConfig): Try[Option[FailureTrace[L]]] = {
 
     val maxIterations = config.maxIterations()
@@ -76,40 +71,38 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
     // FIXME: want to put @tailrec but Scala compiler complains, not sure why...
     // Franck: because getAcceptedTrace itself contains a tailrec?
     import scala.annotation.tailrec
-    def refineRec[S, S2](cfg: NFA[S, L], r: DetAuto[S2, L], 
+    def refineRec[S, S2](cfg: NFA[S, L], r: DetAuto[S2, L],
       remainingIterations: Int,
       culpritMap: Map[CFGBlock[FunctionDefinition, Block], Int]): Try[Option[FailureTrace[L]]] =
       (Lang(cfg) \ Lang(r)).getAcceptedTrace match {
 
         //  if None, the program is correct
+
         case None =>
           println(Console.GREEN_B + s"Refinement steps : ${maxIterations - remainingIterations}" + Console.RESET)
           Success(None)
 
         //  otherwise we investigate further.
         //  Is the trace spurious or not?
-        case Some(entries) =>
-          println(Console.RED_B + s"Found trace size ${entries.size}")
-          // entries map println
+
+        case Some(trace) =>
+          println(Console.RED_B + s"Found trace size ${trace.size}")
+          // trace map println
           println(Console.RESET)
-          val trace = entries
+
           // Encode the trace into an SSA formula to check feasibility
           // Each entry e in entries is mapped to a Vector[TypedTerm]
           // that encode the effect of the entry.
           // reduce each Vector(p1, p2, pk) to p1 & p2 & ... & pk
           // If later we want ot get interpolants, we need to partition
           // the terms this way.
-          // val blockTerms: Seq[Vector[TypedTerm]] = traceToTerms(trace)
+
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
           println("Trace encoding --------------------")
-          traceTerms.zipWithIndex map (  x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(entries(x._2))}" + " : " + x._1.getTerm)) 
+          traceTerms.zipWithIndex map (x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(trace(x._2))}" + " : " + x._1.getTerm))
           println("-----------------------------------")
-          // val bTerms = blockTerms.map(_.reduceLeft(_ & _))
-          // import org.kiama.output.PrettyPrinter.{ any, pretty }
-          // val pp = bTerms2.map(_.toString)
-          // println(s"trying terms ${pretty(any(pp)).layout}") 
 
           //  get a solver and check if the trace is
           //  is feasible or not
@@ -117,80 +110,54 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
           // traceTerms map { case t => println(t.getNamedTerm) }
           solver.eval(Push(1))
-          val res = if (config.incrSat())
-            isSat(traceTerms, withNaming = true)(solver)
-          else
-            isSat(traceTerms, withNaming = true)(solver)
 
-          res match {
-            // case Success((SatStatus, _)) =>
+          isSat(traceTerms, withNaming = true)(solver) match {
+
+            //  feasible trace
+
             case Success((SatStatus, _, _)) =>
 
               //  trace is feasible. Program is incorrect. build a failure trace
-              val failTrace = makeFailureTrace(entries, traceTerms, solver)
+              val failTrace = makeFailureTrace(trace, traceTerms, solver)
 
               solver.eval(Exit())
               // logger.debug("trace was feasible")
               Success(Some(failTrace))
 
-            // case Success((UnsatStatus, Some(nameMap))) =>
+            //  infeasible trace 
             case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
-              val newCulpritMap = if (config.incrSat()) {
+              val newCulpritMap = if (config.trackValues()) {
                 // record the condition that made the trace infeasible
-                  // println(s"Culprit is ${entries(feasibleLength -1)}")
-                  culpritMap
-              }
-              else culpritMap
-              // check result
-              // val solver2 = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
-              // traceTerms map { case t => println(t.getNamedTerm) }
-              // val res2 = isSat(traceTerms.take(feasibleLength))(solver2)
-              // solver2.eval(Exit())
-
-              // println(s"Result of check : $res2")
-              // println(s"First infeasible after: $feasibleLength steps")
-              // println(nameMap)
-              // logger.debug("trace was infeasible")
+                println(s"Culprit is ${trace(feasibleLength -1)}")
+                culpritMap
+              } else culpritMap
+              
               if (remainingIterations > 0) {
-                // val i: Seq[TypedTerm] = getInterpolants(traceTerms)(solver).get
-                //  compute a refinement, interpolant automaton
-                //  
-                // val ia = computeInterpolantAuto(i, trace, traceToTerms, maxIterations -remainingIterations)
+
+                //  refine
+
                 val ia = InterpolantAutomaton(
-                  // trace,
                   trace.take(feasibleLength),
-                  // traceTerms.take(feasibleLength),
                   namedTerms,
                   maxIterations - remainingIterations,
                   traceToTerms,
                   isBlockEntry)(solver)
+
                 solver.eval(Pop(1))
-
-                //  now compute an interpolant from the end
-
-                //   
                 solver.eval(Exit())
-
-                // assert(ia.isFinal(ia.succ(ia.getInit, trace.take(feasibleLength))))
 
                 println(Console.RED_B + s"Refining - step ${maxIterations - remainingIterations}" + Console.RESET)
 
                 import reflect.io._
                 import au.edu.mq.comp.automat.util.DotConverter.toDot
                 import au.edu.mq.comp.dot.DOTPrettyPrinter.format
-                // File(s"/tmp/ia-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(ia)).layout)
 
-                // assert((cfg - ia).isFinal((cfg - ia).succ((cfg - ia).getInit, trace.take(feasibleLength))))
-                // File(s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(cfg - ia))).layout)
-
-                // InterpolantAutomaton.logAuto(toDetNFA(cfg - ia),
-                //   { x: Entry => InterpolantAutomaton.getBlockLabel(x) },
-                //   { e: Entry => InterpolantAutomaton.getBlockLabel(e) },
-                //   s"/tmp/cfg-${MAX_ITERATION - remainingIterations}.dot")
+                //  log results
+                
                 import InterpolantAutomaton.{ getBlockLabel, logAuto }
-                // refineRec(toDetNFA(cfg - ia), NFA[Set[Int], L](Set(), Set(), Set()), remainingIterations - 1)
-                logAuto(toDetNFA(r + ia),
+
+                  logAuto(toDetNFA(r + ia),
                   { x: Int => x.toString },
                   { e: L => getBlockLabel(e) },
                   s"/tmp/det-${maxIterations - remainingIterations}.dot")
