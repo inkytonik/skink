@@ -26,6 +26,7 @@ FALSE
 
 <edge source="n0" target="n1">
   <data key="block">%0</data>
+  <data key="sourcecode">unsigned int n = __VERIFIER_nondet_uint();</data>
   <data key="originfile">count-up-down_true-unreach-call.c</data>
   <data key="startline">13</data>
   <data key="startcolumn">16</data>
@@ -33,6 +34,7 @@ FALSE
 
 <edge source="n1" target="n2">
   <data key="block">%5</data>
+  <data key="sourcecode">while(x&gt;0)</data>
   <data key="originfile">count-up-down_true-unreach-call.c</data>
   <data key="startline">15</data>
   <data key="startcolumn">9</data>
@@ -40,6 +42,7 @@ FALSE
 
 <edge source="n2" target="n3">
   <data key="choice">%7 == false</data>
+  <data key="sourcecode">while(x&gt;0)</data>
   <data key="originfile">count-up-down_true-unreach-call.c</data>
   <data key="startline">15</data>
   <data key="startcolumn">10</data>
@@ -47,6 +50,7 @@ FALSE
 
 <edge source="n3" target="n4">
   <data key="block">%13</data>
+  <data key="sourcecode">__VERIFIER_assert(y!=n);</data>
   <data key="originfile">count-up-down_true-unreach-call.c</data>
   <data key="startline">20</data>
   <data key="startcolumn">21</data>
@@ -54,6 +58,7 @@ FALSE
 
 <edge source="n4" target="n5">
   <data key="choice">%20 == false</data>
+  <data key="sourcecode">if (!(cond)) {</data>
   <data key="originfile">count-up-down_true-unreach-call.c</data>
   <data key="startline">4</data>
   <data key="startcolumn">8</data>

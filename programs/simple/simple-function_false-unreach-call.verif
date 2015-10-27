@@ -26,6 +26,7 @@ FALSE
 
 <edge source="n0" target="n1">
   <data key="block">%0</data>
+  <data key="sourcecode">int j;</data>
   <data key="originfile">simple-function_false-unreach-call.c</data>
   <data key="startline">18</data>
   <data key="startcolumn">9</data>
@@ -33,6 +34,7 @@ FALSE
 
 <edge source="n1" target="n2">
   <data key="choice">%9 == false</data>
+  <data key="sourcecode">if (!(cond)) {</data>
   <data key="originfile">simple-function_false-unreach-call.c</data>
   <data key="startline">4</data>
   <data key="startcolumn">8</data>

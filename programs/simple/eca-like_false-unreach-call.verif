@@ -26,6 +26,7 @@ FALSE
 
 <edge source="n0" target="n1">
   <data key="block">%0</data>
+  <data key="sourcecode">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">15</data>
   <data key="startcolumn">9</data>
@@ -33,6 +34,7 @@ FALSE
 
 <edge source="n1" target="n2">
   <data key="block">%3</data>
+  <data key="sourcecode">cond = __VERIFIER_nondet_int();</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">21</data>
   <data key="startcolumn">16</data>
@@ -40,6 +42,7 @@ FALSE
 
 <edge source="n2" target="n3">
   <data key="choice">%6 == false</data>
+  <data key="sourcecode">if (cond == 0) {</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">22</data>
   <data key="startcolumn">18</data>
@@ -47,6 +50,7 @@ FALSE
 
 <edge source="n3" target="n4">
   <data key="block">%9</data>
+  <data key="sourcecode">lk1 = 0; // initially lock is open</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">25</data>
   <data key="startcolumn">13</data>
@@ -54,6 +58,7 @@ FALSE
 
 <edge source="n4" target="n5">
   <data key="choice">%11 == true</data>
+  <data key="sourcecode">if (p1 != 0) {</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">16</data>
@@ -61,6 +66,7 @@ FALSE
 
 <edge source="n5" target="n6">
   <data key="block">%12</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">29</data>
   <data key="startcolumn">17</data>
@@ -68,6 +74,7 @@ FALSE
 
 <edge source="n6" target="n7">
   <data key="choice">%14 == true</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
   <data key="originfile">eca-like_false-unreach-call.c</data>
   <data key="startline">29</data>
   <data key="startcolumn">21</data>
