@@ -30,6 +30,9 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object TraceRefinement { //extends LazyLogging removing for now as they are two logback.xml files conflicting
 
+
+  val stringToSolver = Map("Z3" -> Z3, "SMTInterpol" -> SMTInterpol, "CVC4" -> CVC4)
+
   /**
    * A feasible trace that leads to a program failure. `values`, if
    * present, reports on the values that lead to the failure. It
@@ -55,6 +58,8 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
   }
 
   import au.edu.mq.comp.perentiemq.PerentieMQConfig
+
+
 
   /**
    * Implement the refinement loop, returning an optional trace that if
@@ -106,7 +111,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
           //  get a solver and check if the trace is
           //  is feasible or not
-          val solver = SMTSolver(SMTInterpol, QFAUFLIAFullConfig, config.solverTimeOut()).get
+          val solver = SMTSolver(stringToSolver(config.solver()), QFAUFLIAFullConfig, config.solverTimeOut()).get
 
           // traceTerms map { case t => println(t.getNamedTerm) }
           solver.eval(Push(1))
@@ -129,10 +134,10 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
               val newCulpritMap = if (config.trackValues()) {
                 // record the condition that made the trace infeasible
-                println(s"Culprit is ${trace(feasibleLength -1)}")
+                println(s"Culprit is ${trace(feasibleLength - 1)}")
                 culpritMap
               } else culpritMap
-              
+
               if (remainingIterations > 0) {
 
                 //  refine
@@ -154,10 +159,10 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 import au.edu.mq.comp.dot.DOTPrettyPrinter.format
 
                 //  log results
-                
+
                 import InterpolantAutomaton.{ getBlockLabel, logAuto }
 
-                  logAuto(toDetNFA(r + ia),
+                logAuto(toDetNFA(r + ia),
                   { x: Int => x.toString },
                   { e: L => getBlockLabel(e) },
                   s"/tmp/det-${maxIterations - remainingIterations}.dot")

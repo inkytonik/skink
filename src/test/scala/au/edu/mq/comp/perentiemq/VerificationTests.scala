@@ -98,6 +98,6 @@ class VerificationTests extends TestBase {
     }
 
     filetests ("Simple C verification", "programs/simple", ".ll", ".verif",
-               argslist = List (Array ("-v")))
+               argslist = List (Array ("-v", "-m15", "-eZ3" )))
 
 }

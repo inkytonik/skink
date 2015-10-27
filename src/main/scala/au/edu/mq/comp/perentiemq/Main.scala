@@ -33,6 +33,9 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
      lazy val solverTimeOut = opt[Int] ("timeout", short = 'o',
                                           descr = "Timeout for SMT solvers (seconds)",
                                           default = Some(10))
+     lazy val solver = opt[String] ("solver", short = 'e',
+                                          descr = "SMT solver (Z3, SMTInterpol, CVC4",
+                                          default = Some("Z3"))
 }
 
 trait Driver extends CompilerBase[Program,PerentieMQConfig] {
