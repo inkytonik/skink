@@ -101,3 +101,20 @@ class VerificationTests extends TestBase {
                argslist = List (Array ("-v", "-m15", "-eZ3" )))
 
 }
+
+class SVCOMPLoopLitTests extends TestBase {
+
+    import org.scalatest.{Args, Status}
+
+    override def run (testName : Option[String], args : Args) : Status = {
+        val svcompReporter = new SVCompReporter (args.reporter)
+        val status = super.run (testName, args.copy (reporter = svcompReporter))
+        svcompReporter.printSVCompReport (args)
+        status
+    }
+
+    filetests ("Simple C verification", "programs/svcomp16/loop-lit", ".ll", ".verif",
+               argslist = List (Array ("-v", "-m15", "-eZ3" )))
+
+}
+
