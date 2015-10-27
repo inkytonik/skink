@@ -28,8 +28,11 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
                                           descr = "Maximum number of refinement iterations",
                                           default = Some(10))
      lazy val trackValues = opt[Boolean] ("track", short = 'k',
-                                          descr = "Trakc values",
+                                          descr = "Track values",
                                           default = Some(false))
+     lazy val solverTimeOut = opt[Int] ("timeout", short = 'o',
+                                          descr = "Timeout for SMT solvers (seconds)",
+                                          default = Some(10))
 }
 
 trait Driver extends CompilerBase[Program,PerentieMQConfig] {

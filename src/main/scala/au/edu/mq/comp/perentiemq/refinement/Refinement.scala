@@ -106,7 +106,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
           //  get a solver and check if the trace is
           //  is feasible or not
-          val solver = SMTSolver(SMTInterpol, QFAUFLIAFullConfig).get
+          val solver = SMTSolver(SMTInterpol, QFAUFLIAFullConfig, config.solverTimeOut()).get
 
           // traceTerms map { case t => println(t.getNamedTerm) }
           solver.eval(Push(1))
