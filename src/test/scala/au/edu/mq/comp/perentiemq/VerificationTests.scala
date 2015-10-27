@@ -24,7 +24,6 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
         var falseNegativePoints = -16
         var unknownPoints = 0
 
-
         object Correct {
             def unapply (name : String) : Boolean =
                 name contains "_true-unreach-call"
@@ -35,17 +34,27 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
                 name contains "_false-unreach-call"
         }
 
+        object UnknownMessage {
+            def unapply (message : String) : Boolean =
+                message startsWith "\"[UNKNOWN"
+        }
+
         def apply (event : Event) {
             reporter (event)
             event match {
                 case failure : TestFailed =>
-                    failure.testName match {
-                        case Correct () =>
-                            falseNegativeNum = falseNegativeNum + 1
-                        case InCorrect () =>
-                            falsePositiveNum = falsePositiveNum + 1
+                    failure.message match {
+                        case UnknownMessage () =>
+                            unknownNum = unknownNum + 1
                         case _ =>
-                            bogusNameNum = bogusNameNum + 1
+                            failure.testName match {
+                                case Correct () =>
+                                    falseNegativeNum = falseNegativeNum + 1
+                                case InCorrect () =>
+                                    falsePositiveNum = falsePositiveNum + 1
+                                case _ =>
+                                    bogusNameNum = bogusNameNum + 1
+                            }
                     }
                 case success : TestSucceeded =>
                     success.testName match {
