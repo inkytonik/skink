@@ -84,16 +84,16 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         //  if None, the program is correct
 
         case None =>
-          println(Console.GREEN_B + s"Refinement steps : ${maxIterations - remainingIterations}" + Console.RESET)
+          println(s"Refinement steps : ${Console.GREEN}${maxIterations - remainingIterations}${Console.RESET}" )
           Success(None)
 
         //  otherwise we investigate further.
         //  Is the trace spurious or not?
 
         case Some(trace) =>
-          println(Console.RED_B + s"Found trace size ${trace.size}")
+          println( s"Found trace with  ${Console.YELLOW}${trace.size}${Console.RESET} steps")
           // trace map println
-          println(Console.RESET)
+          // println(Console.RESET)
 
           // Encode the trace into an SSA formula to check feasibility
           // Each entry e in entries is mapped to a Vector[TypedTerm]
@@ -105,9 +105,9 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
           val traceTerms: Seq[TypedTerm] =
             traceToTerms(trace).map(_.reduceLeft(_ & _))
 
-          println("Trace encoding --------------------")
-          traceTerms.zipWithIndex map (x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(trace(x._2))}" + " : " + x._1.getTerm))
-          println("-----------------------------------")
+          // println("Trace encoding --------------------")
+          // traceTerms.zipWithIndex map (x => println(x._2 + s" ${InterpolantAutomaton.getBlockLabel(trace(x._2))}" + " : " + x._1.getTerm))
+          // println("-----------------------------------")
 
           //  get a solver and check if the trace is
           //  is feasible or not
@@ -131,7 +131,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
             //  infeasible trace 
             case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
-              println(Console.RED_B + s"trace is infeasible term number ${feasibleLength - 1}" + Console.RESET)
+              println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
               val newCulpritMap = if (config.trackValues()) {
                 // record the condition that made the trace infeasible
                 println(s"Culprit is ${trace(feasibleLength - 1)}")
@@ -141,6 +141,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               if (remainingIterations > 0) {
 
                 //  refine
+                println(s"Refining - step ${Console.YELLOW}${maxIterations - remainingIterations}${Console.RESET}")
 
                 val ia = InterpolantAutomaton(
                   trace.take(feasibleLength),
@@ -152,7 +153,6 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                 solver.eval(Pop(1))
                 solver.eval(Exit())
 
-                println(Console.RED_B + s"Refining - step ${maxIterations - remainingIterations}" + Console.RESET)
 
                 import reflect.io._
                 import au.edu.mq.comp.automat.util.DotConverter.toDot

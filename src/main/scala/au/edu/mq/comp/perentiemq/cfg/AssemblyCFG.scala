@@ -616,11 +616,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           config) match {
             case Success(witnessTrace) => witnessTrace match {
               case None =>
+                println(s"${Console.GREEN}Program is correct${Console.RESET}")
                 config.output.emitln("TRUE")
-                println(Console.GREEN_B + "Program is correct" + Console.RESET)
               case Some(failTrace) =>
+                println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
                 config.output.emitln("FALSE")
-                println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" + Console.RESET)
                 printTrace(failTrace)
                 printWitness(config, program, function, funanalyser, failTrace)
             }
