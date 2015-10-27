@@ -1,9 +1,9 @@
 package au.edu.mq.comp.perentiemq.cfg
 
 /**
- * Consolidated construction, processing and verification of LLVM assembly CFGs.
+ * Probides slicing for CFG
  */
-object AssemblyCFG extends AssemblyCFGBuilder {
+object SlicerCFG extends AssemblyCFGBuilder {
 
   import au.edu.mq.comp.perentiemq.PerentieMQConfig
   import org.kiama.relation.Tree
@@ -419,12 +419,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           exitcondToTerm(c).toVector
       }
 
-    // Return all of the terms arising from this trace
-    // tree.root.entries.flatMap(entryToTerm)
-
     val r = tree.root.entries.map(entryToTerm)
-    // println("Store is")
-    // stores(tree.root) map println
     r
   }
 
@@ -432,8 +427,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
    */
-  def verify(program: Program, cfg: CFG[FunctionDefinition, Block],
-    cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
+  def slice(cfg: CFGNFA) {
 
     import au.edu.mq.comp.automat.auto.{ NFA }
     import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
@@ -443,19 +437,19 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
 
     // Return if we don't want to verify this function
-    val fname = functionName(cfgAnalyser.function(cfg))
-    if (fname != "@main")
-      return
+    // val fname = functionName(cfgAnalyser.function(cfg))
+    // if (fname != "@main")
+    //   return
 
-    // Gather type information on variables in this CFG
-    val function = cfg.function.cross
-    val funtree = new Tree[ASTNode, FunctionDefinition](function)
-    val funanalyser = new Analyser(funtree)
-    val properties = funanalyser.propertiesOfFunction(cfg.function.cross)
+    // // Gather type information on variables in this CFG
+    // val function = cfg.function.cross
+    // val funtree = new Tree[ASTNode, FunctionDefinition](function)
+    // val funanalyser = new Analyser(funtree)
+    // val properties = funanalyser.propertiesOfFunction(cfg.function.cross)
 
-    // Make the NFA for this CFG
-    val cfganalyser = new CFGAnalyser(cfg)
-    val nfa = AssemblyCFG.nfa(cfg)
+    // // Make the NFA for this CFG
+    // val cfganalyser = new CFGAnalyser(cfg)
+    // val nfa = AssemblyCFG.nfa(cfg)
 
     //  sanitise the CFGNFA
 
@@ -465,32 +459,32 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     //  collect 'dummy' which are states that are source of an empty effect
     //  and record their successor in a Map
-    val dummyStatesMap = (nfa.edges.filter {
-      e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
-    }).map(e => (e.src, e.tgt)).toMap
+    // val dummyStatesMap = (nfa.edges.filter {
+    //   e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
+    // }).map(e => (e.src, e.tgt)).toMap
 
     //  function to compute successors of dummys
     //  a dummy may have a successor which is a dummy, so we need to
     //  compute the successor recursively
     //  
-    def getSucc(s: String): String = {
-      if (dummyStatesMap.isDefinedAt(s)) getSucc(dummyStatesMap(s))
-      else s
-    }
+    // def getSucc(s: String): String = {
+    //   if (dummyStatesMap.isDefinedAt(s)) getSucc(dummyStatesMap(s))
+    //   else s
+    // }
 
     //  now we remove each edge s2 - l -> dummyState(s2) with no effect and
     //  use the recursive getSucc to replace each incoming edge 
     //  s1 - l -> dummyState(s2) by s1 - l -> getSucc(s2)
 
-    import au.edu.mq.comp.automat.edge.Edge
-    val nfa2 = NFA(nfa.init,
-      (nfa.edges filterNot {
-        e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
-      }) map {
-        case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, getSucc(e.tgt))
-        case e => e
-      },
-      nfa.accepting)
+    // import au.edu.mq.comp.automat.edge.Edge
+    // val nfa2 = NFA(nfa.init,
+    //   (nfa.edges filterNot {
+    //     e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
+    //   }) map {
+    //     case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, getSucc(e.tgt))
+    //     case e => e
+    //   },
+    //   nfa.accepting)
 
     // nfa2.edges map println
 
@@ -507,10 +501,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // println(Console.RESET)
 
     // println(cfganalyser.toDot(nfa))
-    File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
-    File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
-    // Regexp for breaking verified names apart
-    val Name = "(.*)@([0-9]+)".r
+    // File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
+    // File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
+    // // Regexp for breaking verified names apart
+    // val Name = "(.*)@([0-9]+)".r
 
     import smtlib.parser.Terms.QualifiedIdentifier
 
@@ -518,18 +512,18 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * An ordering of qualified identifiers that breaks the name apart and
      * orders in increasing order of integer index and then name.
      */
-    implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
-      def compare(a: QualifiedIdentifier, b: QualifiedIdentifier): Int =
-        (a.id.symbol.name, b.id.symbol.name) match {
-          case (Name(avar, aind), Name(bvar, bind)) =>
-            val ai = aind.toInt
-            val bi = bind.toInt
-            if (ai == bi)
-              avar compare bvar
-            else
-              ai - bi
-        }
-    }
+    // implicit object QIdOrdering extends scala.math.Ordering[QualifiedIdentifier] {
+    //   def compare(a: QualifiedIdentifier, b: QualifiedIdentifier): Int =
+    //     (a.id.symbol.name, b.id.symbol.name) match {
+    //       case (Name(avar, aind), Name(bvar, bind)) =>
+    //         val ai = aind.toInt
+    //         val bi = bind.toInt
+    //         if (ai == bi)
+    //           avar compare bvar
+    //         else
+    //           ai - bi
+    //     }
+    // }
 
     /*
      * Return whether or not the given variable name is of interest
@@ -550,86 +544,32 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
     }
 
-    /*
-     * Print the defining position of a given variable.
-     */
-    def printDefiningPosition(name: String) {
-      funanalyser.definingPosition(program, function, name) match {
-        case Some(position) =>
-          print(s" at ${position.source.optName.get}:${position.line}:${position.column}")
-        case None =>
-          print(s" at unknown position")
+    println("Slicing")
+
+    //  slice a CFGBlock
+    val e: Entry = cfg.edges.head.lab
+
+    val ed = cfg.edges.map(_.lab)
+
+    ed.foreach {
+    case e => e match {
+      case CFGBlockEntry(b) => b match {
+        //  l2 and ;3 should be empty as inlined in the CFG
+        case Block(l, Vector() , None , l4, l5) => 
+
+                      println(s"Block $l")
+                      // println(s"Block $l2")
+                      // println(s"Block $l3")
+                      println(s"Block $l4")
+                      println(s"Block $l5")
+        case _ => println(s"${Console.RED}ERROR${Console.RESET}")
+      }
+      case CFGExitCondEntry(c) => c match {
+        case CFGChoice(s, v, e) => println(s"${Console.GREEN}$s${Console.RESET} $v , $e")
+        case CFGGoto(to) => println("goto: propagate")
       }
     }
-
-    /*
-     * Print a failure trace. This is a placeholder until we can
-     * produce the appropriate output for the SV-COMP.
-     */
-    def printTrace(failure: FailureTrace[Entry]) {
-      println("trace:")
-      for (entry <- failure.trace) {
-        entry match {
-          case CFGBlockEntry(b) =>
-            println(s"  ${b.optBlockLabel}")
-          case CFGExitCondEntry(c) =>
-            println(s"  $c")
-        }
-      }
-      println("values:")
-      if (failure.values.isSuccess) {
-        val values = failure.values.get
-        for (qid <- failure.ids.sorted)
-          if (values.isDefinedAt(qid)) {
-            val i = qid.id.symbol.name
-            isUserLevelVariable(i) match {
-              case Some(base) =>
-                val v = values.get(qid).get.getTerm
-                print(s"  $base = $v")
-                printDefiningPosition(base)
-                println
-              case None =>
-              // Do nothing
-            }
-          }
-      }
-    }
-
-    //  if CFG does not contain an accepting trace we exit as we should have an error
-    //  location
-    Lang(nfa2).getAcceptedTrace match {
-
-      case None =>
-
-        //  CFG is empty
-        config.output.emitln("UNKNOWN - CFG does not contain error location")
-
-      case _ =>
-
-        //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-
-        println("OUT")
-        SlicerCFG.slice(nfa2)
-        return
-        traceRefinement(
-          nfa2,
-          { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
-          { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-          { b: Entry => b.isBlockEntry },
-          config) match {
-            case Success(witnessTrace) => witnessTrace match {
-              case None =>
-                println(s"${Console.GREEN}Program is correct${Console.RESET}")
-                config.output.emitln("TRUE")
-              case Some(failTrace) =>
-                println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
-                config.output.emitln("FALSE")
-                printTrace(failTrace)
-                printWitness(config, program, function, funanalyser, failTrace)
-            }
-            case Failure(e) => config.output.emitln(e.getMessage)
-          }
-    }
+  }
 
   }
 }
