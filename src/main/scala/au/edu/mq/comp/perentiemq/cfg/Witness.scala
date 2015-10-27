@@ -20,16 +20,30 @@ object Witness {
         import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG
         import org.kiama.util.{FileSource, Position}
 
+        def escapeChar (char : Char) =
+            char match {
+                case '&' => "&amp;"
+                case '<' => "&lt;"
+                case '>' => "&gt;"
+                case _   => char.toString
+            }
+
+        def escapeString (string : String) =
+            string.flatMap (escapeChar)
+
         def locationsForPosition (optPosition : Option[Position]) : String =
             optPosition match {
-                case Some (Position (line, column, FileSource (path, _))) =>
+                case Some (Position (line, column, source @ FileSource (path, _))) =>
                     val file = path.lastIndexOf ('/') match {
                                    case -1 =>
                                        path
                                    case i =>
                                        path.substring (i + 1)
                                }
-                    s"""  <data key="originfile">$file</data>
+                    val lineContents =
+                        escapeString (source.optLineContents (line).getOrElse ("").trim)
+                    s"""  <data key="sourcecode">$lineContents</data>
+                       |  <data key="originfile">$file</data>
                        |  <data key="startline">$line</data>
                        |  <data key="startcolumn">$column</data>""".stripMargin
                 case _ =>
