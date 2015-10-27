@@ -8,7 +8,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
   import au.edu.mq.comp.perentiemq.PerentieMQConfig
   import org.kiama.relation.Tree
   import org.scalallvm.assembly.AssemblySyntax._
-  import org.scalallvm.assembly.{ElementProperty, Property, TypeProperty}
+  import org.scalallvm.assembly.{ ElementProperty, Property, TypeProperty }
   import smtlib.util.TypedTerm
 
   /**
@@ -28,7 +28,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * Return whether or not the named function is a memory allcoation function.
    */
   def isMemoryAllocFunction(name: String): Boolean =
-    List ("alloca", "calloc", "free", "malloc") contains name
+    List("alloca", "calloc", "free", "malloc") contains name
 
   /**
    * An alias for trace entries in an Assembly CFG.
@@ -50,7 +50,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import scala.annotation.tailrec
     import smtlib.parser.Terms.Sort
-    import smtlib.theories.{ArraysEx, Core, Ints}
+    import smtlib.theories.{ ArraysEx, Core, Ints }
     import smtlib.util.Implicits._
 
     val tree = new Tree[Product, Trace](trace)
@@ -127,14 +127,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * FIXME: there may well be other cases we should detect.
      */
     object ArrayElement {
-      def unapply (value : Value) : Option[(Name,Value)] =
+      def unapply(value: Value): Option[(Name, Value)] =
         value match {
-          case Named (name) =>
+          case Named(name) =>
             properties(name).collectFirst {
-              case ElementProperty (Named (array),
-                                    Vector (ElemIndex (IntT (_), Const (IntC (i))),
-                                            ElemIndex (IntT (_), index)))
-                       if i == 0 =>
+              case ElementProperty(Named(array),
+                Vector(ElemIndex(IntT(_), Const(IntC(i))),
+                  ElemIndex(IntT(_), index))) if i == 0 =>
                 (array, index)
             }
           case _ =>
@@ -146,8 +145,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Matcher for assumption function names.
      */
     object AssumeName {
-      def unapply (name : Name) : Boolean =
-        name == Global ("__VERIFIER_assume")
+      def unapply(name: Name): Boolean =
+        name == Global("__VERIFIER_assume")
     }
 
     /**
@@ -155,7 +154,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * identifier of the type that is returned by the matched function.
      */
     object NondetFunctionName {
-      def unapply (name : Name) : Option[String] = {
+      def unapply(name: Name): Option[String] = {
         val NondetName = "__VERIFIER_nondet_(.+)$".r
         name match {
           case Global(NondetName(tipe)) =>
@@ -170,9 +169,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Matcher for types that we support comparisons between.
      */
     object ComparisonType {
-      def unapply (tipe : Type) : Boolean =
+      def unapply(tipe: Type): Boolean =
         tipe match {
-          case _ : IntT | _ : PointerT =>
+          case _: IntT | _: PointerT =>
             true
           case _ =>
             false
@@ -207,32 +206,32 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case Binary(Binding(to), op, _: IntT, left, right) =>
           val lterm = vterm(left)
           val rterm = vterm(right)
-          val (exp, signed) : (TypedTerm, Boolean) =
+          val (exp, signed): (TypedTerm, Boolean) =
             op match {
-              case _: Add  => (lterm + rterm, true)
-              case _: And  => (lterm & rterm, true)
-              case _: Mul  => (lterm * rterm, true)
-              case _: Or   => (lterm | rterm, true)
+              case _: Add => (lterm + rterm, true)
+              case _: And => (lterm & rterm, true)
+              case _: Mul => (lterm * rterm, true)
+              case _: Or => (lterm | rterm, true)
               case _: SDiv => (lterm / rterm, true)
               case _: SRem => (lterm % rterm, true)
-              case _: Sub  => (lterm - rterm, true)
+              case _: Sub => (lterm - rterm, true)
               case _: UDiv => (lterm / rterm, false)
               case _: URem => (lterm % rterm, false)
-              case _: XOr  => (lterm ^ rterm, true)
+              case _: XOr => (lterm ^ rterm, true)
               case _ =>
                 sys.error(s"binary int op $op not handled")
             }
           val eqterm = nterm(to) === exp
           if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
 
-        case Call (_, _, _, _, _, VerifierFunction (AssumeName ()),
-                   Vector (ValueArg (IntT (size), Vector (), arg)), _) =>
+        case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
+          Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
           if (size == 1)
             Vector(vterm(arg))
           else
             Vector(!(vterm(arg) === 0))
 
-        case Call (Binding(to), _, _, _, _, VerifierFunction (NondetFunctionName (tipe)), Vector (), _) =>
+        case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
           tipe match {
             case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
               Vector(nterm(to) >= 0)
@@ -273,27 +272,27 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case Convert(Binding(to), _, _, from, _) =>
           Vector(nterm(to) === vterm(from))
 
-        case _ : GetElementPtr =>
+        case _: GetElementPtr =>
           // We ignore these here, but the associations that they establish
           // between their bound name and their arguments are expressed in
           // the element properties of the name.
           Vector()
 
-        case insn @ Load(Binding(to), _, tipe, _, ArrayElement (array, index), _) =>
+        case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
           Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
 
         case Load(Binding(to), _, tipe, _, from, _) =>
           Vector(nterm(to) === vterm(from))
 
         case phi: Phi =>
-          Vector ()
+          Vector()
 
-        case insn @ Store(_, tipe, from, _, ArrayElement (array, index), _) =>
+        case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
           // println(s"Using rule 1 for $insn")
           Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
-                                             (vtermAt(insn, index), vterm(from))))
+            (vtermAt(insn, index), vterm(from))))
 
-        case e@Store(_, tipe, from, _, to, _) =>
+        case e @ Store(_, tipe, from, _, to, _) =>
           // println(s"Using rule 2 for $e")
           Vector(vterm(to) === vterm(from))
 
@@ -305,27 +304,27 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /*
      * Make a term for the named variable where `id` is the base name identifier.
      */
-    def varTerm (name : Name, id : String) : TypedTerm =
+    def varTerm(name: Name, id: String): TypedTerm =
       TypedTerm(id, typeToSort(name))
 
     /*
      * Return a term that expresses a name when referenced from node.
      */
-    def ntermAt (node : ASTNode, name : Name) : TypedTerm =
+    def ntermAt(node: ASTNode, name: Name): TypedTerm =
       varTerm(name, nameToIndexedName(node, render(name)))
 
     /*
      * Return a term that expresses the previous version of a name when
      * referenced from node.
      */
-    def prevnTermAt (node : ASTNode, name : Name) : TypedTerm =
+    def prevnTermAt(node: ASTNode, name: Name): TypedTerm =
       varTerm(name, nameToIndexedName(node, render(name), _ - 1))
 
     /*
      * Return a term that expresses an LLVM name when referenced from
      * that name node.
      */
-    def nterm (name : Name) : TypedTerm =
+    def nterm(name: Name): TypedTerm =
       ntermAt(name, name)
 
     /*
@@ -350,7 +349,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /*
      * Return a term that expresses a value when referenced from node.
      */
-    def vtermAt (node : ASTNode, value : Value) : TypedTerm =
+    def vtermAt(node: ASTNode, value: Value): TypedTerm =
       value match {
         case Named(name) =>
           ntermAt(node, name)
@@ -362,16 +361,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Return the sort that should be used for variable name.
      * FIXME: currently only handled Booleans, integers and pointers to integers.
      */
-    def typeToSort(name : Name): Sort = {
+    def typeToSort(name: Name): Sort = {
       val optSort =
         properties(name).collectFirst {
-          case TypeProperty (tipe) =>
+          case TypeProperty(tipe) =>
             tipe match {
               case IntT(n) if n == 1 =>
                 Core.BoolSort()
               case IntT(_) =>
                 Ints.IntSort()
-              case PointerT(ArrayT(_,IntT(_)), _) =>
+              case PointerT(ArrayT(_, IntT(_)), _) =>
                 ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case PointerT(_, _) =>
                 Ints.IntSort()
@@ -379,7 +378,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 sys.error(s"variable type $tipe for $name not supported")
             }
         }
-      optSort.getOrElse (sys.error(s"can't find type property for variable $name"))
+      optSort.getOrElse(sys.error(s"can't find type property for variable $name"))
     }
 
     /*
@@ -433,8 +432,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
    */
-  def verify(program : Program, cfg: CFG[FunctionDefinition, Block],
-             cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
+  def verify(program: Program, cfg: CFG[FunctionDefinition, Block],
+    cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
 
     import au.edu.mq.comp.automat.auto.{ NFA }
     import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
@@ -534,7 +533,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       name match {
         case TempName() =>
           None
-        case BaseName (base) =>
+        case BaseName(base) =>
           Some(base)
         case _ =>
           None
@@ -544,13 +543,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /*
      * Print the defining position of a given variable.
      */
-    def printDefiningPosition (name : String) {
-        funanalyser.definingPosition(program,function,name) match {
-            case Some(position) =>
-                print(s" at ${position.source.optName.get}:${position.line}:${position.column}")
-            case None =>
-                print(s" at unknown position")
-        }
+    def printDefiningPosition(name: String) {
+      funanalyser.definingPosition(program, function, name) match {
+        case Some(position) =>
+          print(s" at ${position.source.optName.get}:${position.line}:${position.column}")
+        case None =>
+          print(s" at unknown position")
+      }
     }
 
     /*
@@ -576,35 +575,48 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             isUserLevelVariable(i) match {
               case Some(base) =>
                 val v = values.get(qid).get.getTerm
-                print (s"  $base = $v")
-                printDefiningPosition (base)
+                print(s"  $base = $v")
+                printDefiningPosition(base)
                 println
               case None =>
-                // Do nothing
+              // Do nothing
             }
           }
       }
     }
 
-    //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-    traceRefinement(
-      nfa2,
-      { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
-      { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-      { b: Entry => b.isBlockEntry },
-      config) match {
-        case Success(witnessTrace) => witnessTrace match {
-          case None =>
-            config.output.emitln("TRUE")
-            println(Console.GREEN_B + "Program is correct" + Console.RESET)
-          case Some(failTrace) =>
-            config.output.emitln("FALSE")
-            println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" + Console.RESET)
-            printTrace(failTrace)
-            printWitness(config, program, function, funanalyser, failTrace)
-        }
-        case Failure(e) => config.output.emitln(e.getMessage)
-      }
+    //  if CFG does not contain an accepting trace we exit as we should have an error
+    //  location
+    Lang(nfa2).getAcceptedTrace match {
+
+      case None =>
+
+          //  CFG is empty
+          config.output.emitln("UNKNOWN - CFG does not contain error location")
+
+      case _ => 
+
+        //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
+        
+        traceRefinement(
+          nfa2,
+          { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
+          { b: CFGBlock[FunctionDefinition, Block] => b.toString },
+          { b: Entry => b.isBlockEntry },
+          config) match {
+            case Success(witnessTrace) => witnessTrace match {
+              case None =>
+                config.output.emitln("TRUE")
+                println(Console.GREEN_B + "Program is correct" + Console.RESET)
+              case Some(failTrace) =>
+                config.output.emitln("FALSE")
+                println(Console.MAGENTA_B + "Program is incorrect. Witness trace follows" + Console.RESET)
+                printTrace(failTrace)
+                printWitness(config, program, function, funanalyser, failTrace)
+            }
+            case Failure(e) => config.output.emitln(e.getMessage)
+          }
+    }
 
   }
 }
