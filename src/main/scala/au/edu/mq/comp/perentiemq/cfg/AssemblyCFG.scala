@@ -640,7 +640,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       run()
     } catch {
       case e : java.lang.Exception =>
-        config.output.emitln(s"UNKONWN\n${e.getMessage}")
+        config.output.emitln(s"UNKNOWN\n${e.getMessage}")
     }
 
   }
