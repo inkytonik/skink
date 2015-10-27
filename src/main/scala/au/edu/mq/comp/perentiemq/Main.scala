@@ -30,6 +30,9 @@ abstract class PerentieMQConfig (args : Seq[String]) extends Config (args) {
      lazy val trackValues = opt[Boolean] ("track", short = 'k',
                                           descr = "Track values",
                                           default = Some(false))
+     lazy val solverTimeOut = opt[Int] ("timeout", short = 'o',
+                                          descr = "Timeout for SMT solvers (seconds)",
+                                          default = Some(10))
 }
 
 trait Driver extends CompilerBase[Program,PerentieMQConfig] {
