@@ -469,15 +469,25 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
     }).map(e => (e.src, e.tgt)).toMap
 
+    //  function to compute successors of dummys
+    //  a dummy may have a successor which is a dummy, so we need to
+    //  compute the successor recursively
+    //  
+    def getSucc(s: String): String = {
+      if (dummyStatesMap.isDefinedAt(s)) getSucc(dummyStatesMap(s))
+      else s
+    }
+
     //  now we remove each edge s2 - l -> dummyState(s2) with no effect and
-    //  use the dummy states map to replace each incoming edge s1 - l -> s2
-    //  (where s2 is dummy) by s1 - l -> dummyState(s2)
+    //  use the recursive getSucc to replace each incoming edge 
+    //  s1 - l -> dummyState(s2) by s1 - l -> getSucc(s2)
+
     import au.edu.mq.comp.automat.edge.Edge
     val nfa2 = NFA(nfa.init,
       (nfa.edges filterNot {
         e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
       }) map {
-        case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, dummyStatesMap(e.tgt))
+        case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, getSucc(e.tgt))
         case e => e
       },
       nfa.accepting)
@@ -591,13 +601,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
       case None =>
 
-          //  CFG is empty
-          config.output.emitln("UNKNOWN - CFG does not contain error location")
+        //  CFG is empty
+        config.output.emitln("UNKNOWN - CFG does not contain error location")
 
-      case _ => 
+      case _ =>
 
         //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-        
+
         traceRefinement(
           nfa2,
           { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
