@@ -472,14 +472,14 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     //  function to compute successors of dummys
     //  a dummy may have a successor which is a dummy, so we need to
     //  compute the successor recursively
-    //  
+    //
     def getSucc(s: String): String = {
       if (dummyStatesMap.isDefinedAt(s)) getSucc(dummyStatesMap(s))
       else s
     }
 
     //  now we remove each edge s2 - l -> dummyState(s2) with no effect and
-    //  use the recursive getSucc to replace each incoming edge 
+    //  use the recursive getSucc to replace each incoming edge
     //  s1 - l -> dummyState(s2) by s1 - l -> getSucc(s2)
 
     import au.edu.mq.comp.automat.edge.Edge
@@ -595,37 +595,52 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       }
     }
 
-    //  if CFG does not contain an accepting trace we exit as we should have an error
-    //  location
-    Lang(nfa2).getAcceptedTrace match {
+    /**
+     * Run the verification algorithm. May output a result or throw an exception
+     * because the verification was not possible for some reason.
+     */
+    def run() {
+      //  if CFG does not contain an accepting trace we exit as we should have an error
+      //  location
+      Lang(nfa2).getAcceptedTrace match {
 
-      case None =>
+        case None =>
 
-        //  CFG is empty
-        config.output.emitln("UNKNOWN - CFG does not contain error location")
+          //  CFG is empty
+          config.output.emitln("UNKNOWN\nCFG does not contain error location")
 
-      case _ =>
+        case _ =>
 
-        //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
+          //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
 
-        traceRefinement(
-          nfa2,
-          { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
-          { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-          { b: Entry => b.isBlockEntry },
-          config) match {
-            case Success(witnessTrace) => witnessTrace match {
-              case None =>
-                println(s"${Console.GREEN}Program is correct${Console.RESET}")
-                config.output.emitln("TRUE")
-              case Some(failTrace) =>
-                println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
-                config.output.emitln("FALSE")
-                printTrace(failTrace)
-                printWitness(config, program, function, funanalyser, failTrace)
+          traceRefinement(
+            nfa2,
+            { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
+            { b: CFGBlock[FunctionDefinition, Block] => b.toString },
+            { b: Entry => b.isBlockEntry },
+            config) match {
+              case Success(witnessTrace) => witnessTrace match {
+                case None =>
+                  println(s"${Console.GREEN}Program is correct${Console.RESET}")
+                  config.output.emitln("TRUE")
+                case Some(failTrace) =>
+                  println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
+                  config.output.emitln("FALSE")
+                  printTrace(failTrace)
+                  printWitness(config, program, function, funanalyser, failTrace)
+              }
+              case Failure(e) =>
+                config.output.emitln(s"UNKNOWN\n${e.getMessage}")
             }
-            case Failure(e) => config.output.emitln(e.getMessage)
-          }
+      }
+    }
+
+    // Run the verification and trap exceptions to give UNKNOWN results
+    try {
+      run()
+    } catch {
+      case e : java.lang.Exception =>
+        config.output.emitln(s"UNKONWN\n${e.getMessage}")
     }
 
   }
