@@ -2,10 +2,11 @@ package au.edu.mq.comp.perentiemq
 
 import iml.IMLSyntax.Program
 import org.kiama.util.TestCompilerWithConfig
+import org.scalatest.FunSuiteLike
 
-class TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConfig] {
+trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConfig] {
 
-    import org.scalatest.{Args, Reporter}
+    import org.scalatest.{Args, Reporter, Status}
     import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}
 
     class SVCompReporter (reporter : Reporter) extends Reporter {
@@ -84,12 +85,6 @@ class TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
 
     }
 
-}
-
-class VerificationTests extends TestBase {
-
-    import org.scalatest.{Args, Status}
-
     override def run (testName : Option[String], args : Args) : Status = {
         val svcompReporter = new SVCompReporter (args.reporter)
         val status = super.run (testName, args.copy (reporter = svcompReporter))
@@ -97,24 +92,21 @@ class VerificationTests extends TestBase {
         status
     }
 
-    filetests ("Simple C verification", "programs/simple", ".ll", ".verif",
-               argslist = List (Array ("-v", "-m15", "-eZ3" )))
+    val defaultArgsList = List (List ("-v", "-m15", "-eZ3" ))
+
+}
+
+class SimpleTests extends TestBase {
+
+    filetests ("Simple", "programs/simple", ".ll", ".verif",
+               argslist = defaultArgsList)
 
 }
 
 class SVCOMPLoopLitTests extends TestBase {
 
-    import org.scalatest.{Args, Status}
-
-    override def run (testName : Option[String], args : Args) : Status = {
-        val svcompReporter = new SVCompReporter (args.reporter)
-        val status = super.run (testName, args.copy (reporter = svcompReporter))
-        svcompReporter.printSVCompReport (args)
-        status
-    }
-
-    filetests ("Simple C verification", "programs/svcomp16/loop-lit", ".ll", ".verif",
-               argslist = List (Array ("-v", "-m15", "-eZ3" )))
+    filetests ("SVCOMP loop-lit", "programs/svcomp16/loop-lit", ".ll", ".verif",
+               argslist = defaultArgsList)
 
 }
 
