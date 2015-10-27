@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -79,7 +79,7 @@ attributes #5 = { noreturn nounwind }
 !llvm.ident = !{!14}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "simple/array-sequence.c", directory: "/Users/franck/development/perentiemq/programs")
+!1 = !DIFile(filename: "array-sequence_true-unreach-call.c", directory: "/Users/asloane/Projects/PerentieMQ/perentiemq/programs/simple")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
