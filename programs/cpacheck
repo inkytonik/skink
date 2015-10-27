@@ -1,0 +1,44 @@
+#! /bin/sh
+# cpacheck prpfile srcfile (file.graphml|file.verif)
+#
+# Check that the property given by prpfile holds on srcfile with the
+# witness given in the final file. If a verif file is used then the
+# FALSE verifier result on its first line is ignored.
+
+# Assumes the environment variable PATH_TO_CPACHECKER is set and
+# points to the directory in which CPAchecker is installed.
+
+if test $# -ne 3
+then
+  echo "usage: cpacheck prpfile srcfile (file.graphml|file.verif)"
+  exit 1
+fi
+
+prpfile=`pwd`/$1
+srcfile=`pwd`/$2
+witfile=`pwd`/$3
+
+tmpfile=/tmp/witness$$.graphml
+
+case `head -1 $witfile` in
+    FALSE*)
+        tail +2 $witfile >$tmpfile
+        witfile=$tmpfile
+        trap "rm $tmpfile" EXIT
+        ;;
+    *xml*)
+        ;;
+    *)
+        echo cpacheck: no witness found in $witfile
+        exit 1
+        ;;
+esac
+
+cd $PATH_TO_CPACHECKER
+rm -f output/*
+
+./scripts/cpa.sh \
+    -witness-check \
+    -spec $prpfile \
+    -spec $witfile \
+    $srcfile
