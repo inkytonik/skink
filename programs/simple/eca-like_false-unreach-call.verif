@@ -80,6 +80,14 @@ FALSE
   <data key="startcolumn">21</data>
 </edge>
 
+<edge source="n7" target="n8">
+  <data key="block">%.error.%20</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="originfile">eca-like_false-unreach-call.c</data>
+  <data key="startline">36</data>
+  <data key="startcolumn">10</data>
+</edge>
+
 <node id="n0"><data key="entry">true</data></node>
 <node id="n1"></node>
 <node id="n2"></node>
@@ -87,7 +95,8 @@ FALSE
 <node id="n4"></node>
 <node id="n5"></node>
 <node id="n6"></node>
-<node id="n7"><data key="sink">true</data></node>
+<node id="n7"></node>
+<node id="n8"><data key="sink">true</data></node>
 
 </graph>
 

@@ -487,7 +487,15 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       (nfa.edges filterNot {
         e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
       }) map {
-        case e if dummyStatesMap.isDefinedAt(e.tgt) => Edge(e.src, e.lab, getSucc(e.tgt))
+        case e if dummyStatesMap.isDefinedAt(e.tgt) =>
+          val newtgt = getSucc(e.tgt)
+          val newlab : Entry = e.lab match {
+                                   case CFGExitCondEntry(CFGChoice(v, e, _)) =>
+                                       CFGExitCondEntry(CFGChoice(v, e, newtgt))
+                                   case lab =>
+                                       lab
+                               }
+          Edge(e.src, newlab, getSucc(e.tgt))
         case e => e
       },
       nfa.accepting)
@@ -596,6 +604,26 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
+     * Add an entry for the error block to the trace so it is included
+     * in witnesses etc. We look for the final choice entry in the trace
+     * then extract its destination (e.g., block %.error.14). That tells us the
+     * error block that we would go to.
+     */
+    def appendErrorBlock (failTrace : FailureTrace[Entry]) : FailureTrace[Entry] =
+      failTrace.trace.lastOption match {
+        case Some (CFGExitCondEntry (CFGChoice (_, _, target))) =>
+          cfganalyser.resolveByName (target) (cfg) match {
+            case Some (errorBlock) =>
+              val errorEntry = CFGBlockEntry[FunctionDefinition,Block] (errorBlock.block.cross)
+              failTrace.copy (trace = failTrace.trace :+ errorEntry)
+            case None =>
+              sys.error (s"appendErrorBlock: no error block $target found")
+          }
+        case entry =>
+          sys.error (s"appendErrorBlock: can't find final choice entry, got $entry")
+      }
+
+    /**
      * Run the verification algorithm. May output a result or throw an exception
      * because the verification was not possible for some reason.
      */
@@ -624,10 +652,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                   println(s"${Console.GREEN}Program is correct${Console.RESET}")
                   config.output.emitln("TRUE")
                 case Some(failTrace) =>
+                  val errorTrace = appendErrorBlock(failTrace)
                   println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
                   config.output.emitln("FALSE")
-                  printTrace(failTrace)
-                  printWitness(config, program, function, funanalyser, failTrace)
+                  printTrace(errorTrace)
+                  printWitness(config, program, function, funanalyser, errorTrace)
               }
               case Failure(e) =>
                 config.output.emitln(s"UNKNOWN\n${e.getMessage}")

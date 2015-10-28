@@ -64,12 +64,21 @@ FALSE
   <data key="startcolumn">8</data>
 </edge>
 
+<edge source="n5" target="n6">
+  <data key="block">%.error.%21</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="originfile">count-up-down_false-unreach-call.c</data>
+  <data key="startline">5</data>
+  <data key="startcolumn">12</data>
+</edge>
+
 <node id="n0"><data key="entry">true</data></node>
 <node id="n1"></node>
 <node id="n2"></node>
 <node id="n3"></node>
 <node id="n4"></node>
-<node id="n5"><data key="sink">true</data></node>
+<node id="n5"></node>
+<node id="n6"><data key="sink">true</data></node>
 
 </graph>
 

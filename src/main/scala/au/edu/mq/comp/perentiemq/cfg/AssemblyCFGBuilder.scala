@@ -106,7 +106,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
     def makeVerifiable (function : FunctionDefinition) : FunctionDefinition = {
 
         // Replace blocks that contain a call to the __VERIFIER_error
-        // function after an assertion has failed to a branch to the
+        // function after an assertion has failed to a branch to a
         // .error block. In detail, look for a block of this form
         //
         // ; <label>:14
@@ -116,9 +116,29 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         // and replace it with one of this form
         //
         // ; <label>:14
-        //   br label .error
+        //   br label .error.%14 #4
+        //
+        // And the error block
+        //
+        //  .error.%14:
+        //    ret void
+        //
+        // The metadata from the call is transferred to the branch so it can
+        // recovered later during reporting.
         //
         // Blocks that don't look like this are left alone.
+
+        val errorBlocks = new ListBuffer[Block] ()
+
+        def makeErrorLabel (label : OptBlockLabel) : String =
+            label match {
+                case BlockLabel (label) =>
+                    s".error.%$label"
+                case ImplicitLabel (num) =>
+                    s".error.%$num"
+                case NoLabel () =>
+                    s".error.%nolabel"
+            }
 
         def replaceErrorCalls (block : Block) : Block =
             block match {
@@ -126,10 +146,14 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                             Vector (MetaInstruction (
                                        Call (_, _, _, _, _,
                                              VerifierFunction (Global ("__VERIFIER_error")), _, _),
-                                       _)),
+                                       metadata)),
                             MetaTerminatorInstruction (_, _)) =>
+                    val errorLabel = makeErrorLabel (label)
+                    val errorBlock = Block (BlockLabel (errorLabel), Vector (), None, Vector (),
+                                            MetaTerminatorInstruction (RetVoid (), metadata))
+                    errorBlocks += errorBlock
                     Block (label, Vector (), None, Vector (),
-                           MetaTerminatorInstruction (Branch (Label (Local (".error"))),
+                           MetaTerminatorInstruction (Branch (Label (Local (errorLabel))),
                                                       Metadata (Vector ())))
                 case _ =>
                     block
@@ -138,16 +162,8 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
         val functionBodyWithProcessedBlocks =
             function.functionBody.blocks.map (replaceErrorCalls)
 
-        // Add the error block.
-        //  .error:
-        //    ret void
-
-        val errorBlock = Block (BlockLabel (".error"), Vector (),
-                                None, Vector (),
-                                MetaTerminatorInstruction (RetVoid (), Metadata (Vector ())))
-
         val functionBodyWithErrorBlock =
-            FunctionBody (functionBodyWithProcessedBlocks :+ errorBlock)
+            FunctionBody (functionBodyWithProcessedBlocks ++ errorBlocks)
 
         // Return the new function
         function.copy (functionBody = functionBodyWithErrorBlock)
@@ -215,7 +231,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
 
                 val init = Set (name (entry (cfg)))
                 val buf = new ListBuffer[Edge[String,CFGEntry[FunctionDefinition,Block]]]
-                val accepting = Set ("%.error")
+                val accepting = exits (cfg).map (name).filter (_.startsWith ("%.error")).toSet
 
                 /*
                  * The block name representing entry to `tgtblock` from a block

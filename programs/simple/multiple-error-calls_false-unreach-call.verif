@@ -26,50 +26,32 @@ FALSE
 
 <edge source="n0" target="n1">
   <data key="block">%0</data>
-  <data key="sourcecode">int i, j;</data>
-  <data key="originfile">simple-if_false-unreach-call.c</data>
+  <data key="sourcecode">int i = 0, j = 0;</data>
+  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
   <data key="startline">12</data>
   <data key="startcolumn">8</data>
 </edge>
 
 <edge source="n1" target="n2">
-  <data key="choice">%5 == true</data>
+  <data key="choice">%5 == false</data>
   <data key="sourcecode">if (i &gt; j)</data>
-  <data key="originfile">simple-if_false-unreach-call.c</data>
+  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
   <data key="startline">13</data>
   <data key="startcolumn">10</data>
 </edge>
 
 <edge source="n2" target="n3">
-  <data key="block">%6</data>
-  <data key="sourcecode">__VERIFIER_assert (i &lt;= j);</data>
-  <data key="originfile">simple-if_false-unreach-call.c</data>
-  <data key="startline">14</data>
-  <data key="startcolumn">25</data>
-</edge>
-
-<edge source="n3" target="n4">
-  <data key="choice">%13 == false</data>
-  <data key="sourcecode">if (!(cond)) {</data>
-  <data key="originfile">simple-if_false-unreach-call.c</data>
-  <data key="startline">4</data>
-  <data key="startcolumn">8</data>
-</edge>
-
-<edge source="n4" target="n5">
-  <data key="block">%.error.%14</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-  <data key="originfile">simple-if_false-unreach-call.c</data>
-  <data key="startline">5</data>
-  <data key="startcolumn">12</data>
+  <data key="block">%.error.%16</data>
+  <data key="sourcecode">__VERIFIER_error();</data>
+  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
+  <data key="startline">16</data>
+  <data key="startcolumn">4</data>
 </edge>
 
 <node id="n0"><data key="entry">true</data></node>
 <node id="n1"></node>
 <node id="n2"></node>
-<node id="n3"></node>
-<node id="n4"></node>
-<node id="n5"><data key="sink">true</data></node>
+<node id="n3"><data key="sink">true</data></node>
 
 </graph>
 

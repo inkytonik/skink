@@ -104,6 +104,14 @@ FALSE
   <data key="startcolumn">8</data>
 </edge>
 
+<edge source="n10" target="n11">
+  <data key="block">%.error.%25</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="originfile">simple-loop_false-unreach-call.c</data>
+  <data key="startline">5</data>
+  <data key="startcolumn">12</data>
+</edge>
+
 <node id="n0"><data key="entry">true</data></node>
 <node id="n1"></node>
 <node id="n2"></node>
@@ -114,7 +122,8 @@ FALSE
 <node id="n7"></node>
 <node id="n8"></node>
 <node id="n9"></node>
-<node id="n10"><data key="sink">true</data></node>
+<node id="n10"></node>
+<node id="n11"><data key="sink">true</data></node>
 
 </graph>
 

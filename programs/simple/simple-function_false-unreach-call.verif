@@ -40,9 +40,18 @@ FALSE
   <data key="startcolumn">8</data>
 </edge>
 
+<edge source="n2" target="n3">
+  <data key="block">%.error.%10</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="originfile">simple-function_false-unreach-call.c</data>
+  <data key="startline">5</data>
+  <data key="startcolumn">12</data>
+</edge>
+
 <node id="n0"><data key="entry">true</data></node>
 <node id="n1"></node>
-<node id="n2"><data key="sink">true</data></node>
+<node id="n2"></node>
+<node id="n3"><data key="sink">true</data></node>
 
 </graph>
 
