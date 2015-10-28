@@ -162,7 +162,7 @@ FALSE
 
 <edge source="n17" target="n18">
   <data key="block">%50</data>
-  <data key="sourcecode">assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
+  <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
   <data key="startcolumn">12</data>
@@ -170,7 +170,7 @@ FALSE
 
 <edge source="n18" target="n19">
   <data key="choice">%52 == false</data>
-  <data key="sourcecode">assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
+  <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
   <data key="startcolumn">14</data>
@@ -178,7 +178,7 @@ FALSE
 
 <edge source="n19" target="n20">
   <data key="block">%56.phi.%50</data>
-  <data key="sourcecode">assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
+  <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
   <data key="startcolumn">19</data>
@@ -186,7 +186,7 @@ FALSE
 
 <edge source="n20" target="n21">
   <data key="block">%56</data>
-  <data key="sourcecode">assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
+  <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
   <data key="startcolumn">19</data>
