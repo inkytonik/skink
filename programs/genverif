@@ -1,0 +1,27 @@
+#! /bin/sh
+# genverif file.ll ...
+#
+# Generate .verif files for the ll file arguments by running the verifier.
+# Place the verif file in the same folder as the ll file.
+#
+# This script works best when run from the top-level of the tool
+# directory tree since it runs sbt.
+
+SBT_OPTS="-Dsbt.log.noformat=true $SBT_OPTS"; export SBT_OPTS
+
+for file in $*
+do
+    echo $file
+    dir=`dirname $file`
+    base=`basename $file .ll`
+    veriffile=$dir/$base.verif
+    case $file in
+        *true-unreach-call*)
+            echo TRUE >$veriffile
+            ;;
+        *false-unreach-call*)
+            echo FALSE >$veriffile
+            sbt "run -v $file" | sed -n -e '/<?xml/,/<\/graphml>/p' >>$veriffile
+            ;;
+    esac
+done
