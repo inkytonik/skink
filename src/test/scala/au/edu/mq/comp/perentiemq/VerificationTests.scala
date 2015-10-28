@@ -106,16 +106,31 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
 }
 
 class SimpleTests extends TestBase {
-
     filetests ("Simple", "programs/simple", ".ll", ".verif",
                argslist = defaultArgsList)
-
 }
 
 class SVCOMPLoopLitTests extends TestBase {
-
     filetests ("SVCOMP loop-lit", "programs/svcomp16/loop-lit", ".ll", ".verif",
                argslist = defaultArgsList)
-
 }
 
+class SVCOMPLoopAccelerationTests extends TestBase {
+    filetests ("SVCOMP loop-acceleration", "programs/svcomp16/loop-acceleration", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+class SVCOMPLoopInvGenTests extends TestBase {
+    filetests ("SVCOMP loop-invgen", "programs/svcomp16/loop-invgen", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+class SVCOMPLoopNewTests extends TestBase {
+    filetests ("SVCOMP loop-new", "programs/svcomp16/loop-new", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+class SVCOMPLoopsTests extends TestBase {
+    filetests ("SVCOMP loops", "programs/svcomp16/loops", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
