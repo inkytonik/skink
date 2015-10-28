@@ -45,7 +45,8 @@ object Witness {
                     s"""  <data key="sourcecode">$lineContents</data>
                        |  <data key="originfile">$file</data>
                        |  <data key="startline">$line</data>
-                       |  <data key="startcolumn">$column</data>""".stripMargin
+                       |  <data key="startcolumn">$column</data>
+                       |""".stripMargin
                 case _ =>
                     ""
             }
@@ -67,11 +68,10 @@ object Witness {
                                 val locs = locationsForPosition (ipos)
                                 s"""<data key="choice">$cond</data>\n$locs"""
                             case _ =>
-                                ""
+                                "\n"
                         }
                     s"""<edge source="n${index}" target="n${index + 1}">
-                       |  $attrs
-                       |</edge>
+                       |  $attrs</edge>
                        |""".stripMargin
             }
 
