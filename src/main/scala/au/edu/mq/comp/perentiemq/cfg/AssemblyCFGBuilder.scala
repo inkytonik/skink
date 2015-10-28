@@ -266,6 +266,16 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                     if (effectMap.isEmpty)
                         block
                     else {
+                        val metadata =
+                            block.optMetaInstructions.collectFirst {
+                                case MetaInstruction (_, metadata @ Metadata (attributes)) if !attributes.isEmpty =>
+                                    metadata
+                            }.orElse {
+                                block.metaTerminatorInstruction match {
+                                    case MetaTerminatorInstruction (_, metadata) =>
+                                        Some (metadata)
+                                }
+                            }.getOrElse (Metadata (Vector ()))
                         val src = name (srcblock)
                         for ((Label (fromlocal), effects) <- effectMap) {
                             val insns =
@@ -273,10 +283,9 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition,Block] {
                                     case (_, (to, tipe, v)) =>
                                         MetaInstruction (
                                             Convert (Binding (to), Bitcast (), tipe, v, tipe),
-                                            Metadata (Vector ()))
+                                            metadata)
                                 }
-                            val term = MetaTerminatorInstruction (Branch (Label (Local (src))),
-                                                                  Metadata (Vector ()))
+                            val term = MetaTerminatorInstruction (Branch (Label (Local (src))), metadata)
                             val from = render (fromlocal)
                             val phi = phiBlockName (srcblock, from)
                             val phieffect = Block (BlockLabel (phi.drop (1)), Vector (), None, insns, term)
