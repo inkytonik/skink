@@ -14,9 +14,18 @@ then
   exit 1
 fi
 
-prpfile=`pwd`/$1
-srcfile=`pwd`/$2
-witfile=`pwd`/$3
+case $1 in
+    /*) prpfile=$1;;
+     *) prpfile=`pwd`/$1;;
+esac
+case $2 in
+    /*) srcfile=$2;;
+     *) srcfile=`pwd`/$2;;
+esac
+case $1 in
+    /*) witfile=$3;;
+     *) witfile=`pwd`/$3;;
+esac
 
 tmpfile=/tmp/witness$$.graphml
 
