@@ -1,25 +1,33 @@
 #! /bin/sh
-# cpacheckall file.c ...
+# cpacheckall file.[ci] ...
 #
 # Check that all of the C files that have .verif files that specify
 # FALSE results have correct witnesses in those files.
 
 if test $# -eq 0
 then
-  echo "usage: cpacheckall file.c ..."
+  echo "usage: cpacheckall file.[ci] ..."
   exit 1
 fi
 
+prpfile=/tmp/$$.prp
+echo 'CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )' >$prpfile
+trap "rm $prpfile" EXIT
+
 for file in $*
 do
-    base=`basename $file .c`
+    case $file in
+        *.c) base=`basename $file .c`;;
+        *.i) base=`basename $file .i`;;
+          *) base=$file;;
+    esac
     verif=$base.verif
     if test -r $verif
     then
         case `head -1 $verif` in
             FALSE*)
                 /bin/echo -n "$base "
-                result=`../cpacheck ../ALL.prp $file $verif 2>&1 | grep '^Verification result:'`
+                result=`cpacheck $prpfile $file $verif 2>&1 | grep '^Verification result:'`
                 case $result in
                     Verification\ result:\ FALSE*)
                         echo ok
