@@ -7,6 +7,12 @@
 # This script works best when run from the top-level of the tool
 # directory tree since it runs sbt.
 
+if test $# -eq 0
+then
+  echo "usage: genverif file.ll ..."
+  exit 1
+fi
+
 SBT_OPTS="-Dsbt.log.noformat=true $SBT_OPTS"; export SBT_OPTS
 
 for file in $*

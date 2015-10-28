@@ -4,6 +4,12 @@
 # Check that all of the C files that have .verif files that specify
 # FALSE results have correct witnesses in those files.
 
+if test $# -eq 0
+then
+  echo "usage: cpacheckall file.c ..."
+  exit 1
+fi
+
 for file in $*
 do
     base=`basename $file .c`
