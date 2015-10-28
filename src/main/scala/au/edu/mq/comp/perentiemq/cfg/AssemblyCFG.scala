@@ -428,11 +428,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     r
   }
 
-  /**
-   * Verify the given CFG. The IR is assumed to have been processed by
-   * `prepareIRForVerification` before the CFG was constructed.
-   */
-  def verify(program: Program, cfg: CFG[FunctionDefinition, Block],
+  def runVerification(program: Program, cfg: CFG[FunctionDefinition, Block],
     cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
 
     import au.edu.mq.comp.automat.auto.{ NFA }
@@ -623,54 +619,50 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           sys.error (s"appendErrorBlock: can't find final choice entry, got $entry")
       }
 
-    /**
-     * Run the verification algorithm. May output a result or throw an exception
-     * because the verification was not possible for some reason.
-     */
-    def run() {
-      //  if CFG does not contain an accepting trace we exit as we should have an error
-      //  location
-      Lang(nfa2).getAcceptedTrace match {
-
-        case None =>
-
-          //  CFG is empty
-          config.output.emitln("UNKNOWN\nCFG does not contain error location")
-
-        case _ =>
-
-          //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
-
-          traceRefinement(
-            nfa2,
-            { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
-            { b: CFGBlock[FunctionDefinition, Block] => b.toString },
-            { b: Entry => b.isBlockEntry },
-            config) match {
-              case Success(witnessTrace) => witnessTrace match {
-                case None =>
-                  println(s"${Console.GREEN}Program is correct${Console.RESET}")
-                  config.output.emitln("TRUE")
-                case Some(failTrace) =>
-                  val errorTrace = appendErrorBlock(failTrace)
-                  println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
-                  config.output.emitln("FALSE")
-                  printTrace(errorTrace)
-                  printWitness(config, program, function, funanalyser, errorTrace)
-              }
-              case Failure(e) =>
-                config.output.emitln(s"UNKNOWN\n${e.getMessage}")
+    //  if CFG does not contain an accepting trace we exit as we should have an error
+    //  location
+    Lang(nfa2).getAcceptedTrace match {
+      case None =>
+        //  CFG is empty
+        config.output.emitln("UNKNOWN\nCFG does not contain error location")
+      case _ =>
+        //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
+        traceRefinement(
+          nfa2,
+          { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },
+          { b: CFGBlock[FunctionDefinition, Block] => b.toString },
+          { b: Entry => b.isBlockEntry },
+          config) match {
+            case Success(witnessTrace) => witnessTrace match {
+              case None =>
+                println(s"${Console.GREEN}Program is correct${Console.RESET}")
+                config.output.emitln("TRUE")
+              case Some(failTrace) =>
+                val errorTrace = appendErrorBlock(failTrace)
+                println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
+                config.output.emitln("FALSE")
+                printTrace(errorTrace)
+                printWitness(config, program, function, funanalyser, errorTrace)
             }
-      }
+            case Failure(e) =>
+              config.output.emitln(s"UNKNOWN\n${e.getMessage}")
+          }
     }
 
-    // Run the verification and trap exceptions to give UNKNOWN results
+  }
+
+  /**
+   * Verify the given CFG. The IR is assumed to have been processed by
+   * `prepareIRForVerification` before the CFG was constructed.
+   */
+  def verify(program: Program, cfg: CFG[FunctionDefinition, Block],
+             cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
     try {
-      run()
+      runVerification(program, cfg, cfgAnalyser, config)
     } catch {
       case e : java.lang.Exception =>
         config.output.emitln(s"UNKNOWN\n${e.getMessage}")
     }
-
   }
+
 }
