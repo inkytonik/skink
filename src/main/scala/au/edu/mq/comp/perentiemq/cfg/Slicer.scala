@@ -554,14 +554,22 @@ object SlicerCFG extends AssemblyCFGBuilder {
     ed.foreach {
     case e => e match {
       case CFGBlockEntry(b) => b match {
-        //  l2 and ;3 should be empty as inlined in the CFG
+        //  l2 and ;3 should be empty as they are phi instructions and inlined in the CFG
         case Block(l, Vector() , None , l4, l5) => 
 
-                      println(s"Block $l")
+                      println(s"--Block $l")
                       // println(s"Block $l2")
                       // println(s"Block $l3")
-                      println(s"Block $l4")
-                      println(s"Block $l5")
+                      // l4 is a vector of meta instructions
+                      l4 map { case MetaInstruction(i, d) => println(i)  }
+
+
+                      l5 match { 
+                        case MetaTerminatorInstruction(Branch(i), _) => println(i)
+                        case MetaTerminatorInstruction(BranchCond(value, labTrue, labFalse) , _) =>  println(s"if $value then $labTrue else $labFalse")
+                        case MetaTerminatorInstruction(IndirectBr(typeField, value, labels), _) => println(s"Indirect branching $typeField then $value else $labels")
+                      }
+                      // println(s"Block $l5")
         case _ => println(s"${Console.RED}ERROR${Console.RESET}")
       }
       case CFGExitCondEntry(c) => c match {
