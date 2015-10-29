@@ -82,8 +82,10 @@ trait Driver extends CompilerBase[Program,PerentieMQConfig] {
             if (pr.hasValue) {
                 processir (p.value (pr).asInstanceOf[IR], config)
                 Right (noMessages)
-            } else
+            } else {
+                config.output.emitln("UNKNOWN\nLLVM parse error")
                 Right (Vector (p.errorToMessage (pr.parseError)))
+            }
 
         }
 
