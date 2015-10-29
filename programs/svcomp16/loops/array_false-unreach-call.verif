@@ -57,7 +57,7 @@ FALSE
 </edge>
 
 <edge source="n4" target="n5">
-  <data key="choice">%23 == false</data>
+  <data key="choice">%23 == true</data>
   <data key="sourcecode">if(array[j]&lt;=menor)</data>
   <data key="originfile">array_false-unreach-call.i</data>
   <data key="startline">22</data>
@@ -65,6 +65,14 @@ FALSE
 </edge>
 
 <edge source="n5" target="n6">
+  <data key="block">%24</data>
+  <data key="sourcecode">menor = array[j];</data>
+  <data key="originfile">array_false-unreach-call.i</data>
+  <data key="startline">23</data>
+  <data key="startcolumn">25</data>
+</edge>
+
+<edge source="n6" target="n7">
   <data key="block">%30</data>
   <data key="sourcecode">for(j=0;j&lt;SIZE;j++) {</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -72,7 +80,7 @@ FALSE
   <data key="startcolumn">19</data>
 </edge>
 
-<edge source="n6" target="n7">
+<edge source="n7" target="n8">
   <data key="block">%9</data>
   <data key="sourcecode">for(j=0;j&lt;SIZE;j++) {</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -80,7 +88,7 @@ FALSE
   <data key="startcolumn">11</data>
 </edge>
 
-<edge source="n7" target="n8">
+<edge source="n8" target="n9">
   <data key="choice">%12 == false</data>
   <data key="sourcecode">for(j=0;j&lt;SIZE;j++) {</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -88,7 +96,7 @@ FALSE
   <data key="startcolumn">12</data>
 </edge>
 
-<edge source="n8" target="n9">
+<edge source="n9" target="n10">
   <data key="block">%33</data>
   <data key="sourcecode">__VERIFIER_assert(array[0]&gt;menor);</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -96,7 +104,7 @@ FALSE
   <data key="startcolumn">23</data>
 </edge>
 
-<edge source="n9" target="n10">
+<edge source="n10" target="n11">
   <data key="choice">%41 == false</data>
   <data key="sourcecode">if (!(cond)) {</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -104,7 +112,7 @@ FALSE
   <data key="startcolumn">8</data>
 </edge>
 
-<edge source="n10" target="n11">
+<edge source="n11" target="n12">
   <data key="block">%.error.%42</data>
   <data key="sourcecode">ERROR: __VERIFIER_error();</data>
   <data key="originfile">array_false-unreach-call.i</data>
@@ -123,7 +131,8 @@ FALSE
 <node id="n8"></node>
 <node id="n9"></node>
 <node id="n10"></node>
-<node id="n11"><data key="sink">true</data></node>
+<node id="n11"></node>
+<node id="n12"><data key="sink">true</data></node>
 
 </graph>
 
