@@ -296,6 +296,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         case Convert(Binding(to), _, _, from, _) =>
           Vector(nterm(to) === vterm(from))
 
+        case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
+          sys.error(s"unsupported getelementptr insn $insn")
+
         case _: GetElementPtr =>
           // We ignore these here, but the associations that they establish
           // between their bound name and their arguments are expressed in
