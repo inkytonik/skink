@@ -12,6 +12,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
   import smtlib.util.TypedTerm
 
   /**
+   * Convenience method for reporting UNKNOWN results.
+   */
+  def reportUnknown (config : PerentieMQConfig, message : String) {
+    config.output.emitln(s"UNKNOWN\n$message")
+  }
+
+  /**
    * Return whether or not the named function is a special verifier
    * function.
    */
@@ -655,7 +662,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     Lang(nfa2).getAcceptedTrace match {
       case None =>
         //  CFG is empty
-        config.output.emitln("UNKNOWN\nCFG does not contain error location")
+        reportUnknown(config, "CFG does not contain error location")
       case _ =>
         //  provides color if we are in the terminal (not in the scala SBT ... don't knwo why)
         traceRefinement(
@@ -676,7 +683,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 printWitness(config, program, function, funanalyser, errorTrace)
             }
             case Failure(e) =>
-              config.output.emitln(s"UNKNOWN\n${e.getMessage}")
+              reportUnknown(config, s"Refinement failure\n${e.getMessage}")
           }
     }
 
@@ -692,7 +699,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       runVerification(program, cfg, cfgAnalyser, config)
     } catch {
       case e: java.lang.Exception =>
-        config.output.emitln(s"UNKNOWN\n${e.getMessage}")
+        reportUnknown(config, s"Exception\n${e.getMessage}")
     }
   }
 
