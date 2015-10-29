@@ -611,6 +611,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         println("OUT")
         SlicerCFG.slice(nfa2)
         return
+        
         traceRefinement(
           nfa2,
           { s: Seq[Entry] => traceToTerms(properties)(Trace(s)) },

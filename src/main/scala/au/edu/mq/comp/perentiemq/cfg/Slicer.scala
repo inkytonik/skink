@@ -10,6 +10,7 @@ object SlicerCFG extends AssemblyCFGBuilder {
   import org.scalallvm.assembly.AssemblySyntax._
   import org.scalallvm.assembly.{ ElementProperty, Property, TypeProperty }
   import smtlib.util.TypedTerm
+  import au.edu.mq.comp.perentiemq.refinement.InterpolantAutomaton.getBlockLabel
 
   /**
    * Return whether or not the named function is a special verifier
@@ -407,6 +408,16 @@ object SlicerCFG extends AssemblyCFGBuilder {
           sys.error(s"exitcondToTerm: unsupported type")
       }
 
+    // lazy val useDefs: ASTNode => (Set[Binding], Set[Binding]) =
+    //   attr {
+    //     // case CFGExitCondEntry(c) => c match {
+    //       case CFGChoice(s, v, e) => println(s"${Console.GREEN}--ExitCond Cond is $s${Console.RESET} $v , $e")
+    //       case CFGGoto(to) => println("goto: propagate")
+    //       (Set[Binding]($s), Set[Binding]())
+    //     // }
+    //      case _ => (Set[Binding](), Set[Binding]())
+    //   }
+
     /*
      * Return terms that express the effect of a trace entry, including
      * the transition to the next entry in the trace, if there is one.
@@ -423,6 +434,200 @@ object SlicerCFG extends AssemblyCFGBuilder {
     r
   }
 
+  def useDefs(exitcond: CFGExitCond[FunctionDefinition, Block]): (Set[String], Set[String]) = exitcond match {
+    // case CFGExitCondEntry(c) => c match {
+    case CFGChoice(s, v, e) =>
+      println(s"${Console.GREEN}--ExitCond Cond is $s${Console.RESET} $v , $e")
+      (Set[String](s), Set[String]())
+    case CFGGoto(to) =>
+      println("goto: propagate")
+      (Set[String](), Set[String]())
+    // }
+    // case _ => (Set[String](), Set[String]())
+  }
+
+   /**
+     * Extractor to match stores to array elements. Currently only looks for
+     * array element references that have a zero index (to deref the array
+     * pointer), followed by the actual index.
+     * FIXME: there may well be other cases we should detect.
+     */
+    object ArrayElement {
+      def unapply(value: Value): Option[(Name, Value)] =
+        value match {
+          case Named(name) =>
+            properties(name).collectFirst {
+              case ElementProperty(Named(array),
+                Vector(ElemIndex(IntT(_), Const(IntC(i))),
+                  ElemIndex(IntT(_), index))) if i == 0 =>
+                (array, index)
+            }
+          case _ =>
+            None
+        }
+    }
+
+  def varsIn(t: ASTNode) = Set[Name]()
+
+  /*
+     *
+     * Return terms that express the effect of an LLVM node.
+     */
+  def useDefs(a: ASTNode, afterVars: Set[Name]): Set[Name] = a match {
+
+    case Block(l, Vector(), None, l4, l5) =>
+      // iterate over the instructions in the block in reverse order
+      l4.foldRight(afterVars) {
+        (i, s) => useDefs(i, s)
+      }
+
+    case MetaInstruction(insn, _) =>
+      useDefs(insn, afterVars)
+
+    case _: Alloca =>
+      println("Skipped alloc")
+      afterVars
+
+    case Binary(Binding(to), op, _: IntT, left, right) =>
+      if (afterVars.contains(to)) (afterVars - to) ++ varsIn(left) ++ varsIn(right)
+      else afterVars
+    // println(s"${Console.RED}DEF $to ${Console.YELLOW}USE $left $right${Console.RESET}: $i")
+
+    case Call(_, _, _, _, _, _, _, _) => afterVars
+
+    case Compare(Binding(to), ICmp(icond), _, left, right) =>
+      if (afterVars.contains(to)) (afterVars - to) ++ varsIn(left) ++ varsIn(right)
+      else afterVars
+
+    case Convert(Binding(to), _, IntT(_), from, IntT(_)) =>
+      if (afterVars.contains(to)) (afterVars - to) 
+      else afterVars
+
+    case Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
+      if (afterVars.contains(to)) (afterVars - to) + array ++ varsIn(index)
+      else afterVars
+
+    case x =>
+      println(s"skipped other $x")
+      Set[Name]()
+  }
+  // attr {
+
+  //   // Blocks
+
+  //   case block: Block =>
+  //     (block.optMetaPhiInstructions ++ block.optMetaInstructions).flatMap(terms)
+
+  //   // Meta instructions
+
+  //   case MetaPhiInstruction(insn, _) =>
+  //     terms(insn)
+
+  //   case MetaInstruction(insn, _) =>
+  //     terms(insn)
+
+  //   // Instructions
+
+  //   case _: Alloca =>
+  //     Vector()
+
+  //   case Binary(Binding(to), op, _: IntT, left, right) =>
+  //     val lterm = vterm(left)
+  //     val rterm = vterm(right)
+  //     val (exp, signed): (TypedTerm, Boolean) =
+  //       op match {
+  //         case _: Add => (lterm + rterm, true)
+  //         case _: And => (lterm & rterm, true)
+  //         case _: Mul => (lterm * rterm, true)
+  //         case _: Or => (lterm | rterm, true)
+  //         case _: SDiv => (lterm / rterm, true)
+  //         case _: SRem => (lterm % rterm, true)
+  //         case _: Sub => (lterm - rterm, true)
+  //         case _: UDiv => (lterm / rterm, false)
+  //         case _: URem => (lterm % rterm, false)
+  //         case _: XOr => (lterm ^ rterm, true)
+  //         case _ =>
+  //           sys.error(s"binary int op $op not handled")
+  //       }
+  //     val eqterm = nterm(to) === exp
+  //     if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
+
+  //   case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
+  //     Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
+  //     if (size == 1)
+  //       Vector(vterm(arg))
+  //     else
+  //       Vector(!(vterm(arg) === 0))
+
+  //   case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+  //     tipe match {
+  //       case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
+  //         Vector(nterm(to) >= 0)
+  //       case _ =>
+  //         Vector()
+  //     }
+
+  //   case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+  //     Vector()
+
+  //   case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
+  //     val lterm = vterm(left)
+  //     val rterm = vterm(right)
+  //     val exp =
+  //       icond match {
+  //         case EQ() => lterm === rterm
+  //         case NE() => !(lterm === rterm)
+  //         case UGT() => lterm > rterm
+  //         case UGE() => lterm >= rterm
+  //         case ULT() => lterm < rterm
+  //         case ULE() => lterm <= rterm
+  //         case SGT() => lterm > rterm
+  //         case SGE() => lterm >= rterm
+  //         case SLT() => lterm < rterm
+  //         case SLE() => lterm <= rterm
+  //       }
+  //     Vector(nterm(to) === exp)
+
+  //   case Convert(Binding(to), _, IntT(m), from, IntT(n)) if m == n =>
+  //     Vector(nterm(to) === vterm(from))
+
+  //   case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
+  //     Vector(nterm(to) === !(vterm(from) === 0))
+
+  //   case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
+  //     Vector(nterm(to) === vterm(from).ifElse(1, 0))
+
+  //   case Convert(Binding(to), _, _, from, _) =>
+  //     Vector(nterm(to) === vterm(from))
+
+  //   case _: GetElementPtr =>
+  //     // We ignore these here, but the associations that they establish
+  //     // between their bound name and their arguments are expressed in
+  //     // the element properties of the name.
+  //     Vector()
+
+  //   case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
+  //     Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
+
+  //   case Load(Binding(to), _, tipe, _, from, _) =>
+  //     Vector(nterm(to) === vterm(from))
+
+  //   case phi: Phi =>
+  //     Vector()
+
+  //   case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
+  //     // println(s"Using rule 1 for $insn")
+  //     Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
+  //       (vtermAt(insn, index), vterm(from))))
+
+  //   case e @ Store(_, tipe, from, _, to, _) =>
+  //     // println(s"Using rule 2 for $e")
+  //     Vector(vterm(to) === vterm(from))
+
+  //   case node =>
+  //     sys.error(s"terms not found for $node")
+
+  // }
   /**
    * Verify the given CFG. The IR is assumed to have been processed by
    * `prepareIRForVerification` before the CFG was constructed.
@@ -552,32 +757,43 @@ object SlicerCFG extends AssemblyCFGBuilder {
     val ed = cfg.edges.map(_.lab)
 
     ed.foreach {
-    case e => e match {
-      case CFGBlockEntry(b) => b match {
-        //  l2 and ;3 should be empty as they are phi instructions and inlined in the CFG
-        case Block(l, Vector() , None , l4, l5) => 
+      case e => e match {
+        case CFGBlockEntry(b) => b match {
+          //  l2 and l3 should be empty as they are phi instructions and inlined in the CFG
+          case Block(l, Vector(), None, l4, l5) =>
 
-                      println(s"--Block $l")
-                      // println(s"Block $l2")
-                      // println(s"Block $l3")
-                      // l4 is a vector of meta instructions
-                      l4 map { case MetaInstruction(i, d) => println(i)  }
+            println(s"${Console.RED}--Block ${getBlockLabel(e)}${Console.RESET}")
+            // println(s"Block $l2")
+            // println(s"Block $l3")
+            // l4 is a vector of meta instructions
+            l4.zipWithIndex map {
+              case (MetaInstruction(i, d), k) =>
+                i match {
+                  case _: Alloca => println("Skipped alloc")
+                  case Binary(Binding(to), op, _: IntT, left, right) =>
+                    println(s"${Console.RED}DEF $to ${Console.YELLOW}USE $left $right${Console.RESET}: $i")
+                  case x => println(s"skipped other $x")
+                }
+            }
 
-
-                      l5 match { 
-                        case MetaTerminatorInstruction(Branch(i), _) => println(i)
-                        case MetaTerminatorInstruction(BranchCond(value, labTrue, labFalse) , _) =>  println(s"if $value then $labTrue else $labFalse")
-                        case MetaTerminatorInstruction(IndirectBr(typeField, value, labels), _) => println(s"Indirect branching $typeField then $value else $labels")
-                      }
-                      // println(s"Block $l5")
-        case _ => println(s"${Console.RED}ERROR${Console.RESET}")
-      }
-      case CFGExitCondEntry(c) => c match {
-        case CFGChoice(s, v, e) => println(s"${Console.GREEN}$s${Console.RESET} $v , $e")
-        case CFGGoto(to) => println("goto: propagate")
+          //  terminators can be ignored as they are inlined in the CFG
+          // l5 match {
+          //   case MetaTerminatorInstruction(Branch(i), _) => println(s"Branch $i")
+          //   case MetaTerminatorInstruction(BranchCond(value, labTrue, labFalse), _) => println(s"if $value then $labTrue else $labFalse")
+          //   case MetaTerminatorInstruction(IndirectBr(typeField, value, labels), _) => println(s"Indirect branching $typeField then $value else $labels")
+          // }
+          // println(s"Block $l5")
+          case _ => println(s"${Console.RED}ERROR${Console.RESET}")
+        }
+        case CFGExitCondEntry(c) =>
+          val (use, defs) = useDefs(c)
+          println(s"USE = {$use}, DEF = {$defs}")
+        // c match {
+        //   case CFGChoice(s, v, e) => println(s"${Console.GREEN}--ExitCond Cond is $s${Console.RESET} $v , $e")
+        //   case CFGGoto(to) => println("goto: propagate")
+        // }
       }
     }
-  }
 
   }
 }
