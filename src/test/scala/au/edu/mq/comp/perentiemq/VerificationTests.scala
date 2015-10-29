@@ -18,11 +18,16 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
         var unknownNum = 0
         var bogusNameNum = 0
 
-        var truePositivePoints = 2
-        var falsePositivePoints = -32
-        var trueNegativePoints = 1
-        var falseNegativePoints = -16
+        var truePositivePoints = 1
+        var falsePositivePoints = -16
+        var trueNegativePoints = 2
+        var falseNegativePoints = -32
         var unknownPoints = 0
+
+        val listTrueNegative = new scala.collection.mutable.ListBuffer[String]()
+        val listTruePositive = new scala.collection.mutable.ListBuffer[String]()
+        val listFalsePositive = new scala.collection.mutable.ListBuffer[String]()
+        val listFalseNegative  = new scala.collection.mutable.ListBuffer[String]()
 
         object Correct {
             def unapply (name : String) : Boolean =
@@ -49,9 +54,11 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
                         case _ =>
                             failure.testName match {
                                 case Correct () =>
-                                    falseNegativeNum = falseNegativeNum + 1
-                                case InCorrect () =>
+                                    listFalsePositive += failure.testName
                                     falsePositiveNum = falsePositiveNum + 1
+                                case InCorrect () =>
+                                    listFalseNegative += failure.testName
+                                    falseNegativeNum = falseNegativeNum + 1
                                 case _ =>
                                     bogusNameNum = bogusNameNum + 1
                             }
@@ -59,9 +66,11 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
                 case success : TestSucceeded =>
                     success.testName match {
                         case Correct () =>
-                            truePositiveNum = truePositiveNum + 1
-                        case InCorrect () =>
+                            listTrueNegative += success.testName
                             trueNegativeNum = trueNegativeNum + 1
+                        case InCorrect () =>
+                            listTruePositive += success.testName
+                            truePositiveNum = truePositiveNum + 1
                         case _ =>
                             bogusNameNum = bogusNameNum + 1
                     }
@@ -89,6 +98,11 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
             message (s"#bogus name    = $bogusNameNum")
             message (s"score          = $score")
             message ("")
+
+            message ("False positives files")
+            message (s"${listFalsePositive.result().mkString("\n")}")
+            message ("False negatives files")
+            message (s"${listFalseNegative.result().mkString("\n")}")
 
         }
 
@@ -134,3 +148,27 @@ class SVCOMPLoopsTests extends TestBase {
     filetests ("SVCOMP loops", "programs/svcomp16/loops", ".ll", ".verif",
                argslist = defaultArgsList)
 }
+
+
+class SVCOMPLocksTests extends TestBase {
+    filetests ("SVCOMP locks", "programs/svcomp16/locks", ".ll", ".verif",
+               argslist = List (List ("-v", "-m20", "-eZ3" )))
+}
+
+
+class SVCOMPSshSimplifiedTests extends TestBase {
+    filetests ("SVCOMP ssh simplified", "programs/svcomp16/ssh-simplified", ".ll", ".verif",
+               argslist = List (List ("-v", "-m20", "-eZ3" )))
+}
+
+class SVCOMPSshTests extends TestBase {
+    filetests ("SVCOMP ssh", "programs/svcomp16/ssh", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+class SVCOMPNTDriversSimplifiedTests extends TestBase {
+    filetests ("SVCOMP ntdrivers-simplified", "programs/svcomp16/ntdrivers-simplified", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+

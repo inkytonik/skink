@@ -114,7 +114,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       def unapply(fn: Function): Boolean =
         fn match {
           case Function(Named(Global(s))) =>
-            isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s)
+            isLLVMIntrinsic(s) || isVerifierFunction(s)
+          // || isMemoryAllocFunction(s)
           case _ =>
             false
         }
@@ -199,6 +200,13 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           terms(insn)
 
         // Instructions
+        
+        // Franck: I think the following instruction should define a term as a store
+        // %13 = %11
+        // Alloca(Binding(Local(13)),NotInAlloca(),IntT(32),NumElements(IntT(64),Named(Local(11))),Align(16))
+
+        case Alloca(Binding(to),_,_,NumElements(_, from),_) =>
+           Vector(nterm(to) === vterm(from))
 
         case _: Alloca =>
           Vector()
@@ -437,6 +445,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import scala.annotation.tailrec
     import scala.util.{ Try, Failure, Success }
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
+    import au.edu.mq.comp.dot.DOTPrettyPrinter.format
+    import reflect.io._
 
     // Return if we don't want to verify this function
     val fname = functionName(cfgAnalyser.function(cfg))
@@ -448,10 +458,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     val funtree = new Tree[ASTNode, FunctionDefinition](function)
     val funanalyser = new Analyser(funtree)
     val properties = funanalyser.propertiesOfFunction(cfg.function.cross)
-
     // Make the NFA for this CFG
     val cfganalyser = new CFGAnalyser(cfg)
     val nfa = AssemblyCFG.nfa(cfg)
+
+    File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
 
     //  sanitise the CFGNFA
 
@@ -470,10 +481,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     //  compute the successor recursively
     //
     def getSucc(s: String): String = {
-      if (dummyStatesMap.isDefinedAt(s)) getSucc(dummyStatesMap(s))
+      if (dummyStatesMap.isDefinedAt(s)) {
+        if (dummyStatesMap(s) == s) 
+          //  loop on same node with no effect
+          s
+        else 
+          getSucc(dummyStatesMap(s))
+      }
       else s
     }
 
+    // println(dummyStatesMap)
     //  now we remove each edge s2 - l -> dummyState(s2) with no effect and
     //  use the recursive getSucc to replace each incoming edge
     //  s1 - l -> dummyState(s2) by s1 - l -> getSucc(s2)
@@ -481,16 +499,16 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import au.edu.mq.comp.automat.edge.Edge
     val nfa2 = NFA(nfa.init,
       (nfa.edges filterNot {
-        e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
+        e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty 
       }) map {
         case e if dummyStatesMap.isDefinedAt(e.tgt) =>
           val newtgt = getSucc(e.tgt)
-          val newlab : Entry = e.lab match {
-                                   case CFGExitCondEntry(CFGChoice(v, e, _)) =>
-                                       CFGExitCondEntry(CFGChoice(v, e, newtgt))
-                                   case lab =>
-                                       lab
-                               }
+          val newlab: Entry = e.lab match {
+            case CFGExitCondEntry(CFGChoice(v, e, _)) =>
+              CFGExitCondEntry(CFGChoice(v, e, newtgt))
+            case lab =>
+              lab
+          }
           Edge(e.src, newlab, getSucc(e.tgt))
         case e => e
       },
@@ -498,8 +516,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
     // nfa2.edges map println
 
-    import au.edu.mq.comp.dot.DOTPrettyPrinter.format
-    import reflect.io._
     import au.edu.mq.comp.automat.lang.Lang
 
     // println(Console.MAGENTA_B)
@@ -511,7 +527,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // println(Console.RESET)
 
     // println(cfganalyser.toDot(nfa))
-    File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
     File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
     // Regexp for breaking verified names apart
     val Name = "(.*)@([0-9]+)".r
@@ -605,19 +620,21 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * then extract its destination (e.g., block %.error.14). That tells us the
      * error block that we would go to.
      */
-    def appendErrorBlock (failTrace : FailureTrace[Entry]) : FailureTrace[Entry] =
+    def appendErrorBlock(failTrace: FailureTrace[Entry]): FailureTrace[Entry] =
       failTrace.trace.lastOption match {
-        case Some (CFGExitCondEntry (CFGChoice (_, _, target))) =>
-          cfganalyser.resolveByName (target) (cfg) match {
-            case Some (errorBlock) =>
-              val errorEntry = CFGBlockEntry[FunctionDefinition,Block] (errorBlock.block.cross)
-              failTrace.copy (trace = failTrace.trace :+ errorEntry)
+        case Some(CFGExitCondEntry(CFGChoice(_, _, target))) =>
+          cfganalyser.resolveByName(target)(cfg) match {
+            case Some(errorBlock) =>
+              val errorEntry = CFGBlockEntry[FunctionDefinition, Block](errorBlock.block.cross)
+              failTrace.copy(trace = failTrace.trace :+ errorEntry)
             case None =>
-              sys.error (s"appendErrorBlock: no error block $target found")
+              sys.error(s"appendErrorBlock: no error block $target found")
           }
         case entry =>
-          sys.error (s"appendErrorBlock: can't find final choice entry, got $entry")
+          sys.error(s"appendErrorBlock: can't find final choice entry, got $entry")
       }
+
+    println(s"${Console.GREEN}Starting analysis${Console.RESET}")
 
     //  if CFG does not contain an accepting trace we exit as we should have an error
     //  location
@@ -656,11 +673,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
    * `prepareIRForVerification` before the CFG was constructed.
    */
   def verify(program: Program, cfg: CFG[FunctionDefinition, Block],
-             cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
+    cfgAnalyser: CFGAnalyser, config: PerentieMQConfig) {
     try {
       runVerification(program, cfg, cfgAnalyser, config)
     } catch {
-      case e : java.lang.Exception =>
+      case e: java.lang.Exception =>
         config.output.emitln(s"UNKNOWN\n${e.getMessage}")
     }
   }
