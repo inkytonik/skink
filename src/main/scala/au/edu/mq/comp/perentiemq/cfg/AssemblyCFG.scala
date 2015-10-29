@@ -122,6 +122,20 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     /**
+     * Get the array element property for name, if there is one.
+     */
+    def elementProperty (name : Name) : Option[(Name,Value)] =
+      properties(name).collectFirst {
+        case ElementProperty(Named(array),
+          Vector(ElemIndex(IntT(_), Const(IntC(i))),
+          ElemIndex(IntT(_), index))) if i == 0 =>
+          (array, index)
+        case ElementProperty(Named(array),
+          Vector(ElemIndex(IntT(_), index))) =>
+          (array, index)
+      }
+
+    /**
      * Extractor to match stores to array elements. Currently only looks for
      * array element references that have a zero index (to deref the array
      * pointer), followed by the actual index.
@@ -131,15 +145,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
       def unapply(value: Value): Option[(Name, Value)] =
         value match {
           case Named(name) =>
-            properties(name).collectFirst {
-              case ElementProperty(Named(array),
-                Vector(ElemIndex(IntT(_), Const(IntC(i))),
-                  ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-              case ElementProperty(Named(array),
-                Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-            }
+            elementProperty(name)
           case _ =>
             None
         }
@@ -203,7 +209,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           terms(insn)
 
         // Instructions
-        
+
         // Franck: I think the following instruction should define a term as a store
         // %13 = %11
         // Alloca(Binding(Local(13)),NotInAlloca(),IntT(32),NumElements(IntT(64),Named(Local(11))),Align(16))
@@ -384,7 +390,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
               case PointerT(ArrayT(_, IntT(_)), _) =>
                 ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case PointerT(_, _) =>
-                Ints.IntSort()
+                if (elementProperty(name).isEmpty)
+                    Ints.IntSort()
+                else
+                    ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case SymbolicArrayT(_, _) =>
                 ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case _ =>
@@ -487,10 +496,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     //
     def getSucc(s: String): String = {
       if (dummyStatesMap.isDefinedAt(s)) {
-        if (dummyStatesMap(s) == s) 
+        if (dummyStatesMap(s) == s)
           //  loop on same node with no effect
           s
-        else 
+        else
           getSucc(dummyStatesMap(s))
       }
       else s
@@ -504,7 +513,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import au.edu.mq.comp.automat.edge.Edge
     val nfa2 = NFA(nfa.init,
       (nfa.edges filterNot {
-        e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty 
+        e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
       }) map {
         case e if dummyStatesMap.isDefinedAt(e.tgt) =>
           val newtgt = getSucc(e.tgt)
