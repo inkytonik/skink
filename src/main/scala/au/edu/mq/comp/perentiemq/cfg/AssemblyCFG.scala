@@ -578,8 +578,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * E.g., `%i@1` returns `%i`.
      */
     def isUserLevelVariable(name: String): Option[String] = {
-      val BaseName = "%(.+)@[0-9]+".r
-      val TempName = "%[0-9]+@[0-9]+".r
+      val BaseName = "[@%](.+)@[0-9]+".r
+      val TempName = "[@%][0-9]+@[0-9]+".r
       name match {
         case TempName() =>
           None
