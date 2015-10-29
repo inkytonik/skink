@@ -136,6 +136,9 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 Vector(ElemIndex(IntT(_), Const(IntC(i))),
                   ElemIndex(IntT(_), index))) if i == 0 =>
                 (array, index)
+              case ElementProperty(Named(array),
+                Vector(ElemIndex(IntT(_), index))) =>
+                (array, index)
             }
           case _ =>
             None
@@ -205,8 +208,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         // %13 = %11
         // Alloca(Binding(Local(13)),NotInAlloca(),IntT(32),NumElements(IntT(64),Named(Local(11))),Align(16))
 
-        case Alloca(Binding(to),_,_,NumElements(_, from),_) =>
-           Vector(nterm(to) === vterm(from))
+        // case Alloca(Binding(to),_,_,NumElements(_, from),_) =>
+        //    Vector(nterm(to) === vterm(from))
 
         case _: Alloca =>
           Vector()
@@ -382,8 +385,10 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case PointerT(_, _) =>
                 Ints.IntSort()
+              case SymbolicArrayT(_, _) =>
+                ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
               case _ =>
-                sys.error(s"variable type $tipe for $name not supported")
+                sys.error(s"typeToSort: variable type $tipe for $name not supported")
             }
         }
       optSort.getOrElse(sys.error(s"can't find type property for variable $name"))
