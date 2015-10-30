@@ -48,6 +48,7 @@ Execution
 
   1. Set the `TMPDIR` environment variable to `/tmp`
   2. Ensure `skink.jar` is in the same directory as `skink.sh`
+  3. Ensure `skink.sh` is executable.
   3. Call `skink.sh` passing in the filename of the c file you wish to validate
 
 This will result in Skink's output appearing on STDOUT and in an `.ll` (and `.graphml` for failed verifications) file being created for the input file. 

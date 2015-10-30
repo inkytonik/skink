@@ -1,7 +1,7 @@
 // name of the project
-name := "perentiemq"
+name := "skink"
 
-version := "0.1.0"
+version := "0.314"
 
 organization := "au.edu.mq.comp"
 
