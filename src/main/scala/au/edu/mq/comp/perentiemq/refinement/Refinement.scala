@@ -134,7 +134,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
               println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
               val newCulpritMap = if (config.trackValues()) {
                 // record the condition that made the trace infeasible
-                println(s"Culprit is ${trace(feasibleLength - 1)}")
+                // println(s"Culprit is ${trace(feasibleLength - 1)}")
                 culpritMap
               } else culpritMap
 
@@ -162,22 +162,22 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                 import InterpolantAutomaton.{ getBlockLabel, logAuto }
 
-                logAuto(toDetNFA(r + ia),
-                  { x: Int => x.toString },
-                  { e: L => getBlockLabel(e) },
-                  s"/tmp/det-${maxIterations - remainingIterations}.dot")
+                // logAuto(toDetNFA(r + ia),
+                //   { x: Int => x.toString },
+                //   { e: L => getBlockLabel(e) },
+                //   s"/tmp/det-${maxIterations - remainingIterations}.dot")
 
-                if (remainingIterations < maxIterations) {
-                  logAuto(toDetNFA(r),
-                    { x: Int => x.toString },
-                    { e: L => getBlockLabel(e) },
-                    s"/tmp/r-${maxIterations - remainingIterations}.dot")
-                }
+                // if (remainingIterations < maxIterations) {
+                //   logAuto(toDetNFA(r),
+                //     { x: Int => x.toString },
+                //     { e: L => getBlockLabel(e) },
+                //     s"/tmp/r-${maxIterations - remainingIterations}.dot")
+                // }
 
-                logAuto(toDetNFA(ia),
-                  { x: Int => x.toString },
-                  { e: L => getBlockLabel(e) },
-                  s"/tmp/ia-${maxIterations - remainingIterations}.dot")
+                // logAuto(toDetNFA(ia),
+                //   { x: Int => x.toString },
+                //   { e: L => getBlockLabel(e) },
+                //   s"/tmp/ia-${maxIterations - remainingIterations}.dot")
 
                 // logAuto(toDetNFA(iaReverse),
                 //  { x: Int => x.toString },

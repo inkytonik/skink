@@ -486,7 +486,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     val cfganalyser = new CFGAnalyser(cfg)
     val nfa = AssemblyCFG.nfa(cfg)
 
-    File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
+    // File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
 
     //  sanitise the CFGNFA
 
@@ -551,7 +551,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     // println(Console.RESET)
 
     // println(cfganalyser.toDot(nfa))
-    File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
+    // File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
     // Regexp for breaking verified names apart
     val Name = "(.*)@([0-9]+)".r
 
