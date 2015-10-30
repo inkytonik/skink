@@ -658,7 +658,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           sys.error(s"appendErrorBlock: can't find final choice entry, got $entry")
       }
 
-    println(s"${Console.GREEN}Starting analysis${Console.RESET}")
+    // println(s"${Console.GREEN}Starting analysis${Console.RESET}")
 
     //  if CFG does not contain an accepting trace we exit as we should have an error
     //  location
@@ -682,7 +682,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                 val errorTrace = appendErrorBlock(failTrace)
                 println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
                 config.output.emitln("FALSE")
-                printTrace(errorTrace)
+                // printTrace(errorTrace)
                 printWitness(config, program, function, funanalyser, errorTrace)
             }
             case Failure(e) =>
