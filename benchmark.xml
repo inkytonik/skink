@@ -10,7 +10,7 @@
 
 
   <!-- set some global options for your tool, if needed -->
-  <rundefinition name="skink06" />
+  <rundefinition name="skink16" />
 
   <!-- task-specific options only specify the memory-model and the architecture -->
 
