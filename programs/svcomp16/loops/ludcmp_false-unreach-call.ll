@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.11.0"
+target triple = "x86_64-apple-macosx10.10.0"
 
 @a = common global [50 x [50 x double]] zeroinitializer, align 16
 @b = common global [50 x double] zeroinitializer, align 16
@@ -615,7 +615,7 @@ attributes #5 = { noreturn nounwind }
 !llvm.ident = !{!30}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3, globals: !18)
-!1 = !DIFile(filename: "ludcmp_false-unreach-call.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loops")
+!1 = !DIFile(filename: "../sv-comp-2016/c/loops/ludcmp_false-unreach-call.i", directory: "/Users/franck/development/perentiemq")
 !2 = !{}
 !3 = !{!4, !8, !11, !15}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)

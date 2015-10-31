@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.11.0"
+target triple = "x86_64-apple-macosx10.10.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -118,7 +118,7 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!14}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "hhk2008_true-unreach-call.c.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loop-lit")
+!1 = !DIFile(filename: "../sv-comp-2016/c/loop-lit/hhk2008_true-unreach-call.c.i", directory: "/Users/franck/development/perentiemq")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
@@ -177,11 +177,11 @@ attributes #3 = { nounwind }
 !57 = !DILocation(line: 19, column: 8, scope: !54)
 !58 = !DILocation(line: 19, column: 12, scope: !54)
 !59 = !DILocation(line: 19, column: 6, scope: !54)
-!60 = !DILocation(line: 21, column: 12, scope: !8)
-!61 = !DILocation(line: 21, column: 19, scope: !8)
-!62 = !DILocation(line: 21, column: 23, scope: !8)
-!63 = !DILocation(line: 21, column: 21, scope: !8)
-!64 = !DILocation(line: 21, column: 16, scope: !8)
+!60 = !DILocation(line: 21, column: 23, scope: !8)
+!61 = !DILocation(line: 21, column: 30, scope: !8)
+!62 = !DILocation(line: 21, column: 34, scope: !8)
+!63 = !DILocation(line: 21, column: 32, scope: !8)
+!64 = !DILocation(line: 21, column: 27, scope: !8)
 !65 = !DILocation(line: 21, column: 5, scope: !8)
 !66 = !DILocation(line: 4, column: 9, scope: !19, inlinedAt: !41)
 !67 = !DILocation(line: 4, column: 8, scope: !19, inlinedAt: !41)

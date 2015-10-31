@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.11.0"
+target triple = "x86_64-apple-macosx10.10.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -130,7 +130,7 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!14}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "bhmr2007_true-unreach-call.c.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loop-lit")
+!1 = !DIFile(filename: "../sv-comp-2016/c/loop-lit/bhmr2007_true-unreach-call.c.i", directory: "/Users/franck/development/perentiemq")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
@@ -200,12 +200,12 @@ attributes #3 = { nounwind }
 !68 = !DILocation(line: 22, column: 6, scope: !51)
 !69 = !DILocation(line: 22, column: 8, scope: !51)
 !70 = !DILocation(line: 22, column: 4, scope: !51)
-!71 = !DILocation(line: 24, column: 12, scope: !8)
-!72 = !DILocation(line: 24, column: 16, scope: !8)
-!73 = !DILocation(line: 24, column: 14, scope: !8)
-!74 = !DILocation(line: 24, column: 23, scope: !8)
-!75 = !DILocation(line: 24, column: 22, scope: !8)
-!76 = !DILocation(line: 24, column: 18, scope: !8)
+!71 = !DILocation(line: 24, column: 23, scope: !8)
+!72 = !DILocation(line: 24, column: 27, scope: !8)
+!73 = !DILocation(line: 24, column: 25, scope: !8)
+!74 = !DILocation(line: 24, column: 34, scope: !8)
+!75 = !DILocation(line: 24, column: 33, scope: !8)
+!76 = !DILocation(line: 24, column: 29, scope: !8)
 !77 = !DILocation(line: 24, column: 5, scope: !8)
 !78 = !DILocation(line: 4, column: 9, scope: !19, inlinedAt: !44)
 !79 = !DILocation(line: 4, column: 8, scope: !19, inlinedAt: !44)

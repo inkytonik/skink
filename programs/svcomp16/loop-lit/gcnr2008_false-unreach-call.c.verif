@@ -165,7 +165,7 @@ FALSE
   <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
-  <data key="startcolumn">12</data>
+  <data key="startcolumn">23</data>
 </edge>
 
 <edge source="n18" target="n19">
@@ -173,7 +173,7 @@ FALSE
   <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
-  <data key="startcolumn">14</data>
+  <data key="startcolumn">25</data>
 </edge>
 
 <edge source="n19" target="n20">
@@ -181,7 +181,7 @@ FALSE
   <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
-  <data key="startcolumn">19</data>
+  <data key="startcolumn">30</data>
 </edge>
 
 <edge source="n20" target="n21">
@@ -189,7 +189,7 @@ FALSE
   <data key="sourcecode">__VERIFIER_assert(x &gt;= 4 &amp;&amp; y &lt;= 2);</data>
   <data key="originfile">gcnr2008_false-unreach-call.c.i</data>
   <data key="startline">28</data>
-  <data key="startcolumn">19</data>
+  <data key="startcolumn">30</data>
 </edge>
 
 <edge source="n21" target="n22">

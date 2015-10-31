@@ -155,6 +155,10 @@ class SVCOMPLocksTests extends TestBase {
                argslist = List (List ("-v", "-m20", "-eZ3" )))
 }
 
+class SVCOMPECATests extends TestBase {
+    filetests ("SVCOMP ECA", "programs/svcomp16/eca", ".ll", ".verif",
+               argslist = List (List ("-v", "-m20", "-eZ3" )))
+}
 
 class SVCOMPSshSimplifiedTests extends TestBase {
     filetests ("SVCOMP ssh simplified", "programs/svcomp16/ssh-simplified", ".ll", ".verif",
@@ -168,6 +172,12 @@ class SVCOMPSshTests extends TestBase {
 
 class SVCOMPNTDriversSimplifiedTests extends TestBase {
     filetests ("SVCOMP ntdrivers-simplified", "programs/svcomp16/ntdrivers-simplified", ".ll", ".verif",
+               argslist = defaultArgsList)
+}
+
+
+class SVCOMPNTDriversTests extends TestBase {
+    filetests ("SVCOMP ntdrivers", "programs/svcomp16/ntdrivers", ".ll", ".verif",
                argslist = defaultArgsList)
 }
 
