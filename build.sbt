@@ -1,7 +1,7 @@
 // name of the project
 name := "skink"
 
-version := "0.314"
+version := "1.0"
 
 organization := "au.edu.mq.comp"
 

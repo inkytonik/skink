@@ -9,7 +9,7 @@ clangwargs="-Wno-implicit-function-declaration -Wno-incompatible-library-redecla
 clangdefs="-Dassert=__VERIFIER_assert"
 clangargs="-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
 
-clang-3.7 $clangargs $1 | opt-3.7 -S -inline -o $llfile
+$CLANGBINDIR/clang $clangargs $1 | $CLANGBINDIR/opt -S -inline -o $llfile
 
 java -jar $skinkdir/skink.jar -v -eZ3 -m20 $llfile | tee $wtnfile
 
