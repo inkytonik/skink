@@ -5,25 +5,61 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+abort=0
+
 # test z3 is accessible and can process a simple file
 # 
 z3bin=$(which z3)
-echo -e "Checking Z3 solver $GREEN[FOUND]$NC" $z3bin
+if [ "$z3bin" = "" ]; then
+  echo -e "$RED[NOT FOUND]$NC Checkink Z3 solver" 
+  abort=1
+else
+  z3version=$($z3bin --version | grep "version")
+  echo -e "$GREEN[FOUND]$NC Checking Z3 solver " $z3bin  " " $z3version
+fi
 
 # test clang version
 clangbin=$(which clang)
-# echo "Clang compiler:" $clangbin
-clangversion=$($clangbin --version | grep "version" | grep "3.7.0" | grep "tags/RELEASE_370/final")
-echo -e "Clang compiler     $GREEN[FOUND]$NC" $clangbin  
-echo -e "Clang version      $GREEN[FOUND]$NC" $clangversion
+if [ "$clangbin" = "" ]; then
+  echo -e "$RED[NOT FOUND]$NC Clang compiler" 
+  abort=1
+else
+  clangversion=$($clangbin --version | grep "version" | grep "3.7.0" | grep "tags/RELEASE_370/final")
+  if [ "$clangversion" = "" ]; then
+    abort=1
+    echo -e "$RED[NOT FOUND]$NC Clang compiler 3.7.0 required" "$($clangbin --version)" 
+  else
+    echo -e "$GREEN[FOUND]$NC Clang compiler 3.7.0" $clangversion
+  fi
+fi
 
 optbin=$(which opt)
-optversion=$($optbin --version | grep "version" | grep "3.7.0")
-echo -e "LLVM opt           $GREEN[FOUND]$NC" $optversion
+if [ "$optbin" = "" ]; then
+  abort=1
+  echo -e "$RED[NOT FOUND]$NC LLVM opt" 
+else
+  optversion=$($optbin --version | grep "version" | grep "3.7.0")
+  if [ "$optversion" = "" ]; then
+    abort=1
+    echo -e "$RED[NOT FOUND]$NC LLVM opt 3.7.0 required" "$($optbin --version)" 
+  else
+    echo -e "$GREEN[FOUND]$NC LLVM opt 3.7.0" $optversion
+  fi
+fi
 
 \rm -f tests/*.ll
 \rm -f tests/*.result
 \rm -f tests/*.graphml
+
+if [ $abort -eq 1 ]; then
+  echo -e "${RED}Cannot run test suite$NC" 
+  exit 
+fi
+
+echo -e "${GREEN}Running test suite$NC" 
+
+CC=$clangbin
+OPT=$optbin
 
 # test 1
 for file in tests/*.c; do
