@@ -676,11 +676,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
           config) match {
             case Success(witnessTrace) => witnessTrace match {
               case None =>
-                println(s"${Console.GREEN}Program is correct${Console.RESET}")
+                // println(s"${Console.GREEN}Program is correct${Console.RESET}")
                 config.output.emitln("TRUE")
               case Some(failTrace) =>
                 val errorTrace = appendErrorBlock(failTrace)
-                println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
+                // println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
                 config.output.emitln("FALSE")
                 // printTrace(errorTrace)
                 printWitness(config, program, function, funanalyser, errorTrace)
