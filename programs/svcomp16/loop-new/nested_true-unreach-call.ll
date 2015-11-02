@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -28,109 +28,111 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 declare void @__VERIFIER_error() #2
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
   %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
   %n = alloca i32, align 4
   %m = alloca i32, align 4
   %k = alloca i32, align 4
   %i = alloca i32, align 4
   %j = alloca i32, align 4
+  store i32 0, i32* %2
   call void @llvm.dbg.declare(metadata i32* %n, metadata !27, metadata !16), !dbg !28
-  %2 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !29
-  store i32 %2, i32* %n, align 4, !dbg !28
+  %3 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !29
+  store i32 %3, i32* %n, align 4, !dbg !28
   call void @llvm.dbg.declare(metadata i32* %m, metadata !30, metadata !16), !dbg !31
-  %3 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !32
-  store i32 %3, i32* %m, align 4, !dbg !31
+  %4 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !32
+  store i32 %4, i32* %m, align 4, !dbg !31
   call void @llvm.dbg.declare(metadata i32* %k, metadata !33, metadata !16), !dbg !34
   store i32 0, i32* %k, align 4, !dbg !34
   call void @llvm.dbg.declare(metadata i32* %i, metadata !35, metadata !16), !dbg !36
   call void @llvm.dbg.declare(metadata i32* %j, metadata !37, metadata !16), !dbg !38
-  %4 = load i32, i32* %n, align 4, !dbg !39
-  %5 = icmp sle i32 10, %4, !dbg !40
+  %5 = load i32, i32* %n, align 4, !dbg !39
+  %6 = icmp sle i32 10, %5, !dbg !40
   call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !41
-  br i1 %5, label %6, label %9, !dbg !43
+  br i1 %6, label %7, label %10, !dbg !43
 
-; <label>:6                                       ; preds = %0
-  %7 = load i32, i32* %n, align 4, !dbg !44
-  %8 = icmp sle i32 %7, 10000, !dbg !45
-  br label %9
+; <label>:7                                       ; preds = %0
+  %8 = load i32, i32* %n, align 4, !dbg !44
+  %9 = icmp sle i32 %8, 10000, !dbg !45
+  br label %10
 
-; <label>:9                                       ; preds = %6, %0
-  %10 = phi i1 [ false, %0 ], [ %8, %6 ]
-  %11 = zext i1 %10 to i32, !dbg !43
-  call void @__VERIFIER_assume(i32 %11), !dbg !46
-  %12 = load i32, i32* %m, align 4, !dbg !47
-  %13 = icmp sle i32 10, %12, !dbg !48
-  br i1 %13, label %14, label %17, !dbg !49
+; <label>:10                                      ; preds = %7, %0
+  %11 = phi i1 [ false, %0 ], [ %9, %7 ]
+  %12 = zext i1 %11 to i32, !dbg !43
+  call void @__VERIFIER_assume(i32 %12), !dbg !46
+  %13 = load i32, i32* %m, align 4, !dbg !47
+  %14 = icmp sle i32 10, %13, !dbg !48
+  br i1 %14, label %15, label %18, !dbg !49
 
-; <label>:14                                      ; preds = %9
-  %15 = load i32, i32* %m, align 4, !dbg !50
-  %16 = icmp sle i32 %15, 10000, !dbg !51
-  br label %17
+; <label>:15                                      ; preds = %10
+  %16 = load i32, i32* %m, align 4, !dbg !50
+  %17 = icmp sle i32 %16, 10000, !dbg !51
+  br label %18
 
-; <label>:17                                      ; preds = %14, %9
-  %18 = phi i1 [ false, %9 ], [ %16, %14 ]
-  %19 = zext i1 %18 to i32, !dbg !49
-  call void @__VERIFIER_assume(i32 %19), !dbg !52
+; <label>:18                                      ; preds = %15, %10
+  %19 = phi i1 [ false, %10 ], [ %17, %15 ]
+  %20 = zext i1 %19 to i32, !dbg !49
+  call void @__VERIFIER_assume(i32 %20), !dbg !52
   store i32 0, i32* %i, align 4, !dbg !53
-  br label %20, !dbg !55
+  br label %21, !dbg !55
 
-; <label>:20                                      ; preds = %36, %17
-  %21 = load i32, i32* %i, align 4, !dbg !56
-  %22 = load i32, i32* %n, align 4, !dbg !58
-  %23 = icmp slt i32 %21, %22, !dbg !59
-  br i1 %23, label %24, label %39, !dbg !60
+; <label>:21                                      ; preds = %37, %18
+  %22 = load i32, i32* %i, align 4, !dbg !56
+  %23 = load i32, i32* %n, align 4, !dbg !58
+  %24 = icmp slt i32 %22, %23, !dbg !59
+  br i1 %24, label %25, label %40, !dbg !60
 
-; <label>:24                                      ; preds = %20
+; <label>:25                                      ; preds = %21
   store i32 0, i32* %j, align 4, !dbg !61
-  br label %25, !dbg !64
+  br label %26, !dbg !64
 
-; <label>:25                                      ; preds = %32, %24
-  %26 = load i32, i32* %j, align 4, !dbg !65
-  %27 = load i32, i32* %m, align 4, !dbg !67
-  %28 = icmp slt i32 %26, %27, !dbg !68
-  br i1 %28, label %29, label %35, !dbg !69
+; <label>:26                                      ; preds = %33, %25
+  %27 = load i32, i32* %j, align 4, !dbg !65
+  %28 = load i32, i32* %m, align 4, !dbg !67
+  %29 = icmp slt i32 %27, %28, !dbg !68
+  br i1 %29, label %30, label %36, !dbg !69
 
-; <label>:29                                      ; preds = %25
-  %30 = load i32, i32* %k, align 4, !dbg !70
-  %31 = add nsw i32 %30, 1, !dbg !70
-  store i32 %31, i32* %k, align 4, !dbg !70
-  br label %32, !dbg !72
+; <label>:30                                      ; preds = %26
+  %31 = load i32, i32* %k, align 4, !dbg !70
+  %32 = add nsw i32 %31, 1, !dbg !70
+  store i32 %32, i32* %k, align 4, !dbg !70
+  br label %33, !dbg !72
 
-; <label>:32                                      ; preds = %29
-  %33 = load i32, i32* %j, align 4, !dbg !73
-  %34 = add nsw i32 %33, 1, !dbg !73
-  store i32 %34, i32* %j, align 4, !dbg !73
-  br label %25, !dbg !74
+; <label>:33                                      ; preds = %30
+  %34 = load i32, i32* %j, align 4, !dbg !73
+  %35 = add nsw i32 %34, 1, !dbg !73
+  store i32 %35, i32* %j, align 4, !dbg !73
+  br label %26, !dbg !74
 
-; <label>:35                                      ; preds = %25
-  br label %36, !dbg !75
+; <label>:36                                      ; preds = %26
+  br label %37, !dbg !75
 
-; <label>:36                                      ; preds = %35
-  %37 = load i32, i32* %i, align 4, !dbg !76
-  %38 = add nsw i32 %37, 1, !dbg !76
-  store i32 %38, i32* %i, align 4, !dbg !76
-  br label %20, !dbg !77
+; <label>:37                                      ; preds = %36
+  %38 = load i32, i32* %i, align 4, !dbg !76
+  %39 = add nsw i32 %38, 1, !dbg !76
+  store i32 %39, i32* %i, align 4, !dbg !76
+  br label %21, !dbg !77
 
-; <label>:39                                      ; preds = %20
-  %40 = load i32, i32* %k, align 4, !dbg !78
-  %41 = icmp sge i32 %40, 100, !dbg !79
-  %42 = zext i1 %41 to i32, !dbg !79
-  %43 = bitcast i32* %1 to i8*, !dbg !80
-  call void @llvm.lifetime.start(i64 4, i8* %43), !dbg !80
-  store i32 %42, i32* %1, align 4, !dbg !80
-  %44 = load i32, i32* %1, align 4, !dbg !81
-  %45 = icmp ne i32 %44, 0, !dbg !82
-  br i1 %45, label %__VERIFIER_assert.exit, label %46, !dbg !83
+; <label>:40                                      ; preds = %21
+  %41 = load i32, i32* %k, align 4, !dbg !78
+  %42 = icmp sge i32 %41, 100, !dbg !79
+  %43 = zext i1 %42 to i32, !dbg !79
+  %44 = bitcast i32* %1 to i8*, !dbg !80
+  call void @llvm.lifetime.start(i64 4, i8* %44), !dbg !80
+  store i32 %43, i32* %1, align 4, !dbg !80
+  %45 = load i32, i32* %1, align 4, !dbg !81
+  %46 = icmp ne i32 %45, 0, !dbg !82
+  br i1 %46, label %__VERIFIER_assert.exit, label %47, !dbg !83
 
-; <label>:46                                      ; preds = %39
+; <label>:47                                      ; preds = %40
   call void @__VERIFIER_error() #3, !dbg !84
   br label %__VERIFIER_assert.exit, !dbg !85
 
-__VERIFIER_assert.exit:                           ; preds = %39, %46
-  %47 = bitcast i32* %1 to i8*, !dbg !86
-  call void @llvm.lifetime.end(i64 4, i8* %47), !dbg !86
-  ret void, !dbg !87
+__VERIFIER_assert.exit:                           ; preds = %40, %47
+  %48 = bitcast i32* %1 to i8*, !dbg !86
+  call void @llvm.lifetime.end(i64 4, i8* %48), !dbg !86
+  ret i32 0, !dbg !87
 }
 
 declare i32 @__VERIFIER_nondet_int(...) #2
@@ -160,9 +162,9 @@ attributes #3 = { nounwind }
 !5 = !DISubroutineType(types: !6)
 !6 = !{null, !7}
 !7 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: void ()* @main, variables: !2)
+!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: i32 ()* @main, variables: !2)
 !9 = !DISubroutineType(types: !10)
-!10 = !{null}
+!10 = !{!7}
 !11 = !{i32 2, !"Dwarf Version", i32 2}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{i32 1, !"PIC Level", i32 2}
@@ -239,4 +241,4 @@ attributes #3 = { nounwind }
 !84 = !DILocation(line: 5, column: 10, scope: !24, inlinedAt: !42)
 !85 = !DILocation(line: 6, column: 3, scope: !24, inlinedAt: !42)
 !86 = !DILocation(line: 7, column: 3, scope: !4, inlinedAt: !42)
-!87 = !DILocation(line: 23, column: 1, scope: !8)
+!87 = !DILocation(line: 23, column: 5, scope: !8)

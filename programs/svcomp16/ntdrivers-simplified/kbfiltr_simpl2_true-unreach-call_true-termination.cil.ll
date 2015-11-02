@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 @NP = common global i32 0, align 4
 @s = common global i32 0, align 4
@@ -2443,7 +2443,7 @@ attributes #6 = { noreturn }
 !9 = !DISubroutineType(types: !10)
 !10 = !{null}
 !11 = !DISubprogram(name: "_BLAST_init", scope: !12, file: !12, line: 62, type: !9, isLocal: false, isDefinition: true, scopeLine: 63, flags: DIFlagPrototyped, isOptimized: false, function: void ()* @_BLAST_init, variables: !2)
-!12 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/kbfiltr_simpl2.cil.c", directory: ".")
+!12 = !DIFile(filename: "kbfiltr_simpl2.cil.c", directory: ".")
 !13 = !DISubprogram(name: "KbFilter_PnP", scope: !12, file: !12, line: 86, type: !14, isLocal: false, isDefinition: true, scopeLine: 87, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32, i32)* @KbFilter_PnP, variables: !2)
 !14 = !DISubroutineType(types: !15)
 !15 = !{!16, !16, !16}

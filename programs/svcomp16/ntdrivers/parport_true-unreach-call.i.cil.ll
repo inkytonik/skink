@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 %struct._UNICODE_STRING = type { i16, i16, i16* }
 %struct._FAST_MUTEX = type { i64, %struct._KTHREAD*, i64, %struct._KEVENT, i64 }

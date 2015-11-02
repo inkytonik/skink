@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 %struct._GUID = type { i64, i16, i16, [8 x i8] }
 %struct._DEVICE_OBJECT = type { i16, i16, i64, %struct._DRIVER_OBJECT*, %struct._DEVICE_OBJECT*, %struct._DEVICE_OBJECT*, %struct._IRP*, %struct._IO_TIMER*, i64, i64, %struct._VPB*, i8*, i64, i8, %union.__anonunion_Queue_43, i64, %struct._KDEVICE_QUEUE, %struct._KDPC, i64, i8*, %struct._KEVENT, i16, i16, %struct._DEVOBJ_EXTENSION*, i8* }
