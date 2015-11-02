@@ -7593,7 +7593,7 @@ attributes #6 = { noreturn nounwind }
 !llvm.ident = !{!1983}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !258, subprograms: !1459, globals: !1788)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ntdrivers/diskperf_true-unreach-call.i.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ntdrivers/diskperf_true-unreach-call.i.cil.c", directory: ".")
 !2 = !{!3, !9, !48, !59, !66, !74, !84, !104, !111, !115, !121, !125, !135, !140, !144, !150, !167, !210, !214, !244, !253}
 !3 = !DICompositeType(tag: DW_TAG_enumeration_type, name: "_SECURITY_IMPERSONATION_LEVEL", file: !1, line: 184, size: 32, align: 32, elements: !4)
 !4 = !{!5, !6, !7, !8}

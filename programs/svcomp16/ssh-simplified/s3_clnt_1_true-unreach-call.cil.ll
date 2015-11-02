@@ -1357,7 +1357,7 @@ attributes #4 = { noreturn }
 !llvm.ident = !{!18}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !7)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !5, !6}
 !4 = !DIBasicType(name: "long unsigned int", size: 64, align: 64, encoding: DW_ATE_unsigned)
@@ -1365,7 +1365,7 @@ attributes #4 = { noreturn }
 !6 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !7 = !{!8, !12}
 !8 = !DISubprogram(name: "ssl3_connect", scope: !9, file: !9, line: 4, type: !10, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32)* @ssl3_connect, variables: !2)
-!9 = !DIFile(filename: "s3_clnt_1.cil.c", directory: "/Users/franck/development/perentiemq")
+!9 = !DIFile(filename: "s3_clnt_1.cil.c", directory: ".")
 !10 = !DISubroutineType(types: !11)
 !11 = !{!6, !6}
 !12 = !DISubprogram(name: "main", scope: !9, file: !9, line: 604, type: !13, isLocal: false, isDefinition: true, scopeLine: 605, flags: DIFlagPrototyped, isOptimized: false, function: i32 ()* @main, variables: !2)

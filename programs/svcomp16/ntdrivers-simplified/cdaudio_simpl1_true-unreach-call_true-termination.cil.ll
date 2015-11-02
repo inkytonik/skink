@@ -5586,7 +5586,7 @@ attributes #6 = { noreturn nounwind }
 !llvm.ident = !{!81}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !6, globals: !55)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/cdaudio_simpl1_true-unreach-call_true-termination.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !5}
 !4 = !DIBasicType(name: "long int", size: 64, align: 64, encoding: DW_ATE_signed)
@@ -5596,7 +5596,7 @@ attributes #6 = { noreturn nounwind }
 !8 = !DISubroutineType(types: !9)
 !9 = !{null}
 !10 = !DISubprogram(name: "_BLAST_init", scope: !11, file: !11, line: 63, type: !8, isLocal: false, isDefinition: true, scopeLine: 64, flags: DIFlagPrototyped, isOptimized: false, function: void ()* @_BLAST_init, variables: !2)
-!11 = !DIFile(filename: "cdaudio_simpl1.cil.c", directory: "/Users/franck/development/perentiemq")
+!11 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/cdaudio_simpl1.cil.c", directory: ".")
 !12 = !DISubprogram(name: "SendSrbSynchronous", scope: !11, file: !11, line: 85, type: !13, isLocal: false, isDefinition: true, scopeLine: 86, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32, i32, i32, i32)* @SendSrbSynchronous, variables: !2)
 !13 = !DISubroutineType(types: !14)
 !14 = !{!15, !15, !15, !15, !15}

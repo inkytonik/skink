@@ -2201,7 +2201,7 @@ attributes #5 = { noreturn }
 !llvm.ident = !{!1335}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !1319, globals: !1329)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ssh/s3_srvr.blast.09_true-unreach-call.i.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ssh/s3_srvr.blast.09_true-unreach-call.i.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !6, !7, !9, !12, !13, !14, !15, !22, !25}
 !4 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !5, size: 64, align: 64)

@@ -65,11 +65,11 @@ attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-
 !llvm.ident = !{!15}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "loop-new/count_by_1_true-unreach-call.c", directory: "/Users/franck/development/perentiemq/test-script-icode")
+!1 = !DIFile(filename: "loop-new/count_by_1_true-unreach-call.c", directory: "./test-script-icode")
 !2 = !{}
 !3 = !{!4, !9}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !5, file: !5, line: 3, type: !6, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
-!5 = !DIFile(filename: "loop-new/assert.h", directory: "/Users/franck/development/perentiemq/test-script-icode")
+!5 = !DIFile(filename: "loop-new/assert.h", directory: "./test-script-icode")
 !6 = !DISubroutineType(types: !7)
 !7 = !{null, !8}
 !8 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)

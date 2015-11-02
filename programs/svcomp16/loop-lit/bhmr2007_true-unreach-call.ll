@@ -130,11 +130,11 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!15}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "../../../sv-comp-2016/c/loop-lit/bhmr2007_true-unreach-call.c", directory: "/Users/franck/development/perentiemq/programs/svcomp16")
+!1 = !DIFile(filename: "programs/svcomp16/loop-lit/bhmr2007_true-unreach-call.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !9}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !5, file: !5, line: 3, type: !6, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
-!5 = !DIFile(filename: "../../../sv-comp-2016/c/loop-lit/assert.h", directory: "/Users/franck/development/perentiemq/programs/svcomp16")
+!5 = !DIFile(filename: "programs/svcomp16/loop-lit/assert.h", directory: ".")
 !6 = !DISubroutineType(types: !7)
 !7 = !{null, !8}
 !8 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)

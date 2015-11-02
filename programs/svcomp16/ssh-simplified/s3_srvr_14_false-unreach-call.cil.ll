@@ -1624,13 +1624,13 @@ attributes #4 = { noreturn }
 !llvm.ident = !{!17}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !5)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ssh-simplified/s3_srvr_14_false-unreach-call.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ssh-simplified/s3_srvr_14_false-unreach-call.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4}
 !4 = !DIBasicType(name: "long unsigned int", size: 64, align: 64, encoding: DW_ATE_unsigned)
 !5 = !{!6, !11}
 !6 = !DISubprogram(name: "ssl3_accept", scope: !7, file: !7, line: 4, type: !8, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32)* @ssl3_accept, variables: !2)
-!7 = !DIFile(filename: "s3_srvr_8.cil.c", directory: "/Users/franck/development/perentiemq")
+!7 = !DIFile(filename: "s3_srvr_8.cil.c", directory: ".")
 !8 = !DISubroutineType(types: !9)
 !9 = !{!10, !10}
 !10 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)

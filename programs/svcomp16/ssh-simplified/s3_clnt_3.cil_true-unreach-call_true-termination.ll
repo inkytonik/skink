@@ -1404,7 +1404,7 @@ attributes #4 = { noreturn }
 !llvm.ident = !{!18}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !7)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ssh-simplified/s3_clnt_3.cil_true-unreach-call_true-termination.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ssh-simplified/s3_clnt_3.cil_true-unreach-call_true-termination.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !5, !6}
 !4 = !DIBasicType(name: "long unsigned int", size: 64, align: 64, encoding: DW_ATE_unsigned)

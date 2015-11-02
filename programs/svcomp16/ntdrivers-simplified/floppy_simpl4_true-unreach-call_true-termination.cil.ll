@@ -4492,7 +4492,7 @@ attributes #6 = { noreturn }
 !llvm.ident = !{!93}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !6, globals: !63)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/floppy_simpl4_true-unreach-call_true-termination.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !5}
 !4 = !DIBasicType(name: "long int", size: 64, align: 64, encoding: DW_ATE_signed)
@@ -4502,7 +4502,7 @@ attributes #6 = { noreturn }
 !8 = !DISubroutineType(types: !9)
 !9 = !{null}
 !10 = !DISubprogram(name: "FlAcpiConfigureFloppy", scope: !11, file: !11, line: 94, type: !12, isLocal: false, isDefinition: true, scopeLine: 95, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32, i32)* @FlAcpiConfigureFloppy, variables: !2)
-!11 = !DIFile(filename: "floppy_simpl4.cil.c", directory: "/Users/franck/development/perentiemq")
+!11 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/floppy_simpl4.cil.c", directory: ".")
 !12 = !DISubroutineType(types: !13)
 !13 = !{!14, !14, !14}
 !14 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)

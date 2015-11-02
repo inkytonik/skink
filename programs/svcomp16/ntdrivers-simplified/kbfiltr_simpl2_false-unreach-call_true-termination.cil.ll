@@ -2439,7 +2439,7 @@ attributes #6 = { noreturn }
 !llvm.ident = !{!61}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !7, globals: !38)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ntdrivers-simplified/kbfiltr_simpl2_false-unreach-call_true-termination.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/kbfiltr_simpl2_false-unreach-call_true-termination.cil.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !5, !6}
 !4 = !DIBasicType(name: "long int", size: 64, align: 64, encoding: DW_ATE_signed)
@@ -2450,7 +2450,7 @@ attributes #6 = { noreturn }
 !9 = !DISubroutineType(types: !10)
 !10 = !{null}
 !11 = !DISubprogram(name: "_BLAST_init", scope: !12, file: !12, line: 62, type: !9, isLocal: false, isDefinition: true, scopeLine: 63, flags: DIFlagPrototyped, isOptimized: false, function: void ()* @_BLAST_init, variables: !2)
-!12 = !DIFile(filename: "kbfiltr_simpl2.cil.c", directory: "/Users/franck/development/perentiemq")
+!12 = !DIFile(filename: "programs/svcomp16/ntdrivers-simplified/kbfiltr_simpl2.cil.c", directory: ".")
 !13 = !DISubprogram(name: "KbFilter_PnP", scope: !12, file: !12, line: 84, type: !14, isLocal: false, isDefinition: true, scopeLine: 85, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32, i32)* @KbFilter_PnP, variables: !2)
 !14 = !DISubroutineType(types: !15)
 !15 = !{!16, !16, !16}

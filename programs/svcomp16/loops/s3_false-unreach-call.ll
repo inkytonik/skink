@@ -1853,7 +1853,7 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!1334}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !1319, globals: !1328)
-!1 = !DIFile(filename: "../sv-comp-2016/c/loops/s3_false-unreach-call.i", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/loops/s3_false-unreach-call.i", directory: ".")
 !2 = !{}
 !3 = !{!4, !6, !7, !9, !12, !13, !14, !15, !22, !25}
 !4 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !5, size: 64, align: 64)

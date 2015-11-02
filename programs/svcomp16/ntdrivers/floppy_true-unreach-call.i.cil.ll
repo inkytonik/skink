@@ -20213,7 +20213,7 @@ attributes #6 = { noreturn nounwind }
 !llvm.ident = !{!2091}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !333, subprograms: !1644, globals: !2036)
-!1 = !DIFile(filename: "../sv-comp-2016/c/ntdrivers/floppy_true-unreach-call.i.cil.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/ntdrivers/floppy_true-unreach-call.i.cil.c", directory: ".")
 !2 = !{!3, !22, !45, !70, !76, !115, !126, !133, !141, !151, !171, !178, !182, !188, !192, !202, !207, !212, !217, !260, !268, !285, !289, !319, !328}
 !3 = !DICompositeType(tag: DW_TAG_enumeration_type, name: "_DRIVE_MEDIA_TYPE", file: !1, line: 1578, size: 32, align: 32, elements: !4)
 !4 = !{!5, !6, !7, !8, !9, !10, !11, !12, !13, !14, !15, !16, !17, !18, !19, !20, !21}

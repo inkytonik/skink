@@ -18005,7 +18005,7 @@ attributes #4 = { noreturn }
 !llvm.ident = !{!57}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3, globals: !11)
-!1 = !DIFile(filename: "../sv-comp-2016/c/eca-rers2012/Problem03_label02_true-unreach-call.c", directory: "/Users/franck/development/perentiemq")
+!1 = !DIFile(filename: "programs/svcomp16/eca/Problem03_label02_true-unreach-call.c", directory: ".")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "calculate_output", scope: !1, file: !1, line: 54, type: !5, isLocal: false, isDefinition: true, scopeLine: 54, flags: DIFlagPrototyped, isOptimized: false, function: i32 (i32)* @calculate_output, variables: !2)
