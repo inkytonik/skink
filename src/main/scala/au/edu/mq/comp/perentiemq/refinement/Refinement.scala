@@ -1,23 +1,23 @@
 package au.edu.mq.comp.perentiemq.refinement
 
-import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
+import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
 
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 
-import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{ traceToTerms }
+import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{traceToTerms}
 
-import smtlib.util.{ TypedTerm, ValMap }
-import smtlib.interpreters.{ SMTSolver, GenericSolver }
+import smtlib.util.{TypedTerm, ValMap}
+import smtlib.interpreters.{SMTSolver, GenericSolver}
 import smtlib.interpreters.Configurations._
 import smtlib.util.Logics.isSat
-import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
-import smtlib.parser.Commands.{ Exit, Reset, Pop, Push }
+import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus, GetInterpolantsResponseSuccess}
+import smtlib.parser.Commands.{Exit, Reset, Pop, Push}
 import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.Logics.{ getValues, isSat, getInterpolants }
+import smtlib.util.Logics.{getValues, isSat, getInterpolants}
 
-import scala.util.{ Try, Failure, Success }
+import scala.util.{Try, Failure, Success}
 
 import org.kiama.rewriting.Rewriter.collect
 
@@ -159,7 +159,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                                 //  log results
 
-                                import InterpolantAutomaton.{ getBlockLabel, logAuto }
+                                import InterpolantAutomaton.{getBlockLabel, logAuto}
 
                                 // logAuto(toDetNFA(r + ia),
                                 //   { x: Int => x.toString },

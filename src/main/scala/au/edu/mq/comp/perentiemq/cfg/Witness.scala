@@ -8,7 +8,7 @@ object Witness {
     import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.Entry
     import au.edu.mq.comp.perentiemq.PerentieMQConfig
     import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.FailureTrace
-    import org.scalallvm.assembly.AssemblySyntax.{ Program, FunctionDefinition }
+    import org.scalallvm.assembly.AssemblySyntax.{Program, FunctionDefinition}
     import org.scalallvm.assembly.Analyser
 
     /**
@@ -18,7 +18,7 @@ object Witness {
         funanalyser : Analyser, failTrace : FailureTrace[Entry]) {
 
         import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG
-        import org.kiama.util.{ FileSource, Position }
+        import org.kiama.util.{FileSource, Position}
 
         def escapeChar(char : Char) =
             char match {

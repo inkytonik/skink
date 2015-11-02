@@ -78,7 +78,7 @@ abstract class CFGBuilder[F, B] extends Attribution {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.util.DotConverter
-    import au.edu.mq.comp.dot.DOTSyntax.{ Attribute, DotSpec, Ident, StringLit }
+    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
 
     // Support methods that descendants must provide
 

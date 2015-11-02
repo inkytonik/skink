@@ -7,8 +7,8 @@ import org.kiama.util.Positions
  */
 class Compiler(positions : Positions) {
 
-    import au.edu.mq.comp.perentiemq.iml.{ IMLSyntax => IML }
-    import org.kiama.util.{ Counter, Position }
+    import au.edu.mq.comp.perentiemq.iml.{IMLSyntax => IML}
+    import org.kiama.util.{Counter, Position}
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable
 

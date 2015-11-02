@@ -1,7 +1,7 @@
 package au.edu.mq.comp.perentiemq
 
 import iml.IMLSyntax.Program
-import org.kiama.util.{ CompilerBase, Config }
+import org.kiama.util.{CompilerBase, Config}
 
 abstract class PerentieMQConfig(args : Seq[String]) extends Config(args) {
     lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
@@ -43,13 +43,13 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
     import au.edu.mq.comp.dot.DOTPrettyPrinter
     import cfg.AssemblyCFG
     import iml.Compiler
-    import iml.IMLPrettyPrinter.{ any, pretty }
-    import org.scalallvm.assembly.{ Assembly, AssemblyPrettyPrinter }
-    import org.scalallvm.assembly.AssemblySyntax.{ Program => IR }
+    import iml.IMLPrettyPrinter.{any, pretty}
+    import org.scalallvm.assembly.{Assembly, AssemblyPrettyPrinter}
+    import org.scalallvm.assembly.AssemblySyntax.{Program => IR}
     import org.scalallvm.assembly.Executor.execute
     import org.kiama.output.PrettyPrinterTypes.Document
-    import org.kiama.util.{ Emitter, ErrorEmitter, OutputEmitter, Source }
-    import org.kiama.util.Messaging.{ Messages, noMessages }
+    import org.kiama.util.{Emitter, ErrorEmitter, OutputEmitter, Source}
+    import org.kiama.util.Messaging.{Messages, noMessages}
 
     override def createConfig(
         args : Seq[String],

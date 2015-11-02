@@ -86,4 +86,4 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
     .setPreference (AlignSingleLineCaseStatements, true)
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
-
+    .setPreference (SpacesAroundMultiImports, false)

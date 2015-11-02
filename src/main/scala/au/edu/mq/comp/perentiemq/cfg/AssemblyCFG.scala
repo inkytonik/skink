@@ -8,7 +8,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     import au.edu.mq.comp.perentiemq.PerentieMQConfig
     import org.kiama.relation.Tree
     import org.scalallvm.assembly.AssemblySyntax._
-    import org.scalallvm.assembly.{ ElementProperty, Property, TypeProperty }
+    import org.scalallvm.assembly.{ElementProperty, Property, TypeProperty}
     import smtlib.util.TypedTerm
 
     /**
@@ -57,7 +57,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         import org.scalallvm.assembly.AssemblyPrettyPrinter
         import scala.annotation.tailrec
         import smtlib.parser.Terms.Sort
-        import smtlib.theories.{ ArraysEx, Core, Ints }
+        import smtlib.theories.{ArraysEx, Core, Ints}
         import smtlib.util.Implicits._
 
         val tree = new Tree[Product, Trace](trace)
@@ -463,12 +463,12 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     def runVerification(program : Program, cfg : CFG[FunctionDefinition, Block],
         cfgAnalyser : CFGAnalyser, config : PerentieMQConfig) {
 
-        import au.edu.mq.comp.automat.auto.{ NFA }
+        import au.edu.mq.comp.automat.auto.{NFA}
         import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
         import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
-        import scala.util.{ Try, Failure, Success }
-        import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{ FailureTrace, traceRefinement }
+        import scala.util.{Try, Failure, Success}
+        import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{FailureTrace, traceRefinement}
         import au.edu.mq.comp.dot.DOTPrettyPrinter.format
         import reflect.io._
 

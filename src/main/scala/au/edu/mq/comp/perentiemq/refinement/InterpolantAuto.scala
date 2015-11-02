@@ -1,15 +1,15 @@
 package au.edu.mq.comp.perentiemq.refinement
 
-import au.edu.mq.comp.automat.auto.{ DetAuto, NFA }
+import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
-import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{ Entry, Trace }
+import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{Entry, Trace}
 import au.edu.mq.comp.automat.edge.Edge
-import smtlib.util.{ TypedTerm }
-import smtlib.interpreters.{ GenericSolver }
+import smtlib.util.{TypedTerm}
+import smtlib.interpreters.{GenericSolver}
 import smtlib.parser.Terms.SSymbol
-import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
-import smtlib.util.Logics.{ isSat, getInterpolants }
+import au.edu.mq.comp.perentiemq.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
+import smtlib.util.Logics.{isSat, getInterpolants}
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -141,13 +141,13 @@ object InterpolantAutomaton {
 
     }
 
-    import smtlib.util.{ TypedTerm }
-    import smtlib.interpreters.{ GenericSolver }
-    import smtlib.util.Logics.{ getInterpolants }
-    import scala.util.{ Failure, Success }
+    import smtlib.util.{TypedTerm}
+    import smtlib.interpreters.{GenericSolver}
+    import smtlib.util.Logics.{getInterpolants}
+    import scala.util.{Failure, Success}
 
     import org.scalallvm.assembly.AssemblySyntax._
-    import au.edu.mq.comp.perentiemq.cfg.{ CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto }
+    import au.edu.mq.comp.perentiemq.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
 
     def getBlockLabel[L](b : L) : String = b match {
         case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
@@ -168,7 +168,7 @@ object InterpolantAutomaton {
         import reflect.io._
         import au.edu.mq.comp.automat.util.DotConverter.toDot
         import au.edu.mq.comp.dot.DOTPrettyPrinter.format
-        import au.edu.mq.comp.dot.DOTSyntax.{ Attribute, StringLit, Ident }
+        import au.edu.mq.comp.dot.DOTSyntax.{Attribute, StringLit, Ident}
 
         val dotiAuto = toDot(
             a,
@@ -232,12 +232,12 @@ object Semantics {
         val p = tgtP index { case v if minmap.isDefinedAt(v) => maxmap(v) }
         // println(p.getTerm)
         //  check whether srcP and entry and !tgtP is SAT
-        import smtlib.interpreters.{ SMTSolver, GenericSolver }
+        import smtlib.interpreters.{SMTSolver, GenericSolver}
         import smtlib.util.Logics.isSat
-        import scala.util.{ Try, Failure, Success }
-        import smtlib.parser.CommandsResponses.{ SatStatus, UnsatStatus, GetInterpolantsResponseSuccess }
+        import scala.util.{Try, Failure, Success}
+        import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus, GetInterpolantsResponseSuccess}
         import smtlib.interpreters.Configurations._
-        import smtlib.parser.Commands.{ Exit, Reset }
+        import smtlib.parser.Commands.{Exit, Reset}
 
         val solver = SMTSolver(Z3, QFAUFLIAFullConfig).get
         val answer = isSat(t & flattenEntry & !p)(solver)

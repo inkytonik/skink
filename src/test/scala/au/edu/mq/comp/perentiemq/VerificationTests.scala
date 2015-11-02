@@ -6,8 +6,8 @@ import org.scalatest.FunSuiteLike
 
 trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {
 
-    import org.scalatest.{ Args, Reporter, Status }
-    import org.scalatest.events.{ Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded }
+    import org.scalatest.{Args, Reporter, Status}
+    import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}
 
     class SVCompReporter(reporter : Reporter) extends Reporter {
 

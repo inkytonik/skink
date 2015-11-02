@@ -1,6 +1,6 @@
 package au.edu.mq.comp.perentiemq.iml
 
-import au.edu.mq.comp.perentiemq.{ Driver, PerentieMQConfig }
+import au.edu.mq.comp.perentiemq.{Driver, PerentieMQConfig}
 import IMLSyntax.Program
 import org.kiama.util.TestCompilerWithConfig
 
