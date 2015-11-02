@@ -4,12 +4,12 @@ import iml.IMLSyntax.Program
 import org.kiama.util.TestCompilerWithConfig
 import org.scalatest.FunSuiteLike
 
-trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConfig] {
+trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {
 
-    import org.scalatest.{Args, Reporter, Status}
-    import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}
+    import org.scalatest.{ Args, Reporter, Status }
+    import org.scalatest.events.{ Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded }
 
-    class SVCompReporter (reporter : Reporter) extends Reporter {
+    class SVCompReporter(reporter : Reporter) extends Reporter {
 
         var truePositiveNum = 0
         var falsePositiveNum = 0
@@ -27,36 +27,36 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
         val listTrueNegative = new scala.collection.mutable.ListBuffer[String]()
         val listTruePositive = new scala.collection.mutable.ListBuffer[String]()
         val listFalsePositive = new scala.collection.mutable.ListBuffer[String]()
-        val listFalseNegative  = new scala.collection.mutable.ListBuffer[String]()
+        val listFalseNegative = new scala.collection.mutable.ListBuffer[String]()
 
         object Correct {
-            def unapply (name : String) : Boolean =
+            def unapply(name : String) : Boolean =
                 name contains "_true-unreach-call"
         }
 
         object InCorrect {
-            def unapply (name : String) : Boolean =
+            def unapply(name : String) : Boolean =
                 name contains "_false-unreach-call"
         }
 
         object UnknownMessage {
-            def unapply (message : String) : Boolean =
+            def unapply(message : String) : Boolean =
                 message startsWith "\"[UNKNOWN"
         }
 
-        def apply (event : Event) {
-            reporter (event)
+        def apply(event : Event) {
+            reporter(event)
             event match {
                 case failure : TestFailed =>
                     failure.message match {
-                        case UnknownMessage () =>
+                        case UnknownMessage() =>
                             unknownNum = unknownNum + 1
                         case _ =>
                             failure.testName match {
-                                case Correct () =>
+                                case Correct() =>
                                     listFalsePositive += failure.testName
                                     falsePositiveNum = falsePositiveNum + 1
-                                case InCorrect () =>
+                                case InCorrect() =>
                                     listFalseNegative += failure.testName
                                     falseNegativeNum = falseNegativeNum + 1
                                 case _ =>
@@ -65,120 +65,117 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program,PerentieMQConf
                     }
                 case success : TestSucceeded =>
                     success.testName match {
-                        case Correct () =>
+                        case Correct() =>
                             listTrueNegative += success.testName
                             trueNegativeNum = trueNegativeNum + 1
-                        case InCorrect () =>
+                        case InCorrect() =>
                             listTruePositive += success.testName
                             truePositiveNum = truePositiveNum + 1
                         case _ =>
                             bogusNameNum = bogusNameNum + 1
                     }
                 case _ =>
-                    // Do nothing
+                // Do nothing
             }
         }
 
-        def printSVCompReport (args : Args) {
+        def printSVCompReport(args : Args) {
 
-            def message (msg : String) {
-                reporter (InfoProvided (args.tracker.nextOrdinal (), msg, Some (NameInfo ("SVCOMP16 report", "", None, None))))
+            def message(msg : String) {
+                reporter(InfoProvided(args.tracker.nextOrdinal(), msg, Some(NameInfo("SVCOMP16 report", "", None, None))))
             }
 
             val score = truePositiveNum * truePositivePoints + falsePositiveNum * falsePositivePoints +
-                             trueNegativeNum * trueNegativePoints + falseNegativeNum * falseNegativePoints +
-                             unknownNum * unknownPoints
+                trueNegativeNum * trueNegativePoints + falseNegativeNum * falseNegativePoints +
+                unknownNum * unknownPoints
 
-            message ("")
-            message (s"#truePositive  = $truePositiveNum")
-            message (s"#trueNegative  = $trueNegativeNum")
-            message (s"#falsePositive = $falsePositiveNum")
-            message (s"#falseNegative = $falseNegativeNum")
-            message (s"#unknown       = $unknownNum")
-            message (s"#bogus name    = $bogusNameNum")
-            message (s"score          = $score")
-            message ("")
+            message("")
+            message(s"#truePositive  = $truePositiveNum")
+            message(s"#trueNegative  = $trueNegativeNum")
+            message(s"#falsePositive = $falsePositiveNum")
+            message(s"#falseNegative = $falseNegativeNum")
+            message(s"#unknown       = $unknownNum")
+            message(s"#bogus name    = $bogusNameNum")
+            message(s"score          = $score")
+            message("")
 
-            message ("False positives files")
-            message (s"${listFalsePositive.result().mkString("\n")}")
-            message ("False negatives files")
-            message (s"${listFalseNegative.result().mkString("\n")}")
+            message("False positives files")
+            message(s"${listFalsePositive.result().mkString("\n")}")
+            message("False negatives files")
+            message(s"${listFalseNegative.result().mkString("\n")}")
 
         }
 
     }
 
-    override def run (testName : Option[String], args : Args) : Status = {
-        val svcompReporter = new SVCompReporter (args.reporter)
-        val status = super.run (testName, args.copy (reporter = svcompReporter))
-        svcompReporter.printSVCompReport (args)
+    override def run(testName : Option[String], args : Args) : Status = {
+        val svcompReporter = new SVCompReporter(args.reporter)
+        val status = super.run(testName, args.copy(reporter = svcompReporter))
+        svcompReporter.printSVCompReport(args)
         status
     }
 
-    val defaultArgsList = List (List ("-v", "-m15", "-eZ3" ))
+    val defaultArgsList = List(List("-v", "-m15", "-eZ3"))
 
 }
 
 class SimpleTests extends TestBase {
-    filetests ("Simple", "programs/simple", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("Simple", "programs/simple", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPLoopLitTests extends TestBase {
-    filetests ("SVCOMP loop-lit", "programs/svcomp16/loop-lit", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP loop-lit", "programs/svcomp16/loop-lit", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPLoopAccelerationTests extends TestBase {
-    filetests ("SVCOMP loop-acceleration", "programs/svcomp16/loop-acceleration", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP loop-acceleration", "programs/svcomp16/loop-acceleration", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPLoopInvGenTests extends TestBase {
-    filetests ("SVCOMP loop-invgen", "programs/svcomp16/loop-invgen", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP loop-invgen", "programs/svcomp16/loop-invgen", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPLoopNewTests extends TestBase {
-    filetests ("SVCOMP loop-new", "programs/svcomp16/loop-new", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP loop-new", "programs/svcomp16/loop-new", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPLoopsTests extends TestBase {
-    filetests ("SVCOMP loops", "programs/svcomp16/loops", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP loops", "programs/svcomp16/loops", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
-
 class SVCOMPLocksTests extends TestBase {
-    filetests ("SVCOMP locks", "programs/svcomp16/locks", ".ll", ".verif",
-               argslist = List (List ("-v", "-m20", "-eZ3" )))
+    filetests("SVCOMP locks", "programs/svcomp16/locks", ".ll", ".verif",
+        argslist = List(List("-v", "-m20", "-eZ3")))
 }
 
 class SVCOMPECATests extends TestBase {
-    filetests ("SVCOMP ECA", "programs/svcomp16/eca", ".ll", ".verif",
-               argslist = List (List ("-v", "-m20", "-eZ3" )))
+    filetests("SVCOMP ECA", "programs/svcomp16/eca", ".ll", ".verif",
+        argslist = List(List("-v", "-m20", "-eZ3")))
 }
 
 class SVCOMPSshSimplifiedTests extends TestBase {
-    filetests ("SVCOMP ssh simplified", "programs/svcomp16/ssh-simplified", ".ll", ".verif",
-               argslist = List (List ("-v", "-m20", "-eZ3" )))
+    filetests("SVCOMP ssh simplified", "programs/svcomp16/ssh-simplified", ".ll", ".verif",
+        argslist = List(List("-v", "-m20", "-eZ3")))
 }
 
 class SVCOMPSshTests extends TestBase {
-    filetests ("SVCOMP ssh", "programs/svcomp16/ssh", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP ssh", "programs/svcomp16/ssh", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
 
 class SVCOMPNTDriversSimplifiedTests extends TestBase {
-    filetests ("SVCOMP ntdrivers-simplified", "programs/svcomp16/ntdrivers-simplified", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP ntdrivers-simplified", "programs/svcomp16/ntdrivers-simplified", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
-
 
 class SVCOMPNTDriversTests extends TestBase {
-    filetests ("SVCOMP ntdrivers", "programs/svcomp16/ntdrivers", ".ll", ".verif",
-               argslist = defaultArgsList)
+    filetests("SVCOMP ntdrivers", "programs/svcomp16/ntdrivers", ".ll", ".verif",
+        argslist = defaultArgsList)
 }
-
 

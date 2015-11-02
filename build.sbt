@@ -42,19 +42,17 @@ libraryDependencies ++=
         "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
     )
 
-// resolvers
 resolvers ++= Seq (
     Resolver.sonatypeRepo ("releases"),
     Resolver.sonatypeRepo ("snapshots")
 )
-
 
 scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
                                             // "-diagrams-dot-path",
                                             // "/usr/local/bin/dot",
                                             // "-diagrams-debug",
                                             "-diagrams-dot-restart", "50")
-                                            
+
 // Rats! setup
 
 sbtRatsSettings
@@ -71,8 +69,21 @@ ratsDefinePrettyPrinter := true
 
 ratsUseKiama := 2
 
+// Assembly settings
+
 test in assembly := {}
 
-mainClass in assembly := Some("au.edu.mq.comp.perentiemq.Main")
+mainClass in assembly := Some ("au.edu.mq.comp.perentiemq.Main")
 
+// ScalariForm
+
+import scalariform.formatter.preferences._
+import SbtScalariform.ScalariformKeys
+
+scalariformSettings
+
+ScalariformKeys.preferences := ScalariformKeys.preferences.value
+    .setPreference (AlignSingleLineCaseStatements, true)
+    .setPreference (IndentSpaces, 4)
+    .setPreference (SpaceBeforeColon, true)
 
