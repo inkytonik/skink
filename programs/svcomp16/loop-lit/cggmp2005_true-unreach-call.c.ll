@@ -1,6 +1,6 @@
 ; ModuleID = '<stdin>'
 target datalayout = "e-m:o-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.10.0"
+target triple = "x86_64-apple-macosx10.11.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define void @__VERIFIER_assert(i32 %cond) #0 {
@@ -28,51 +28,53 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 declare void @__VERIFIER_error() #2
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
   %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
   %i = alloca i32, align 4
   %j = alloca i32, align 4
+  store i32 0, i32* %2
   call void @llvm.dbg.declare(metadata i32* %i, metadata !27, metadata !16), !dbg !28
   call void @llvm.dbg.declare(metadata i32* %j, metadata !29, metadata !16), !dbg !30
   store i32 1, i32* %i, align 4, !dbg !31
   store i32 10, i32* %j, align 4, !dbg !32
   call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !33
-  br label %2, !dbg !35
+  br label %3, !dbg !35
 
-; <label>:2                                       ; preds = %6, %0
-  %3 = load i32, i32* %j, align 4, !dbg !36
-  %4 = load i32, i32* %i, align 4, !dbg !37
-  %5 = icmp sge i32 %3, %4, !dbg !38
-  br i1 %5, label %6, label %11, !dbg !35
+; <label>:3                                       ; preds = %7, %0
+  %4 = load i32, i32* %j, align 4, !dbg !36
+  %5 = load i32, i32* %i, align 4, !dbg !37
+  %6 = icmp sge i32 %4, %5, !dbg !38
+  br i1 %6, label %7, label %12, !dbg !35
 
-; <label>:6                                       ; preds = %2
-  %7 = load i32, i32* %i, align 4, !dbg !39
-  %8 = add nsw i32 %7, 2, !dbg !41
-  store i32 %8, i32* %i, align 4, !dbg !42
-  %9 = load i32, i32* %j, align 4, !dbg !43
-  %10 = add nsw i32 -1, %9, !dbg !44
-  store i32 %10, i32* %j, align 4, !dbg !45
-  br label %2, !dbg !35
+; <label>:7                                       ; preds = %3
+  %8 = load i32, i32* %i, align 4, !dbg !39
+  %9 = add nsw i32 %8, 2, !dbg !41
+  store i32 %9, i32* %i, align 4, !dbg !42
+  %10 = load i32, i32* %j, align 4, !dbg !43
+  %11 = add nsw i32 -1, %10, !dbg !44
+  store i32 %11, i32* %j, align 4, !dbg !45
+  br label %3, !dbg !35
 
-; <label>:11                                      ; preds = %2
-  %12 = load i32, i32* %j, align 4, !dbg !46
-  %13 = icmp eq i32 %12, 6, !dbg !47
-  %14 = zext i1 %13 to i32, !dbg !47
-  %15 = bitcast i32* %1 to i8*, !dbg !48
-  call void @llvm.lifetime.start(i64 4, i8* %15), !dbg !48
-  store i32 %14, i32* %1, align 4, !dbg !48
-  %16 = load i32, i32* %1, align 4, !dbg !49
-  %17 = icmp ne i32 %16, 0, !dbg !50
-  br i1 %17, label %__VERIFIER_assert.exit, label %18, !dbg !51
+; <label>:12                                      ; preds = %3
+  %13 = load i32, i32* %j, align 4, !dbg !46
+  %14 = icmp eq i32 %13, 6, !dbg !47
+  %15 = zext i1 %14 to i32, !dbg !47
+  %16 = bitcast i32* %1 to i8*, !dbg !48
+  call void @llvm.lifetime.start(i64 4, i8* %16), !dbg !48
+  store i32 %15, i32* %1, align 4, !dbg !48
+  %17 = load i32, i32* %1, align 4, !dbg !49
+  %18 = icmp ne i32 %17, 0, !dbg !50
+  br i1 %18, label %__VERIFIER_assert.exit, label %19, !dbg !51
 
-; <label>:18                                      ; preds = %11
+; <label>:19                                      ; preds = %12
   call void @__VERIFIER_error() #3, !dbg !52
   br label %__VERIFIER_assert.exit, !dbg !53
 
-__VERIFIER_assert.exit:                           ; preds = %11, %18
-  %19 = bitcast i32* %1 to i8*, !dbg !54
-  call void @llvm.lifetime.end(i64 4, i8* %19), !dbg !54
-  ret void, !dbg !55
+__VERIFIER_assert.exit:                           ; preds = %12, %19
+  %20 = bitcast i32* %1 to i8*, !dbg !54
+  call void @llvm.lifetime.end(i64 4, i8* %20), !dbg !54
+  ret i32 0, !dbg !55
 }
 
 ; Function Attrs: nounwind
@@ -98,9 +100,9 @@ attributes #3 = { nounwind }
 !5 = !DISubroutineType(types: !6)
 !6 = !{null, !7}
 !7 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: void ()* @main, variables: !2)
+!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: i32 ()* @main, variables: !2)
 !9 = !DISubroutineType(types: !10)
-!10 = !{null}
+!10 = !{!7}
 !11 = !{i32 2, !"Dwarf Version", i32 2}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{i32 1, !"PIC Level", i32 2}
@@ -129,13 +131,13 @@ attributes #3 = { nounwind }
 !36 = !DILocation(line: 14, column: 12, scope: !8)
 !37 = !DILocation(line: 14, column: 17, scope: !8)
 !38 = !DILocation(line: 14, column: 14, scope: !8)
-!39 = !DILocation(line: 15, column: 6, scope: !40)
+!39 = !DILocation(line: 15, column: 13, scope: !40)
 !40 = distinct !DILexicalBlock(scope: !8, file: !1, line: 14, column: 20)
-!41 = !DILocation(line: 15, column: 8, scope: !40)
-!42 = !DILocation(line: 15, column: 4, scope: !40)
-!43 = !DILocation(line: 16, column: 11, scope: !40)
-!44 = !DILocation(line: 16, column: 9, scope: !40)
-!45 = !DILocation(line: 16, column: 4, scope: !40)
+!41 = !DILocation(line: 15, column: 15, scope: !40)
+!42 = !DILocation(line: 15, column: 11, scope: !40)
+!43 = !DILocation(line: 16, column: 18, scope: !40)
+!44 = !DILocation(line: 16, column: 16, scope: !40)
+!45 = !DILocation(line: 16, column: 11, scope: !40)
 !46 = !DILocation(line: 18, column: 23, scope: !8)
 !47 = !DILocation(line: 18, column: 25, scope: !8)
 !48 = !DILocation(line: 18, column: 5, scope: !8)
@@ -145,4 +147,4 @@ attributes #3 = { nounwind }
 !52 = !DILocation(line: 5, column: 14, scope: !24, inlinedAt: !34)
 !53 = !DILocation(line: 6, column: 3, scope: !24, inlinedAt: !34)
 !54 = !DILocation(line: 7, column: 3, scope: !4, inlinedAt: !34)
-!55 = !DILocation(line: 19, column: 1, scope: !8)
+!55 = !DILocation(line: 19, column: 5, scope: !8)
