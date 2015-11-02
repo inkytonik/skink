@@ -8,6 +8,7 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQCon
 
     import org.scalatest.{Args, Reporter, Status}
     import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}
+    import scala.collection.mutable.ListBuffer
 
     class SVCompReporter(reporter : Reporter) extends Reporter {
 
@@ -24,10 +25,10 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQCon
         var falseNegativePoints = -32
         var unknownPoints = 0
 
-        val listTrueNegative = new scala.collection.mutable.ListBuffer[String]()
-        val listTruePositive = new scala.collection.mutable.ListBuffer[String]()
-        val listFalsePositive = new scala.collection.mutable.ListBuffer[String]()
-        val listFalseNegative = new scala.collection.mutable.ListBuffer[String]()
+        val listTrueNegative = new ListBuffer[String]()
+        val listTruePositive = new ListBuffer[String]()
+        val listFalsePositive = new ListBuffer[String]()
+        val listFalseNegative = new ListBuffer[String]()
 
         object Correct {
             def unapply(name : String) : Boolean =
