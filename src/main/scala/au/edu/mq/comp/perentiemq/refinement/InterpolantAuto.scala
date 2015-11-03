@@ -12,135 +12,7 @@ import au.edu.mq.comp.perentiemq.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry,
 import smtlib.util.Logics.{isSat, getInterpolants}
 import scala.collection.mutable.ListBuffer
 
-/**
- * Build an interpolant automaton from a trace.
- */
-object InterpolantAutomaton {
-
-    /**
-     * Make a simple linear automaton accepting a trace
-     */
-    private def linearInterAuto[L](trace : Seq[L]) = {
-        //  set of edges is given by the trace
-        //  if the trace is t_1 t_2 ... t_k the automaton
-        //  is 0 - t1 -> 1 - t_2 -> 2 - t_3 -> ..... - t_k -> k + 1
-        import scala.language.postfixOps
-        NFA[Int, L](
-            Set(0),
-            trace.zipWithIndex map {
-                case (l, i) => Edge[Int, L](i, l, (i + 1))
-            } toSet,
-            accepting = Set(trace.size), //  set of final states
-            blocking = Set(trace.size), //  set of blocking states
-            name = "Linear interpolant automaton"
-        )
-    }
-
-    /**
-     * Compute labels that are reapeated on a trace
-     */
-    private def repeatedLabels[L](trace : Seq[L]) : Map[L, Seq[Int]] = {
-        //  index each label and group them according to the label
-        trace.zipWithIndex.groupBy(l => l._1) map {
-            case x => (x._1, x._2.unzip._2)
-        } filter (_._2.size > 1)
-    }
-
-    /**
-     * Get interpolants
-     */
-    private def interpolantsFor(namedTerms : Seq[(TypedTerm, SSymbol)])(implicit solver : GenericSolver) : Seq[TypedTerm] = {
-        TypedTerm(true) +:
-            getInterpolants(namedTerms)(solver).get.map(_.unIndex) :+
-            TypedTerm(false)
-    }
-
-    /**
-     * Compute an interpolanta automaton
-     *
-     * @param trace An infeasible trace.
-     * @param traceToTerms An mapping that can produce the SSA form of
-     * a sequence of entries
-     * @param  solver An SMT solver. The last command issued to the solver
-     * is CheckSat, resulted in UNSAT. The SSA terms that correspond to the trace
-     * has been pushed to the solver
-     * @param isBlockEntry Determines whether an element of the trace has sied effecs
-     * or not. Typically, CFGBlockEntry do and CFGChoice don't
-     * @param L is the type of the elements in a trace. Should be Entry.
-     * @return An interpolant automaton that accepts trace and other infeasible
-     * traces.
-     */
-    def apply[L](
-        trace : Seq[L],
-        traceTerms : Seq[(TypedTerm, SSymbol)],
-        k : Int,
-        traceToTerms : Seq[L] => Seq[Vector[TypedTerm]],
-        isBlockEntry : L => Boolean
-    )(implicit solver : GenericSolver) : NFA[Int, L] = {
-
-        import scala.language.postfixOps
-
-        //  get the linear NFA from the trace
-        val linearNFA = linearInterAuto(trace)
-        //  log the linear automaton
-        logAuto(
-            linearNFA,
-            { x : Int => x.toString },
-            // { e: L => e.toString },
-            { e : L => getBlockLabel(e) },
-            s"/tmp/linear-auto-$k.dot"
-        )
-
-        //  check if any repeated block, omit CFGChoice
-        repeatedLabels(trace).filter(b => isBlockEntry(b._1)) match {
-
-            case m if (m.size == 0) => linearNFA
-
-            case m =>
-
-                //  get the interpolants
-                val i = interpolantsFor(traceTerms)(solver)
-
-                //  try to add new edges
-
-                //  if entry e appears in the trace at location k and j, k -- e -> k + 1
-                //  and j -- e -> j + 1, and  k < j, 
-                //  we can try to add an edge j  - e -> (k + 1)
-                //  In theory we can try all the pairs for an entry but
-                //  we restrict for now to all the pairs with first index as the
-                //  first component
-                val newEdges = new ListBuffer[Edge[Int, L]]()
-                for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
-
-                    //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
-                    if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
-                        newEdges += Edge[Int, L](j, entry, k + 1)
-                    }
-                }
-
-                //  return the linear auto + the new edges
-                val interpolantAuto = NFA[Int, L](
-                    Set(0),
-                    linearNFA.edges ++ newEdges,
-                    Set(trace.size),
-                    Set(trace.size),
-                    name = s"Interpolant automaton, iteration $k"
-                )
-
-                //  log the interpolant automaton
-
-                logAuto(
-                    interpolantAuto,
-                    { x : Int => i(x).unIndex.getTerm.toString },
-                    { e : L => getBlockLabel(e) },
-                    s"/tmp/interpolantAuto-$k.dot"
-                )
-
-                interpolantAuto
-        }
-
-    }
-
+object PrettyPrint {
     import smtlib.util.{TypedTerm}
     import smtlib.interpreters.{GenericSolver}
     import smtlib.util.Logics.{getInterpolants}
@@ -193,6 +65,311 @@ object InterpolantAutomaton {
         }
         )
         File(filename).writeAll(format(dotiAuto).layout)
+    }
+}
+
+/**
+ * Build an interpolant automaton from a trace.
+ */
+object PrefixInterpolantAuto {
+    import PrettyPrint._
+    import LinearInterAuto.repeatedLabels
+    /**
+     * Make a simple linear automaton accepting a trace
+     */
+    // private def linearInterAuto[L](trace : Seq[L]) = {
+    //     //  set of edges is given by the trace
+    //     //  if the trace is t_1 t_2 ... t_k the automaton
+    //     //  is 0 - t1 -> 1 - t_2 -> 2 - t_3 -> ..... - t_k -> k + 1
+    //     import scala.language.postfixOps
+    //     NFA[Int, L](
+    //         Set(0),
+    //         trace.zipWithIndex map {
+    //             case (l, i) => Edge[Int, L](i, l, (i + 1))
+    //         } toSet,
+    //         accepting = Set(trace.size), //  set of final states
+    //         blocking = Set(trace.size), //  set of blocking states
+    //         name = "Linear interpolant automaton"
+    //     )
+    // }
+
+    /**
+     * Compute labels that are reapeated on a trace
+     */
+    // private def repeatedLabels[L](trace : Seq[L]) : Map[L, Seq[Int]] = {
+    //     //  index each label and group them according to the label
+    //     trace.zipWithIndex.groupBy(l => l._1) map {
+    //         case x => (x._1, x._2.unzip._2)
+    //     } filter (_._2.size > 1)
+    // }
+
+    /**
+     * Get interpolants
+     */
+    private def interpolantsFor(namedTerms : Seq[(TypedTerm, SSymbol)])(implicit solver : GenericSolver) : Seq[TypedTerm] = {
+        TypedTerm(true) +:
+            getInterpolants(namedTerms)(solver).get.map(_.unIndex) :+
+            TypedTerm(false)
+    }
+
+    /**
+     * Compute an interpolanta automaton
+     *
+     * @param trace An infeasible trace.
+     * @param traceToTerms An mapping that can produce the SSA form of
+     * a sequence of entries
+     * @param  solver An SMT solver. The last command issued to the solver
+     * is CheckSat, resulted in UNSAT. The SSA terms that correspond to the trace
+     * has been pushed to the solver
+     * @param isBlockEntry Determines whether an element of the trace has sied effecs
+     * or not. Typically, CFGBlockEntry do and CFGChoice don't
+     * @param L is the type of the elements in a trace. Should be Entry.
+     * @return An interpolant automaton that accepts trace and other infeasible
+     * traces.
+     */
+    def apply[L](
+        trace : Seq[L],
+        traceTerms : Seq[(TypedTerm, SSymbol)],
+        k : Int,
+        traceToTerms : Seq[L] => Seq[Vector[TypedTerm]],
+        isBlockEntry : L => Boolean
+    )(implicit solver : GenericSolver) : NFA[Int, L] = {
+
+        import scala.language.postfixOps
+
+        //  get the linear NFA from the trace
+        val linearNFA = LinearInterAuto(trace)
+        //  log the linear automaton
+        logAuto(
+            linearNFA,
+            { x : Int => x.toString },
+            // { e: L => e.toString },
+            { e : L => getBlockLabel(e) },
+            s"/tmp/linear-auto-$k.dot"
+        )
+
+        //  check if any repeated block, omit CFGChoice
+        repeatedLabels(trace) match {
+            // repeatedLabels(trace).filter(b => isBlockEntry(b._1)) match {
+
+            case m if (m.size == 0) => linearNFA
+
+            case m =>
+
+                //  get the interpolants
+                val i = interpolantsFor(traceTerms)(solver)
+
+                //  try to add new edges
+
+                //  if entry e appears in the trace at location k and j, k -- e -> k + 1
+                //  and j -- e -> j + 1, and  k < j, 
+                //  we can try to add an edge j  - e -> (k + 1)
+                //  In theory we can try all the pairs for an entry but
+                //  we restrict for now to all the pairs with first index as the
+                //  first component
+                val newEdges = new ListBuffer[Edge[Int, L]]()
+                for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
+
+                    //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+                    if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+                        newEdges += Edge[Int, L](j, entry, k + 1)
+                    }
+                }
+
+                //  return the linear auto + the new edges
+                val interpolantAuto = NFA[Int, L](
+                    Set(0),
+                    linearNFA.edges ++ newEdges,
+                    Set(trace.size),
+                    Set(trace.size),
+                    name = s"Prefix interpolant automaton, iteration $k"
+                )
+
+                //  log the interpolant automaton
+
+                logAuto(
+                    interpolantAuto,
+                    { x : Int => i(x).unIndex.getTerm.toString },
+                    { e : L => getBlockLabel(e) },
+                    s"/tmp/prefix-interpolantAuto-$k.dot"
+                )
+
+                interpolantAuto
+        }
+
+    }
+
+}
+
+object LinearInterAuto {
+    /**
+     * Make a simple linear automaton accepting a trace
+     */
+    def apply[L](trace : Seq[L]) = {
+        //  set of edges is given by the trace
+        //  if the trace is t_1 t_2 ... t_k the automaton
+        //  is 0 - t1 -> 1 - t_2 -> 2 - t_3 -> ..... - t_k -> k + 1
+        import scala.language.postfixOps
+        NFA[Int, L](
+            Set(0),
+            trace.zipWithIndex map {
+                case (l, i) => Edge[Int, L](i, l, (i + 1))
+            } toSet,
+            accepting = Set(trace.size), //  set of final states
+            blocking = Set(trace.size), //  set of blocking states
+            name = "Linear interpolant automaton"
+        )
+    }
+
+    /**
+     * Compute labels that are reapeated on a trace
+     */
+    def repeatedLabels[L](trace : Seq[L]) : Map[L, Seq[Int]] = {
+        //  index each label and group them according to the label
+        trace.zipWithIndex.groupBy(l => l._1) map {
+            case x => (x._1, x._2.unzip._2)
+        } filter (_._2.size > 1)
+    }
+}
+
+/**
+ * Build an interpolant automaton from a trace.
+ */
+object SuffixInterpolantAuto {
+    import PrettyPrint._
+    import LinearInterAuto.repeatedLabels
+    /**
+     * Make a simple linear automaton accepting a trace
+     */
+    // private def linearInterAuto[L](trace : Seq[L]) = {
+    //     //  set of edges is given by the trace
+    //     //  if the trace is t_1 t_2 ... t_k the automaton
+    //     //  is 0 - t1 -> 1 - t_2 -> 2 - t_3 -> ..... - t_k -> k + 1
+    //     import scala.language.postfixOps
+    //     NFA[Int, L](
+    //         Set(0),
+    //         trace.zipWithIndex map {
+    //             case (l, i) => Edge[Int, L](i, l, (i + 1))
+    //         } toSet,
+    //         accepting = Set(trace.size), //  set of final states
+    //         blocking = Set(trace.size), //  set of blocking states
+    //         name = "Linear interpolant automaton"
+    //     )
+    // }
+
+    /**
+     * Compute labels that are reapeated on a trace
+     */
+    // private def repeatedLabels[L](trace: Seq[L]): Map[L, Seq[Int]] = {
+    //   //  index each label and group them according to the label
+    //   trace.zipWithIndex.groupBy(l => l._1) map {
+    //     case x => (x._1, x._2.unzip._2)
+    //   } filter (_._2.size > 1)
+    // }
+
+    /**
+     * Get interpolants
+     */
+    // private def interpolantsFor(namedTerms : Seq[(TypedTerm, SSymbol)])(implicit solver : GenericSolver) : Seq[TypedTerm] = {
+    //     TypedTerm(true) +:
+    //         getInterpolants(namedTerms)(solver).get.map(_.unIndex) :+
+    //         TypedTerm(false)
+    // }
+
+    /**
+     * Compute an interpolanta automaton
+     *
+     * @param trace An infeasible trace.
+     * @param traceToTerms An mapping that can produce the SSA form of
+     * a sequence of entries
+     * @param  solver An SMT solver. The last command issued to the solver
+     * is CheckSat, resulted in UNSAT. The SSA terms that correspond to the trace
+     * has been pushed to the solver
+     * @param isBlockEntry Determines whether an element of the trace has sied effecs
+     * or not. Typically, CFGBlockEntry do and CFGChoice don't
+     * @param L is the type of the elements in a trace. Should be Entry.
+     * @return An interpolant automaton that accepts trace and other infeasible
+     * traces.
+     */
+    def apply[L](
+        trace : Seq[L],
+        suffixLength : Int,
+        traceTerms : Seq[(TypedTerm, SSymbol)],
+        k : Int,
+        traceToTerms : Seq[L] => Seq[Vector[TypedTerm]],
+        isBlockEntry : L => Boolean
+    )(implicit solver : GenericSolver) : NFA[Int, L] = {
+
+        import scala.language.postfixOps
+
+        //  get the linear NFA from the trace
+        val linearNFA = LinearInterAuto(trace)
+        //  log the linear automaton
+        // logAuto(
+        //     linearNFA,
+        //     { x : Int => x.toString },
+        //     // { e: L => e.toString },
+        //     { e : L => getBlockLabel(e) },
+        //     s"/tmp/linear-auto-$k.dot"
+        // )
+
+        //  check if any repeated block, omit CFGChoice
+        repeatedLabels(trace) match {
+
+            //  in this case we may indicate that no new reason has been found
+            //  to avoid using the same automaton twice
+            //
+            case m if (m.size == 0) => linearNFA
+
+            case m =>
+                //  get the interpolants for the rerverse trace 
+                val reverseInterpolants = getInterpolants(traceTerms)(solver).get.map(_.unIndex).reverse
+
+                //  we have to 1) complement each interpolant to get an
+                //  interpolant for the forward trace and 2) pad with true interpolants
+                //  the prefix
+                //  we have (trace.length - suffixLength) * True, then each i in reverseInterpolants
+                //  complemented and then False
+                val i = List.fill(trace.size - suffixLength + 1)(TypedTerm(true)) ++
+                    (reverseInterpolants map { x => !x }) :+ TypedTerm(false)
+
+                //  try to add new edges
+                // println(s"size of trace = ${trace.size}, suffixLength = $suffixLength, size of i = ${i.size}")
+                //  if entry e appears in the trace at location k and j, k -- e -> k + 1
+                //  and j -- e -> j + 1, and  k < j, 
+                //  we can try to add an edge j  - e -> (k + 1)
+                //  In theory we can try all the pairs for an entry but
+                //  we restrict for now to all the pairs with first index as the
+                //  first component
+                val newEdges = new ListBuffer[Edge[Int, L]]()
+                for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
+
+                    //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
+                    if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
+                        newEdges += Edge[Int, L](j, entry, k + 1)
+                    }
+                }
+
+                //  return the linear auto + the new edges
+                val interpolantAuto = NFA[Int, L](
+                    Set(0),
+                    linearNFA.edges ++ newEdges,
+                    Set(trace.size),
+                    Set(trace.size),
+                    name = s"Suffix nterpolant automaton, iteration $k"
+                )
+                //  log the interpolant automaton
+
+                logAuto(
+                    interpolantAuto,
+                    { x : Int => i(x).unIndex.getTerm.toString },
+                    { e : L => getBlockLabel(e) },
+                    s"/tmp/suffix-interpolantAuto-$k.dot"
+                )
+
+                interpolantAuto
+        }
+
     }
 
 }

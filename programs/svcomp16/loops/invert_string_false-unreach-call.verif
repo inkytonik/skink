@@ -73,7 +73,7 @@ FALSE
 </edge>
 
 <edge source="n6" target="n7">
-  <data key="choice">%15 == false</data>
+  <data key="choice">%15 == true</data>
   <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
   <data key="startline">18</data>
@@ -81,43 +81,43 @@ FALSE
 </edge>
 
 <edge source="n7" target="n8">
+  <data key="block">%16</data>
+  <data key="sourcecode">str1[i]=__VERIFIER_nondet_char();</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">19</data>
+  <data key="startcolumn">17</data>
+</edge>
+
+<edge source="n8" target="n9">
+  <data key="block">%21</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">18</data>
+  <data key="startcolumn">23</data>
+</edge>
+
+<edge source="n9" target="n10">
+  <data key="block">%12</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">18</data>
+  <data key="startcolumn">15</data>
+</edge>
+
+<edge source="n10" target="n11">
+  <data key="choice">%15 == false</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">18</data>
+  <data key="startcolumn">16</data>
+</edge>
+
+<edge source="n11" target="n12">
   <data key="block">%24</data>
   <data key="sourcecode">str1[MAX-1]= '\0';</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
   <data key="startline">21</data>
   <data key="startcolumn">7</data>
-</edge>
-
-<edge source="n8" target="n9">
-  <data key="block">%31</data>
-  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
-  <data key="originfile">invert_string_false-unreach-call.i</data>
-  <data key="startline">25</data>
-  <data key="startcolumn">23</data>
-</edge>
-
-<edge source="n9" target="n10">
-  <data key="choice">%33 == true</data>
-  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
-  <data key="originfile">invert_string_false-unreach-call.i</data>
-  <data key="startline">25</data>
-  <data key="startcolumn">25</data>
-</edge>
-
-<edge source="n10" target="n11">
-  <data key="block">%34</data>
-  <data key="sourcecode">str2[j] = str1[0];</data>
-  <data key="originfile">invert_string_false-unreach-call.i</data>
-  <data key="startline">26</data>
-  <data key="startcolumn">19</data>
-</edge>
-
-<edge source="n11" target="n12">
-  <data key="block">%42</data>
-  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
-  <data key="originfile">invert_string_false-unreach-call.i</data>
-  <data key="startline">25</data>
-  <data key="startcolumn">32</data>
 </edge>
 
 <edge source="n12" target="n13">
@@ -129,7 +129,7 @@ FALSE
 </edge>
 
 <edge source="n13" target="n14">
-  <data key="choice">%33 == false</data>
+  <data key="choice">%33 == true</data>
   <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
   <data key="startline">25</data>
@@ -137,6 +137,70 @@ FALSE
 </edge>
 
 <edge source="n14" target="n15">
+  <data key="block">%34</data>
+  <data key="sourcecode">str2[j] = str1[0];</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">26</data>
+  <data key="startcolumn">19</data>
+</edge>
+
+<edge source="n15" target="n16">
+  <data key="block">%42</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">32</data>
+</edge>
+
+<edge source="n16" target="n17">
+  <data key="block">%31</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">23</data>
+</edge>
+
+<edge source="n17" target="n18">
+  <data key="choice">%33 == true</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">25</data>
+</edge>
+
+<edge source="n18" target="n19">
+  <data key="block">%34</data>
+  <data key="sourcecode">str2[j] = str1[0];</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">26</data>
+  <data key="startcolumn">19</data>
+</edge>
+
+<edge source="n19" target="n20">
+  <data key="block">%42</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">32</data>
+</edge>
+
+<edge source="n20" target="n21">
+  <data key="block">%31</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">23</data>
+</edge>
+
+<edge source="n21" target="n22">
+  <data key="choice">%33 == false</data>
+  <data key="sourcecode">for (i = MAX - 1; i &gt;= 0; i--) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">25</data>
+  <data key="startcolumn">25</data>
+</edge>
+
+<edge source="n22" target="n23">
   <data key="block">%45</data>
   <data key="sourcecode">j = MAX-1;</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -144,7 +208,7 @@ FALSE
   <data key="startcolumn">9</data>
 </edge>
 
-<edge source="n15" target="n16">
+<edge source="n23" target="n24">
   <data key="block">%48</data>
   <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -152,7 +216,7 @@ FALSE
   <data key="startcolumn">15</data>
 </edge>
 
-<edge source="n16" target="n17">
+<edge source="n24" target="n25">
   <data key="choice">%51 == true</data>
   <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -160,7 +224,7 @@ FALSE
   <data key="startcolumn">16</data>
 </edge>
 
-<edge source="n17" target="n18">
+<edge source="n25" target="n26">
   <data key="block">%52</data>
   <data key="sourcecode">__VERIFIER_assert(str1[i] == str2[j]);</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -168,7 +232,55 @@ FALSE
   <data key="startcolumn">30</data>
 </edge>
 
-<edge source="n18" target="n19">
+<edge source="n26" target="n27">
+  <data key="choice">%67 == true</data>
+  <data key="sourcecode">if (!(cond)) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">4</data>
+  <data key="startcolumn">8</data>
+</edge>
+
+<edge source="n27" target="n28">
+  <data key="block">%__VERIFIER_assert.exit</data>
+  <data key="sourcecode">return;</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">7</data>
+  <data key="startcolumn">3</data>
+</edge>
+
+<edge source="n28" target="n29">
+  <data key="block">%72</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">31</data>
+  <data key="startcolumn">23</data>
+</edge>
+
+<edge source="n29" target="n30">
+  <data key="block">%48</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">31</data>
+  <data key="startcolumn">15</data>
+</edge>
+
+<edge source="n30" target="n31">
+  <data key="choice">%51 == true</data>
+  <data key="sourcecode">for (i=0; i&lt;MAX; i++) {</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">31</data>
+  <data key="startcolumn">16</data>
+</edge>
+
+<edge source="n31" target="n32">
+  <data key="block">%52</data>
+  <data key="sourcecode">__VERIFIER_assert(str1[i] == str2[j]);</data>
+  <data key="originfile">invert_string_false-unreach-call.i</data>
+  <data key="startline">32</data>
+  <data key="startcolumn">30</data>
+</edge>
+
+<edge source="n32" target="n33">
   <data key="choice">%67 == false</data>
   <data key="sourcecode">if (!(cond)) {</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -176,7 +288,7 @@ FALSE
   <data key="startcolumn">8</data>
 </edge>
 
-<edge source="n19" target="n20">
+<edge source="n33" target="n34">
   <data key="block">%.error.%68</data>
   <data key="sourcecode">ERROR: __VERIFIER_error();</data>
   <data key="originfile">invert_string_false-unreach-call.i</data>
@@ -204,7 +316,21 @@ FALSE
 <node id="n17"></node>
 <node id="n18"></node>
 <node id="n19"></node>
-<node id="n20"><data key="sink">true</data></node>
+<node id="n20"></node>
+<node id="n21"></node>
+<node id="n22"></node>
+<node id="n23"></node>
+<node id="n24"></node>
+<node id="n25"></node>
+<node id="n26"></node>
+<node id="n27"></node>
+<node id="n28"></node>
+<node id="n29"></node>
+<node id="n30"></node>
+<node id="n31"></node>
+<node id="n32"></node>
+<node id="n33"></node>
+<node id="n34"><data key="sink">true</data></node>
 
 </graph>
 
