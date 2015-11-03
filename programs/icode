@@ -12,5 +12,7 @@ do
   clangdefs="-Dassert=__VERIFIER_assert"
   clangargs="-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
 
-  clang $clangargs $file | opt -S -inline -o $llfile
+  clang $clangargs $file |
+     opt -S -inline -o - |
+     sed -e 's/directory: "[^"]*"/directory: "."/' >$llfile
 done

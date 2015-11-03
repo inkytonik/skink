@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+
+<benchmark tool="testbe.skink" timelimit="20" hardtimelimit="30" memlimit="150" cpuCores="1">
+  <!-- competition settings:
+      <benchmark tool="true" timelimit="900" hardtimelimit="930" memlimit="15000" cpuCores="8">
+  -->
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+
+  <!-- set some global options for your tool, if needed -->
+  <rundefinition name="skink16" />
+
+  <!-- task-specific options only specify the memory-model and the architecture -->
+
+  
+  <tasks name="Loops">
+    <includesfile>./sv-benchmarks/c/Loops.set</includesfile>
+  </tasks>
+  <tasks name="ControlFlow">
+    <includesfile>./sv-benchmarks/c/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="Simple">
+    <includesfile>./sv-benchmarks/c/Simple.set</includesfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>./sv-benchmarks/c/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>./sv-benchmarks/c/Recursive.set</includesfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>./sv-benchmarks/c/Sequentialized.set</includesfile>
+  </tasks> 
+
+</benchmark>

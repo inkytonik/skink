@@ -299,7 +299,7 @@ attributes #5 = { noreturn }
 !llvm.ident = !{!19}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "veris.c_OpenSER__cases1_stripFullBoth_arr_true-unreach-call.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loops")
+!1 = !DIFile(filename: "programs/svcomp16/loops/veris.c_OpenSER__cases1_stripFullBoth_arr_true-unreach-call.i", directory: ".")
 !2 = !{}
 !3 = !{!4, !8, !11}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)

@@ -14,13 +14,13 @@ object Witness {
     /**
      * Output a witness in SV-COMP result format.
      */
-    def printWitness (config : PerentieMQConfig, program : Program, function : FunctionDefinition,
-                     funanalyser : Analyser, failTrace: FailureTrace[Entry]) {
+    def printWitness(config : PerentieMQConfig, program : Program, function : FunctionDefinition,
+        funanalyser : Analyser, failTrace : FailureTrace[Entry]) {
 
         import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG
         import org.kiama.util.{FileSource, Position}
 
-        def escapeChar (char : Char) =
+        def escapeChar(char : Char) =
             char match {
                 case '&' => "&amp;"
                 case '<' => "&lt;"
@@ -28,20 +28,20 @@ object Witness {
                 case _   => char.toString
             }
 
-        def escapeString (string : String) =
-            string.flatMap (escapeChar)
+        def escapeString(string : String) =
+            string.flatMap(escapeChar)
 
-        def locationsForPosition (optPosition : Option[Position]) : String =
+        def locationsForPosition(optPosition : Option[Position]) : String =
             optPosition match {
-                case Some (Position (line, column, source @ FileSource (path, _))) =>
-                    val file = path.lastIndexOf ('/') match {
-                                   case -1 =>
-                                       path
-                                   case i =>
-                                       path.substring (i + 1)
-                               }
+                case Some(Position(line, column, source @ FileSource(path, _))) =>
+                    val file = path.lastIndexOf('/') match {
+                        case -1 =>
+                            path
+                        case i =>
+                            path.substring(i + 1)
+                    }
                     val lineContents =
-                        escapeString (source.optLineContents (line).getOrElse ("").trim)
+                        escapeString(source.optLineContents(line).getOrElse("").trim)
                     s"""  <data key="sourcecode">$lineContents</data>
                        |  <data key="originfile">$file</data>
                        |  <data key="startline">$line</data>
@@ -56,16 +56,16 @@ object Witness {
                 case (entry, index) =>
                     val attrs =
                         entry match {
-                            case CFGBlockEntry (block) =>
-                                val name = AssemblyCFG.blockName (block)
-                                val bpos = funanalyser.blockPosition (program, block)
-                                val locs = locationsForPosition (bpos)
+                            case CFGBlockEntry(block) =>
+                                val name = AssemblyCFG.blockName(block)
+                                val bpos = funanalyser.blockPosition(program, block)
+                                val locs = locationsForPosition(bpos)
                                 s"""<data key="block">$name</data>\n$locs"""
-                            case CFGExitCondEntry (CFGChoice (i, v, _)) =>
+                            case CFGExitCondEntry(CFGChoice(i, v, _)) =>
                                 val cond = s"$i == $v"
                                 val id = i.drop(1)
-                                val ipos = funanalyser.definingPosition (program, function, s"$id")
-                                val locs = locationsForPosition (ipos)
+                                val ipos = funanalyser.definingPosition(program, function, s"$id")
+                                val locs = locationsForPosition(ipos)
                                 s"""<data key="choice">$cond</data>\n$locs"""
                             case _ =>
                                 "\n"
@@ -77,14 +77,14 @@ object Witness {
 
         val numnodes = failTrace.trace.length
         val nodes = (0 to numnodes).map {
-                        case i =>
-                            val data = i match {
-                                           case 0          => "<data key=\"entry\">true</data>"
-                                           case `numnodes` => "<data key=\"sink\">true</data>"
-                                           case _          => ""
-                                       }
-                            s"""<node id="n$i">$data</node>"""
-                    }
+            case i =>
+                val data = i match {
+                    case 0          => "<data key=\"entry\">true</data>"
+                    case `numnodes` => "<data key=\"sink\">true</data>"
+                    case _          => ""
+                }
+                s"""<node id="n$i">$data</node>"""
+        }
 
         val witness =
             s"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -112,8 +112,8 @@ object Witness {
                |
                |<data key="sourcecodelang">C</data>
                |
-               |${edges.mkString ("\n")}
-               |${nodes.mkString ("\n")}
+               |${edges.mkString("\n")}
+               |${nodes.mkString("\n")}
                |
                |</graph>
                |

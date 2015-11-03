@@ -28,47 +28,49 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 declare void @__VERIFIER_error() #2
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
   %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
   %i = alloca i32, align 4
+  store i32 0, i32* %2
   call void @llvm.dbg.declare(metadata i32* %i, metadata !27, metadata !16), !dbg !28
   store i32 0, i32* %i, align 4, !dbg !29
   call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !31
-  br label %2, !dbg !35
+  br label %3, !dbg !35
 
-; <label>:2                                       ; preds = %14, %0
-  %3 = load i32, i32* %i, align 4, !dbg !36
-  %4 = icmp ne i32 %3, 1000000, !dbg !37
-  br i1 %4, label %5, label %17, !dbg !38
+; <label>:3                                       ; preds = %15, %0
+  %4 = load i32, i32* %i, align 4, !dbg !36
+  %5 = icmp ne i32 %4, 1000000, !dbg !37
+  br i1 %5, label %6, label %18, !dbg !38
 
-; <label>:5                                       ; preds = %2
-  %6 = load i32, i32* %i, align 4, !dbg !39
-  %7 = icmp sle i32 %6, 1000000, !dbg !40
-  %8 = zext i1 %7 to i32, !dbg !40
-  %9 = bitcast i32* %1 to i8*, !dbg !41
-  call void @llvm.lifetime.start(i64 4, i8* %9), !dbg !41
-  store i32 %8, i32* %1, align 4, !dbg !41
-  %10 = load i32, i32* %1, align 4, !dbg !42
-  %11 = icmp ne i32 %10, 0, !dbg !43
-  br i1 %11, label %__VERIFIER_assert.exit, label %12, !dbg !44
+; <label>:6                                       ; preds = %3
+  %7 = load i32, i32* %i, align 4, !dbg !39
+  %8 = icmp sle i32 %7, 1000000, !dbg !40
+  %9 = zext i1 %8 to i32, !dbg !40
+  %10 = bitcast i32* %1 to i8*, !dbg !41
+  call void @llvm.lifetime.start(i64 4, i8* %10), !dbg !41
+  store i32 %9, i32* %1, align 4, !dbg !41
+  %11 = load i32, i32* %1, align 4, !dbg !42
+  %12 = icmp ne i32 %11, 0, !dbg !43
+  br i1 %12, label %__VERIFIER_assert.exit, label %13, !dbg !44
 
-; <label>:12                                      ; preds = %5
+; <label>:13                                      ; preds = %6
   call void @__VERIFIER_error() #3, !dbg !45
   br label %__VERIFIER_assert.exit, !dbg !46
 
-__VERIFIER_assert.exit:                           ; preds = %5, %12
-  %13 = bitcast i32* %1 to i8*, !dbg !47
-  call void @llvm.lifetime.end(i64 4, i8* %13), !dbg !47
-  br label %14, !dbg !48
+__VERIFIER_assert.exit:                           ; preds = %6, %13
+  %14 = bitcast i32* %1 to i8*, !dbg !47
+  call void @llvm.lifetime.end(i64 4, i8* %14), !dbg !47
+  br label %15, !dbg !48
 
-; <label>:14                                      ; preds = %__VERIFIER_assert.exit
-  %15 = load i32, i32* %i, align 4, !dbg !49
-  %16 = add nsw i32 %15, 1, !dbg !49
-  store i32 %16, i32* %i, align 4, !dbg !49
-  br label %2, !dbg !50
+; <label>:15                                      ; preds = %__VERIFIER_assert.exit
+  %16 = load i32, i32* %i, align 4, !dbg !49
+  %17 = add nsw i32 %16, 1, !dbg !49
+  store i32 %17, i32* %i, align 4, !dbg !49
+  br label %3, !dbg !50
 
-; <label>:17                                      ; preds = %2
-  ret void, !dbg !51
+; <label>:18                                      ; preds = %3
+  ret i32 0, !dbg !51
 }
 
 ; Function Attrs: nounwind
@@ -87,16 +89,16 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!14}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "count_by_1_variant_true-unreach-call.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loop-new")
+!1 = !DIFile(filename: "programs/svcomp16/loop-new/count_by_1_variant_true-unreach-call.i", directory: ".")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
 !5 = !DISubroutineType(types: !6)
 !6 = !{null, !7}
 !7 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: void ()* @main, variables: !2)
+!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: i32 ()* @main, variables: !2)
 !9 = !DISubroutineType(types: !10)
-!10 = !{null}
+!10 = !{!7}
 !11 = !{i32 2, !"Dwarf Version", i32 2}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{i32 1, !"PIC Level", i32 2}
@@ -137,4 +139,4 @@ attributes #3 = { nounwind }
 !48 = !DILocation(line: 14, column: 5, scope: !33)
 !49 = !DILocation(line: 12, column: 32, scope: !34)
 !50 = !DILocation(line: 12, column: 5, scope: !34)
-!51 = !DILocation(line: 15, column: 1, scope: !8)
+!51 = !DILocation(line: 15, column: 5, scope: !8)

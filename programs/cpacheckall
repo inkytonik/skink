@@ -42,7 +42,7 @@ do
                     echo no witness
                 fi
                 ;;
-            *)
+            *) 
                 ;;
         esac
     fi

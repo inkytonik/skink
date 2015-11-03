@@ -27,7 +27,7 @@ FALSE
 <edge source="n0" target="n1">
   <data key="block">%0</data>
   <data key="sourcecode">unsigned int x1=__VERIFIER_nondet_uint(), x2=__VERIFIER_nondet_uint(), x3=__VERIFIER_nondet_uint();</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">15</data>
   <data key="startcolumn">16</data>
 </edge>
@@ -35,7 +35,7 @@ FALSE
 <edge source="n1" target="n2">
   <data key="block">%10</data>
   <data key="sourcecode">while(x1&gt;0 &amp;&amp; x2&gt;0 &amp;&amp; x3&gt;0)</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">19</data>
   <data key="startcolumn">9</data>
 </edge>
@@ -43,7 +43,7 @@ FALSE
 <edge source="n2" target="n3">
   <data key="choice">%12 == false</data>
   <data key="sourcecode">while(x1&gt;0 &amp;&amp; x2&gt;0 &amp;&amp; x3&gt;0)</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">19</data>
   <data key="startcolumn">11</data>
 </edge>
@@ -51,7 +51,7 @@ FALSE
 <edge source="n3" target="n4">
   <data key="block">%19.phi.%10</data>
   <data key="sourcecode">while(x1&gt;0 &amp;&amp; x2&gt;0 &amp;&amp; x3&gt;0)</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">19</data>
   <data key="startcolumn">3</data>
 </edge>
@@ -59,7 +59,7 @@ FALSE
 <edge source="n4" target="n5">
   <data key="choice">%20 == false</data>
   <data key="sourcecode">while(x1&gt;0 &amp;&amp; x2&gt;0 &amp;&amp; x3&gt;0)</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">19</data>
   <data key="startcolumn">3</data>
 </edge>
@@ -67,7 +67,7 @@ FALSE
 <edge source="n5" target="n6">
   <data key="block">%45</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">21</data>
 </edge>
@@ -75,7 +75,7 @@ FALSE
 <edge source="n6" target="n7">
   <data key="choice">%47 == true</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">23</data>
 </edge>
@@ -83,7 +83,7 @@ FALSE
 <edge source="n7" target="n8">
   <data key="block">%48</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">30</data>
 </edge>
@@ -91,7 +91,7 @@ FALSE
 <edge source="n8" target="n9">
   <data key="choice">%50 == false</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">32</data>
 </edge>
@@ -99,7 +99,7 @@ FALSE
 <edge source="n9" target="n10">
   <data key="block">%54.phi.%48</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">36</data>
 </edge>
@@ -107,7 +107,7 @@ FALSE
 <edge source="n10" target="n11">
   <data key="block">%54</data>
   <data key="sourcecode">__VERIFIER_assert(x1==0 &amp;&amp; x2==0 &amp;&amp; x3==0);</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">28</data>
   <data key="startcolumn">36</data>
 </edge>
@@ -115,7 +115,7 @@ FALSE
 <edge source="n11" target="n12">
   <data key="choice">%59 == false</data>
   <data key="sourcecode">if (!(cond)) {</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">4</data>
   <data key="startcolumn">8</data>
 </edge>
@@ -123,7 +123,7 @@ FALSE
 <edge source="n12" target="n13">
   <data key="block">%.error.%60</data>
   <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-  <data key="originfile">trex03_false-unreach-call_true-termination.i</data>
+  <data key="originfile">trex03_false-unreach-call_true-termination.c</data>
   <data key="startline">5</data>
   <data key="startcolumn">12</data>
 </edge>

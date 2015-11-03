@@ -2092,7 +2092,7 @@ attributes #7 = { noreturn nounwind }
 !llvm.ident = !{!67}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, retainedTypes: !3, subprograms: !32, globals: !62)
-!1 = !DIFile(filename: "bubble_sort_false-unreach-call.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loops")
+!1 = !DIFile(filename: "programs/svcomp16/loops/bubble_sort_false-unreach-call.i", directory: ".")
 !2 = !{}
 !3 = !{!4, !11, !12, !19, !9, !20, !21, !23, !24, !26, !28, !30, !31}
 !4 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !5, size: 64, align: 64)

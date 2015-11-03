@@ -28,68 +28,70 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 declare void @__VERIFIER_error() #2
 
 ; Function Attrs: nounwind ssp uwtable
-define void @main() #0 {
+define i32 @main() #0 {
   %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
   %i = alloca i32, align 4
   %k = alloca i32, align 4
   %j = alloca i32, align 4
+  store i32 0, i32* %2
   call void @llvm.dbg.declare(metadata i32* %i, metadata !27, metadata !16), !dbg !28
   store i32 0, i32* %i, align 4, !dbg !28
   call void @llvm.dbg.declare(metadata i32* %k, metadata !29, metadata !16), !dbg !30
   store i32 0, i32* %k, align 4, !dbg !30
   call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !31
-  br label %2, !dbg !33
+  br label %3, !dbg !33
 
-; <label>:2                                       ; preds = %12, %0
-  %3 = load i32, i32* %i, align 4, !dbg !34
-  %4 = icmp slt i32 %3, 1000000, !dbg !35
-  br i1 %4, label %5, label %20, !dbg !33
+; <label>:3                                       ; preds = %13, %0
+  %4 = load i32, i32* %i, align 4, !dbg !34
+  %5 = icmp slt i32 %4, 1000000, !dbg !35
+  br i1 %5, label %6, label %21, !dbg !33
 
-; <label>:5                                       ; preds = %2
+; <label>:6                                       ; preds = %3
   call void @llvm.dbg.declare(metadata i32* %j, metadata !36, metadata !16), !dbg !38
-  %6 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !39
-  store i32 %6, i32* %j, align 4, !dbg !38
-  %7 = load i32, i32* %j, align 4, !dbg !40
-  %8 = icmp sle i32 1, %7, !dbg !41
-  br i1 %8, label %9, label %12, !dbg !42
+  %7 = call i32 (...) @__VERIFIER_nondet_int(), !dbg !39
+  store i32 %7, i32* %j, align 4, !dbg !38
+  %8 = load i32, i32* %j, align 4, !dbg !40
+  %9 = icmp sle i32 1, %8, !dbg !41
+  br i1 %9, label %10, label %13, !dbg !42
 
-; <label>:9                                       ; preds = %5
-  %10 = load i32, i32* %j, align 4, !dbg !43
-  %11 = icmp slt i32 %10, 1000000, !dbg !44
-  br label %12
+; <label>:10                                      ; preds = %6
+  %11 = load i32, i32* %j, align 4, !dbg !43
+  %12 = icmp slt i32 %11, 1000000, !dbg !44
+  br label %13
 
-; <label>:12                                      ; preds = %9, %5
-  %13 = phi i1 [ false, %5 ], [ %11, %9 ]
-  %14 = zext i1 %13 to i32, !dbg !42
-  call void @__VERIFIER_assume(i32 %14), !dbg !45
-  %15 = load i32, i32* %i, align 4, !dbg !46
-  %16 = load i32, i32* %j, align 4, !dbg !47
-  %17 = add nsw i32 %15, %16, !dbg !48
-  store i32 %17, i32* %i, align 4, !dbg !49
-  %18 = load i32, i32* %k, align 4, !dbg !50
-  %19 = add nsw i32 %18, 1, !dbg !50
-  store i32 %19, i32* %k, align 4, !dbg !50
-  br label %2, !dbg !33
+; <label>:13                                      ; preds = %10, %6
+  %14 = phi i1 [ false, %6 ], [ %12, %10 ]
+  %15 = zext i1 %14 to i32, !dbg !42
+  call void @__VERIFIER_assume(i32 %15), !dbg !45
+  %16 = load i32, i32* %i, align 4, !dbg !46
+  %17 = load i32, i32* %j, align 4, !dbg !47
+  %18 = add nsw i32 %16, %17, !dbg !48
+  store i32 %18, i32* %i, align 4, !dbg !49
+  %19 = load i32, i32* %k, align 4, !dbg !50
+  %20 = add nsw i32 %19, 1, !dbg !50
+  store i32 %20, i32* %k, align 4, !dbg !50
+  br label %3, !dbg !33
 
-; <label>:20                                      ; preds = %2
-  %21 = load i32, i32* %k, align 4, !dbg !51
-  %22 = icmp sle i32 %21, 1000000, !dbg !52
-  %23 = zext i1 %22 to i32, !dbg !52
-  %24 = bitcast i32* %1 to i8*, !dbg !53
-  call void @llvm.lifetime.start(i64 4, i8* %24), !dbg !53
-  store i32 %23, i32* %1, align 4, !dbg !53
-  %25 = load i32, i32* %1, align 4, !dbg !54
-  %26 = icmp ne i32 %25, 0, !dbg !55
-  br i1 %26, label %__VERIFIER_assert.exit, label %27, !dbg !56
+; <label>:21                                      ; preds = %3
+  %22 = load i32, i32* %k, align 4, !dbg !51
+  %23 = icmp sle i32 %22, 1000000, !dbg !52
+  %24 = zext i1 %23 to i32, !dbg !52
+  %25 = bitcast i32* %1 to i8*, !dbg !53
+  call void @llvm.lifetime.start(i64 4, i8* %25), !dbg !53
+  store i32 %24, i32* %1, align 4, !dbg !53
+  %26 = load i32, i32* %1, align 4, !dbg !54
+  %27 = icmp ne i32 %26, 0, !dbg !55
+  br i1 %27, label %__VERIFIER_assert.exit, label %28, !dbg !56
 
-; <label>:27                                      ; preds = %20
+; <label>:28                                      ; preds = %21
   call void @__VERIFIER_error() #3, !dbg !57
   br label %__VERIFIER_assert.exit, !dbg !58
 
-__VERIFIER_assert.exit:                           ; preds = %20, %27
-  %28 = bitcast i32* %1 to i8*, !dbg !59
-  call void @llvm.lifetime.end(i64 4, i8* %28), !dbg !59
-  ret void, !dbg !60
+__VERIFIER_assert.exit:                           ; preds = %21, %28
+  %29 = bitcast i32* %1 to i8*, !dbg !59
+  call void @llvm.lifetime.end(i64 4, i8* %29), !dbg !59
+  ret i32 0, !dbg !60
 }
 
 declare i32 @__VERIFIER_nondet_int(...) #2
@@ -112,16 +114,16 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!14}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "clang version 3.7.0 (tags/RELEASE_370/final)", isOptimized: false, runtimeVersion: 0, emissionKind: 1, enums: !2, subprograms: !3)
-!1 = !DIFile(filename: "count_by_nondet_true-unreach-call.i", directory: "/Users/asloane/Projects/SV-COMP/sv-benchmarks/c/loop-new")
+!1 = !DIFile(filename: "programs/svcomp16/loop-new/count_by_nondet_true-unreach-call.i", directory: ".")
 !2 = !{}
 !3 = !{!4, !8}
 !4 = !DISubprogram(name: "__VERIFIER_assert", scope: !1, file: !1, line: 3, type: !5, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, function: void (i32)* @__VERIFIER_assert, variables: !2)
 !5 = !DISubroutineType(types: !6)
 !6 = !{null, !7}
 !7 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: void ()* @main, variables: !2)
+!8 = !DISubprogram(name: "main", scope: !1, file: !1, line: 10, type: !9, isLocal: false, isDefinition: true, scopeLine: 10, isOptimized: false, function: i32 ()* @main, variables: !2)
 !9 = !DISubroutineType(types: !10)
-!10 = !{null}
+!10 = !{!7}
 !11 = !{i32 2, !"Dwarf Version", i32 2}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{i32 1, !"PIC Level", i32 2}
@@ -149,19 +151,19 @@ attributes #3 = { nounwind }
 !35 = !DILocation(line: 13, column: 13, scope: !8)
 !36 = !DILocalVariable(tag: DW_TAG_auto_variable, name: "j", scope: !37, file: !1, line: 14, type: !7)
 !37 = distinct !DILexicalBlock(scope: !8, file: !1, line: 13, column: 24)
-!38 = !DILocation(line: 14, column: 6, scope: !37)
-!39 = !DILocation(line: 14, column: 10, scope: !37)
-!40 = !DILocation(line: 15, column: 25, scope: !37)
-!41 = !DILocation(line: 15, column: 22, scope: !37)
-!42 = !DILocation(line: 15, column: 27, scope: !37)
-!43 = !DILocation(line: 15, column: 30, scope: !37)
-!44 = !DILocation(line: 15, column: 32, scope: !37)
-!45 = !DILocation(line: 15, column: 2, scope: !37)
-!46 = !DILocation(line: 16, column: 6, scope: !37)
-!47 = !DILocation(line: 16, column: 10, scope: !37)
-!48 = !DILocation(line: 16, column: 8, scope: !37)
-!49 = !DILocation(line: 16, column: 4, scope: !37)
-!50 = !DILocation(line: 17, column: 4, scope: !37)
+!38 = !DILocation(line: 14, column: 13, scope: !37)
+!39 = !DILocation(line: 14, column: 17, scope: !37)
+!40 = !DILocation(line: 15, column: 32, scope: !37)
+!41 = !DILocation(line: 15, column: 29, scope: !37)
+!42 = !DILocation(line: 15, column: 34, scope: !37)
+!43 = !DILocation(line: 15, column: 37, scope: !37)
+!44 = !DILocation(line: 15, column: 39, scope: !37)
+!45 = !DILocation(line: 15, column: 9, scope: !37)
+!46 = !DILocation(line: 16, column: 13, scope: !37)
+!47 = !DILocation(line: 16, column: 17, scope: !37)
+!48 = !DILocation(line: 16, column: 15, scope: !37)
+!49 = !DILocation(line: 16, column: 11, scope: !37)
+!50 = !DILocation(line: 17, column: 11, scope: !37)
 !51 = !DILocation(line: 19, column: 23, scope: !8)
 !52 = !DILocation(line: 19, column: 25, scope: !8)
 !53 = !DILocation(line: 19, column: 5, scope: !8)
@@ -171,4 +173,4 @@ attributes #3 = { nounwind }
 !57 = !DILocation(line: 5, column: 10, scope: !24, inlinedAt: !32)
 !58 = !DILocation(line: 6, column: 3, scope: !24, inlinedAt: !32)
 !59 = !DILocation(line: 7, column: 3, scope: !4, inlinedAt: !32)
-!60 = !DILocation(line: 20, column: 1, scope: !8)
+!60 = !DILocation(line: 20, column: 5, scope: !8)
