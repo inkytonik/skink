@@ -13,4 +13,4 @@ clang-3.7 $clangargs $1 | opt-3.7 -S -inline -o $llfile
 
 java -jar $skinkdir/skink.jar -v -eZ3 -m20 $llfile | tee $wtnfile
 
-sed -i -e 1,3d $wtnfile
+sed -i -e 1,1d $wtnfile
