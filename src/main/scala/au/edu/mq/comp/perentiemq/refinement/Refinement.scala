@@ -130,7 +130,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                         //  infeasible trace 
                         case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
-                            // println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
+                            println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
                             val newCulpritMap = if (config.trackValues()) {
                                 // record the condition that made the trace infeasible
                                 // println(s"Culprit is ${trace(feasibleLength - 1)}")
@@ -142,9 +142,31 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                                 //  refine
                                 // println(s"Refining - step ${Console.YELLOW}${maxIterations - remainingIterations}${Console.RESET}")
 
-                                val ia = InterpolantAutomaton(
+                                val prefixIa = PrefixInterpolantAuto(
                                     trace.take(feasibleLength),
                                     namedTerms,
+                                    maxIterations - remainingIterations,
+                                    traceToTerms,
+                                    isBlockEntry
+                                )(solver)
+
+                                solver.eval(Pop(1))
+
+                                //  no we try to find another reason why the trace was, contradictory
+                                //  assertions, but starting from the end
+                                //  
+                                solver.eval(Push(1))
+
+                                //  push the terms in reverse on the solver
+                                val Success((status, Some(namedTerms2), Some(suffixLength))) =
+                                    isSat(traceTerms.reverse, withNaming = true)(solver)
+                                //  status should be UnsatStatus
+                                assert(status == UnsatStatus)
+                                //  now compute an interpolant for the reverse trace
+                                val suffixIa = SuffixInterpolantAuto(
+                                    trace,
+                                    suffixLength,
+                                    namedTerms2,
                                     maxIterations - remainingIterations,
                                     traceToTerms,
                                     isBlockEntry
@@ -159,7 +181,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                                 //  log results
 
-                                import InterpolantAutomaton.{getBlockLabel, logAuto}
+                                import PrettyPrint.{getBlockLabel, logAuto}
 
                                 // logAuto(toDetNFA(r + ia),
                                 //   { x: Int => x.toString },
@@ -186,7 +208,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
                                 // File(s"/tmp/det-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r + ia))).layout)
                                 // File(s"/tmp/r-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(r))).layout)
                                 // File(s"/tmp/detia-${maxIterations - remainingIterations}.dot").writeAll(format(toDot(toDetNFA(ia))).layout)
-                                refineRec(cfg, toDetNFA(r + ia), remainingIterations - 1, newCulpritMap)
+                                refineRec(cfg, toDetNFA(r + (prefixIa + suffixIa)), remainingIterations - 1, newCulpritMap)
                                 // refineRec(cfg, r + InterpolantAutomaton(trace),remainingIterations - 1)
                             } else {
                                 //  we ran out resources

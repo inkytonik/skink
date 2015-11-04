@@ -27,48 +27,48 @@ FALSE
 <edge source="n0" target="n1">
   <data key="block">%0</data>
   <data key="sourcecode">x=__VERIFIER_nondet_int();</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">20</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">15</data>
   <data key="startcolumn">5</data>
 </edge>
 
 <edge source="n1" target="n2">
   <data key="block">%4</data>
   <data key="sourcecode">while (x &gt; 0) {</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">21</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">16</data>
   <data key="startcolumn">10</data>
 </edge>
 
 <edge source="n2" target="n3">
   <data key="choice">%6 == false</data>
   <data key="sourcecode">while (x &gt; 0) {</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">21</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">16</data>
   <data key="startcolumn">12</data>
 </edge>
 
 <edge source="n3" target="n4">
   <data key="block">%19</data>
   <data key="sourcecode">__VERIFIER_assert(x==0);</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">26</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">21</data>
   <data key="startcolumn">21</data>
 </edge>
 
 <edge source="n4" target="n5">
   <data key="choice">%25 == false</data>
   <data key="sourcecode">if (!(cond)) {</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">4</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">3</data>
   <data key="startcolumn">8</data>
 </edge>
 
 <edge source="n5" target="n6">
   <data key="block">%.error.%26</data>
   <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-  <data key="originfile">trex02_false-unreach-call_true-termination.c</data>
-  <data key="startline">5</data>
+  <data key="originfile">trex02_false-unreach-call_true-termination.i</data>
+  <data key="startline">4</data>
   <data key="startcolumn">12</data>
 </edge>
 
