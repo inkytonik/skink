@@ -130,7 +130,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
 
                         //  infeasible trace 
                         case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
-                            println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
+                            // println(s"infeasible after step number ${Console.YELLOW}${feasibleLength - 1}${Console.RESET}")
                             val newCulpritMap = if (config.trackValues()) {
                                 // record the condition that made the trace infeasible
                                 // println(s"Culprit is ${trace(feasibleLength - 1)}")
