@@ -718,6 +718,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         } catch {
             case e : java.lang.Exception =>
                 reportUnknown(config, s"Exception\n${e.getMessage}")
+            case e : java.lang.AssertionError =>
+                reportUnknown(config, s"Assertion failed\n${e.getMessage}")
         }
     }
 
