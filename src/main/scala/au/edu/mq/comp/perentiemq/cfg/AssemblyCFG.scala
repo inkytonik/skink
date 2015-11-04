@@ -464,6 +464,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         cfgAnalyser : CFGAnalyser, config : PerentieMQConfig) {
 
         import au.edu.mq.comp.automat.auto.{NFA}
+        import au.edu.mq.comp.automat.util.Dominator.{tarjanPostDom, postDomFrontier, prettyPrint, prettyPrint2}
+
         import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
         import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
@@ -555,6 +557,17 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
         // Regexp for breaking verified names apart
         val Name = "(.*)@([0-9]+)".r
+
+        import au.edu.mq.comp.dot.DOTSyntax.DotSpec
+
+        //  now dump the immediate post dominators
+        val postDomTree = tarjanPostDom(nfa2)
+        val domDot : DotSpec = prettyPrint(nfa2.accepting.head, postDomTree)
+        File("/tmp/dominators.dot").writeAll(format(domDot).layout)
+
+        val postDomFront = postDomFrontier(nfa2, postDomTree)
+        val domFrontDot : DotSpec = prettyPrint2(nfa2.accepting.head, postDomFront)
+        File("/tmp/dominatorFrontier.dot").writeAll(format(domFrontDot).layout)
 
         import smtlib.parser.Terms.QualifiedIdentifier
 
