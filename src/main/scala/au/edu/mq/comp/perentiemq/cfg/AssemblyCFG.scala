@@ -87,7 +87,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             case n @ Binding(name) =>
                 bumpcount(in(n), name)
             case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-                // println(s"Bumping for $n")
                 bumpcount(in(n), name)
             case n @ Store(_, _, _, _, Named(name), _) =>
                 bumpcount(in(n), name)
@@ -216,13 +215,6 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                     terms(insn)
 
                 // Instructions
-
-                // Franck: I think the following instruction should define a term as a store
-                // %13 = %11
-                // Alloca(Binding(Local(13)),NotInAlloca(),IntT(32),NumElements(IntT(64),Named(Local(11))),Align(16))
-
-                // case Alloca(Binding(to),_,_,NumElements(_, from),_) =>
-                //    Vector(nterm(to) === vterm(from))
 
                 case _ : Alloca =>
                     Vector()
@@ -452,12 +444,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
             }
 
         // Return all of the terms arising from this trace
-        // tree.root.entries.flatMap(entryToTerm)
+        tree.root.entries.map(entryToTerm)
 
-        val r = tree.root.entries.map(entryToTerm)
-        // println("Store is")
-        // stores(tree.root) map println
-        r
     }
 
     def runVerification(program : Program, cfg : CFG[FunctionDefinition, Block],
