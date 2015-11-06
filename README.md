@@ -52,6 +52,10 @@ Execution
   3. Only the filename (a `.i` or `.c` file) should be given to `skink.sh`
   3. Call `skink.sh` passing in the filename of the c file you wish to validate
 
-This will result in Skink's output appearing on STDOUT and in an `.ll` (and `.graphml` for failed verifications) file being created for the input file. 
+This will result in Skink's output appearing on STDOUT and in an `.ll`, `.verif` (and `.graphml` for failed verifications) files being created with the input file. 
  
+Options
+-------
+
+If the `$SKINK_DEBUG` environment variable is set to `"yes"` and `$PATH_TO_CPA_CHECKER` is set, then `skink.sh` will check the witnesses it generates against CPAchecker and will put the results in `witness_checks`
 
