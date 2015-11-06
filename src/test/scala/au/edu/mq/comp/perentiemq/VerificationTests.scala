@@ -150,10 +150,27 @@ class SVCOMPLoopsTests extends TestBase {
         argslist = defaultArgsList)
 }
 
+class SVCOMPRecursiveTests extends TestBase {
+    filetests("SVCOMP recursive", "programs/svcomp16/recursive", ".ll", ".verif",
+        argslist = defaultArgsList)
+}
+
+class SVCOMPRecursiveSimpleTests extends TestBase {
+    filetests("SVCOMP recursive", "programs/svcomp16/recursive-simple", ".ll", ".verif",
+        argslist = defaultArgsList)
+}
+
 class SVCOMPLocksTests extends TestBase {
     filetests("SVCOMP locks", "programs/svcomp16/locks", ".ll", ".verif",
         argslist = List(List("-v", "-m20", "-eZ3")))
 }
+
+
+class SVCOMPProductLinesTests extends TestBase {
+    filetests("SVCOMP locks", "programs/svcomp16/product-lines", ".ll", ".verif",
+        argslist = List(List("-v", "-m20", "-eZ3")))
+}
+
 
 class SVCOMPECATests extends TestBase {
     filetests("SVCOMP ECA", "programs/svcomp16/eca", ".ll", ".verif",

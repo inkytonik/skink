@@ -58,7 +58,7 @@ object Witness {
                         entry match {
                             case CFGBlockEntry(block) =>
                                 val name = AssemblyCFG.blockName(block)
-                                val bpos = funanalyser.blockPosition(program, block)
+                                val bpos = Analyser.blockPosition(program, block)
                                 val locs = locationsForPosition(bpos)
                                 s"""<data key="block">$name</data>\n$locs"""
                             case CFGExitCondEntry(CFGChoice(i, v, _)) =>
