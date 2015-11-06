@@ -165,12 +165,10 @@ class SVCOMPLocksTests extends TestBase {
         argslist = List(List("-v", "-m20", "-eZ3")))
 }
 
-
 class SVCOMPProductLinesTests extends TestBase {
     filetests("SVCOMP locks", "programs/svcomp16/product-lines", ".ll", ".verif",
         argslist = List(List("-v", "-m20", "-eZ3")))
 }
-
 
 class SVCOMPECATests extends TestBase {
     filetests("SVCOMP ECA", "programs/svcomp16/eca", ".ll", ".verif",

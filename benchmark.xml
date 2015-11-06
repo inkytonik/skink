@@ -16,22 +16,22 @@
 
   
   <tasks name="Loops">
-    <includesfile>./sv-benchmarks/c/Loops.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/Loops.set</includesfile>
   </tasks>
   <tasks name="ControlFlow">
-    <includesfile>./sv-benchmarks/c/ControlFlow.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/ControlFlow.set</includesfile>
   </tasks>
   <tasks name="Simple">
-    <includesfile>./sv-benchmarks/c/Simple.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/Simple.set</includesfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>./sv-benchmarks/c/ProductLines.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/ProductLines.set</includesfile>
   </tasks>
   <tasks name="Recursive">
-    <includesfile>./sv-benchmarks/c/Recursive.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/Recursive.set</includesfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>./sv-benchmarks/c/Sequentialized.set</includesfile>
+    <includesfile>/home/vagrant/sv-benchmarks/c/Sequentialized.set</includesfile>
   </tasks> 
 
 </benchmark>

@@ -31,7 +31,7 @@ tmpfile=/tmp/witness$$.graphml
 
 case `head -1 $witfile` in
     FALSE*)
-        tail +2 $witfile >$tmpfile
+        tail -n +2 $witfile >$tmpfile
         witfile=$tmpfile
         trap "rm $tmpfile" EXIT
         ;;
