@@ -24,7 +24,7 @@ if [ "$clangbin" = "" ]; then
   echo -e "$RED[NOT FOUND]$NC Clang compiler" 
   abort=1
 else
-  clangversion=$($clangbin --version | grep "version" | grep "3.7.0" | grep "tags/RELEASE_370/final")
+  clangversion=$($clangbin --version | grep "version" | grep "3.7.0" )
   if [ "$clangversion" = "" ]; then
     abort=1
     echo -e "$RED[NOT FOUND]$NC Clang compiler 3.7.0 required" "$($clangbin --version)" 

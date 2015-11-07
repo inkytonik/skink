@@ -16,16 +16,6 @@ For each tool we give an example unstallation script (Ubuntu Trusty):
 
     All the Java libraries required beyond the JDK are bundled in the `skink.jar` file
 
-  * CVC4 (`> cvc4`)
-    ~~~~~
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    apt-get update
-    apt-get install -y --force-yes cvc4
-    ~~~~
-
   * Clang/LLVM (`> clang-3.7` and `> opt-3.7`)
     ~~~~~
     apt-get install -y --force-yes clang-3.7 lldb-3.7
@@ -42,11 +32,6 @@ For each tool we give an example unstallation script (Ubuntu Trusty):
     git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build; make && sudo make install
     ~~~~~
 
-  * SMTInterpol
-    ~~~~~
-    wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
-    ~~~~~
-
 Usage
 -----
 
@@ -58,8 +43,7 @@ Usage
   4. Ensure `skink.sh` is executable.
   5. `skink.sh` takes one parameter, the C filename (`.i` or `.c`) to analyse
 
-Running `skink.sh` on path-to/file.c (or file.i) produces the following output (assuming
-the C file is successfully parsed by clang:
+Running `skink.sh` on path-to/file.c (or file.i) produces the following output, assuming the C file is successfully parsed by clang:
 - the LLVM-IR of path-to/file.c is generated in path-to/file.ll
 - `java -jar skink.jar` is run on path-to/file.ll
 
@@ -79,7 +63,7 @@ FALSE
 </graph>
 
 </graphml>
-and a file path-to-file.graphml that contains the witness path is generated.
+and a file path-to/file.graphml that contains the witness path is generated.
 
 - if the analysis is inconclusive (parser error, internal error) the following lines
 will appear on STDOUT
@@ -88,9 +72,15 @@ UNKNOWN
 <reason2>
 <....>
 <....>
+
+Tests
+=====
+The installation can be tested by running the test.sh script.
+
+> ./test.sh
  
-Example
--------
+Running Skink
+-------------
 > skink.sh tests/simple-loop_true-unreach-call.c
 TRUE
 
@@ -110,8 +100,3 @@ UNKNOWN
 Refinement failure
 Maximum number of iterations reached
 
-Tests
-=====
-The installation can be tested by running the test.sh script.
-
-> ./test.sh
