@@ -140,13 +140,13 @@ object PrefixInterpolantAuto {
         //  get the linear NFA from the trace
         val linearNFA = LinearInterAuto(trace)
         //  log the linear automaton
-        logAuto(
-            linearNFA,
-            { x : Int => x.toString },
-            // { e: L => e.toString },
-            { e : L => getBlockLabel(e) },
-            s"/tmp/linear-auto-$k.dot"
-        )
+        // logAuto(
+        //     linearNFA,
+        //     { x : Int => x.toString },
+        //     // { e: L => e.toString },
+        //     { e : L => getBlockLabel(e) },
+        //     s"/tmp/linear-auto-$k.dot"
+        // )
 
         //  check if any repeated block, omit CFGChoice
         repeatedLabels(trace) match {
@@ -187,12 +187,12 @@ object PrefixInterpolantAuto {
 
                 //  log the interpolant automaton
 
-                logAuto(
-                    interpolantAuto,
-                    { x : Int => i(x).unIndex.getTerm.toString },
-                    { e : L => getBlockLabel(e) },
-                    s"/tmp/prefix-interpolantAuto-$k.dot"
-                )
+                // logAuto(
+                //     interpolantAuto,
+                //     { x : Int => i(x).unIndex.getTerm.toString },
+                //     { e : L => getBlockLabel(e) },
+                //     s"/tmp/prefix-interpolantAuto-$k.dot"
+                // )
 
                 interpolantAuto
         }
@@ -360,12 +360,12 @@ object SuffixInterpolantAuto {
                 )
                 //  log the interpolant automaton
 
-                logAuto(
-                    interpolantAuto,
-                    { x : Int => i(x).unIndex.getTerm.toString },
-                    { e : L => getBlockLabel(e) },
-                    s"/tmp/suffix-interpolantAuto-$k.dot"
-                )
+                // logAuto(
+                //     interpolantAuto,
+                //     { x : Int => i(x).unIndex.getTerm.toString },
+                //     { e : L => getBlockLabel(e) },
+                //     s"/tmp/suffix-interpolantAuto-$k.dot"
+                // )
 
                 interpolantAuto
         }

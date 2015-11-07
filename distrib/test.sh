@@ -19,7 +19,7 @@ else
 fi
 
 # test clang version
-clangbin=$(which clang)
+clangbin=$CC
 if [ "$clangbin" = "" ]; then
   echo -e "$RED[NOT FOUND]$NC Clang compiler" 
   abort=1
@@ -33,7 +33,7 @@ else
   fi
 fi
 
-optbin=$(which opt)
+optbin=$OPT
 if [ "$optbin" = "" ]; then
   abort=1
   echo -e "$RED[NOT FOUND]$NC LLVM opt" 

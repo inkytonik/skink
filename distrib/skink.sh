@@ -6,20 +6,16 @@ wtnfile=$base.graphml
 skinkdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 clangwargs="-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-clangdefs="-Dassert=__VERIFIER_assert"
+clangdefs="-Dassert=__VERIFIER_assert -D__assert_fail=__VERIFIER_assert"
 clangargs="-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
 
-$CC $clangargs $1 | $OPT -S -inline -o $llfile
+# compile with clang and discard the warnings
+$CC $clangargs $1 2>/dev/null | $OPT -S -inline -o $llfile 
 
-java -jar $skinkdir/skink-v1.0.jar -v -eZ3 -m20 $llfile | tee $veriffile
+# solver is Z3, maximum iteration 20, timeout for solver 20s
+java -jar $skinkdir/skink-v1.0.jar -v -eZ3 -m20 -o60 $llfile | tee  $wtnfile 
 
-case `head -1 $veriffile` in
-    FALSE*)
-        tail -n +2 $veriffile > $wtnfile
-        if [ "$SKINK_DEBUG" == "yes" ]; then
-        	echo " " >> $skinkdir/witness_checks 
-        	echo $1 >> $skinkdir/witness_checks
-        	$skinkdir/programs/cpacheck "$( dirname $1)"/ALL.prp $1 $wtnfile >> $skinkdir/witness_checks
-        fi	
-        ;;
-esac
+# remove log file
+\rm -f automata.log
+
+sed -i.bak '1d' $wtnfile
