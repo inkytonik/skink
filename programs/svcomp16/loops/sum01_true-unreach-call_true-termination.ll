@@ -44,61 +44,70 @@ define i32 @main() #0 {
   store i32 0, i32* %sn, align 4, !dbg !32
   %4 = load i32, i32* %n, align 4, !dbg !33
   %5 = icmp slt i32 %4, 1000, !dbg !34
-  %6 = zext i1 %5 to i32, !dbg !34
-  %7 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assume to i32 (i32, ...)*)(i32 %6), !dbg !35
-  store i32 1, i32* %i, align 4, !dbg !36
-  call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !38
-  br label %8, !dbg !40
+  call void @llvm.dbg.declare(metadata i32* %1, metadata !15, metadata !16), !dbg !35
+  br i1 %5, label %6, label %9, !dbg !37
 
-; <label>:8                                       ; preds = %15, %0
-  %9 = load i32, i32* %i, align 4, !dbg !41
-  %10 = load i32, i32* %n, align 4, !dbg !43
-  %11 = icmp sle i32 %9, %10, !dbg !44
-  br i1 %11, label %12, label %18, !dbg !45
+; <label>:6                                       ; preds = %0
+  %7 = load i32, i32* %n, align 4, !dbg !38
+  %8 = icmp sge i32 %7, -1000, !dbg !39
+  br label %9
 
-; <label>:12                                      ; preds = %8
-  %13 = load i32, i32* %sn, align 4, !dbg !46
-  %14 = add nsw i32 %13, 2, !dbg !48
-  store i32 %14, i32* %sn, align 4, !dbg !49
-  br label %15, !dbg !50
+; <label>:9                                       ; preds = %6, %0
+  %10 = phi i1 [ false, %0 ], [ %8, %6 ]
+  %11 = zext i1 %10 to i32, !dbg !37
+  %12 = call i32 (i32, ...) bitcast (i32 (...)* @__VERIFIER_assume to i32 (i32, ...)*)(i32 %11), !dbg !40
+  store i32 1, i32* %i, align 4, !dbg !41
+  br label %13, !dbg !43
 
-; <label>:15                                      ; preds = %12
-  %16 = load i32, i32* %i, align 4, !dbg !51
-  %17 = add nsw i32 %16, 1, !dbg !51
-  store i32 %17, i32* %i, align 4, !dbg !51
-  br label %8, !dbg !52
+; <label>:13                                      ; preds = %20, %9
+  %14 = load i32, i32* %i, align 4, !dbg !44
+  %15 = load i32, i32* %n, align 4, !dbg !46
+  %16 = icmp sle i32 %14, %15, !dbg !47
+  br i1 %16, label %17, label %23, !dbg !48
 
-; <label>:18                                      ; preds = %8
-  %19 = load i32, i32* %sn, align 4, !dbg !53
-  %20 = load i32, i32* %n, align 4, !dbg !54
-  %21 = mul nsw i32 %20, 2, !dbg !55
-  %22 = icmp eq i32 %19, %21, !dbg !56
-  br i1 %22, label %26, label %23, !dbg !57
+; <label>:17                                      ; preds = %13
+  %18 = load i32, i32* %sn, align 4, !dbg !49
+  %19 = add nsw i32 %18, 2, !dbg !51
+  store i32 %19, i32* %sn, align 4, !dbg !52
+  br label %20, !dbg !53
 
-; <label>:23                                      ; preds = %18
-  %24 = load i32, i32* %sn, align 4, !dbg !58
-  %25 = icmp eq i32 %24, 0, !dbg !59
-  br label %26, !dbg !57
+; <label>:20                                      ; preds = %17
+  %21 = load i32, i32* %i, align 4, !dbg !54
+  %22 = add nsw i32 %21, 1, !dbg !54
+  store i32 %22, i32* %i, align 4, !dbg !54
+  br label %13, !dbg !55
 
-; <label>:26                                      ; preds = %23, %18
-  %27 = phi i1 [ true, %18 ], [ %25, %23 ]
-  %28 = zext i1 %27 to i32, !dbg !57
-  %29 = bitcast i32* %1 to i8*, !dbg !60
-  call void @llvm.lifetime.start(i64 4, i8* %29), !dbg !60
-  store i32 %28, i32* %1, align 4, !dbg !60
-  %30 = load i32, i32* %1, align 4, !dbg !61
-  %31 = icmp ne i32 %30, 0, !dbg !62
-  br i1 %31, label %__VERIFIER_assert.exit, label %32, !dbg !63
+; <label>:23                                      ; preds = %13
+  %24 = load i32, i32* %sn, align 4, !dbg !56
+  %25 = load i32, i32* %n, align 4, !dbg !57
+  %26 = mul nsw i32 %25, 2, !dbg !58
+  %27 = icmp eq i32 %24, %26, !dbg !59
+  br i1 %27, label %31, label %28, !dbg !60
 
-; <label>:32                                      ; preds = %26
-  call void (...) @__VERIFIER_error() #6, !dbg !64
-  unreachable, !dbg !64
+; <label>:28                                      ; preds = %23
+  %29 = load i32, i32* %sn, align 4, !dbg !61
+  %30 = icmp eq i32 %29, 0, !dbg !62
+  br label %31, !dbg !60
 
-__VERIFIER_assert.exit:                           ; preds = %26
-  %33 = bitcast i32* %1 to i8*, !dbg !65
-  call void @llvm.lifetime.end(i64 4, i8* %33), !dbg !65
-  %34 = load i32, i32* %2, !dbg !66
-  ret i32 %34, !dbg !66
+; <label>:31                                      ; preds = %28, %23
+  %32 = phi i1 [ true, %23 ], [ %30, %28 ]
+  %33 = zext i1 %32 to i32, !dbg !60
+  %34 = bitcast i32* %1 to i8*, !dbg !63
+  call void @llvm.lifetime.start(i64 4, i8* %34), !dbg !63
+  store i32 %33, i32* %1, align 4, !dbg !63
+  %35 = load i32, i32* %1, align 4, !dbg !64
+  %36 = icmp ne i32 %35, 0, !dbg !65
+  br i1 %36, label %__VERIFIER_assert.exit, label %37, !dbg !66
+
+; <label>:37                                      ; preds = %31
+  call void (...) @__VERIFIER_error() #6, !dbg !67
+  unreachable, !dbg !67
+
+__VERIFIER_assert.exit:                           ; preds = %31
+  %38 = bitcast i32* %1 to i8*, !dbg !68
+  call void @llvm.lifetime.end(i64 4, i8* %38), !dbg !68
+  %39 = load i32, i32* %2, !dbg !69
+  ret i32 %39, !dbg !69
 }
 
 declare i32 @__VERIFIER_nondet_int(...) #3
@@ -158,35 +167,38 @@ attributes #6 = { noreturn nounwind }
 !32 = !DILocation(line: 11, column: 37, scope: !8)
 !33 = !DILocation(line: 12, column: 21, scope: !8)
 !34 = !DILocation(line: 12, column: 23, scope: !8)
-!35 = !DILocation(line: 12, column: 3, scope: !8)
-!36 = !DILocation(line: 13, column: 8, scope: !37)
-!37 = distinct !DILexicalBlock(scope: !8, file: !1, line: 13, column: 3)
-!38 = !DILocation(line: 3, column: 28, scope: !4, inlinedAt: !39)
-!39 = distinct !DILocation(line: 16, column: 3, scope: !8)
-!40 = !DILocation(line: 13, column: 7, scope: !37)
-!41 = !DILocation(line: 13, column: 12, scope: !42)
-!42 = distinct !DILexicalBlock(scope: !37, file: !1, line: 13, column: 3)
-!43 = !DILocation(line: 13, column: 15, scope: !42)
-!44 = !DILocation(line: 13, column: 13, scope: !42)
-!45 = !DILocation(line: 13, column: 3, scope: !37)
-!46 = !DILocation(line: 14, column: 10, scope: !47)
-!47 = distinct !DILexicalBlock(scope: !42, file: !1, line: 13, column: 23)
-!48 = !DILocation(line: 14, column: 13, scope: !47)
-!49 = !DILocation(line: 14, column: 8, scope: !47)
-!50 = !DILocation(line: 15, column: 3, scope: !47)
-!51 = !DILocation(line: 13, column: 19, scope: !42)
-!52 = !DILocation(line: 13, column: 3, scope: !42)
-!53 = !DILocation(line: 16, column: 21, scope: !8)
-!54 = !DILocation(line: 16, column: 25, scope: !8)
-!55 = !DILocation(line: 16, column: 26, scope: !8)
-!56 = !DILocation(line: 16, column: 23, scope: !8)
-!57 = !DILocation(line: 16, column: 31, scope: !8)
-!58 = !DILocation(line: 16, column: 34, scope: !8)
-!59 = !DILocation(line: 16, column: 37, scope: !8)
-!60 = !DILocation(line: 16, column: 3, scope: !8)
-!61 = !DILocation(line: 4, column: 9, scope: !19, inlinedAt: !39)
-!62 = !DILocation(line: 4, column: 8, scope: !19, inlinedAt: !39)
-!63 = !DILocation(line: 4, column: 7, scope: !4, inlinedAt: !39)
-!64 = !DILocation(line: 5, column: 12, scope: !24, inlinedAt: !39)
-!65 = !DILocation(line: 7, column: 3, scope: !4, inlinedAt: !39)
-!66 = !DILocation(line: 17, column: 1, scope: !8)
+!35 = !DILocation(line: 3, column: 28, scope: !4, inlinedAt: !36)
+!36 = distinct !DILocation(line: 16, column: 3, scope: !8)
+!37 = !DILocation(line: 12, column: 30, scope: !8)
+!38 = !DILocation(line: 12, column: 33, scope: !8)
+!39 = !DILocation(line: 12, column: 35, scope: !8)
+!40 = !DILocation(line: 12, column: 3, scope: !8)
+!41 = !DILocation(line: 13, column: 8, scope: !42)
+!42 = distinct !DILexicalBlock(scope: !8, file: !1, line: 13, column: 3)
+!43 = !DILocation(line: 13, column: 7, scope: !42)
+!44 = !DILocation(line: 13, column: 12, scope: !45)
+!45 = distinct !DILexicalBlock(scope: !42, file: !1, line: 13, column: 3)
+!46 = !DILocation(line: 13, column: 15, scope: !45)
+!47 = !DILocation(line: 13, column: 13, scope: !45)
+!48 = !DILocation(line: 13, column: 3, scope: !42)
+!49 = !DILocation(line: 14, column: 10, scope: !50)
+!50 = distinct !DILexicalBlock(scope: !45, file: !1, line: 13, column: 23)
+!51 = !DILocation(line: 14, column: 13, scope: !50)
+!52 = !DILocation(line: 14, column: 8, scope: !50)
+!53 = !DILocation(line: 15, column: 3, scope: !50)
+!54 = !DILocation(line: 13, column: 19, scope: !45)
+!55 = !DILocation(line: 13, column: 3, scope: !45)
+!56 = !DILocation(line: 16, column: 21, scope: !8)
+!57 = !DILocation(line: 16, column: 25, scope: !8)
+!58 = !DILocation(line: 16, column: 26, scope: !8)
+!59 = !DILocation(line: 16, column: 23, scope: !8)
+!60 = !DILocation(line: 16, column: 31, scope: !8)
+!61 = !DILocation(line: 16, column: 34, scope: !8)
+!62 = !DILocation(line: 16, column: 37, scope: !8)
+!63 = !DILocation(line: 16, column: 3, scope: !8)
+!64 = !DILocation(line: 4, column: 9, scope: !19, inlinedAt: !36)
+!65 = !DILocation(line: 4, column: 8, scope: !19, inlinedAt: !36)
+!66 = !DILocation(line: 4, column: 7, scope: !4, inlinedAt: !36)
+!67 = !DILocation(line: 5, column: 12, scope: !24, inlinedAt: !36)
+!68 = !DILocation(line: 7, column: 3, scope: !4, inlinedAt: !36)
+!69 = !DILocation(line: 17, column: 1, scope: !8)
