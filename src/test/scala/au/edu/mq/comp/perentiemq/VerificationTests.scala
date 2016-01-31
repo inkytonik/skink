@@ -1,7 +1,7 @@
 package au.edu.mq.comp.perentiemq
 
 import iml.IMLSyntax.Program
-import org.kiama.util.TestCompilerWithConfig
+import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 import org.scalatest.FunSuiteLike
 
 trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {

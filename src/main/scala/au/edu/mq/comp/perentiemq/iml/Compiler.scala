@@ -1,6 +1,6 @@
 package au.edu.mq.comp.perentiemq.iml
 
-import org.kiama.util.Positions
+import org.bitbucket.inkytonik.kiama.util.Positions
 
 /**
  * Compiler from IML to LLVM IR.
@@ -8,7 +8,7 @@ import org.kiama.util.Positions
 class Compiler(positions : Positions) {
 
     import au.edu.mq.comp.perentiemq.iml.{IMLSyntax => IML}
-    import org.kiama.util.{Counter, Position}
+    import org.bitbucket.inkytonik.kiama.util.{Counter, Position}
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable
 

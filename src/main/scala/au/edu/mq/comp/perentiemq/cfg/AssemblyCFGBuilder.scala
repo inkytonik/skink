@@ -10,7 +10,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition, Block] {
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.edge.Edge
     import au.edu.mq.comp.automat.edge.Implicits._
-    import org.kiama.relation.Bridge
+    import org.bitbucket.inkytonik.kiama.relation.Bridge
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import scala.collection.mutable.ListBuffer
 

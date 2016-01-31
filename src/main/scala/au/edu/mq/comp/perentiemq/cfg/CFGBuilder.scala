@@ -1,7 +1,7 @@
 package au.edu.mq.comp.perentiemq.cfg
 
-import org.kiama.attribution.Attribution
-import org.kiama.relation.Bridge
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import org.bitbucket.inkytonik.kiama.relation.Bridge
 
 /**
  * Base class of all CFG AST nodes.
@@ -137,10 +137,10 @@ abstract class CFGBuilder[F, B] extends Attribution {
 
     class CFGAnalyser(cfg : CFG[F, B]) {
 
-        import org.kiama.attribution.Decorators
-        import org.kiama.output.PrettyPrinter._
-        import org.kiama.output.PrettyPrinterTypes.Document
-        import org.kiama.relation.Tree
+        import org.bitbucket.inkytonik.kiama.attribution.Decorators
+        import org.bitbucket.inkytonik.kiama.output.PrettyPrinter._
+        import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
+        import org.bitbucket.inkytonik.kiama.relation.Tree
 
         val tree = new Tree[CFGASTNode[F, B], CFG[F, B]](cfg)
         val decorators = new Decorators(tree)

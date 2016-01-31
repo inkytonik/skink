@@ -18,7 +18,7 @@ object Witness {
         funanalyser : Analyser, failTrace : FailureTrace[Entry]) {
 
         import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG
-        import org.kiama.util.{FileSource, Position}
+        import org.bitbucket.inkytonik.kiama.util.{FileSource, Position}
 
         def escapeChar(char : Char) =
             char match {

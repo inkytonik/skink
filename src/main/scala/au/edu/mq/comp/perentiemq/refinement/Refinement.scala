@@ -19,7 +19,7 @@ import smtlib.util.Logics.{getValues, isSat, getInterpolants}
 
 import scala.util.{Try, Failure, Success}
 
-import org.kiama.rewriting.Rewriter.collect
+import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
 
 // import au.edu.mq.comp.perentiemq.refinement.InterpolantAutomaton.computeInterpolantAuto
 // import com.typesafe.scalalogging.LazyLogging

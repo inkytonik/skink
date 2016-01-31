@@ -6,7 +6,7 @@ package au.edu.mq.comp.perentiemq.cfg
 object AssemblyCFG extends AssemblyCFGBuilder {
 
     import au.edu.mq.comp.perentiemq.PerentieMQConfig
-    import org.kiama.relation.Tree
+    import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.{ElementProperty, Property, TypeProperty}
     import smtlib.util.TypedTerm
@@ -52,8 +52,8 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      */
     def traceToTerms(properties : Map[Name, Seq[Property]])(trace : Trace) : Seq[Vector[TypedTerm]] = {
 
-        import org.kiama.==>
-        import org.kiama.attribution.Decorators
+        import org.bitbucket.inkytonik.kiama.==>
+        import org.bitbucket.inkytonik.kiama.attribution.Decorators
         import org.scalallvm.assembly.AssemblyPrettyPrinter
         import scala.annotation.tailrec
         import smtlib.parser.Terms.Sort
