@@ -271,7 +271,7 @@ abstract class CFGBuilder[F, B] extends Attribution {
 
                 case CFGExit(conditions) =>
                     if (conditions == Nil)
-                        empty
+                        emptyDoc
                     else
                         line <> vsep(conditions.map(toDoc))
 
