@@ -120,7 +120,7 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQCon
 
 }
 
-class SimpleTests extends TestBase {
+class LocalSimpleTests extends TestBase {
     filetests("Simple", "programs/simple", ".ll", ".verif",
         argslist = defaultArgsList)
 }
@@ -194,4 +194,3 @@ class SVCOMPNTDriversTests extends TestBase {
     filetests("SVCOMP ntdrivers", "programs/svcomp16/ntdrivers", ".ll", ".verif",
         argslist = defaultArgsList)
 }
-
