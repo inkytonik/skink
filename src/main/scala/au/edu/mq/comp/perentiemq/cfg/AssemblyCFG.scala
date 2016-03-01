@@ -496,7 +496,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
 
         //  collect 'dummy' which are states that are source of an empty effect
         //  and record their successor in a Map
-        val dummyStatesMap = (nfa.edges.filter {
+        val dummyStatesMap = (nfa.transitions.filter {
             e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
         }).map(e => (e.src, e.tgt)).toMap
 
@@ -519,10 +519,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         //  use the recursive getSucc to replace each incoming edge
         //  s1 - l -> dummyState(s2) by s1 - l -> getSucc(s2)
 
-        import au.edu.mq.comp.automat.edge.Edge
+        import au.edu.mq.comp.automat.edge.LabDiEdge
+        import au.edu.mq.comp.automat.edge.Implicits._
         val nfa2 = NFA(
-            nfa.init,
-            (nfa.edges filterNot {
+            nfa.getInit,
+            (nfa.transitions filterNot {
                 e => traceToTerms(properties)(Trace(Seq(e.lab))).flatten.isEmpty
             }) map {
                 case e if dummyStatesMap.isDefinedAt(e.tgt) =>
@@ -533,7 +534,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                         case lab =>
                             lab
                     }
-                    Edge(e.src, newlab, getSucc(e.tgt))
+                    (e.src ~> getSucc(e.tgt))(newlab)
                 case e => e
             },
             nfa.accepting

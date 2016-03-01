@@ -8,7 +8,7 @@ import org.scalallvm.assembly.AssemblySyntax._
 trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition, Block] {
 
     import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.edge.Edge
+    import au.edu.mq.comp.automat.edge.LabDiEdge
     import au.edu.mq.comp.automat.edge.Implicits._
     import org.bitbucket.inkytonik.kiama.relation.Bridge
     import org.scalallvm.assembly.AssemblyPrettyPrinter
@@ -234,7 +234,7 @@ trait AssemblyCFGBuilder extends CFGBuilder[FunctionDefinition, Block] {
                 import analyser._
 
                 val init = Set(name(entry(cfg)))
-                val buf = new ListBuffer[Edge[String, CFGEntry[FunctionDefinition, Block]]]
+                val buf = new ListBuffer[LabDiEdge[String, CFGEntry[FunctionDefinition, Block]]]
                 val accepting = exits(cfg).map(name).filter(_.startsWith("%.error")).toSet
 
                 /*

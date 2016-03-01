@@ -116,7 +116,7 @@ abstract class CFGBuilder[F, B] extends Attribution {
             (b : String) => {
                 val label = Attribute("label", StringLit(b))
                 val style =
-                    Attribute("shape", if (nfa.init.contains(b))
+                    Attribute("shape", if (nfa.getInit.contains(b))
                         Ident("circle")
                     else if (nfa.accepting.contains(b))
                         Ident("doublecircle")

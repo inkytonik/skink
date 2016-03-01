@@ -4,7 +4,7 @@ import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{Entry, Trace}
-import au.edu.mq.comp.automat.edge.Edge
+import au.edu.mq.comp.automat.edge.LabDiEdge
 import smtlib.util.{TypedTerm}
 import smtlib.interpreters.{GenericSolver}
 import smtlib.parser.Terms.SSymbol
@@ -46,7 +46,7 @@ object PrettyPrint {
             a,
             nodeProp = {
             x : Int ⇒
-                if (a.blocking.contains(x))
+                if (a.sinkAccept.contains(x))
                     List(Attribute("shape", Ident("rectangle")), Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
                 else
                     List(Attribute("label", StringLit(s"$x : ${numToTerm(x)}")))
@@ -162,24 +162,24 @@ object PrefixInterpolantAuto {
                 //  try to add new edges
 
                 //  if entry e appears in the trace at location k and j, k -- e -> k + 1
-                //  and j -- e -> j + 1, and  k < j, 
+                //  and j -- e -> j + 1, and  k < j,
                 //  we can try to add an edge j  - e -> (k + 1)
                 //  In theory we can try all the pairs for an entry but
                 //  we restrict for now to all the pairs with first index as the
                 //  first component
-                val newEdges = new ListBuffer[Edge[Int, L]]()
+                val newEdges = new ListBuffer[LabDiEdge[Int, L]]()
                 for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
 
                     //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
                     if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
-                        newEdges += Edge[Int, L](j, entry, k + 1)
+                        newEdges += (j ~> (k + 1))(entry)
                     }
                 }
 
                 //  return the linear auto + the new edges
                 val interpolantAuto = NFA[Int, L](
                     Set(0),
-                    linearNFA.edges ++ newEdges,
+                    linearNFA.transitions ++ newEdges,
                     Set(trace.size),
                     Set(trace.size),
                     name = s"Prefix interpolant automaton, iteration $k"
@@ -213,10 +213,10 @@ object LinearInterAuto {
         NFA[Int, L](
             Set(0),
             trace.zipWithIndex map {
-                case (l, i) => Edge[Int, L](i, l, (i + 1))
+                case (l, i) => (i ~> (i + 1))(l)
             } toSet,
             accepting = Set(trace.size), //  set of final states
-            blocking = Set(trace.size), //  set of blocking states
+            sinkAccept = Set(trace.size), //  set of blocking states
             name = "Linear interpolant automaton"
         )
     }
@@ -322,7 +322,7 @@ object SuffixInterpolantAuto {
             case m if (m.size == 0) => linearNFA
 
             case m =>
-                //  get the interpolants for the rerverse trace 
+                //  get the interpolants for the rerverse trace
                 val reverseInterpolants = getInterpolants(traceTerms)(solver).get.map(_.unIndex).reverse
 
                 //  we have to 1) complement each interpolant to get an
@@ -336,24 +336,24 @@ object SuffixInterpolantAuto {
                 //  try to add new edges
                 // println(s"size of trace = ${trace.size}, suffixLength = $suffixLength, size of i = ${i.size}")
                 //  if entry e appears in the trace at location k and j, k -- e -> k + 1
-                //  and j -- e -> j + 1, and  k < j, 
+                //  and j -- e -> j + 1, and  k < j,
                 //  we can try to add an edge j  - e -> (k + 1)
                 //  In theory we can try all the pairs for an entry but
                 //  we restrict for now to all the pairs with first index as the
                 //  first component
-                val newEdges = new ListBuffer[Edge[Int, L]]()
+                val newEdges = new ListBuffer[LabDiEdge[Int, L]]()
                 for ((entry, listIndex) <- m; k = listIndex.head; j <- listIndex.tail) {
 
                     //  check whether Post(Interpolant(j), entry) implies Interpolant(k + 1)
                     if (Semantics.checkPost(i(j), traceToTerms(Seq(entry)), i(k + 1))) {
-                        newEdges += Edge[Int, L](j, entry, k + 1)
+                        newEdges += (j ~> (k + 1))(entry)
                     }
                 }
 
                 //  return the linear auto + the new edges
                 val interpolantAuto = NFA[Int, L](
                     Set(0),
-                    linearNFA.edges ++ newEdges,
+                    linearNFA.transitions ++ newEdges,
                     Set(trace.size),
                     Set(trace.size),
                     name = s"Suffix nterpolant automaton, iteration $k"
@@ -429,4 +429,3 @@ object Semantics {
     }
 
 }
-
