@@ -119,7 +119,7 @@ object Witness {
                |
                |</graphml>""".stripMargin
 
-        config.output.emitln(witness)
+        config.output().emitln(witness)
 
     }
 

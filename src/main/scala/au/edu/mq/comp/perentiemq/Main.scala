@@ -3,7 +3,7 @@ package au.edu.mq.comp.perentiemq
 import iml.IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
-abstract class PerentieMQConfig(args : Seq[String]) extends Config(args) {
+class PerentieMQConfig(args : Seq[String]) extends Config(args) {
     lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
         descr = "Pretty print the control flow graph of the target code")
     lazy val cfgDotPrint = opt[Boolean]("cfgdotprint", short = 'd',
@@ -48,18 +48,11 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
     import org.scalallvm.assembly.AssemblySyntax.{Program => IR}
     import org.scalallvm.assembly.Executor.execute
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
-    import org.bitbucket.inkytonik.kiama.util.{Emitter, ErrorEmitter, OutputEmitter, Source}
+    import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
 
-    override def createConfig(
-        args : Seq[String],
-        out : Emitter = new OutputEmitter,
-        err : Emitter = new ErrorEmitter
-    ) : PerentieMQConfig =
-        new PerentieMQConfig(args) {
-            lazy val output = out
-            lazy val error = err
-        }
+    override def createConfig(args : Seq[String]) : PerentieMQConfig =
+        new PerentieMQConfig(args)
 
     override def makeast(source : Source, config : PerentieMQConfig) : Either[Program, Messages] = {
         if (config.compile() || config.sourcePrint() || config.sourcePrettyPrint()) {
@@ -85,7 +78,7 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
                 processir(p.value(pr).asInstanceOf[IR], config)
                 Right(noMessages)
             } else {
-                config.output.emitln("UNKNOWN\nLLVM parse error")
+                config.output().emitln("UNKNOWN\nLLVM parse error")
                 Right(Vector(p.errorToMessage(pr.parseError)))
             }
 
@@ -96,10 +89,10 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
     def process(source : Source, program : Program, config : PerentieMQConfig) {
 
         if (config.sourcePrint())
-            config.error.emitln(pretty(any(program)).layout)
+            config.output().emitln(pretty(any(program)).layout)
 
         if (config.sourcePrettyPrint())
-            config.error.emit(format(program).layout)
+            config.output().emit(format(program).layout)
 
         if (config.compile()) {
             val compiler = new Compiler(positions)
@@ -112,10 +105,10 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
     def processir(ir : IR, config : PerentieMQConfig) {
 
         if (config.targetPrint())
-            config.error.emitln(AssemblyPrettyPrinter.pretty(AssemblyPrettyPrinter.any(ir)).layout)
+            config.output().emitln(AssemblyPrettyPrinter.pretty(AssemblyPrettyPrinter.any(ir)).layout)
 
         if (config.targetPrettyPrint())
-            config.error.emit(AssemblyPrettyPrinter.format(ir, 5).layout)
+            config.output().emit(AssemblyPrettyPrinter.format(ir, 5).layout)
 
         val cfgs = AssemblyCFG.buildCFGs(ir, config.verifyTarget())
 
@@ -123,13 +116,13 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
             val cfgAnalyser = new AssemblyCFG.CFGAnalyser(cfg)
 
             if (config.cfgPrettyPrint())
-                config.error.emitln(cfgAnalyser.formatString(cfg))
+                config.output().emitln(cfgAnalyser.formatString(cfg))
 
             if (config.cfgDotPrint()) {
                 val nfa = AssemblyCFG.nfa(cfg)
                 val dot = AssemblyCFG.toDot(nfa)
-                config.error.emitln
-                config.error.emitln(DOTPrettyPrinter.format(dot).layout)
+                config.output().emitln
+                config.output().emitln(DOTPrettyPrinter.format(dot).layout)
             }
 
             if (config.verifyTarget())
@@ -138,9 +131,9 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
 
         if (config.execute()) {
             val (output, code) = execute(ir, config.lli())
-            config.output.emit(output)
+            config.output().emit(output)
             if (code != 0)
-                config.output.emitln(s"exit code: $code")
+                config.output().emitln(s"exit code: $code")
         }
 
     }

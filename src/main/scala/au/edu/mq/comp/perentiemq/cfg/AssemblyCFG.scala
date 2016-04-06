@@ -15,7 +15,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * Convenience method for reporting UNKNOWN results.
      */
     def reportUnknown(config : PerentieMQConfig, message : String) {
-        config.output.emitln(s"UNKNOWN\n$message")
+        config.output().emitln(s"UNKNOWN\n$message")
     }
 
     /**
@@ -680,11 +680,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
                         case Success(witnessTrace) => witnessTrace match {
                             case None =>
                                 // println(s"${Console.GREEN}Program is correct${Console.RESET}")
-                                config.output.emitln("TRUE")
+                                config.output().emitln("TRUE")
                             case Some(failTrace) =>
                                 val errorTrace = appendErrorBlock(failTrace)
                                 // println(s"${Console.RED}Program is incorrect. Witness trace follows${Console.RESET}")
-                                config.output.emitln("FALSE")
+                                config.output().emitln("FALSE")
                                 // printTrace(errorTrace)
                                 printWitness(config, program, function, funanalyser, errorTrace)
                         }
