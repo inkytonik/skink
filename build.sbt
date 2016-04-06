@@ -33,8 +33,8 @@ shellPrompt <<= (name, version) { (n, v) =>
 libraryDependencies ++=
     Seq (
         "au.edu.mq.comp" %% "automat" % "0.1",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.0.0-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.0.0-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.0.0",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.0.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.1.0",
         //"scala-smt-lib" %% "scala-smt-lib" % "0.1",
         "au.edu.mq.comp" %% "scala-smt-lib-mq-fork-" % "0.1",
