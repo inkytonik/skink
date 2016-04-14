@@ -4,7 +4,7 @@ import iml.IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 import org.scalatest.FunSuiteLike
 
-trait TestBase extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {
+trait TestBase extends Driver with TestCompilerWithConfig[Program, SkinkConfig] {
 
     import org.scalatest.{Args, Reporter, Status}
     import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}

@@ -6,7 +6,7 @@ package au.edu.mq.comp.skink.cfg
 object Witness {
 
     import au.edu.mq.comp.skink.cfg.AssemblyCFG.Entry
-    import au.edu.mq.comp.skink.PerentieMQConfig
+    import au.edu.mq.comp.skink.SkinkConfig
     import au.edu.mq.comp.skink.refinement.TraceRefinement.FailureTrace
     import org.scalallvm.assembly.AssemblySyntax.{Program, FunctionDefinition}
     import org.scalallvm.assembly.Analyser
@@ -14,7 +14,7 @@ object Witness {
     /**
      * Output a witness in SV-COMP result format.
      */
-    def printWitness(config : PerentieMQConfig, program : Program, function : FunctionDefinition,
+    def printWitness(config : SkinkConfig, program : Program, function : FunctionDefinition,
         funanalyser : Analyser, failTrace : FailureTrace[Entry]) {
 
         import au.edu.mq.comp.skink.cfg.AssemblyCFG

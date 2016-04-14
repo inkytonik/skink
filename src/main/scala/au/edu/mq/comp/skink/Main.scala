@@ -3,7 +3,7 @@ package au.edu.mq.comp.skink
 import iml.IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
-class PerentieMQConfig(args : Seq[String]) extends Config(args) {
+class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
         descr = "Pretty print the control flow graph of the target code")
     lazy val cfgDotPrint = opt[Boolean]("cfgdotprint", short = 'd',
@@ -38,7 +38,7 @@ class PerentieMQConfig(args : Seq[String]) extends Config(args) {
         default = Some("Z3"))
 }
 
-trait Driver extends CompilerBase[Program, PerentieMQConfig] {
+trait Driver extends CompilerBase[Program, SkinkConfig] {
 
     import au.edu.mq.comp.dot.DOTPrettyPrinter
     import cfg.AssemblyCFG
@@ -51,10 +51,10 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
     import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
 
-    override def createConfig(args : Seq[String]) : PerentieMQConfig =
-        new PerentieMQConfig(args)
+    override def createConfig(args : Seq[String]) : SkinkConfig =
+        new SkinkConfig(args)
 
-    override def makeast(source : Source, config : PerentieMQConfig) : Either[Program, Messages] = {
+    override def makeast(source : Source, config : SkinkConfig) : Either[Program, Messages] = {
         if (config.compile() || config.sourcePrint() || config.sourcePrettyPrint()) {
 
             // We're compiling so input file contains IML. Parse and process
@@ -86,7 +86,7 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
 
     }
 
-    def process(source : Source, program : Program, config : PerentieMQConfig) {
+    def process(source : Source, program : Program, config : SkinkConfig) {
 
         if (config.sourcePrint())
             config.output().emitln(pretty(any(program)).layout)
@@ -102,7 +102,7 @@ trait Driver extends CompilerBase[Program, PerentieMQConfig] {
 
     }
 
-    def processir(ir : IR, config : PerentieMQConfig) {
+    def processir(ir : IR, config : SkinkConfig) {
 
         if (config.targetPrint())
             config.output().emitln(AssemblyPrettyPrinter.pretty(AssemblyPrettyPrinter.any(ir)).layout)

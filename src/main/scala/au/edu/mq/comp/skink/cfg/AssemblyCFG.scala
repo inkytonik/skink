@@ -5,7 +5,7 @@ package au.edu.mq.comp.skink.cfg
  */
 object AssemblyCFG extends AssemblyCFGBuilder {
 
-    import au.edu.mq.comp.skink.PerentieMQConfig
+    import au.edu.mq.comp.skink.SkinkConfig
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.{ElementProperty, Property, TypeProperty}
@@ -14,7 +14,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     /**
      * Convenience method for reporting UNKNOWN results.
      */
-    def reportUnknown(config : PerentieMQConfig, message : String) {
+    def reportUnknown(config : SkinkConfig, message : String) {
         config.output().emitln(s"UNKNOWN\n$message")
     }
 
@@ -461,7 +461,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
     }
 
     def runVerification(program : Program, cfg : CFG[FunctionDefinition, Block],
-        cfgAnalyser : CFGAnalyser, config : PerentieMQConfig) {
+        cfgAnalyser : CFGAnalyser, config : SkinkConfig) {
 
         import au.edu.mq.comp.automat.auto.{NFA}
         import au.edu.mq.comp.skink.cfg.Witness.printWitness
@@ -486,7 +486,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         val cfganalyser = new CFGAnalyser(cfg)
         val nfa = AssemblyCFG.nfa(cfg)
 
-        File("/tmp/nfa-perentieMQ.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
+        File("/tmp/nfa-Skink.dot").writeAll(format(AssemblyCFG.toDot(nfa)).layout)
 
         //  sanitise the CFGNFA
 
@@ -553,7 +553,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         // println(Console.RESET)
 
         // println(cfganalyser.toDot(nfa))
-        File("/tmp/nfa-perentieMQ-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
+        File("/tmp/nfa-Skink-filtered.dot").writeAll(format(AssemblyCFG.toDot(nfa2)).layout)
         // Regexp for breaking verified names apart
         val Name = "(.*)@([0-9]+)".r
 
@@ -700,7 +700,7 @@ object AssemblyCFG extends AssemblyCFGBuilder {
      * `prepareIRForVerification` before the CFG was constructed.
      */
     def verify(program : Program, cfg : CFG[FunctionDefinition, Block],
-        cfgAnalyser : CFGAnalyser, config : PerentieMQConfig) {
+        cfgAnalyser : CFGAnalyser, config : SkinkConfig) {
         try {
             runVerification(program, cfg, cfgAnalyser, config)
         } catch {

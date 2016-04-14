@@ -56,7 +56,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         FailureTrace(trace, ids, values)
     }
 
-    import au.edu.mq.comp.skink.PerentieMQConfig
+    import au.edu.mq.comp.skink.SkinkConfig
 
     /**
      * Implement the refinement loop, returning an optional trace that if
@@ -67,7 +67,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         traceToTerms : Seq[L] => Seq[Vector[TypedTerm]],
         blockName : CFGBlock[FunctionDefinition, Block] => String,
         isBlockEntry : L => Boolean,
-        config : PerentieMQConfig
+        config : SkinkConfig
     ) : Try[Option[FailureTrace[L]]] = {
 
         val maxIterations = config.maxIterations()

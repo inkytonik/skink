@@ -1,4 +1,4 @@
-# Ubuntu box for running perentie, not dev box
+# Ubuntu box for running Skink, not dev box
 Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.vm.provision "shell", inline: <<-SHELL
