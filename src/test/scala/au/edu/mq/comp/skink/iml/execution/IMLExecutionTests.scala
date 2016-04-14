@@ -1,6 +1,6 @@
-package au.edu.mq.comp.perentiemq.iml
+package au.edu.mq.comp.skink.iml
 
-import au.edu.mq.comp.perentiemq.{Driver, PerentieMQConfig}
+import au.edu.mq.comp.skink.{Driver, PerentieMQConfig}
 import IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
@@ -9,7 +9,7 @@ import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
  */
 class IMLExecutionTests extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {
 
-    val path = "src/test/scala/au/edu/mq/comp/perentiemq/iml/execution"
+    val path = "src/test/scala/au/edu/mq/comp/skink/iml/execution"
     filetests("IML execution", path, ".iml", ".out",
         argslist = List(Array("-c", "-x")))
 

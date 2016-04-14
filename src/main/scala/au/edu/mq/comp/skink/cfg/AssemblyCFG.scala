@@ -1,11 +1,11 @@
-package au.edu.mq.comp.perentiemq.cfg
+package au.edu.mq.comp.skink.cfg
 
 /**
  * Consolidated construction, processing and verification of LLVM assembly CFGs.
  */
 object AssemblyCFG extends AssemblyCFGBuilder {
 
-    import au.edu.mq.comp.perentiemq.PerentieMQConfig
+    import au.edu.mq.comp.skink.PerentieMQConfig
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.{ElementProperty, Property, TypeProperty}
@@ -464,11 +464,11 @@ object AssemblyCFG extends AssemblyCFGBuilder {
         cfgAnalyser : CFGAnalyser, config : PerentieMQConfig) {
 
         import au.edu.mq.comp.automat.auto.{NFA}
-        import au.edu.mq.comp.perentiemq.cfg.Witness.printWitness
+        import au.edu.mq.comp.skink.cfg.Witness.printWitness
         import org.scalallvm.assembly.Analyser
         import scala.annotation.tailrec
         import scala.util.{Try, Failure, Success}
-        import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.{FailureTrace, traceRefinement}
+        import au.edu.mq.comp.skink.refinement.TraceRefinement.{FailureTrace, traceRefinement}
         import au.edu.mq.comp.dot.DOTPrettyPrinter.format
         import reflect.io._
 

@@ -1,3 +1,0 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/funcerr3.iml:2:18: type expected
-def funcerr4(a : Foo) : (b) {
-                 ^

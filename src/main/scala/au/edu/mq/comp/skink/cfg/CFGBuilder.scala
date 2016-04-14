@@ -1,4 +1,4 @@
-package au.edu.mq.comp.perentiemq.cfg
+package au.edu.mq.comp.skink.cfg
 
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.bitbucket.inkytonik.kiama.relation.Bridge

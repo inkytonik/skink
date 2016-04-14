@@ -1,14 +1,14 @@
-package au.edu.mq.comp.perentiemq.refinement
+package au.edu.mq.comp.skink.refinement
 
 import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
-import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{Entry, Trace}
+import au.edu.mq.comp.skink.cfg.AssemblyCFG.{Entry, Trace}
 import au.edu.mq.comp.automat.edge.LabDiEdge
 import smtlib.util.{TypedTerm}
 import smtlib.interpreters.{GenericSolver}
 import smtlib.parser.Terms.SSymbol
-import au.edu.mq.comp.perentiemq.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
+import au.edu.mq.comp.skink.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
 import smtlib.util.Logics.{isSat, getInterpolants}
 import scala.collection.mutable.ListBuffer
 
@@ -19,7 +19,7 @@ object PrettyPrint {
     import scala.util.{Failure, Success}
 
     import org.scalallvm.assembly.AssemblySyntax._
-    import au.edu.mq.comp.perentiemq.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
+    import au.edu.mq.comp.skink.cfg.{CFGBlockEntry, CFGEntry, CFGExitCondEntry, CFGBlock, CFGChoice, CFGGoto}
 
     def getBlockLabel[L](b : L) : String = b match {
         case CFGBlockEntry(Block(BlockLabel(name), _, _, _, _)) =>
@@ -379,7 +379,7 @@ object SuffixInterpolantAuto {
  *
  */
 object Semantics {
-    import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.traceToTerms
+    import au.edu.mq.comp.skink.cfg.AssemblyCFG.traceToTerms
     import smtlib.util.TypedTerm
 
     def checkPost(srcP : TypedTerm, entry : Seq[Vector[TypedTerm]], tgtP : TypedTerm) : Boolean = {

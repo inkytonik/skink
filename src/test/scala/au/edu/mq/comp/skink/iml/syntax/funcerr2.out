@@ -1,0 +1,3 @@
+src/test/scala/au/edu/mq/comp/skink/iml/syntax/funcerr2.iml:2:19: identifier expected
+def funcerr2(x): () {
+                  ^

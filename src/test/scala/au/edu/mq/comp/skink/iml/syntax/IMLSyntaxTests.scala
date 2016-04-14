@@ -1,6 +1,6 @@
-package au.edu.mq.comp.perentiemq.iml
+package au.edu.mq.comp.skink.iml
 
-import au.edu.mq.comp.perentiemq.{Driver, PerentieMQConfig}
+import au.edu.mq.comp.skink.{Driver, PerentieMQConfig}
 import IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
@@ -10,7 +10,7 @@ import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
  */
 class IMLSyntaxTests extends Driver with TestCompilerWithConfig[Program, PerentieMQConfig] {
 
-    val path = "src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax"
+    val path = "src/test/scala/au/edu/mq/comp/skink/iml/syntax"
     filetests("IML parse and print", path, ".iml", ".out",
         argslist = List(Array("-p", "-s")))
 

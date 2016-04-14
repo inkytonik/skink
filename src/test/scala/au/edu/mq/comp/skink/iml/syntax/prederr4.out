@@ -1,0 +1,3 @@
+src/test/scala/au/edu/mq/comp/skink/iml/syntax/prederr4.iml:3:19: ')' expected
+    assert (a < b < c);
+                  ^

@@ -1,3 +1,0 @@
-src/test/scala/au/edu/mq/comp/perentiemq/iml/syntax/prederr6.iml:3:19: ')' expected
-    assert (a > b > c);
-                  ^

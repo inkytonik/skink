@@ -1,4 +1,4 @@
-package au.edu.mq.comp.perentiemq
+package au.edu.mq.comp.skink
 
 import iml.IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig

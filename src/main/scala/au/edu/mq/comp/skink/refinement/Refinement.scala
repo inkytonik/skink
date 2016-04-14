@@ -1,4 +1,4 @@
-package au.edu.mq.comp.perentiemq.refinement
+package au.edu.mq.comp.skink.refinement
 
 import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
@@ -6,7 +6,7 @@ import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
 import au.edu.mq.comp.automat.lang.Lang
 import au.edu.mq.comp.automat.edge.Implicits._
 
-import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.{traceToTerms}
+import au.edu.mq.comp.skink.cfg.AssemblyCFG.{traceToTerms}
 
 import smtlib.util.{TypedTerm, ValMap}
 import smtlib.interpreters.{SMTSolver, GenericSolver}
@@ -21,11 +21,11 @@ import scala.util.{Try, Failure, Success}
 
 import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
 
-// import au.edu.mq.comp.perentiemq.refinement.InterpolantAutomaton.computeInterpolantAuto
+// import au.edu.mq.comp.skink.refinement.InterpolantAutomaton.computeInterpolantAuto
 // import com.typesafe.scalalogging.LazyLogging
 
-import au.edu.mq.comp.perentiemq.cfg._
-import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.Entry
+import au.edu.mq.comp.skink.cfg._
+import au.edu.mq.comp.skink.cfg.AssemblyCFG.Entry
 import org.scalallvm.assembly.AssemblySyntax._
 
 object TraceRefinement { //extends LazyLogging removing for now as they are two logback.xml files conflicting
@@ -56,7 +56,7 @@ object TraceRefinement { //extends LazyLogging removing for now as they are two 
         FailureTrace(trace, ids, values)
     }
 
-    import au.edu.mq.comp.perentiemq.PerentieMQConfig
+    import au.edu.mq.comp.skink.PerentieMQConfig
 
     /**
      * Implement the refinement loop, returning an optional trace that if

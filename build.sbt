@@ -73,7 +73,7 @@ ratsUseKiama := 2
 
 test in assembly := {}
 
-mainClass in assembly := Some ("au.edu.mq.comp.perentiemq.Main")
+mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
 
 // ScalariForm
 

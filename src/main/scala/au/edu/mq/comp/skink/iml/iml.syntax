@@ -1,7 +1,7 @@
-module au.edu.mq.comp.perentiemq.iml.IML;
+module au.edu.mq.comp.skink.iml.IML;
 
 header {
-    import au.edu.mq.comp.perentiemq.iml.IMLSyntax.*;
+    import au.edu.mq.comp.skink.iml.IMLSyntax.*;
 }
 
 Program =

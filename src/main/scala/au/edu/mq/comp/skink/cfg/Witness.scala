@@ -1,13 +1,13 @@
-package au.edu.mq.comp.perentiemq.cfg
+package au.edu.mq.comp.skink.cfg
 
 /**
  * Support for SV-COMP witness generation.
  */
 object Witness {
 
-    import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG.Entry
-    import au.edu.mq.comp.perentiemq.PerentieMQConfig
-    import au.edu.mq.comp.perentiemq.refinement.TraceRefinement.FailureTrace
+    import au.edu.mq.comp.skink.cfg.AssemblyCFG.Entry
+    import au.edu.mq.comp.skink.PerentieMQConfig
+    import au.edu.mq.comp.skink.refinement.TraceRefinement.FailureTrace
     import org.scalallvm.assembly.AssemblySyntax.{Program, FunctionDefinition}
     import org.scalallvm.assembly.Analyser
 
@@ -17,7 +17,7 @@ object Witness {
     def printWitness(config : PerentieMQConfig, program : Program, function : FunctionDefinition,
         funanalyser : Analyser, failTrace : FailureTrace[Entry]) {
 
-        import au.edu.mq.comp.perentiemq.cfg.AssemblyCFG
+        import au.edu.mq.comp.skink.cfg.AssemblyCFG
         import org.bitbucket.inkytonik.kiama.util.{FileSource, Position}
 
         def escapeChar(char : Char) =
