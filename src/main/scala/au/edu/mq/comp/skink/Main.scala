@@ -34,7 +34,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Timeout for SMT solvers (seconds)",
         default = Some(10))
     lazy val solver = opt[String]("solver", short = 'e',
-        descr = "SMT solver (Z3, SMTInterpol, CVC4",
+        descr = "SMT solver (Z3, SMTInterpol, CVC4)",
         default = Some("Z3"))
 }
 
