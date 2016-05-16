@@ -9,16 +9,29 @@ organization := "au.edu.mq.comp"
 
 scalaVersion := "2.11.8"
 
-scalacOptions :=
+scalacOptions := {
+
+    // Turn on all lint warnings, except:
+    //  - stars-align: incorrectly reports problems if pattern matching of
+    //    unapplySeq extractor doesn't match sequence directly
+
+    val lintOption =
+        if (scalaVersion.value.startsWith ("2.10"))
+            "-Xlint"
+        else
+            "-Xlint:-stars-align,_"
+
     Seq (
         "-deprecation",
         "-feature",
         "-sourcepath", baseDirectory.value.getAbsolutePath,
         "-unchecked",
         "-Xfatal-warnings",
-        "-Xlint",
-        "-Xcheckinit"
+        "-Xcheckinit",
+        lintOption
     )
+
+}
 
 // Interactive settings
 
@@ -35,7 +48,7 @@ libraryDependencies ++=
         "au.edu.mq.comp" %% "automat" % "0.1",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT" % "test" classifier ("tests"),
-        "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.1.0",
+        "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
         "au.edu.mq.comp" %% "scala-smt-lib-mq-fork-" % "0.1",
         "org.scalatest" %% "scalatest" % "2.2.4" % "test",
         "org.scalacheck" %% "scalacheck" % "1.12.2" % "test"
