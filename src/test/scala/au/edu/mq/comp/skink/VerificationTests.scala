@@ -100,10 +100,10 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program, SkinkConfig] 
             message(s"score          = $score")
             message("")
 
-            message("False positives files")
-            message(s"${listFalsePositive.result().mkString("\n")}")
-            message("False negatives files")
-            message(s"${listFalseNegative.result().mkString("\n")}")
+            message("False positives files:")
+            listFalsePositive.result().foreach(m => message("  " + m))
+            message("False negatives files:")
+            listFalseNegative.result().foreach(m => message("  " + m))
 
         }
 
