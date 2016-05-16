@@ -15,7 +15,7 @@ class LLVMProvider(config : SkinkConfig) extends IRProvider {
     import org.scalallvm.assembly.Assembly
     import org.scalallvm.assembly.AssemblySyntax._
 
-    // Interface
+    // Implementaiton of IRProvider interface
 
     val name = "LLVM"
 

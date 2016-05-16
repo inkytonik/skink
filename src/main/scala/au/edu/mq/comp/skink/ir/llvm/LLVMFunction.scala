@@ -10,13 +10,12 @@ import org.bitbucket.inkytonik.kiama.attribution.Attribution
 case class BlockTrace(blocks : Seq[Block], trace : Trace)
 
 /**
- * Representation of an LLVM IR function.
+ * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.skink.ir.Step
-    import au.edu.mq.comp.skink.verifier.FailureTrace
+    import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.Tree
@@ -44,7 +43,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     val properties = funanalyser.propertiesOfFunction(function)
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
-    // Interface
+    // Implementation of IRFunction interface
 
     def name : String =
         nameToString(function.global)
@@ -371,12 +370,12 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // the last step since that is to the error block.
         trace.choices.init.zipWithIndex.map {
             case (choice, count) =>
+                val block = treeBlockTrace.blocks(count)
                 val optPrevBlock =
                     if (count == 0)
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
-                val block = treeBlockTrace.blocks(count)
                 blockTerms(block, optPrevBlock, choice)
         }
 
@@ -412,10 +411,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
     }
 
-    // Helpers
+    // Helper methods
 
     /**
-     * Build the Control Flow Graph NFA for `function`.
+     * Build the Control Flow Graph NFA for the function.
      */
     def buildNFA(function : FunctionDefinition) : NFA[String, Int] = {
 

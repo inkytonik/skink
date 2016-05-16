@@ -7,10 +7,11 @@ import au.edu.mq.comp.skink.SkinkConfig
  */
 class Witnesses(config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.ir.IRFunction
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
 
     /**
-     * Output a witness in SV-COMP result format.
+     * Output in SV-COMP result format a witness for the failure given by
+     * `failTrace` in the given function .
      */
     def printWitness(function : IRFunction, failTrace : FailureTrace) {
 

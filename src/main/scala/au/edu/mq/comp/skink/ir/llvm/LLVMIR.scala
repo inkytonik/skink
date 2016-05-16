@@ -14,6 +14,8 @@ class LLVMIR(ir : Program) extends IR {
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor
 
+    // Implementation of IR interface
+
     def execute(config : SkinkConfig) : (String, Int) =
         Executor.execute(ir, config.lli())
 

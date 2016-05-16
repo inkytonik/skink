@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir
 
 /**
- * Interface for Intermediate Representation (IR) providers.
+ * Interface for Intermediate Representation providers.
  */
 trait IRProvider {
 

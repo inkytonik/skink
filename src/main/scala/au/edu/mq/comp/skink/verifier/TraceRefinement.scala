@@ -2,45 +2,35 @@ package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.ir.Trace
 import au.edu.mq.comp.skink.SkinkConfig
-import scala.util.Try
-import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.ValMap
 
 /**
- * A feasible trace that leads to a program failure. `values`, if
- * present, reports on the values that lead to the failure. It
- * may contain entries for the identifiers in `ids` but may not
- * map them all.
+ * Implementation of the trace refinement process.
  */
-case class FailureTrace(trace : Trace, ids : Seq[QualifiedIdentifier],
-    values : Try[ValMap])
-
 class TraceRefinement(config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-
-    import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
-
-    import smtlib.util.TypedTerm
-    import smtlib.interpreters.{SMTSolver, GenericSolver}
-    import smtlib.interpreters.Configurations._
-    import smtlib.util.Logics.isSat
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
+    import scala.annotation.tailrec
+    import scala.util.{Failure, Success, Try}
+    import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
+    import smtlib.interpreters.{GenericSolver, SMTSolver}
     import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus, GetInterpolantsResponseSuccess}
     import smtlib.parser.Commands.{Exit, Reset, Pop, Push}
+    import smtlib.parser.Terms.QualifiedIdentifier
     import smtlib.util.Logics.{getValues, isSat, getInterpolants}
+    import smtlib.util.{TypedTerm, ValMap}
 
-    import scala.util.{Failure, Success}
-
-    val stringToSolver = Map("Z3" -> Z3, "SMTInterpol" -> SMTInterpol, "CVC4" -> CVC4)
-
+    /**
+     * Build a failure trace out of the given trace and terms that describe
+     * the trace effect. The failure trace will include the identifiers and
+     * values for all of the variables that are mentioned in the terms.
+     */
     def makeFailureTrace(trace : Trace, terms : Seq[TypedTerm], solver : GenericSolver) : FailureTrace = {
-
-        import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
-
-        val getids = collect[Seq, QualifiedIdentifier] {
+        val getids = collect {
             case id @ (QualifiedIdentifier(_, Some(_))) =>
                 id
         }
@@ -52,23 +42,15 @@ class TraceRefinement(config : SkinkConfig) {
                 Success(ValMap(Map.empty))
         }
         FailureTrace(trace, ids, values)
-
     }
 
     /**
-     * Implement the refinement loop for the given function in a given
-     * configuration, returning an optional trace that if present is
-     * feasible and demonstrates how the program is incorrect.
+     * Implement the refinement loop for the given function, optionally
+     * returning a failure trace that is feasible and demonstrates how the
+     * program is incorrect.
      */
     def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
 
-        import scala.annotation.tailrec
-
-        val maxIterations = config.maxIterations()
-
-        /**
-         * The language of the original NFA of the function.
-         */
         val functionLang = Lang(function.nfa)
 
         @tailrec
@@ -76,32 +58,41 @@ class TraceRefinement(config : SkinkConfig) {
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
+                // No sentence in the language, so there are no failure traces.
                 case None =>
                     Success(None)
 
+                // Found a potential failure trace given by the choices. We
+                // need to check if it's feasible. If so, it's a real failure.
+                // If not, refine and try again.
                 case Some(choices) =>
 
+                    // Get the SMTlib terms that describe the meaning of the
+                    // operations that would be executed.
                     val trace = Trace(choices)
                     val traceTerms = function.traceToTerms(trace).map(_.reduceLeft(_ & _))
 
-                    val solver = SMTSolver(stringToSolver(config.solver()), QFAUFLIAFullConfig, config.solverTimeOut()).get
+                    // Build the solver we will use to check feasibilty.
+                    val solver = SMTSolver(config.solver(), QFAUFLIAFullConfig, config.solverTimeOut()).get
 
                     solver.eval(Push(1))
 
+                    // Check to see if the trace is feasible.
                     isSat(traceTerms, withNaming = true)(solver) match {
 
-                        //  feasible trace
-
+                        // Yes, feasible. We've found a way in which the program
+                        // can file. Build the failure trace and return.
                         case Success((SatStatus, _, _)) =>
 
                             val failTrace = makeFailureTrace(trace, traceTerms, solver)
                             solver.eval(Exit())
                             Success(Some(failTrace))
 
-                        //  infeasible trace
-
+                        // No, infeasible. That trace can't occur in a program
+                        // execution. If we've got iterations to spare, try
+                        // again after removing the infeasible trace (and perhaps
+                        // other traces that fail for related reasons).
                         case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
-
                             if (remainingIterations > 0) {
                                 refineRec(
                                     toDetNFA(r + interpolantAuto(choices)),
@@ -109,7 +100,7 @@ class TraceRefinement(config : SkinkConfig) {
                                 )
                             } else {
                                 solver.eval(Exit())
-                                Failure(new Exception(s"refineRec: maximum number of iterations $maxIterations reached"))
+                                Failure(new Exception(s"refineRec: maximum number of iterations ${config.maxIterations()} reached"))
                             }
 
                         case status =>
@@ -118,12 +109,14 @@ class TraceRefinement(config : SkinkConfig) {
                     }
             }
 
-        refineRec(NFA[Int, Int](Set(), Set(), Set()), maxIterations)
+        // Start the refinement algorithm with no "ruled out" traces.
+        refineRec(NFA[Int, Int](Set(), Set(), Set()), config.maxIterations())
     }
 
     /**
      * Make an interpolant automaton for the given trace choices. For now, we just
-     * generate a simple linear automaton. Later revisions will be cleverer.
+     * generate a simple linear automaton so the refinement process will remove
+     * just this one trace. Later revisions will be cleverer.
      */
     def interpolantAuto(choices : Seq[Int]) : NFA[Int, Int] = {
         val transitions =

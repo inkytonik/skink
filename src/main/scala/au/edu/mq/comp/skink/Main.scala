@@ -11,6 +11,19 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.IRProvider
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
+    import smtlib.interpreters.Configurations.{CVC4, Solver, SMTInterpol, Z3}
+
+    lazy val cfgDotPrint = opt[Boolean]("cfgdotprint", short = 'd',
+        descr = "Output the control flow graph of the target code in DOT form")
+
+    lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
+        descr = "Pretty print the control flow graph of the target code")
+
+    lazy val compile = opt[Boolean]("compile", short = 'c',
+        descr = "Compile the IML program")
+
+    lazy val execute = opt[Boolean]("execute", short = 'x',
+        descr = "Execute the target code")
 
     val irProviderConverter =
         new ValueConverter[IRProvider] {
@@ -31,18 +44,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
         }
 
-    lazy val cfgDotPrint = opt[Boolean]("cfgdotprint", short = 'd',
-        descr = "Output the control flow graph of the target code in DOT form")
-
-    lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
-        descr = "Pretty print the control flow graph of the target code")
-
-    lazy val compile = opt[Boolean]("compile", short = 'c',
-        descr = "Compile the IML program")
-
-    lazy val execute = opt[Boolean]("execute", short = 'x',
-        descr = "Execute the target code")
-
     lazy val irProvider = opt[IRProvider]("ir", short = 'i',
         descr = "The intermediate representation to use (LLVM)",
         noshort = true,
@@ -55,9 +56,32 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations",
         default = Some(10))
 
-    lazy val solver = opt[String]("solver", short = 'e',
+    val solverConverter =
+        new ValueConverter[Solver] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[Solver]] =
+                s match {
+                    case List((_, List("CVC4"))) =>
+                        Right(Some(CVC4))
+                    case List((_, List("SMTInterpol"))) =>
+                        Right(Some(SMTInterpol))
+                    case List((_, List("Z3"))) =>
+                        Right(Some(Z3))
+                    case List((_, _)) =>
+                        Left("expected CVC4, SMTInterpol, or Z3")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[Solver]]
+
+        }
+
+    lazy val solver = opt[Solver]("solver", short = 'e',
         descr = "SMT solver (Z3, SMTInterpol, CVC4)",
-        default = Some("Z3"))
+        default = Some(Z3))(solverConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
         descr = "Timeout for SMT solvers (seconds)",
@@ -96,9 +120,19 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
+    import org.rogach.scallop.exceptions.ScallopException
 
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
+
+    override def createAndInitConfig(args : Seq[String]) : SkinkConfig =
+        try {
+            super.createAndInitConfig(args)
+        } catch {
+            case e : ScallopException =>
+                println(e.getMessage())
+                sys.exit(1)
+        }
 
     /**
      * If we're processing IML, build an AST program for it. The Compiler
