@@ -1,57 +1,44 @@
 FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
 
-<key attr.name="assumption" attr.type="string" for="edge" id="assumption"/>
-<key attr.name="sourcecode" attr.type="string" for="edge" id="sourcecode"/>
-<key attr.name="sourcecodeLanguage" attr.type="string" for="graph" id="sourcecodelang"/>
-<key attr.name="control" attr.type="string" for="edge" id="control"/>
-<key attr.name="startline" attr.type="int" for="edge" id="startline"/>
-<key attr.name="originFileName" attr.type="string" for="edge" id="originfile"><default>stdin</default></key>
-<key attr.name="nodeType" attr.type="string" for="node" id="nodetype"><default>path</default></key>
-<key attr.name="isFrontierNode" attr.type="boolean" for="node" id="frontier"><default>false</default></key>
-<key attr.name="isViolationNode" attr.type="boolean" for="node" id="violation"><default>false</default></key>
-<key attr.name="isEntryNode" attr.type="boolean" for="node" id="entry"><default>false</default></key>
-<key attr.name="isSinkNode" attr.type="boolean" for="node" id="sink"><default>false</default></key>
-<key attr.name="enterFunction" attr.type="string" for="edge" id="enterFunction"/>
-<key attr.name="returnFromFunction" attr.type="string" for="edge" id="returnFrom"/>
+<key id="sourcecodelang" for="graph"/>
 
-<key attr.name="block" attr.type="string" for="edge" id="block"/>
-<key attr.name="choice" attr.type="string" for="edge" id="choice"/>
-<key attr.name="startcolumn" attr.type="int" for="edge" id="startcolumn"/>
+<key id="block" for="node"/>
+<key id="entry" for="node"><default>false</default></key>
+<key id="file" for="node"/>
+<key id="sourcecode" for="node"/>
+<key id="violation" for="node"><default>false</default></key>
+
+<key id="endline" for="edge"/>
+<key id="file" for="edge"/>
+<key id="sourcecode" for="edge"/>
+<key id="startline" for="edge"/>
 
 <graph edgedefault="directed">
 
 <data key="sourcecodelang">C</data>
 
-<edge source="n0" target="n1">
-  <data key="block">%0</data>
+<node id="N0">
+  <data key="entry">true</data>
+  <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
+  <data key="block">0</data>
   <data key="sourcecode">int i = 0, j = 0;</data>
-  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
-  <data key="startline">12</data>
-  <data key="startcolumn">8</data>
-</edge>
+</node>
 
-<edge source="n1" target="n2">
-  <data key="choice">%5 == false</data>
-  <data key="sourcecode">if (i &gt; j)</data>
-  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
-  <data key="startline">13</data>
-  <data key="startcolumn">10</data>
-</edge>
-
-<edge source="n2" target="n3">
-  <data key="block">%.error.%16</data>
+<node id="N1">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
+  <data key="block">16</data>
   <data key="sourcecode">__VERIFIER_error();</data>
-  <data key="originfile">multiple-error-calls_false-unreach-call.c</data>
-  <data key="startline">16</data>
-  <data key="startcolumn">4</data>
-</edge>
+</node>
 
-<node id="n0"><data key="entry">true</data></node>
-<node id="n1"></node>
-<node id="n2"></node>
-<node id="n3"><data key="sink">true</data></node>
+<edge id="E0" source="N0" target="N1">
+  <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
+  <data key="sourcecode">if (i &gt; j)</data>
+  <data key="startline">13</data>
+  <data key="endline">13</data>
+</edge>
 
 </graph>
 

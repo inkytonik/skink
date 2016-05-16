@@ -1,20 +1,24 @@
 package au.edu.mq.comp.skink.iml
 
+import au.edu.mq.comp.skink.SkinkConfig
 import org.bitbucket.inkytonik.kiama.util.Positions
 
 /**
  * Compiler from IML to LLVM IR.
  */
-class Compiler(positions : Positions) {
+class Compiler(positions : Positions, config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.iml.{IMLSyntax => IML}
+    import au.edu.mq.comp.skink.ir.IR
+    import au.edu.mq.comp.skink.ir.llvm.LLVMIR
     import org.bitbucket.inkytonik.kiama.util.{Counter, Position}
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable
 
     // Entry point
 
-    val compile = translateProgram _
+    def compile(program : IML.Program) : IR =
+        new LLVMIR(translateProgram(program))
 
     // Position access
 

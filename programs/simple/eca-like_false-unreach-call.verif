@@ -1,102 +1,103 @@
 FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
 
-<key attr.name="assumption" attr.type="string" for="edge" id="assumption"/>
-<key attr.name="sourcecode" attr.type="string" for="edge" id="sourcecode"/>
-<key attr.name="sourcecodeLanguage" attr.type="string" for="graph" id="sourcecodelang"/>
-<key attr.name="control" attr.type="string" for="edge" id="control"/>
-<key attr.name="startline" attr.type="int" for="edge" id="startline"/>
-<key attr.name="originFileName" attr.type="string" for="edge" id="originfile"><default>stdin</default></key>
-<key attr.name="nodeType" attr.type="string" for="node" id="nodetype"><default>path</default></key>
-<key attr.name="isFrontierNode" attr.type="boolean" for="node" id="frontier"><default>false</default></key>
-<key attr.name="isViolationNode" attr.type="boolean" for="node" id="violation"><default>false</default></key>
-<key attr.name="isEntryNode" attr.type="boolean" for="node" id="entry"><default>false</default></key>
-<key attr.name="isSinkNode" attr.type="boolean" for="node" id="sink"><default>false</default></key>
-<key attr.name="enterFunction" attr.type="string" for="edge" id="enterFunction"/>
-<key attr.name="returnFromFunction" attr.type="string" for="edge" id="returnFrom"/>
+<key id="sourcecodelang" for="graph"/>
 
-<key attr.name="block" attr.type="string" for="edge" id="block"/>
-<key attr.name="choice" attr.type="string" for="edge" id="choice"/>
-<key attr.name="startcolumn" attr.type="int" for="edge" id="startcolumn"/>
+<key id="block" for="node"/>
+<key id="entry" for="node"><default>false</default></key>
+<key id="file" for="node"/>
+<key id="sourcecode" for="node"/>
+<key id="violation" for="node"><default>false</default></key>
+
+<key id="endline" for="edge"/>
+<key id="file" for="edge"/>
+<key id="sourcecode" for="edge"/>
+<key id="startline" for="edge"/>
 
 <graph edgedefault="directed">
 
 <data key="sourcecodelang">C</data>
 
-<edge source="n0" target="n1">
-  <data key="block">%0</data>
+<node id="N0">
+  <data key="entry">true</data>
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">0</data>
   <data key="sourcecode">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">15</data>
-  <data key="startcolumn">9</data>
-</edge>
+</node>
 
-<edge source="n1" target="n2">
-  <data key="block">%3</data>
+<node id="N1">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">3</data>
   <data key="sourcecode">cond = __VERIFIER_nondet_int();</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">21</data>
-  <data key="startcolumn">16</data>
-</edge>
+</node>
 
-<edge source="n2" target="n3">
-  <data key="choice">%6 == false</data>
-  <data key="sourcecode">if (cond == 0) {</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">22</data>
-  <data key="startcolumn">18</data>
-</edge>
+<node id="N2">
+  <data key="block">8</data>
+</node>
 
-<edge source="n3" target="n4">
-  <data key="block">%9</data>
+<node id="N3">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">9</data>
   <data key="sourcecode">lk1 = 0; // initially lock is open</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">25</data>
-  <data key="startcolumn">13</data>
-</edge>
+</node>
 
-<edge source="n4" target="n5">
-  <data key="choice">%11 == true</data>
-  <data key="sourcecode">if (p1 != 0) {</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">28</data>
-  <data key="startcolumn">16</data>
-</edge>
-
-<edge source="n5" target="n6">
-  <data key="block">%12</data>
+<node id="N4">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">12</data>
   <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">29</data>
-  <data key="startcolumn">17</data>
-</edge>
+</node>
 
-<edge source="n6" target="n7">
-  <data key="choice">%14 == true</data>
+<node id="N5">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">15</data>
   <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">29</data>
-  <data key="startcolumn">21</data>
-</edge>
+</node>
 
-<edge source="n7" target="n8">
-  <data key="block">%.error.%20</data>
+<node id="N6">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">20</data>
   <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-  <data key="originfile">eca-like_false-unreach-call.c</data>
-  <data key="startline">36</data>
-  <data key="startcolumn">10</data>
+</node>
+
+<edge id="E0" source="N0" target="N1">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="sourcecode">while(1) {</data>
+  <data key="startline">20</data>
+  <data key="endline">20</data>
 </edge>
 
-<node id="n0"><data key="entry">true</data></node>
-<node id="n1"></node>
-<node id="n2"></node>
-<node id="n3"></node>
-<node id="n4"></node>
-<node id="n5"></node>
-<node id="n6"></node>
-<node id="n7"></node>
-<node id="n8"><data key="sink">true</data></node>
+<edge id="E1" source="N1" target="N2">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="sourcecode">if (cond == 0) {</data>
+  <data key="startline">22</data>
+  <data key="endline">22</data>
+</edge>
+
+<edge id="E2" source="N2" target="N3">
+</edge>
+
+<edge id="E3" source="N3" target="N4">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="sourcecode">if (p1 != 0) {</data>
+  <data key="startline">28</data>
+  <data key="endline">28</data>
+</edge>
+
+<edge id="E4" source="N4" target="N5">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
+  <data key="startline">29</data>
+  <data key="endline">29</data>
+</edge>
+
+<edge id="E5" source="N5" target="N6">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
+  <data key="startline">29</data>
+  <data key="endline">29</data>
+</edge>
 
 </graph>
 
