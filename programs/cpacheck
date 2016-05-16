@@ -48,6 +48,6 @@ rm -f output/*
 
 ./scripts/cpa.sh \
     -witness-check \
-    -spec $prpfile \
     -spec $witfile \
+    -spec $prpfile \
     $srcfile

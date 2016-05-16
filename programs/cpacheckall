@@ -10,6 +10,16 @@ then
   exit 1
 fi
 
+function fail() {
+    echo "\033[31;40m$1"
+    tput sgr0
+}
+
+function succeed() {
+    echo "\033[32;40m$1"
+    tput sgr0
+}
+
 prpfile=/tmp/$$.prp
 echo 'CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )' >$prpfile
 trap "rm $prpfile" EXIT
@@ -21,29 +31,32 @@ do
         *.i) base=`basename $file .i`;;
           *) base=$file;;
     esac
-    verif=$base.verif
+    /bin/echo -n "$base "
+    verif=`dirname $file`/$base.verif
     if test -r $verif
     then
         case `head -1 $verif` in
             FALSE*)
-                /bin/echo -n "$base "
                 if grep -q -s xml $verif
                 then
                     result=`cpacheck $prpfile $file $verif 2>&1 | grep '^Verification result:'`
                     case $result in
                         Verification\ result:\ FALSE*)
-                            echo ok
+                            succeed "good witness"
                             ;;
                         *)
-                            echo fail
+                            fail "bad witness"
                             ;;
                     esac
                 else
-                    echo no witness
+                    fail "no witness in verif file"
                 fi
                 ;;
-            *) 
+            *)
+                succeed "correct program"
                 ;;
         esac
+    else
+        fail "no verif file"
     fi
 done
