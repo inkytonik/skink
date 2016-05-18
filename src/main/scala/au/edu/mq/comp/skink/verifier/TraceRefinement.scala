@@ -13,6 +13,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
@@ -23,6 +24,9 @@ class TraceRefinement(config : SkinkConfig) {
     import smtlib.parser.Terms.QualifiedIdentifier
     import smtlib.util.Logics.{getValues, isSat, getInterpolants}
     import smtlib.util.{TypedTerm, ValMap}
+
+    val logger = getLogger(this.getClass)
+    val cfgLogger = getLogger(this.getClass, ".cfg")
 
     /**
      * Build a failure trace out of the given trace and terms that describe
@@ -54,12 +58,16 @@ class TraceRefinement(config : SkinkConfig) {
         val functionLang = Lang(function.nfa)
 
         @tailrec
-        def refineRec(r : NFA[Int, Int], remainingIterations : Int) : Try[Option[FailureTrace]] =
+        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
+
+            logger.info(s"traceRefinement: ${function.name} iteration $iteration")
+            cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
                 // No sentence in the language, so there are no failure traces.
                 case None =>
+                    logger.info(s"traceRefinement: ${function.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -67,24 +75,32 @@ class TraceRefinement(config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
+                    logger.info(s"traceRefinement: ${function.name} has a failure trace")
+                    logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
+
                     // Get the SMTlib terms that describe the meaning of the
                     // operations that would be executed.
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace).map(_.reduceLeft(_ & _))
+                    val traceTerms = function.traceToTerms(trace)
+
+                    for (i <- 0 until traceTerms.length) {
+                        logger.debug(s"""traceRefinement: trace effect $i: ${traceTerms(i).map(_.getTerm).mkString(" ")}""")
+                    }
 
                     // Build the solver we will use to check feasibilty.
                     val solver = SMTSolver(config.solver(), QFAUFLIAFullConfig, config.solverTimeOut()).get
 
-                    solver.eval(Push(1))
+                    // Build a single combined term for the trace effect
+                    val fullTerm = traceTerms.map(_.reduceLeft(_ & _))
 
                     // Check to see if the trace is feasible.
-                    isSat(traceTerms, withNaming = true)(solver) match {
+                    isSat(fullTerm, withNaming = true)(solver) match {
 
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
                         case Success((SatStatus, _, _)) =>
-
-                            val failTrace = makeFailureTrace(trace, traceTerms, solver)
+                            logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
+                            val failTrace = makeFailureTrace(trace, fullTerm, solver)
                             solver.eval(Exit())
                             Success(Some(failTrace))
 
@@ -93,24 +109,27 @@ class TraceRefinement(config : SkinkConfig) {
                         // again after removing the infeasible trace (and perhaps
                         // other traces that fail for related reasons).
                         case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
-                            if (remainingIterations > 0) {
+                            logger.info(s"traceRefinement: the failure trace is not feasible")
+                            if (iteration >= config.maxIterations()) {
                                 refineRec(
                                     toDetNFA(r + interpolantAuto(choices)),
-                                    remainingIterations - 1
+                                    iteration + 1
                                 )
                             } else {
                                 solver.eval(Exit())
-                                Failure(new Exception(s"refineRec: maximum number of iterations ${config.maxIterations()} reached"))
+                                Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
                             }
 
                         case status =>
-                            Failure(new Exception(s"refineRec: strange solver status: $status"))
+                            Failure(new Exception(s"strange solver status: $status"))
 
                     }
+
             }
+        }
 
         // Start the refinement algorithm with no "ruled out" traces.
-        refineRec(NFA[Int, Int](Set(), Set(), Set()), config.maxIterations())
+        refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
     }
 
     /**

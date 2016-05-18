@@ -1,0 +1,58 @@
+<configuration>
+
+    <contextName>Skink</contextName>
+
+    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{0} - %msg%n"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SKINKFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/Skink.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LLVMFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/LLVM.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CFGFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/CFG.dot</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
+
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
+        <appender-ref ref="CFGFILE"/>
+    </logger>
+
+    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level="INHERITED"/>
+
+    <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
+
+    <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider.ast" level="INHERITED" additivity="false">
+        <appender-ref ref="LLVMFILE"/>
+    </logger>
+
+    <root level="DEBUG">
+        <appender-ref ref="SKINKFILE"/>
+    </root>
+
+</configuration>

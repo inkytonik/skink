@@ -13,12 +13,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import scala.reflect.runtime.universe.TypeTag
     import smtlib.interpreters.Configurations.{CVC4, Solver, SMTInterpol, Z3}
 
-    lazy val cfgDotPrint = opt[Boolean]("cfgdotprint", short = 'd',
-        descr = "Output the control flow graph of the target code in DOT form")
-
-    lazy val cfgPrettyPrint = opt[Boolean]("cfgprint", short = 'g',
-        descr = "Pretty print the control flow graph of the target code")
-
     lazy val compile = opt[Boolean]("compile", short = 'c',
         descr = "Compile the IML program")
 
@@ -87,18 +81,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Timeout for SMT solvers (seconds)",
         default = Some(10))
 
-    lazy val sourcePrint = opt[Boolean]("srcprint", short = 's',
-        descr = "Print the source code tree")
-
-    lazy val sourcePrettyPrint = opt[Boolean]("srcprettyprint", short = 'p',
-        descr = "Pretty-print the source code")
-
-    lazy val targetPrint = opt[Boolean]("tgtprint", short = 'u',
-        descr = "Print the target code tree")
-
-    lazy val targetPrettyPrint = opt[Boolean]("tgtprettyprint", short = 't',
-        descr = "Pretty-print the target code")
-
     lazy val trackValues = opt[Boolean]("track", short = 'k',
         descr = "Track values",
         default = Some(false))
@@ -110,17 +92,21 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
 trait Driver extends CompilerBase[Program, SkinkConfig] {
 
-    import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.util.DotConverter
-    import au.edu.mq.comp.dot.DOTPrettyPrinter
-    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
     import au.edu.mq.comp.skink.iml.Compiler
     import au.edu.mq.comp.skink.ir.{IR, IRProvider}
+    import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
     import org.rogach.scallop.exceptions.ScallopException
+
+    val logger = getLogger(this.getClass)
+
+    override def main(args : Array[String]) {
+        logger.info(s"""main: ${args.mkString(" ")}""")
+        super.main(args)
+    }
 
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
@@ -134,18 +120,25 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
                 sys.exit(1)
         }
 
+    override def processfile(filename : String, config : SkinkConfig) {
+        logger.info(s"processfile: $filename")
+        super.processfile(filename, config)
+    }
+
     /**
      * If we're processing IML, build an AST program for it. The Compiler
      * support will then call `process`. Otherwise, we are working with IR
      * directly so build a representation of it and call `processIR`. In
      * either case if an error occurs return the messages instead.
      */
-    override def makeast(source : Source, config : SkinkConfig) : Either[Program, Messages] =
+    override def makeast(source : Source, config : SkinkConfig) : Either[Program, Messages] = {
 
-        if (config.compile() || config.sourcePrint() || config.sourcePrettyPrint()) {
+        if (config.compile()) {
 
             // We're compiling so input file contains IML. Parse and process
             // the IML program and then the IR of the compiled program.
+
+            logger.info("makeast: compiling IML program")
 
             val p = new iml.IML(source, positions)
             val pr = p.pProgram(0)
@@ -160,6 +153,8 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
             // IR provider from the configuration and use it to build and then
             // process the IR.
 
+            logger.info(s"makeast: building ${config.irProvider().name} program")
+
             config.irProvider().buildFromSource(source, positions) match {
                 case Left(ir) =>
                     processIR(ir, config)
@@ -171,6 +166,8 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 
         }
 
+    }
+
     /**
      * Processing for IML programs: compile to LLVM IR and then process that.
      */
@@ -178,11 +175,7 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 
         import au.edu.mq.comp.skink.iml.IMLPrettyPrinter.{any, pretty}
 
-        if (config.sourcePrint())
-            config.output().emitln(pretty(any(program)).layout)
-
-        if (config.sourcePrettyPrint())
-            config.output().emit(format(program).layout)
+        logger.info("process")
 
         if (config.compile()) {
             val compiler = new Compiler(positions, config)
@@ -199,28 +192,23 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 
         import au.edu.mq.comp.skink.verifier.Verifier
 
-        if (config.targetPrint())
-            config.output().emitln(layout(any(ir)))
-
-        if (config.targetPrettyPrint())
-            config.output().emit(ir.show)
-
         for (function <- ir.functions) {
 
-            if (config.cfgDotPrint()) {
-                val dot = toDot(function.nfa, config.filenames().head)
-                config.output().emitln
-                config.output().emitln(DOTPrettyPrinter.format(dot).layout)
-            }
-
-            if (config.verifyTarget() && (function.name == "main")) {
-                val verifier = new Verifier(config)
-                verifier.verify(function)
+            if (config.verifyTarget()) {
+                if (function.name == "main") {
+                    logger.info(s"processIR: processing ${function.name}")
+                    val verifier = new Verifier(config)
+                    verifier.verify(function)
+                } else {
+                    logger.info(s"processIR: skipping ${function.name}")
+                }
             }
 
         }
 
         if (config.execute()) {
+            logger.info("processIR: running program")
+
             val (output, code) = ir.execute(config)
             config.output().emit(output)
             if (code != 0)
@@ -231,24 +219,6 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 
     def format(program : Program) : Document =
         iml.IMLPrettyPrinter.format(program, 5)
-
-    def toDot(nfa : NFA[String, Int], filename : String) : DotSpec =
-        DotConverter.toDot(
-            nfa.copy(name = filename),
-            (b : String) => {
-                val label = Attribute("label", StringLit(b))
-                val style =
-                    Attribute("shape", if (nfa.getInit.contains(b))
-                        Ident("circle")
-                    else if (nfa.accepting.contains(b))
-                        Ident("doublecircle")
-                    else
-                        Ident("oval"))
-                List(label, style)
-            },
-            (b : String) => '"' + b + '"',
-            (i : Int) => i.toString
-        )
 
 }
 

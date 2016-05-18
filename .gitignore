@@ -10,3 +10,4 @@ smtinterpol.jar
 skink.jar
 witness_checks
 .tag*
+*.dot

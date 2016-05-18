@@ -16,14 +16,15 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
+    import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{format, show}
     import org.scalallvm.assembly.{
         Analyser,
-        AssemblyPrettyPrinter,
         ElementProperty,
         Property,
         TypeProperty
@@ -36,6 +37,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import scala.annotation.tailrec
     import scala.util.{Failure, Success}
 
+    val logger = getLogger(this.getClass)
+
     // Gather properties of the function
 
     val funtree = new Tree[ASTNode, FunctionDefinition](function)
@@ -45,16 +48,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     // Implementation of IRFunction interface
 
-    def name : String =
+    lazy val name : String =
         nameToString(function.global)
 
-    def nfa : NFA[String, Int] =
-        buildNFA(makeVerifiable(function))
+    lazy val nfa : NFA[String, Int] =
+        buildNFA(makeVerifiable)
 
     def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm]] = {
-
-        def render(astNode : ASTNode) : String =
-            AssemblyPrettyPrinter.format(astNode).layout
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -75,23 +75,19 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             chain(storesin)
 
         def bumpcount(m : StoreMap, name : Name) : StoreMap = {
-            val s = render(name)
+            val s = show(name)
             val count = m.getOrElse(s, 0)
             m.updated(s, count + 1)
         }
 
         def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
             case _ : BlockTrace =>
-                // println(s"storesin: root")
                 Map[String, Int]()
             case n @ Binding(name) =>
-                // println(s"storesin: $n")
                 bumpcount(in(n), name)
             case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-                // println(s"storesin: $n")
                 bumpcount(in(n), name)
             case n @ Store(_, _, _, _, Named(name), _) =>
-                // println(s"storesin: $n")
                 bumpcount(in(n), name)
         }
 
@@ -112,170 +108,185 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             s"$s@$index"
         }
 
-        /**
+        /*
          * Return terms that express the effect of an LLVM node, including of
          * phi insns given entry to the block from a particular previous block
          * (if there is one), and exit from this block using a particular choice.
          */
         def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm] = {
+            logger.info(s"blockTerms: $name block ${blockName(block)}")
             val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
             val effects = block.optMetaInstructions.flatMap(insnTerm)
             val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
             phiEffects ++ effects :+ exitEffect
         }
 
-        /**
+        /*
          * Return a term that expresses the effect of an LLVM phi instruction
          * given that control comes from a particular previous block (if any).
          */
         def phiInsnTerm(metaInsn : MetaPhiInstruction, optPrevBlock : Option[Block]) : TypedTerm = {
-            optPrevBlock match {
-                case Some(prevBlock) =>
-                    val prevLabel = blockName(prevBlock)
-                    metaInsn.phiInstruction match {
-                        case insn @ Phi(Binding(to), _, preds) =>
-                            // Bound phi result, find value
-                            preds.find(_.label == prevLabel) match {
-                                case Some(pred) =>
-                                    nterm(to) === vterm(pred.value)
-                                case None =>
-                                    sys.error(s"phiInsnTerm: can't find $prevLabel in $insn")
-                            }
-                        case Phi(NoBinding(), _, _) =>
-                            // No effect since result of phi is not bound
-                            true
-                    }
-                case None =>
-                    // No previous block so phi insns don't make sense...
-                    true
-            }
+            val insn = metaInsn.phiInstruction
+            val term : TypedTerm =
+                optPrevBlock match {
+                    case Some(prevBlock) =>
+                        val prevLabel = blockName(prevBlock)
+                        insn match {
+                            case insn @ Phi(Binding(to), _, preds) =>
+                                // Bound phi result, find value
+                                preds.find(_.label == prevLabel) match {
+                                    case Some(pred) =>
+                                        nterm(to) === vterm(pred.value)
+                                    case None =>
+                                        sys.error(s"phiInsnTerm: can't find $prevLabel in $insn")
+                                }
+                            case Phi(NoBinding(), _, _) =>
+                                // No effect since result of phi is not bound
+                                true
+                        }
+                    case None =>
+                        // No previous block so phi insns don't make sense...
+                        true
+                }
+            logger.debug(s"phiInsnTerm:${show(insn)} -> ${term.getTerm}")
+            term
         }
 
-        /**
+        /*
          * Return a term that expresses the effect of an LLVM terminator instruction
          * that exits a block using a particular choice.
          */
-        def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm =
-            metaInsn.terminatorInstruction match {
-                case Branch(label) if choice == 0 =>
-                    true
+        def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm = {
+            val insn = metaInsn.terminatorInstruction
+            val term : TypedTerm =
+                insn match {
+                    case Branch(label) if choice == 0 =>
+                        true
 
-                case BranchCond(value, label1, label2) if choice == 0 =>
-                    vterm(value) === true
+                    case BranchCond(value, label1, label2) if choice == 0 =>
+                        vterm(value) === true
 
-                case BranchCond(value, label1, label2) if choice == 1 =>
-                    vterm(value) === false
+                    case BranchCond(value, label1, label2) if choice == 1 =>
+                        vterm(value) === false
 
-                case IndirectBr(_, value, labels) if (choice >= 0) && (choice < labels.length) =>
-                    vterm(value) === choice
+                    case IndirectBr(_, value, labels) if (choice >= 0) && (choice < labels.length) =>
+                        vterm(value) === choice
 
-                case insn =>
-                    sys.error(s"exitTerm: can't handle choice $choice of $insn")
-            }
+                    case insn =>
+                        sys.error(s"exitTerm: can't handle choice $choice of $insn")
+                }
+            logger.debug(s"exitTerm: choice $choice of ${show(insn)} -> ${term.getTerm}")
+            term
+        }
 
-        /**
+        /*
          * Return a term that expresses the effect of a regular LLVM instruction.
          */
-        def insnTerm(metaInsn : MetaInstruction) : Vector[TypedTerm] =
-            metaInsn.instruction match {
-                case _ : Alloca =>
-                    Vector(true)
+        def insnTerm(metaInsn : MetaInstruction) : Vector[TypedTerm] = {
+            val insn = metaInsn.instruction
+            val term : Vector[TypedTerm] =
+                insn match {
+                    case _ : Alloca =>
+                        Vector(true)
 
-                case Binary(Binding(to), op, _ : IntT, left, right) =>
-                    val lterm = vterm(left)
-                    val rterm = vterm(right)
-                    val (exp, signed) : (TypedTerm, Boolean) =
-                        op match {
-                            case _ : Add  => (lterm + rterm, true)
-                            case _ : And  => (lterm & rterm, true)
-                            case _ : Mul  => (lterm * rterm, true)
-                            case _ : Or   => (lterm | rterm, true)
-                            case _ : SDiv => (lterm / rterm, true)
-                            case _ : SRem => (lterm % rterm, true)
-                            case _ : Sub  => (lterm - rterm, true)
-                            case _ : UDiv => (lterm / rterm, false)
-                            case _ : URem => (lterm % rterm, false)
-                            case _ : XOr  => (lterm ^ rterm, true)
+                    case Binary(Binding(to), op, _ : IntT, left, right) =>
+                        val lterm = vterm(left)
+                        val rterm = vterm(right)
+                        val (exp, signed) : (TypedTerm, Boolean) =
+                            op match {
+                                case _ : Add  => (lterm + rterm, true)
+                                case _ : And  => (lterm & rterm, true)
+                                case _ : Mul  => (lterm * rterm, true)
+                                case _ : Or   => (lterm | rterm, true)
+                                case _ : SDiv => (lterm / rterm, true)
+                                case _ : SRem => (lterm % rterm, true)
+                                case _ : Sub  => (lterm - rterm, true)
+                                case _ : UDiv => (lterm / rterm, false)
+                                case _ : URem => (lterm % rterm, false)
+                                case _ : XOr  => (lterm ^ rterm, true)
+                                case _ =>
+                                    sys.error(s"binary int op $op not handled")
+                            }
+                        val eqterm = nterm(to) === exp
+                        if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
+
+                    case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
+                        Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
+                        if (size == 1)
+                            Vector(vterm(arg))
+                        else
+                            Vector(!(vterm(arg) === 0))
+
+                    case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                        tipe match {
+                            case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
+                                Vector(nterm(to) >= 0)
                             case _ =>
-                                sys.error(s"binary int op $op not handled")
+                                Vector()
                         }
-                    val eqterm = nterm(to) === exp
-                    if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
 
-                case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
-                    Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
-                    if (size == 1)
-                        Vector(vterm(arg))
-                    else
-                        Vector(!(vterm(arg) === 0))
+                    case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                        Vector(true)
 
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
-                    tipe match {
-                        case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
-                            Vector(nterm(to) >= 0)
-                        case _ =>
-                            Vector()
-                    }
+                    case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
+                        val lterm = vterm(left)
+                        val rterm = vterm(right)
+                        val exp =
+                            icond match {
+                                case EQ()  => lterm === rterm
+                                case NE()  => !(lterm === rterm)
+                                case UGT() => lterm > rterm
+                                case UGE() => lterm >= rterm
+                                case ULT() => lterm < rterm
+                                case ULE() => lterm <= rterm
+                                case SGT() => lterm > rterm
+                                case SGE() => lterm >= rterm
+                                case SLT() => lterm < rterm
+                                case SLE() => lterm <= rterm
+                            }
+                        Vector(nterm(to) === exp)
 
-                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
-                    Vector(true)
+                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if m == n =>
+                        Vector(nterm(to) === vterm(from))
 
-                case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
-                    val lterm = vterm(left)
-                    val rterm = vterm(right)
-                    val exp =
-                        icond match {
-                            case EQ()  => lterm === rterm
-                            case NE()  => !(lterm === rterm)
-                            case UGT() => lterm > rterm
-                            case UGE() => lterm >= rterm
-                            case ULT() => lterm < rterm
-                            case ULE() => lterm <= rterm
-                            case SGT() => lterm > rterm
-                            case SGE() => lterm >= rterm
-                            case SLT() => lterm < rterm
-                            case SLE() => lterm <= rterm
-                        }
-                    Vector(nterm(to) === exp)
+                    case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
+                        Vector(nterm(to) === !(vterm(from) === 0))
 
-                case Convert(Binding(to), _, IntT(m), from, IntT(n)) if m == n =>
-                    Vector(nterm(to) === vterm(from))
+                    case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
+                        Vector(nterm(to) === vterm(from).ifElse(1, 0))
 
-                case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
-                    Vector(nterm(to) === !(vterm(from) === 0))
+                    case Convert(Binding(to), _, _, from, _) =>
+                        Vector(nterm(to) === vterm(from))
 
-                case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
-                    Vector(nterm(to) === vterm(from).ifElse(1, 0))
+                    case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
+                        sys.error(s"insnTerm: unsupported getelementptr insn $insn")
 
-                case Convert(Binding(to), _, _, from, _) =>
-                    Vector(nterm(to) === vterm(from))
+                    case _ : GetElementPtr =>
+                        // We ignore these here, but the associations that they establish
+                        // between their bound name and their arguments are expressed in
+                        // the element properties of the name.
+                        Vector(true)
 
-                case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
-                    sys.error(s"insnTerm: unsupported getelementptr insn $insn")
+                    case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
+                        Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
 
-                case _ : GetElementPtr =>
-                    // We ignore these here, but the associations that they establish
-                    // between their bound name and their arguments are expressed in
-                    // the element properties of the name.
-                    Vector(true)
+                    case Load(Binding(to), _, tipe, _, from, _) =>
+                        Vector(nterm(to) === vterm(from))
 
-                case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
-                    Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
+                    case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
+                        Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
+                            (vtermAt(insn, index), vterm(from))))
 
-                case Load(Binding(to), _, tipe, _, from, _) =>
-                    Vector(nterm(to) === vterm(from))
+                    case e @ Store(_, tipe, from, _, to, _) =>
+                        Vector(vterm(to) === vterm(from))
 
-                case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
-                    Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
-                        (vtermAt(insn, index), vterm(from))))
+                    case insn =>
+                        sys.error(s"insnTerm: don't know the effect of $insn")
 
-                case e @ Store(_, tipe, from, _, to, _) =>
-                    Vector(vterm(to) === vterm(from))
-
-                case insn =>
-                    sys.error(s"insnTerm: don't know the effect of $insn")
-
-            }
+                }
+            logger.debug(s"""insnTerm:${show(insn)} -> ${term.map(_.getTerm).mkString(" ")}""")
+            term
+        }
 
         /*
          * Make a term for the named variable where `id` is the base name identifier.
@@ -287,14 +298,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
          * Return a term that expresses a name when referenced from node.
          */
         def ntermAt(node : ASTNode, name : Name) : TypedTerm =
-            varTerm(name, nameToIndexedName(node, render(name)))
+            varTerm(name, nameToIndexedName(node, show(name)))
 
         /*
          * Return a term that expresses the previous version of a name when
          * referenced from node.
          */
         def prevnTermAt(node : ASTNode, name : Name) : TypedTerm =
-            varTerm(name, nameToIndexedName(node, render(name), _ - 1))
+            varTerm(name, nameToIndexedName(node, show(name), _ - 1))
 
         /*
          * Return a term that expresses an LLVM name when referenced from
@@ -421,6 +432,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         import au.edu.mq.comp.automat.edge.LabDiEdge
         import au.edu.mq.comp.automat.edge.Implicits._
 
+        logger.info(s"buildNFA: $name")
+
         val blocks = function.functionBody.blocks
 
         // Shouldn't get LLVM function with no blocks
@@ -495,7 +508,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
      *
      * Blocks that don't look like this are left alone.
      */
-    def makeVerifiable(function : FunctionDefinition) : FunctionDefinition = {
+    def makeVerifiable : FunctionDefinition = {
+
+        logger.info(s"makeVerifiable: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 

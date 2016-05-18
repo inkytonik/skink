@@ -8,6 +8,9 @@ import au.edu.mq.comp.skink.SkinkConfig
 class Witnesses(config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import au.edu.mq.comp.skink.Skink.getLogger
+
+    val logger = getLogger(this.getClass)
 
     /**
      * Output in SV-COMP result format a witness for the failure given by
@@ -28,6 +31,14 @@ class Witnesses(config : SkinkConfig) {
 
         val steps = function.traceToSteps(failTrace)
         val numsteps = steps.length
+
+        def field[T](field : Option[T]) : String =
+            field.map(_.toString).getOrElse(" ")
+
+        for (i <- 0 until numsteps) {
+            val step = steps(i)
+            logger.info(s"""printWitness: step $i = block ${field(step.optBlockName)}: ${field(step.optBlockCode)} -> ${field(step.optTermCode)}""")
+        }
 
         def mkData[T](value : Option[T], key : String) : String =
             value.map(v =>
