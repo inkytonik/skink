@@ -65,6 +65,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         import tree._
         import decorators._
 
+        // Version of LLVM PP show that avoids line-wrapping
+        def longshow(n : ASTNode) : String =
+            show(n, 1000)
+
         // Chain keeping track of stores to memory. Each assignment to a
         // local variable or store to memory location is counted so that
         // we can treat each such occurrence in SSA form.
@@ -149,7 +153,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         // No previous block so phi insns don't make sense...
                         true
                 }
-            logger.debug(s"phiInsnTerm:${show(insn)} -> ${term.getTerm}")
+            logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${term.getTerm}")
             term
         }
 
@@ -176,7 +180,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case insn =>
                         sys.error(s"exitTerm: can't handle choice $choice of $insn")
                 }
-            logger.debug(s"exitTerm: choice $choice of ${show(insn)} -> ${term.getTerm}")
+            logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.getTerm}")
             term
         }
 
@@ -285,7 +289,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         sys.error(s"insnTerm: don't know the effect of $insn")
 
                 }
-            logger.debug(s"""insnTerm:${show(insn)} -> ${term.map(_.getTerm).mkString(" ")}""")
+            logger.debug(s"""insnTerm:${longshow(insn)} -> ${term.map(_.getTerm).mkString(" ")}""")
             term
         }
 
@@ -579,7 +583,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     /*
      * Get the array element property for name, if there is one.
-     * FIXME: can use IntC(0)?
      */
     def elementProperty(name : Name) : Option[(Name, Value)] =
         properties(name).collectFirst {
