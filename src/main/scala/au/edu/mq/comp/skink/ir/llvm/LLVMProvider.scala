@@ -18,7 +18,7 @@ class LLVMProvider(config : SkinkConfig) extends IRProvider {
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout}
 
     val logger = getLogger(this.getClass)
-    val astLogger = getLogger(this.getClass, ".ast")
+    val programLogger = getLogger(this.getClass, ".program")
 
     // Implementation of IRProvider interface
 
@@ -31,8 +31,11 @@ class LLVMProvider(config : SkinkConfig) extends IRProvider {
             logger.info("buildFromSource: LLVM program build succeeded")
             val program = p.value(pr).asInstanceOf[Program]
             val ir = new LLVMIR(program)
-            astLogger.debug(layout(any(program)))
-            astLogger.debug(ir.show)
+            programLogger.debug("* Program from source\n")
+            programLogger.debug(ir.show)
+            programLogger.debug("\n* AST from source\n\n")
+            programLogger.debug(layout(any(program)))
+            programLogger.debug("\n\n")
             Left(ir)
         } else {
             val message = p.errorToMessage(pr.parseError)

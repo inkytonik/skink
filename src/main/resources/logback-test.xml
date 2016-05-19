@@ -47,7 +47,11 @@
 
     <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider.ast" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider.program" level="INHERITED" additivity="false">
+        <appender-ref ref="LLVMFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
 

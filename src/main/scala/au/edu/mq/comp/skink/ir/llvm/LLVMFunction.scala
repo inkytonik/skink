@@ -22,7 +22,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.{format, show}
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.{
         Analyser,
         ElementProperty,
@@ -38,6 +38,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import scala.util.{Failure, Success}
 
     val logger = getLogger(this.getClass)
+    val programLogger = getLogger(this.getClass, ".program")
 
     // Gather properties of the function
 
@@ -557,7 +558,12 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             FunctionBody(functionBodyWithProcessedBlocks ++ errorBlocks)
 
         // Return the new function
-        function.copy(functionBody = functionBodyWithErrorBlock)
+        val ret = function.copy(functionBody = functionBodyWithErrorBlock)
+        programLogger.debug(s"* Function $name for verification:\n")
+        programLogger.debug(show(ret))
+        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+        programLogger.debug(layout(any(ret)))
+        ret
 
     }
 
