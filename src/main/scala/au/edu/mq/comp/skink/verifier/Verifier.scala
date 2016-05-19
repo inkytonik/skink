@@ -45,19 +45,14 @@ class Verifier(config : SkinkConfig) {
         }
 
         def runVerification() {
-            Lang(function.nfa).getAcceptedTrace match {
-                case None =>
-                    reportUnknown(s"function ${function.name} has no error trace")
-                case _ =>
-                    val refiner = new TraceRefinement(config)
-                    refiner.traceRefinement(function) match {
-                        case Success(None) =>
-                            reportCorrect()
-                        case Success(Some(witnessTrace)) =>
-                            reportIncorrect(witnessTrace)
-                        case Failure(e) =>
-                            reportUnknown(s"refinement failure: ${e.getMessage}")
-                    }
+            val refiner = new TraceRefinement(config)
+            refiner.traceRefinement(function) match {
+                case Success(None) =>
+                    reportCorrect()
+                case Success(Some(witnessTrace)) =>
+                    reportIncorrect(witnessTrace)
+                case Failure(e) =>
+                    reportUnknown(s"refinement failure: ${e.getMessage}")
             }
         }
 

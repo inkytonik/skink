@@ -58,6 +58,8 @@ class TraceRefinement(config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
+        cfgLogger.debug(toDot(toDetNFA(function.nfa), s"${function.name} initial"))
+
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
