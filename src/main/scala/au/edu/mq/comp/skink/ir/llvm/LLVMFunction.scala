@@ -40,6 +40,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
 
+    // Version of LLVM PP show that avoids line-wrapping
+    def longshow(n : ASTNode) : String =
+        show(n, 1000)
+
     // Gather properties of the function
 
     val funtree = new Tree[ASTNode, FunctionDefinition](function)
@@ -65,10 +69,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         import tree._
         import decorators._
-
-        // Version of LLVM PP show that avoids line-wrapping
-        def longshow(n : ASTNode) : String =
-            show(n, 1000)
 
         // Chain keeping track of stores to memory. Each assignment to a
         // local variable or store to memory location is counted so that
@@ -496,23 +496,28 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
      * __error block. In detail, look for a block of this form
      *
      * ; <label>:14
+     *   <insns1>
      *   call void (...) @__VERIFIER_error() #4
-     *   <any terminator>
+     *   <insns2>
+     *   <terminator>
      *
      * and replace it with one of this form
      *
      * ; <label>:14
+     *   <insns1>
      *   br label __error.14 #4
      *
      * And the error block
      *
      *  __error.14:
-     *    ret void
+     *   call void (...) @__VERIFIER_error() #4
+     *   <insns2>
+     *   <terminator>
      *
-     * The metadata from the call is transferred to the branch so it can
+     * The metadata from the call is transferred to the new branch so it can
      * recovered later during reporting.
      *
-     * Blocks that don't look like this are left alone.
+     * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
     def makeVerifiable : FunctionDefinition = {
 
@@ -530,26 +535,39 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     s"__error.nolabel"
             }
 
-        def replaceErrorCalls(block : Block) : Block =
-            block match {
-                case Block(label, Vector(), None,
-                    Vector(MetaInstruction(
-                        Call(_, _, _, _, _,
-                            VerifierFunction(Global("__VERIFIER_error")), _, _),
-                        metadata)),
-                    MetaTerminatorInstruction(_, _)) =>
-                    val errorLabel = makeErrorLabel(label)
-                    val errorBlock = Block(BlockLabel(errorLabel), Vector(), None, Vector(),
-                        MetaTerminatorInstruction(RetVoid(), metadata))
-                    errorBlocks += errorBlock
-                    Block(label, Vector(), None, Vector(),
-                        MetaTerminatorInstruction(
-                            Branch(Label(Local(errorLabel))),
-                            Metadata(Vector())
-                        ))
+        def isNotErrorCall(insn : MetaInstruction) : Boolean =
+            insn match {
+                case MetaInstruction(
+                    Call(
+                        _, _, _, _, _,
+                        VerifierFunction(Global("__VERIFIER_error")),
+                        _, _
+                        ),
+                    _
+                    ) =>
+                    false
                 case _ =>
-                    block
+                    true
             }
+
+        def replaceErrorCalls(block : Block) : Block = {
+            val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
+            if (after.isEmpty)
+                block
+            else {
+                val metadata = after(0).metadata
+                val errorLabel = makeErrorLabel(block.optBlockLabel)
+                val errorBlock =
+                    Block(BlockLabel(errorLabel), Vector(), None, after,
+                        block.metaTerminatorInstruction)
+                errorBlocks += errorBlock
+                Block(block.optBlockLabel, Vector(), None, before,
+                    MetaTerminatorInstruction(
+                        Branch(Label(Local(errorLabel))),
+                        Metadata(Vector())
+                    ))
+            }
+        }
 
         val functionBodyWithProcessedBlocks =
             function.functionBody.blocks.map(replaceErrorCalls)
