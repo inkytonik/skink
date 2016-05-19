@@ -125,7 +125,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // other traces that fail for related reasons).
                         case Success((UnsatStatus, Some(namedTerms), Some(feasibleLength))) =>
                             logger.info(s"traceRefinement: the failure trace is not feasible")
-                            if (iteration >= config.maxIterations()) {
+                            if (iteration < config.maxIterations()) {
                                 refineRec(
                                     toDetNFA(r + interpolantAuto(choices)),
                                     iteration + 1
