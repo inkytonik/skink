@@ -118,7 +118,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
             val effects = block.optMetaInstructions.flatMap(insnTerm)
             val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
-            phiEffects ++ effects :+ exitEffect
+            val allEffects = phiEffects ++ effects :+ exitEffect
+            allEffects.filter(_ != (true : TypedTerm))
         }
 
         /*

@@ -22,6 +22,7 @@ class TraceRefinement(config : SkinkConfig) {
     import smtlib.parser.CommandsResponses.{SatStatus, UnsatStatus, GetInterpolantsResponseSuccess}
     import smtlib.parser.Commands.{Exit, Reset, Pop, Push}
     import smtlib.parser.Terms.QualifiedIdentifier
+    import smtlib.util.Implicits._
     import smtlib.util.Logics.{getValues, isSat, getInterpolants}
     import smtlib.util.{TypedTerm, ValMap}
 
@@ -78,29 +79,41 @@ class TraceRefinement(config : SkinkConfig) {
                     logger.info(s"traceRefinement: ${function.name} has a failure trace")
                     logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
 
-                    // Get the SMTlib terms that describe the meaning of the
-                    // operations that would be executed.
+                    /*
+                     * Combine terms via conjunction, dealing with case where
+                     * are no terms so effect is "true".
+                     */
+                    def combineTerms(terms : Seq[TypedTerm]) : TypedTerm =
+                        if (terms.isEmpty)
+                            true
+                        else
+                            terms.reduceLeft(_ & _)
+
+                    // Get the SMTlib terms that describe the meaning of the operations
+                    // that would be executed. If an empty collection of terms is returned,
+                    // sanitise it to "true", otherwise join the components using
+                    // conjunction.
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace)
+                    val traceTerms = function.traceToTerms(trace).map(combineTerms)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"""traceRefinement: trace effect $i: ${traceTerms(i).map(_.getTerm).mkString(" ")}""")
+                        logger.debug(s"""traceRefinement: trace effect $i: ${traceTerms(i).getTerm}""")
                     }
 
                     // Build the solver we will use to check feasibilty.
                     val solver = SMTSolver(config.solver(), QFAUFLIAFullConfig, config.solverTimeOut()).get
 
                     // Build a single combined term for the trace effect
-                    val fullTerm = traceTerms.map(_.reduceLeft(_ & _))
+                    val fullTerm = traceTerms.reduceLeft(_ & _)
 
                     // Check to see if the trace is feasible.
-                    isSat(fullTerm, withNaming = true)(solver) match {
+                    isSat(traceTerms, withNaming = true)(solver) match {
 
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
                         case Success((SatStatus, _, _)) =>
                             logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
-                            val failTrace = makeFailureTrace(trace, fullTerm, solver)
+                            val failTrace = makeFailureTrace(trace, traceTerms, solver)
                             solver.eval(Exit())
                             Success(Some(failTrace))
 
