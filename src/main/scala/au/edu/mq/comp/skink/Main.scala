@@ -11,7 +11,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.IRProvider
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
-    import smtlib.interpreters.Configurations.{CVC4, Solver, SMTInterpol, Z3}
+    import au.edu.mq.comp.smtlib.solvers._
 
     lazy val compile = opt[Boolean]("compile", short = 'c',
         descr = "Compile the IML program")
@@ -58,11 +58,11 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
             def parse(s : List[(String, List[String])]) : Either[String, Option[Solver]] =
                 s match {
                     case List((_, List("CVC4"))) =>
-                        Right(Some(CVC4))
+                        Right(Some(new CVC4))
                     case List((_, List("SMTInterpol"))) =>
-                        Right(Some(SMTInterpol))
+                        Right(Some(new SMTInterpol))
                     case List((_, List("Z3"))) =>
-                        Right(Some(Z3))
+                        Right(Some(new Z3))
                     case List((_, _)) =>
                         Left("expected CVC4, SMTInterpol, or Z3")
                     case _ =>
@@ -75,7 +75,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     lazy val solver = opt[Solver]("solver", short = 'e',
         descr = "SMT solver (Z3, SMTInterpol, CVC4)",
-        default = Some(Z3))(solverConverter)
+        default = Some(new Z3))(solverConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
         descr = "Timeout for SMT solvers (seconds)",
