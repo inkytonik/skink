@@ -7,7 +7,9 @@ trait IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.FailureTrace
-    import smtlib.util.TypedTerm
+    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+    import au.edu.mq.comp.smtlib.theories.BoolTerm
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
 
     /**
      * The IR-level name of this function.
@@ -30,7 +32,7 @@ trait IRFunction {
      * sequences collect terms that express the effect of each block
      * that appears in the trace.
      */
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm]]
+    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]]
 
     /**
      * Return descriptions of the steps taken by a failure trace for use

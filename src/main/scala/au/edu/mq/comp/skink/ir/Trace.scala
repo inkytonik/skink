@@ -1,8 +1,8 @@
 package au.edu.mq.comp.skink.ir
 
 import scala.util.Try
-import smtlib.parser.Terms.QualifiedIdentifier
-import smtlib.util.ValMap
+import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.QualifiedId
+import au.edu.mq.comp.smtlib.typedterms.Value
 
 /**
  * A trace is given by a sequence of choices. The blocks visited by a trace
@@ -19,8 +19,8 @@ case class Trace(choices : Seq[Int])
  * may contain entries for the identifiers in `ids` but may not
  * map them all.
  */
-case class FailureTrace(trace : Trace, ids : Seq[QualifiedIdentifier],
-    values : Try[ValMap])
+case class FailureTrace(trace : Trace, ids : Seq[QualifiedId],
+    values : Try[Map[QualifiedId, Value]])
 
 /**
  * A description of a step in the execution of a trace for use in witness
