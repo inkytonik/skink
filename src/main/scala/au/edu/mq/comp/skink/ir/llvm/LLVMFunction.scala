@@ -192,6 +192,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case _ : Alloca =>
                         Vector()
 
+                    /**
+                     * Binary operation on left and rigt. Optionally stores
+                     * result in 'to' variable
+                     */
                     case Binary(Binding(to), op, _ : IntT, left, right) =>
                         val lterm : TypedTerm[IntTerm, Term] = vterm(left)
                         val rterm : TypedTerm[IntTerm, Term] = vterm(right)
@@ -213,10 +217,11 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         val eqterm = nterm(to) === exp
                         if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
 
+                    //  check this one
                     case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
                         Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
                         if (size == 1)
-                            Vector(vterm(arg) === 0) // ?? don't know if this is OK, was vterm(arg) before
+                            Vector(vterm(arg) === 0) // fc: ?? don't know if this is OK, was vterm(arg) before
                         else
                             Vector(!(vterm(arg) === 0))
 
@@ -296,6 +301,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     // case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
                     //     Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
 
+                    // TODO: take care of i1 type in Load and Store
                     case Load(Binding(to), _, tipe, _, from, _) =>
                         Vector(nterm(to) === vterm(from))
 
