@@ -157,7 +157,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         }
                     case None =>
                         // No previous block so phi insns don't make sense...
-                        true
+                        STrue()
                 }
             logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${term.termDef}")
             term
@@ -175,13 +175,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         STrue()
 
                     case BranchCond(value, label1, label2) if choice == 0 =>
-                        vterm(value) === Ints(0) //  TODO wrong
+                        vtermB(value) === STrue()
 
                     case BranchCond(value, label1, label2) if choice == 1 =>
-                        vterm(value) === Ints(0) //  TODO wrong
+                        vtermB(value) === SFalse()
 
                     case IndirectBr(_, value, labels) if (choice >= 0) && (choice < labels.length) =>
-                        vterm(value) === Ints(0) // TODO wrong
+                        vterm(value) === Ints(choice)
 
                     case insn =>
                         sys.error(s"exitTerm: can't handle choice $choice of $insn")
