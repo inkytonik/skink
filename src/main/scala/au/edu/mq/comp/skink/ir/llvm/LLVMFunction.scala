@@ -231,10 +231,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
                         Vector(STrue())
 
+                    /**
+                     *  Compare two int expression
+                     */
                     case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
-                        val lterm = vterm(left)
-                        val rterm = vterm(right)
-                        val exp =
+                        val lterm : TypedTerm[IntTerm, Term] = vterm(left)
+                        val rterm : TypedTerm[IntTerm, Term] = vterm(right)
+                        val exp : TypedTerm[BoolTerm, Term] =
                             icond match {
                                 case EQ()  => lterm === rterm
                                 case NE()  => !(lterm === rterm)
@@ -249,20 +252,40 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                             }
                         Vector(ntermB(to) === exp)
 
-                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if m == n =>
+                    // Binding, conversion operator, source type, source value, target type
+
+                    /*
+                     * Convert from IntT(m > 1) to IntT(n > 1), make nterms
+                     */
+                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if ((m == n) && (n > 1)) =>
                         Vector(nterm(to) === vterm(from)) // check it
 
+                    /*
+                     * we treat Int(1) (LLVM i1) ints as Bools
+                     */
+                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if ((m == n) && (n == 1)) =>
+                        Vector(ntermB(to) === vtermB(from)) // check it
+
+                    /*
+                     * Target var is an InT(1), make an nTermB
+                     */
                     case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
                         Vector(ntermB(to) === !(vterm(from) === 0))
 
-                    // case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
-                    //     Vector((nterm(to) === vterm(from)).ite(STrue(), SFalse()))
+                    /*
+                     * Source type is Int(1), make an nTerm with an if-the-else
+                     */
+                    case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
+                        Vector(nterm(to) === vtermB(from).ite(Ints(1), Ints(0)))
 
+                    /*
+                     * Fancy types conversion
+                     */
                     case Convert(Binding(to), _, _, from, _) =>
                         Vector(nterm(to) === vterm(from))
 
-                    // case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
-                    //     sys.error(s"insnTerm: unsupported getelementptr insn $insn")
+                    case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
+                        sys.error(s"insnTerm: unsupported getelementptr insn $insn")
 
                     case _ : GetElementPtr =>
                         // We ignore these here, but the associations that they establish
