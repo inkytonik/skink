@@ -34,7 +34,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import au.edu.mq.comp.smtlib.theories.{BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
     // import smtlib.theories.{ArraysEx, Core, Ints}
-    // import smtlib.util.Implicits._
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
     import scala.util.{Failure, Success}
@@ -102,20 +101,11 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
 
         /*
-         * Make the indexed name of a particular occurrence of a program variable
+         * Retrieve the index of a particular occurrence of a program variable
          * in a trace.
-         *
-         * The base variable name is given a numeric index to reflect the fact that
-         * it references a particular assigned or stored version of the base name in
-         * the trace. E.g., the first use gets @1 and the second gets @2.
-         *
-         * The `adjust` function is used to adjust the index if one is found.
-         * E.g., a decrement by one function can be used here to get the previous
-         * index.
          */
-        def nameToIndexedName(use : Product, s : String, adjust : Int => Int = identity) : String = {
-            val index = stores(use).get(s).map(adjust).getOrElse(0)
-            s"$s@$index"
+        def indexOf(use : Product, s : String) : Int = {
+            stores(use).get(s).getOrElse(0)
         }
 
         /*
@@ -166,6 +156,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         /*
          * Return a term that expresses the effect of an LLVM terminator instruction
          * that exits a block using a particular choice.
+         * Exits or choices are integers >=0, typically 0 and 1 for an if-then-else, 0 for
+         * a non-conditional exit.
          */
         def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term] = {
             val insn = metaInsn.terminatorInstruction
