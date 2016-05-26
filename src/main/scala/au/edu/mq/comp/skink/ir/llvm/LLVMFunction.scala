@@ -351,20 +351,31 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             ntermAtB(name, name)
 
         /*
-         * Return a term that expresses an LLVM value.
+         * Return an IntTerm that expresses an LLVM ik value, k > 1.
          * FIXME: currently only does integer constants and names.
          */
         lazy val vterm : Value => TypedTerm[IntTerm, Term] = {
             attr {
-                case Const(FalseC()) =>
-                    Ints(0)
                 case Const(IntC(i)) =>
                     Ints(i.toInt) //  warning: BigInt!!
-                case Const(TrueC()) =>
-                    Ints(1)
                 case Named(name) =>
-                    Ints(show(name))
-                // nterm(name)
+                    nterm(name)
+                case value =>
+                    sys.error(s"vterm: unexpected value $value")
+            }
+        }
+
+        /**
+         * Return a BoolTerm that expresses an LLVM i1 value
+         */
+        lazy val vtermB : Value => TypedTerm[BoolTerm, Term] = {
+            attr {
+                case Const(FalseC()) =>
+                    SFalse()
+                case Const(TrueC()) =>
+                    STrue()
+                case Named(name) =>
+                    ntermB(name)
                 case value =>
                     sys.error(s"vterm: unexpected value $value")
             }
