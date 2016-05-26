@@ -141,6 +141,8 @@ class TraceRefinement(config : SkinkConfig) {
                     //  extract the result from the solver call
                     var result : Try[SatResponses] = Success(UnKnown())
 
+                    //  a solver with spec selectedSolver is spawned and killed
+                    //  at the end of the using scope
                     using(SMTSolver(selectedSolver)) {
                         implicit solver =>
                             result = isSat(traceTerms : _*)
