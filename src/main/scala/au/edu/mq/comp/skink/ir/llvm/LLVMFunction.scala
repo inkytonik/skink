@@ -315,30 +315,41 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
 
         /*
-         * Make a term for the named variable where `id` is the base name identifier.
+         * Make an IntTerm for the named variable where `id` is the base name identifier.
          */
-        def varTerm(name : Name, id : String) : TypedTerm[IntTerm, Term] =
-            new VarTerm(id, IntSort())
+        def varTerm(name : Name, id : String, index : Option[Int]) : TypedTerm[IntTerm, Term] =
+            new VarTerm(id, IntSort(), index)
 
-        def varTermB(name : Name, id : String) : TypedTerm[BoolTerm, Term] =
-            new VarTerm(id, BoolSort())
-        // TypedTerm(id, typeToSort(name))
+        /**
+         * Make a BoolTerm for the named variable where `id` is the base name identifier.
+         */
+        def varTermB(name : Name, id : String, index : Option[Int]) : TypedTerm[BoolTerm, Term] =
+            new VarTerm(id, BoolSort(), index)
 
         /*
-         * Return a term that expresses a name when referenced from node.
+         * Return a IntTerm that expresses a name when referenced from node.
          */
         def ntermAt(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTerm(name, nameToIndexedName(node, show(name)))
+            varTerm(name, show(name), Some(indexOf(node, show(name))))
 
+        /*
+         * Return a BoolTerm that expresses a name when referenced from node.
+         */
         def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-            varTermB(name, nameToIndexedName(node, show(name)))
+            varTermB(name, show(name), Some(indexOf(node, show(name))))
 
         /*
          * Return a term that expresses the previous version of a name when
          * referenced from node.
          */
         def prevnTermAt(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTerm(name, nameToIndexedName(node, show(name), _ - 1))
+            varTerm(
+                name,
+                show(name),
+                Some(
+                    scala.math.max(indexOf(node, show(name)) - 1, 0)
+                )
+            )
 
         /*
          * Return a term that expresses an LLVM name when referenced from
