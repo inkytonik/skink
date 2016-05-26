@@ -87,9 +87,14 @@ class TraceRefinement(config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
+        //  get a solver specification. This object creation
+        //  does not spawn any process merely declare a solver type we
+        //  want to use
+        val selectedSolver = new Z3 with QF_LIA with Interpolants
+
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
-        // @tailrec
+        @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${function.name} iteration $iteration")
@@ -131,50 +136,47 @@ class TraceRefinement(config : SkinkConfig) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${traceTerms(i).termDef}""")
                     }
 
-                    // Build the solver we will use to check feasibilty.
-                    // val solver = SMTSolver(config.solver(), QFAUFLIAFullConfig, config.solverTimeOut()).get
-
                     // Build a single combined term for the trace effect
                     val fullTerm = traceTerms.reduceLeft(_ & _)
 
-                    var result : Try[Option[FailureTrace]] = Success(None)
+                    //  extract the result from the solver call
+                    var result : Try[SatResponses] = Success(UnKnown())
 
-                    using(SMTSolver(new Z3 with QF_LIA with Interpolants)) {
+                    using(SMTSolver(selectedSolver)) {
                         implicit solver =>
-                            result =
-                                // Check to see if the trace is feasible.
-                                isSat(traceTerms : _*) match {
-
-                                    // Yes, feasible. We've found a way in which the program
-                                    // can file. Build the failure trace and return.
-                                    case Success(Sat()) =>
-                                        logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
-                                        val failTrace = makeFailureTrace(trace, traceTerms)
-                                        // solver.eval(Exit())
-                                        Success(Some(failTrace))
-
-                                    // No, infeasible. That trace can't occur in a program
-                                    // execution. If we've got iterations to spare, try
-                                    // again after removing the infeasible trace (and perhaps
-                                    // other traces that fail for related reasons).
-                                    case Success(UnSat()) =>
-                                        logger.info(s"traceRefinement: the failure trace is not feasible")
-                                        if (iteration < config.maxIterations()) {
-                                            refineRec(
-                                                toDetNFA(r + interpolantAuto(choices)),
-                                                iteration + 1
-                                            )
-                                        } else {
-                                            // solver.eval(Exit())
-                                            Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
-                                        }
-
-                                    case status =>
-                                        Failure(new Exception(s"strange solver status: $status"))
-
-                                }
+                            result = isSat(traceTerms : _*)
                     }
-                    result
+
+                    // Check to see if the trace is feasible.
+                    result match {
+
+                        // Yes, feasible. We've found a way in which the program
+                        // can file. Build the failure trace and return.
+                        case Success(Sat()) =>
+                            logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
+                            val failTrace = makeFailureTrace(trace, traceTerms)
+                            Success(Some(failTrace))
+
+                        // No, infeasible. That trace can't occur in a program
+                        // execution. If we've got iterations to spare, try
+                        // again after removing the infeasible trace (and perhaps
+                        // other traces that fail for related reasons).
+                        case Success(UnSat()) =>
+                            logger.info(s"traceRefinement: the failure trace is not feasible")
+                            if (iteration < config.maxIterations()) {
+                                refineRec(
+                                    toDetNFA(r + interpolantAuto(choices)),
+                                    iteration + 1
+                                )
+                            } else {
+                                Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
+                            }
+
+                        case status =>
+                            Failure(new Exception(s"strange solver status: $status"))
+
+                    }
+
             }
         }
 
