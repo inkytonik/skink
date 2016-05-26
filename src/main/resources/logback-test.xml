@@ -55,6 +55,10 @@
         <appender-ref ref="LLVMFILE"/>
     </logger>
 
+    <logger name="au.edu.mq.comp.smtlib.typedterms" level="DEBUG" additivity="false">
+        <appender-ref ref="SKINKFILE"/>
+    </logger>
+
     <root level="DEBUG">
         <appender-ref ref="SKINKFILE"/>
     </root>
