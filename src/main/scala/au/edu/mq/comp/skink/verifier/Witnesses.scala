@@ -44,7 +44,7 @@ class Witnesses(config : SkinkConfig) {
             value.map(v =>
                 s"""  <data key="$key">${escapeString(v.toString)}</data>\n""").getOrElse("")
 
-        val nodes =
+        val nodesAndEdges =
             steps.zipWithIndex.map {
                 case (step, index) =>
                     val key =
@@ -54,22 +54,23 @@ class Witnesses(config : SkinkConfig) {
                             "\n  <data key=\"violation\">true</data>"
                         else
                             ""
-                    s"""<node id="N$index">$key\n""" +
-                        mkData(step.optFileName, "file") +
-                        mkData(step.optBlockName, "block") +
-                        mkData(step.optBlockCode, "sourcecode") +
-                        "</node>\n"
-            }
-
-        val edges =
-            steps.init.zipWithIndex.map {
-                case (step, index) =>
-                    s"""<edge id="E$index" source="N${index}" target="N${index + 1}">\n""" +
-                        mkData(step.optFileName, "file") +
-                        mkData(step.optTermCode, "sourcecode") +
-                        mkData(step.optTermLine, "startline") +
-                        mkData(step.optTermLine, "endline") +
-                        "</edge>\n"
+                    val node =
+                        s"""<node id="N$index">$key\n""" +
+                            mkData(step.optFileName, "file") +
+                            mkData(step.optBlockName, "block") +
+                            mkData(step.optBlockCode, "sourcecode") +
+                            "</node>\n"
+                    val edge =
+                        if (index == numsteps - 1)
+                            ""
+                        else
+                            s"""\n<edge id="E$index" source="N${index}" target="N${index + 1}">\n""" +
+                                mkData(step.optFileName, "file") +
+                                mkData(step.optTermCode, "sourcecode") +
+                                mkData(step.optTermLine, "startline") +
+                                mkData(step.optTermLine, "endline") +
+                                "</edge>\n"
+                    s"$node$edge"
             }
 
         val witness =
@@ -93,8 +94,7 @@ class Witnesses(config : SkinkConfig) {
                |
                |<data key="sourcecodelang">C</data>
                |
-               |${nodes.mkString("\n")}
-               |${edges.mkString("\n")}
+               |${nodesAndEdges.mkString("\n")}
                |</graph>
                |
                |</graphml>

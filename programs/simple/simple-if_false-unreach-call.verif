@@ -26,19 +26,6 @@ FALSE
   <data key="sourcecode">int i, j;</data>
 </node>
 
-<node id="N1">
-  <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
-  <data key="block">6</data>
-  <data key="sourcecode">__VERIFIER_assert (i &lt;= j);</data>
-</node>
-
-<node id="N2">
-  <data key="violation">true</data>
-  <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
-  <data key="block">14</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-</node>
-
 <edge id="E0" source="N0" target="N1">
   <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
   <data key="sourcecode">if (i &gt; j)</data>
@@ -46,12 +33,25 @@ FALSE
   <data key="endline">13</data>
 </edge>
 
+<node id="N1">
+  <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
+  <data key="block">6</data>
+  <data key="sourcecode">__VERIFIER_assert (i &lt;= j);</data>
+</node>
+
 <edge id="E1" source="N1" target="N2">
   <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
   <data key="sourcecode">if (!(cond)) {</data>
   <data key="startline">4</data>
   <data key="endline">4</data>
 </edge>
+
+<node id="N2">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/simple-if_false-unreach-call.c</data>
+  <data key="block">14</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+</node>
 
 </graph>
 

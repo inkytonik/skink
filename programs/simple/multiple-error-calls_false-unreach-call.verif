@@ -26,19 +26,19 @@ FALSE
   <data key="sourcecode">int i = 0, j = 0;</data>
 </node>
 
-<node id="N1">
-  <data key="violation">true</data>
-  <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
-  <data key="block">16</data>
-  <data key="sourcecode">__VERIFIER_error();</data>
-</node>
-
 <edge id="E0" source="N0" target="N1">
   <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
   <data key="sourcecode">if (i &gt; j)</data>
   <data key="startline">13</data>
   <data key="endline">13</data>
 </edge>
+
+<node id="N1">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/multiple-error-calls_false-unreach-call.c</data>
+  <data key="block">16</data>
+  <data key="sourcecode">__VERIFIER_error();</data>
+</node>
 
 </graph>
 

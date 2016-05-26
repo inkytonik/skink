@@ -26,31 +26,18 @@ FALSE
   <data key="sourcecode">unsigned int n = __VERIFIER_nondet_uint();</data>
 </node>
 
-<node id="N1">
-  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
-  <data key="block">5</data>
-  <data key="sourcecode">while(x&gt;0)</data>
-</node>
-
-<node id="N2">
-  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
-  <data key="block">13</data>
-  <data key="sourcecode">__VERIFIER_assert(y!=n);</data>
-</node>
-
-<node id="N3">
-  <data key="violation">true</data>
-  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
-  <data key="block">21</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-</node>
-
 <edge id="E0" source="N0" target="N1">
   <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
   <data key="sourcecode">while(x&gt;0)</data>
   <data key="startline">15</data>
   <data key="endline">15</data>
 </edge>
+
+<node id="N1">
+  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
+  <data key="block">5</data>
+  <data key="sourcecode">while(x&gt;0)</data>
+</node>
 
 <edge id="E1" source="N1" target="N2">
   <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
@@ -59,12 +46,25 @@ FALSE
   <data key="endline">15</data>
 </edge>
 
+<node id="N2">
+  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
+  <data key="block">13</data>
+  <data key="sourcecode">__VERIFIER_assert(y!=n);</data>
+</node>
+
 <edge id="E2" source="N2" target="N3">
   <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
   <data key="sourcecode">if (!(cond)) {</data>
   <data key="startline">4</data>
   <data key="endline">4</data>
 </edge>
+
+<node id="N3">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/count-up-down_false-unreach-call.c</data>
+  <data key="block">21</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+</node>
 
 </graph>
 
