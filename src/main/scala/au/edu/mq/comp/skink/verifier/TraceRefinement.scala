@@ -57,9 +57,6 @@ class TraceRefinement(config : SkinkConfig) {
     def makeFailureTrace(
         trace : Trace,
         terms : Seq[TypedTerm[BoolTerm, Term]]
-    )(
-        implicit
-        solver : SMTLIB2Interpreter
     ) : FailureTrace = {
         // val getids = collect {
         //     case id @ (QualifiedId(_, Some(_))) =>
