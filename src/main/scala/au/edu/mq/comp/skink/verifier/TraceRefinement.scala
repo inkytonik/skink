@@ -122,10 +122,12 @@ class TraceRefinement(config : SkinkConfig) {
                         else
                             terms.reduceLeft(_ & _)
 
-                    // Get the SMTlib terms that describe the meaning of the operations
-                    // that would be executed. If an empty collection of terms is returned,
-                    // sanitise it to "true", otherwise join the components using
-                    // conjunction.
+                    /*
+                     * Get the SMTlib terms that describe the meaning of the operations
+                     * that would be executed. If an empty collection of terms is returned,
+                     * sanitise it to "true", otherwise join the components using
+                     * conjunction.
+                     */
                     val trace = Trace(choices)
                     val traceTerms = function.traceToTerms(trace).map(combineTerms)
 
