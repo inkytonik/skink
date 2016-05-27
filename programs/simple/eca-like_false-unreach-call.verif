@@ -26,47 +26,18 @@ FALSE
   <data key="sourcecode">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
 </node>
 
-<node id="N1">
-  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
-  <data key="block">3</data>
-  <data key="sourcecode">cond = __VERIFIER_nondet_int();</data>
-</node>
-
-<node id="N2">
-  <data key="block">8</data>
-</node>
-
-<node id="N3">
-  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
-  <data key="block">9</data>
-  <data key="sourcecode">lk1 = 0; // initially lock is open</data>
-</node>
-
-<node id="N4">
-  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
-  <data key="block">12</data>
-  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
-</node>
-
-<node id="N5">
-  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
-  <data key="block">15</data>
-  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
-</node>
-
-<node id="N6">
-  <data key="violation">true</data>
-  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
-  <data key="block">20</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
-</node>
-
 <edge id="E0" source="N0" target="N1">
   <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
   <data key="sourcecode">while(1) {</data>
   <data key="startline">20</data>
   <data key="endline">20</data>
 </edge>
+
+<node id="N1">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">3</data>
+  <data key="sourcecode">cond = __VERIFIER_nondet_int();</data>
+</node>
 
 <edge id="E1" source="N1" target="N2">
   <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
@@ -75,8 +46,18 @@ FALSE
   <data key="endline">22</data>
 </edge>
 
+<node id="N2">
+  <data key="block">8</data>
+</node>
+
 <edge id="E2" source="N2" target="N3">
 </edge>
+
+<node id="N3">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">9</data>
+  <data key="sourcecode">lk1 = 0; // initially lock is open</data>
+</node>
 
 <edge id="E3" source="N3" target="N4">
   <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
@@ -85,6 +66,12 @@ FALSE
   <data key="endline">28</data>
 </edge>
 
+<node id="N4">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">12</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
+</node>
+
 <edge id="E4" source="N4" target="N5">
   <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
   <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
@@ -92,12 +79,25 @@ FALSE
   <data key="endline">29</data>
 </edge>
 
+<node id="N5">
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">15</data>
+  <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
+</node>
+
 <edge id="E5" source="N5" target="N6">
   <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
   <data key="sourcecode">if (lk1 != 1) goto ERROR; // assertion failure</data>
   <data key="startline">29</data>
   <data key="endline">29</data>
 </edge>
+
+<node id="N6">
+  <data key="violation">true</data>
+  <data key="file">./programs/simple/eca-like_false-unreach-call.c</data>
+  <data key="block">20</data>
+  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+</node>
 
 </graph>
 
