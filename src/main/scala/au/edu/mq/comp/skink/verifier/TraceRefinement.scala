@@ -139,13 +139,13 @@ class TraceRefinement(config : SkinkConfig) {
                     val fullTerm = traceTerms.reduceLeft(_ & _)
 
                     //  extract the result from the solver call
-                    var result : Try[SatResponses] = Success(UnKnown())
+                    // var result : Try[SatResponses] = Success(UnKnown())
 
                     //  a solver with spec selectedSolver is spawned and killed
                     //  at the end of the using scope
-                    using(SMTSolver(selectedSolver)) {
+                    val result = using3(SMTSolver(selectedSolver)) {
                         implicit solver =>
-                            result = isSat(traceTerms : _*)
+                            isSat(traceTerms : _*)
                     }
 
                     // Check to see if the trace is feasible.
