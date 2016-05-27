@@ -138,8 +138,6 @@ class TraceRefinement(config : SkinkConfig) {
                     // Build a single combined term for the trace effect
                     val fullTerm = traceTerms.reduceLeft(_ & _)
 
-                    //  extract the result from the solver call
-                    // var result : Try[SatResponses] = Success(UnKnown())
 
                     //  a solver with spec selectedSolver is spawned and killed
                     //  at the end of the using scope
