@@ -140,7 +140,7 @@ class TraceRefinement(config : SkinkConfig) {
 
                     //  a solver with spec selectedSolver is spawned and killed
                     //  at the end of the using scope
-                    val result = using3(SMTSolver(selectedSolver)) {
+                    val result = using(selectedSolver) {
                         implicit solver =>
                             isSat(traceTerms : _*)
                     }
