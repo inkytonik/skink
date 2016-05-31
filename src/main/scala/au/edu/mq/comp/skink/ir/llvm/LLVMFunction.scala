@@ -116,7 +116,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
             logger.info(s"blockTerms: $name block ${blockName(block)}")
             val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
-            val effects = block.optMetaInstructions.flatMap(insnTerm)
+            val effects = block.optMetaInstructions.map(insnTerm)
             val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
             val allEffects = phiEffects ++ effects :+ exitEffect
             allEffects.filter(_ != STrue())
@@ -133,11 +133,11 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case Some(prevBlock) =>
                         val prevLabel = blockName(prevBlock)
                         insn match {
-                            case insn @ Phi(Binding(to), _, preds) =>
+                            case insn @ Phi(Binding(to), tipe, preds) =>
                                 // Bound phi result, find value
                                 preds.find(_.label == prevLabel) match {
                                     case Some(pred) =>
-                                        nterm(to) === vterm(pred.value)
+                                        equality(to, tipe, pred.value, tipe)
                                     case None =>
                                         sys.error(s"phiInsnTerm: can't find $prevLabel in $insn")
                                 }
@@ -161,88 +161,94 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
          */
         def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term] = {
             val insn = metaInsn.terminatorInstruction
-            val term : TypedTerm[BoolTerm, Term] =
+            val term =
                 insn match {
                     case Branch(label) if choice == 0 =>
                         STrue()
 
                     case BranchCond(value, label1, label2) if choice == 0 =>
-                        vtermB(value) === STrue()
+                        vtermB(value)
 
                     case BranchCond(value, label1, label2) if choice == 1 =>
-                        vtermB(value) === SFalse()
-
-                    case IndirectBr(_, value, labels) if (choice >= 0) && (choice < labels.length) =>
-                        vterm(value) === Ints(choice)
+                        !vtermB(value)
 
                     case insn =>
                         sys.error(s"exitTerm: can't handle choice $choice of $insn")
                 }
-            logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.termDef}")
+            logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${term.termDef}")
             term
         }
 
         /*
          * Return a term that expresses the effect of a regular LLVM instruction.
          */
-        def insnTerm(metaInsn : MetaInstruction) : Vector[TypedTerm[BoolTerm, Term]] = {
+        def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
             val insn = metaInsn.instruction
-            val term : Vector[TypedTerm[BoolTerm, Term]] =
+            val term =
                 insn match {
-                    case _ : Alloca =>
-                        Vector()
 
-                    /**
-                     * Binary operation on left and rigt. Optionally stores
-                     * result in 'to' variable
+                    /*
+                     * Ignore stack memory allocation.
                      */
-                    case Binary(Binding(to), op, _ : IntT, left, right) =>
-                        val lterm : TypedTerm[IntTerm, Term] = vterm(left)
-                        val rterm : TypedTerm[IntTerm, Term] = vterm(right)
-                        val (exp, signed) : (TypedTerm[IntTerm, Term], Boolean) =
+                    case _ : Alloca =>
+                        STrue()
+
+                    /*
+                     * Boolean binary operation (`left` `op` `right` into `to`).
+                     */
+                    case Binary(Binding(to), op, BoolT(), left, right) =>
+                        val lterm = vtermB(left)
+                        val rterm = vtermB(right)
+                        val exp =
                             op match {
-                                case _ : Add  => (lterm + rterm, true)
-                                // case _ : And  => (lterm & rterm, true)
-                                case _ : Mul  => (lterm * rterm, true)
-                                // case _ : Or   => (lterm | rterm, true)
-                                case _ : SDiv => (lterm / rterm, true)
-                                case _ : SRem => (lterm % rterm, true)
-                                case _ : Sub  => (lterm - rterm, true)
-                                case _ : UDiv => (lterm / rterm, false)
-                                case _ : URem => (lterm % rterm, false)
-                                // case _ : XOr  => (lterm ^ rterm, true)
+                                case _ : And => lterm & rterm
+                                case _ : Or  => lterm | rterm
+                                case _ : XOr => lterm xor rterm
                                 case _ =>
-                                    sys.error(s"binary int op $op not handled")
+                                    sys.error(s"binary Boolean op $op not handled")
                             }
-                        val eqterm = nterm(to) === exp
-                        if (signed) Vector(eqterm) else Vector(eqterm, nterm(to) >= 0)
+                        ntermB(to) === exp
 
-                    //  check this one
-                    case Call(_, _, _, _, _, VerifierFunction(AssumeName()),
-                        Vector(ValueArg(IntT(size), Vector(), arg)), _) =>
-                        if (size == 1)
-                            Vector(vterm(arg) === 0) // fc: ?? don't know if this is OK, was vterm(arg) before
-                        else
-                            Vector(!(vterm(arg) === 0))
+                    /*
+                     * Integer binary operation (`left` `op` `right` into `to`).
+                     */
+                    case Binary(Binding(to), op, IntT(_), left, right) =>
+                        val lterm = vtermI(left)
+                        val rterm = vtermI(right)
+                        val exp =
+                            op match {
+                                case _ : Add  => lterm + rterm
+                                case _ : Mul  => lterm * rterm
+                                case _ : SDiv => lterm / rterm
+                                case _ : SRem => lterm % rterm
+                                case _ : Sub  => lterm - rterm
+                                case _ =>
+                                    sys.error(s"binary integer op $op not handled")
+                            }
+                        ntermI(to) === exp
 
-                    case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                    // Call to `assume`
+                    case Call(_, _, _, _, _, VerifierFunction(AssumeName()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                         tipe match {
-                            case "size_t" | "u32" | "uchar" | "uint" | "ulong" | "unsigned" | "ushort" =>
-                                Vector(nterm(to) >= 0)
+                            case BoolT() => vtermB(arg)
+                            case IntT(_) => !(vtermI(arg) === 0)
                             case _ =>
-                                Vector()
+                                sys.error(s"insnTerm: unexpected type $tipe in assume call")
                         }
 
-                    case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
-                        Vector(STrue())
+                    // Call to `nondet_*`
+                    case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                        STrue()
 
-                    /**
-                     *  Compare two int expression
-                     */
+                    case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                        STrue()
+
+                    // Compare two integer values
+
                     case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
-                        val lterm : TypedTerm[IntTerm, Term] = vterm(left)
-                        val rterm : TypedTerm[IntTerm, Term] = vterm(right)
-                        val exp : TypedTerm[BoolTerm, Term] =
+                        val lterm = vtermI(left)
+                        val rterm = vtermI(right)
+                        val exp =
                             icond match {
                                 case EQ()  => lterm === rterm
                                 case NE()  => !(lterm === rterm)
@@ -255,39 +261,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                                 case SLT() => lterm < rterm
                                 case SLE() => lterm <= rterm
                             }
-                        Vector(ntermB(to) === exp)
+                        ntermB(to) === exp
 
-                    // Binding, conversion operator, source type, source value, target type
+                    // Conversions
 
-                    /*
-                     * Convert from IntT(m > 1) to IntT(n > 1), make nterms
-                     */
-                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if ((m == n) && (n > 1)) =>
-                        Vector(nterm(to) === vterm(from)) // check it
+                    case Convert(Binding(to), _, fromType, from, toType) =>
+                        equality(to, toType, from, fromType)
 
-                    /*
-                     * we treat Int(1) (LLVM i1) ints as Bools
-                     */
-                    case Convert(Binding(to), _, IntT(m), from, IntT(n)) if ((m == n) && (n == 1)) =>
-                        Vector(ntermB(to) === vtermB(from)) // check it
-
-                    /*
-                     * Target var is an InT(1), make an nTermB
-                     */
-                    case Convert(Binding(to), _, IntT(_), from, IntT(n)) if n == 1 =>
-                        Vector(ntermB(to) === !(vterm(from) === 0))
-
-                    /*
-                     * Source type is Int(1), make an nTerm with an if-the-else
-                     */
-                    case Convert(Binding(to), _, IntT(n), from, IntT(_)) if n == 1 =>
-                        Vector(nterm(to) === vtermB(from).ite(Ints(1), Ints(0)))
-
-                    /*
-                     * Fancy types conversion
-                     */
-                    case Convert(Binding(to), _, _, from, _) =>
-                        Vector(nterm(to) === vterm(from))
+                    // Pointer dereference
 
                     case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
                         sys.error(s"insnTerm: unsupported getelementptr insn $insn")
@@ -296,96 +277,102 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         // We ignore these here, but the associations that they establish
                         // between their bound name and their arguments are expressed in
                         // the element properties of the name.
-                        Vector(true)
+                        STrue()
+
+                    // Memory loads and stores
 
                     // case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
                     //     Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
 
-                    // TODO: take care of i1 type in Load and Store
                     case Load(Binding(to), _, tipe, _, from, _) =>
-                        Vector(nterm(to) === vterm(from))
+                        equality(to, tipe, from, tipe)
 
                     // case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
                     //     Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
                     //         (vtermAt(insn, index), vterm(from))))
 
-                    case e @ Store(_, tipe, from, _, to, _) =>
-                        Vector(vterm(to) === vterm(from))
+                    case Store(_, tipe, from, _, Named(to), _) =>
+                        equality(to, tipe, from, tipe)
 
                     case insn =>
                         sys.error(s"insnTerm: don't know the effect of $insn")
 
                 }
-            logger.debug(s"""insnTerm:${longshow(insn)} -> ${term.map(_.termDef).mkString(" ")}""")
+            logger.debug(s"insnTerm:${longshow(insn)} -> ${term.termDef}")
             term
         }
 
         /*
-         * Make an IntTerm for the named variable where `id` is the base name identifier.
+         * Make an IntTerm for the named variable where `id` is the base name
+         * identifier and include an optional index.
          */
-        def varTerm(name : Name, id : String, index : Option[Int]) : TypedTerm[IntTerm, Term] =
+        def varTermI(id : String, index : Option[Int]) : TypedTerm[IntTerm, Term] =
             new VarTerm(id, IntSort(), index)
 
-        /**
-         * Make a BoolTerm for the named variable where `id` is the base name identifier.
+        /*
+         * Make a BoolTerm for the named variable where `id` is the base name
+         * identifier and include an optional index.
          */
-        def varTermB(name : Name, id : String, index : Option[Int]) : TypedTerm[BoolTerm, Term] =
+        def varTermB(id : String, index : Option[Int]) : TypedTerm[BoolTerm, Term] =
             new VarTerm(id, BoolSort(), index)
 
         /*
-         * Return a IntTerm that expresses a name when referenced from node.
+         * Return an integer term that expresses a name of a given sort when referenced from node.
          */
-        def ntermAt(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTerm(name, show(name), Some(indexOf(node, show(name))))
+        def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
+            varTermI(show(name), Some(indexOf(node, show(name))))
 
         /*
-         * Return a BoolTerm that expresses a name when referenced from node.
+         * Return a Boolean term that expresses a name of a given sort when referenced from node.
          */
         def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-            varTermB(name, show(name), Some(indexOf(node, show(name))))
+            varTermB(show(name), Some(indexOf(node, show(name))))
 
         /*
          * Return a term that expresses the previous version of a name when
          * referenced from node.
          */
-        def prevnTermAt(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTerm(
-                name,
-                show(name),
-                Some(
-                    scala.math.max(indexOf(node, show(name)) - 1, 0)
-                )
-            )
+        // def prevnTermAt(node : ASTNode, name : Name, sort : Sort) : TypedTerm[IntTerm, Term] =
+        //     varTerm(
+        //         name,
+        //         show(name),
+        //         sort,
+        //         Some(
+        //             scala.math.max(indexOf(node, show(name)) - 1, 0)
+        //         )
+        //     )
 
         /*
-         * Return a term that expresses an LLVM name when referenced from
-         * that name node.
+         * Return a term that expresses an integer LLVM name when referenced
+         * from the name node.
          */
-        def nterm(name : Name) : TypedTerm[IntTerm, Term] =
-            ntermAt(name, name)
+        def ntermI(name : Name) : TypedTerm[IntTerm, Term] =
+            ntermAtI(name, name)
 
+        /*
+         * Return a term that expresses a Boolean LLVM name when referenced
+         * from the name node.
+         */
         def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
             ntermAtB(name, name)
 
         /*
-         * Return an IntTerm that expresses an LLVM ik value, k > 1.
-         * FIXME: currently only does integer constants and names.
+         * Return an IntTerm that expresses an LLVM ik value, k > 0.
          */
-        lazy val vterm : Value => TypedTerm[IntTerm, Term] = {
+        lazy val vtermI : Value => TypedTerm[IntTerm, Term] =
             attr {
                 case Const(IntC(i)) =>
                     Ints(i.toInt) //  warning: BigInt!!
                 case Named(name) =>
-                    nterm(name)
+                    ntermI(name)
                 case value =>
-                    sys.error(s"vterm: unexpected value $value")
+                    sys.error(s"vtermI: unexpected value $value")
             }
-        }
 
         /**
-         * Return a BoolTerm that expresses an LLVM i1 value
+         * Return a BoolTerm that expresses an LLVM i1 value.
          */
-        lazy val vtermB : Value => TypedTerm[BoolTerm, Term] = {
+        lazy val vtermB : Value => TypedTerm[BoolTerm, Term] =
             attr {
                 case Const(FalseC()) =>
                     SFalse()
@@ -394,20 +381,43 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 case Named(name) =>
                     ntermB(name)
                 case value =>
-                    sys.error(s"vterm: unexpected value $value")
+                    sys.error(s"vtermB: unexpected value $value")
             }
-        }
 
         /*
          * Return a term that expresses a value when referenced from node.
          */
-        def vtermAt(node : ASTNode, value : Value) : TypedTerm[IntTerm, Term] =
-            value match {
-                case Named(name) =>
-                    ntermAt(node, name)
+        // def vtermAt(node : ASTNode, value : Value) : TypedTerm[IntTerm, Term] =
+        //     value match {
+        //         case Named(name) =>
+        //             ntermAt(node, name)
+        //         case _ =>
+        //             vterm(value)
+        //     }
+
+        /**
+         * Make an equality term between an LLVM name and an LLVM value. The
+         * kind of equality depends on the type of the name. We mostly handle
+         * integer and Boolean equalities, but also pointers as integers.
+         */
+        def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
+            (toType, fromType) match {
+                case (BoolT(), BoolT()) =>
+                    ntermB(to) === vtermB(from)
+                case (BoolT(), IntT(_)) =>
+                    ntermB(to) === !(vtermI(from) === 0)
+                case (IntT(_), BoolT()) =>
+                    ntermI(to) === vtermB(from).ite(Ints(1), Ints(0))
+                case (IntT(_), IntT(_)) =>
+                    ntermI(to) === vtermI(from)
+                case (PointerT(_, _), PointerT(_, _)) =>
+                    ntermI(to) === vtermI(from)
                 case _ =>
-                    vterm(value)
+                    sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
             }
+
+        // 10:30:08 DEBUG LLVMFunction - insnTerm: %10 = zext i1 %9 to i32 ->
+        // EqualTerm(QIdTerm(SimpleQId(SymbolId(ISymbol(%10,1)))),NotTerm(EqualTerm(QIdTerm(SimpleQId(SymbolId(ISymbol(%9,1)))),ConstantTerm(NumLit(0)))))
 
         /*
          * Return the sort that should be used for variable name.
@@ -767,6 +777,19 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     object AssumeName {
         def unapply(name : Name) : Boolean =
             name == Global("__VERIFIER_assume")
+    }
+
+    /**
+     * Matcher for LLVM Boolean types (i.e., i1).
+     */
+    object BoolT {
+        def unapply(tipe : Type) : Boolean =
+            tipe match {
+                case IntT(n) if n == 1 =>
+                    true
+                case _ =>
+                    false
+            }
     }
 
     /**
