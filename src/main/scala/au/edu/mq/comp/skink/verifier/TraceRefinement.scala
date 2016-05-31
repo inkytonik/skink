@@ -87,7 +87,7 @@ class TraceRefinement(config : SkinkConfig) {
         //  get a solver specification. This object creation
         //  does not spawn any process merely declare a solver type we
         //  want to use
-        val selectedSolver = new Z3 with QF_LIA with Interpolants
+        val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 

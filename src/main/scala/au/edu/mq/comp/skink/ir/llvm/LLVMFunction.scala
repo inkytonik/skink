@@ -30,15 +30,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         TypeProperty
     }
     import scala.collection.mutable.ListBuffer
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Term, IntSort, BoolSort, Sort}
-    import au.edu.mq.comp.smtlib.theories.{BoolTerm, IntTerm}
-    import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-    // import smtlib.theories.{ArraysEx, Core, Ints}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
+    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
     import scala.util.{Failure, Success}
 
-    object termStuff extends Core with IntegerArithmetics
+    object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
     import termStuff.{True => STrue, False => SFalse, _}
 
     val logger = getLogger(this.getClass)
@@ -279,17 +278,18 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         // the element properties of the name.
                         STrue()
 
-                    // Memory loads and stores
+                    // Array loads and stores, just non-Boolean, integer elements for now
 
-                    // case insn @ Load(Binding(to), _, tipe, _, ArrayElement(array, index), _) =>
-                    //     Vector(nterm(to) === ntermAt(insn, array).at(vtermAt(insn, index)))
+                    case insn @ Load(Binding(to), _, IntegerT(_), _, ArrayElement(array, index), _) =>
+                        ntermI(to) === arrayTermAt(insn, array).at(vtermAtI(insn, index))
+
+                    case insn @ Store(_, IntegerT(_), from, _, ArrayElement(array, index), _) =>
+                        arrayTermAt(insn, array) === prevArrayTermAt(insn, array).store(vtermAtI(insn, index), vtermI(from))
+
+                    // Non-array loads and stores
 
                     case Load(Binding(to), _, tipe, _, from, _) =>
                         equality(to, tipe, from, tipe)
-
-                    // case insn @ Store(_, tipe, from, _, ArrayElement(array, index), _) =>
-                    //     Vector(ntermAt(insn, array) === (prevnTermAt(insn, array) +=
-                    //         (vtermAt(insn, index), vterm(from))))
 
                     case Store(_, tipe, from, _, Named(to), _) =>
                         equality(to, tipe, from, tipe)
@@ -303,54 +303,60 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
 
         /*
-         * Make an IntTerm for the named variable where `id` is the base name
+         * Make an ArrayTerm for the named variable where `id` is the base name
          * identifier and include an optional index.
          */
-        def varTermI(id : String, index : Option[Int]) : TypedTerm[IntTerm, Term] =
-            new VarTerm(id, IntSort(), index)
+        def arrayTerm(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
+            ArrayInt1(id).indexed(index)
 
         /*
-         * Make a BoolTerm for the named variable where `id` is the base name
-         * identifier and include an optional index.
+         * Return an array term that expresses a name when referenced from node.
          */
-        def varTermB(id : String, index : Option[Int]) : TypedTerm[BoolTerm, Term] =
-            new VarTerm(id, BoolSort(), index)
-
-        /*
-         * Return an integer term that expresses a name of a given sort when referenced from node.
-         */
-        def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTermI(show(name), Some(indexOf(node, show(name))))
-
-        /*
-         * Return a Boolean term that expresses a name of a given sort when referenced from node.
-         */
-        def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-            varTermB(show(name), Some(indexOf(node, show(name))))
+        def arrayTermAt(node : ASTNode, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
+            arrayTerm(show(name), indexOf(node, show(name)))
 
         /*
          * Return a term that expresses the previous version of a name when
          * referenced from node.
          */
-        // def prevnTermAt(node : ASTNode, name : Name, sort : Sort) : TypedTerm[IntTerm, Term] =
-        //     varTerm(
-        //         name,
-        //         show(name),
-        //         sort,
-        //         Some(
-        //             scala.math.max(indexOf(node, show(name)) - 1, 0)
-        //         )
-        //     )
+        def prevArrayTermAt(node : ASTNode, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
+            arrayTerm(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
 
         /*
-         * Return a term that expresses an integer LLVM name when referenced
+         * Make an integer term for the named variable where `id` is the base name
+         * identifier and index it.
+         */
+        def varTermI(id : String, index : Int) : TypedTerm[IntTerm, Term] =
+            new VarTerm(id, IntSort(), Some(index))
+
+        /*
+         * Make a Boolean term for the named variable where `id` is the base name
+         * identifier and index it.
+         */
+        def varTermB(id : String, index : Int) : TypedTerm[BoolTerm, Term] =
+            new VarTerm(id, BoolSort(), Some(index))
+
+        /*
+         * Return an integer term that expresses a name when referenced from node.
+         */
+        def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
+            varTermI(show(name), indexOf(node, show(name)))
+
+        /*
+         * Return a Boolean term that expresses a name when referenced from node.
+         */
+        def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
+            varTermB(show(name), indexOf(node, show(name)))
+
+        /*
+         * Return an integer term that expresses an LLVM name when referenced
          * from the name node.
          */
         def ntermI(name : Name) : TypedTerm[IntTerm, Term] =
             ntermAtI(name, name)
 
         /*
-         * Return a term that expresses a Boolean LLVM name when referenced
+         * Return a Boolean term that expresses an LLVM name when referenced
          * from the name node.
          */
         def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
@@ -359,8 +365,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         /*
          * Return an IntTerm that expresses an LLVM ik value, k > 0.
          */
-        lazy val vtermI : Value => TypedTerm[IntTerm, Term] =
-            attr {
+        def vtermI(value : Value) : TypedTerm[IntTerm, Term] =
+            value match {
                 case Const(IntC(i)) =>
                     Ints(i.toInt) //  warning: BigInt!!
                 case Named(name) =>
@@ -369,11 +375,22 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     sys.error(s"vtermI: unexpected value $value")
             }
 
+        /*
+         * Return an IntTerm that expresses a value when referenced from node.
+         */
+        def vtermAtI(node : ASTNode, value : Value) : TypedTerm[IntTerm, Term] =
+            value match {
+                case Named(name) =>
+                    ntermAtI(node, name)
+                case _ =>
+                    vtermI(value)
+            }
+
         /**
          * Return a BoolTerm that expresses an LLVM i1 value.
          */
-        lazy val vtermB : Value => TypedTerm[BoolTerm, Term] =
-            attr {
+        def vtermB(value : Value) : TypedTerm[BoolTerm, Term] =
+            value match {
                 case Const(FalseC()) =>
                     SFalse()
                 case Const(TrueC()) =>
@@ -384,23 +401,12 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     sys.error(s"vtermB: unexpected value $value")
             }
 
-        /*
-         * Return a term that expresses a value when referenced from node.
-         */
-        // def vtermAt(node : ASTNode, value : Value) : TypedTerm[IntTerm, Term] =
-        //     value match {
-        //         case Named(name) =>
-        //             ntermAt(node, name)
-        //         case _ =>
-        //             vterm(value)
-        //     }
-
         /**
          * Make an equality term between an LLVM name and an LLVM value. The
          * kind of equality depends on the type of the name. We mostly handle
          * integer and Boolean equalities, but also pointers as integers.
          */
-        def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
+        def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, EqualTerm] =
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
@@ -789,6 +795,20 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     true
                 case _ =>
                     false
+            }
+    }
+
+    /**
+     * Matcher for LLVM Integer (non-Boolean) types (i.e., in, n > 1).
+     * Return n for successful matches.
+     */
+    object IntegerT {
+        def unapply(tipe : Type) : Option[Int] =
+            tipe match {
+                case IntT(n) if n > 1 =>
+                    Some(n.toInt)
+                case _ =>
+                    None
             }
     }
 
