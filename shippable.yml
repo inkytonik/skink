@@ -5,7 +5,22 @@ scala:
   - 2.11.8
 
 before_script:
-  - apt-get install -y mercurial
+  - echo 'deb http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
+  - echo 'deb-src http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
+  - echo 'deb http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
+  - echo 'deb-src http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
+  - echo 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
+  - echo 'deb-src http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
+  - echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
+  - echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
+  - apt-get update
+  - apt-get install -y --force-yes mercurial
+  - apt-get install -y --force-yes make
+  - apt-get install -y --force-yes cvc4
+  - apt-get install -y --force-yes clang-3.7 lldb-3.7
+  - export CC=clang-3.7
+  - export CXX=clang++-3.7
+  - git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build; make && sudo make install && cd ~
   - hg clone https://bitbucket.org/inkytonik/sbt-rats
   - cd sbt-rats; sbt publish-local; cd -
   - hg clone https://bitbucket.org/inkytonik/kiama
