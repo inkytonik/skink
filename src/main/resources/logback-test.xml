@@ -34,6 +34,12 @@
         </encoder>
     </appender>
 
+    <root level="OFF">
+        <appender-ref ref="SKINKFILE"/>
+    </root>
+
+    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
+
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
     <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
@@ -55,12 +61,12 @@
         <appender-ref ref="LLVMFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.smtlib.typedterms" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
     </logger>
 
-    <root level="DEBUG">
+    <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
-    </root>
+    </logger>
 
 </configuration>
