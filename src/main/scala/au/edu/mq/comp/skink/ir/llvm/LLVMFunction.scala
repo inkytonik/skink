@@ -31,6 +31,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     }
     import scala.collection.mutable.ListBuffer
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
@@ -148,7 +149,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         // No previous block so phi insns don't make sense...
                         STrue()
                 }
-            logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${term.termDef}")
+            logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
             term
         }
 
@@ -174,7 +175,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case insn =>
                         sys.error(s"exitTerm: can't handle choice $choice of $insn")
                 }
-            logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${term.termDef}")
+            logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${showTerm(term.termDef)}")
             term
         }
 
@@ -298,7 +299,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         sys.error(s"insnTerm: don't know the effect of $insn")
 
                 }
-            logger.debug(s"insnTerm:${longshow(insn)} -> ${term.termDef}")
+            logger.debug(s"insnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
             term
         }
 
