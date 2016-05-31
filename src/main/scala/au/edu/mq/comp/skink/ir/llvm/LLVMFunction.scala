@@ -387,7 +387,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     vtermI(value)
             }
 
-        /**
+        /*
          * Return a BoolTerm that expresses an LLVM i1 value.
          */
         def vtermB(value : Value) : TypedTerm[BoolTerm, Term] =
@@ -402,7 +402,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     sys.error(s"vtermB: unexpected value $value")
             }
 
-        /**
+        /*
          * Make an equality term between an LLVM name and an LLVM value. The
          * kind of equality depends on the type of the name. We mostly handle
          * integer and Boolean equalities, but also pointers as integers.
@@ -422,37 +422,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 case _ =>
                     sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
             }
-
-        // 10:30:08 DEBUG LLVMFunction - insnTerm: %10 = zext i1 %9 to i32 ->
-        // EqualTerm(QIdTerm(SimpleQId(SymbolId(ISymbol(%10,1)))),NotTerm(EqualTerm(QIdTerm(SimpleQId(SymbolId(ISymbol(%9,1)))),ConstantTerm(NumLit(0)))))
-
-        /*
-         * Return the sort that should be used for variable name.
-         */
-        def typeToSort(name : Name) : Sort = {
-            val optSort =
-                properties(name).collectFirst {
-                    case TypeProperty(tipe) =>
-                        tipe match {
-                            case IntT(n) if n == 1 =>
-                                BoolSort()
-                            case IntT(_) =>
-                                IntSort()
-                            // case PointerT(ArrayT(_, IntT(_)), _) =>
-                            //     ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
-                            // case PointerT(_, _) =>
-                            //     if (elementProperty(name).isEmpty)
-                            //         Ints.IntSort()
-                            //     else
-                            //         ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
-                            // case SymbolicArrayT(_, _) =>
-                            //     ArraysEx.ArraySort(Ints.IntSort(), Ints.IntSort())
-                            case _ =>
-                                sys.error(s"typeToSort: variable type $tipe for $name not supported")
-                        }
-                }
-            optSort.getOrElse(sys.error(s"can't find type property for variable $name"))
-        }
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separatey so we use
