@@ -1,0 +1,29 @@
+
+language: scala
+
+scala:
+  - 2.11.8
+
+before_script:
+  - hg clone https://bitbucket.org/inkytonik/sbt-rats
+  - cd sbt-rats; sbt publish-local; cd -
+  - hg clone https://bitbucket.org/inkytonik/kiama
+  - cd kiama; sbt publish-local; sbt "test:publish-local"; cd -
+  - git clone git@bitbucket.org:franck44/mq-scala-smtlib.git
+  - cd mq-scala-smtlib; sbt publish-local; cd -
+  - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
+  - cd scalallvm; sbt publish-local; cd -
+  - git clone git@bitbucket.org:franck44/automat.git
+  - cd automat; sbt publish-local; cd -
+
+script:
+    - sbt clean test
+
+jdk:
+  - oraclejdk8
+
+build:
+
+ci:
+  - java -version
+  - echo $SHIPPABLE_SCALA_VERSION
