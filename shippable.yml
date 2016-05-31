@@ -5,6 +5,7 @@ scala:
   - 2.11.8
 
 before_script:
+  - apt-get install -y hg
   - hg clone https://bitbucket.org/inkytonik/sbt-rats
   - cd sbt-rats; sbt publish-local; cd -
   - hg clone https://bitbucket.org/inkytonik/kiama
