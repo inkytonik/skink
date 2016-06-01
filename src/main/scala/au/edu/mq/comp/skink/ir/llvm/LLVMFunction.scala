@@ -52,7 +52,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     val funtree = new Tree[ASTNode, FunctionDefinition](function)
     val funanalyser = new Analyser(funtree)
-    val properties = funanalyser.propertiesOfFunction(function)
+    val properties = funanalyser.propertiesOfFunction(funtree.root)
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
