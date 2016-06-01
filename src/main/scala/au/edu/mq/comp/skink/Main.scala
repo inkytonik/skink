@@ -50,6 +50,9 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations",
         default = Some(10))
 
+    lazy val parse = opt[Boolean]("parse", short = 'p',
+        descr = "Parse the IML program")
+
     val solverConverter =
         new ValueConverter[Solver] {
 
@@ -133,7 +136,7 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
      */
     override def makeast(source : Source, config : SkinkConfig) : Either[Program, Messages] = {
 
-        if (config.compile()) {
+        if (config.parse() || config.compile()) {
 
             // We're compiling so input file contains IML. Parse and process
             // the IML program and then the IR of the compiled program.
