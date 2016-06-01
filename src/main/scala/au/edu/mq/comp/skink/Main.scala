@@ -209,7 +209,7 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
         if (config.execute()) {
             logger.info("processIR: running program")
 
-            val (output, code) = ir.execute(config)
+            val (output, code) = ir.execute()
             config.output().emit(output)
             if (code != 0)
                 config.output().emitln(s"exit code: $code")

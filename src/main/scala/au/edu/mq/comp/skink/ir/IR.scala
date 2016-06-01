@@ -11,7 +11,7 @@ trait IR {
      * Execute this IR instance, returning the output produced and the exit
      * code where zero means a normal exit.
      */
-    def execute(config : SkinkConfig) : (String, Int)
+    def execute() : (String, Int)
 
     /**
      * Return information about the functions in this IR instance.
