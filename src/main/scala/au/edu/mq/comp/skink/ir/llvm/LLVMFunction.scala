@@ -243,7 +243,21 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
                         STrue()
 
-                    // Compare two integer values
+                    // Compare two Boolean values
+
+                    case Compare(Binding(to), ICmp(icond), BoolT(), left, right) =>
+                        val lterm = vtermB(left)
+                        val rterm = vtermB(right)
+                        val exp =
+                            icond match {
+                                case EQ() => lterm === rterm
+                                case NE() => !(lterm === rterm)
+                                case _ =>
+                                    sys.error(s"Boolean comparison $icond not handled")
+                            }
+                        ntermB(to) === exp
+
+                    // Compare two integer or pointer values
 
                     case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
                         val lterm = vtermI(left)
@@ -260,6 +274,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                                 case SGE() => lterm >= rterm
                                 case SLT() => lterm < rterm
                                 case SLE() => lterm <= rterm
+                                case _ =>
+                                    sys.error(s"integer comparison $icond not handled")
                             }
                         ntermB(to) === exp
 
