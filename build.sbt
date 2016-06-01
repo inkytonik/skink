@@ -67,6 +67,10 @@ scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
                                             // "-diagrams-debug",
                                             "-diagrams-dot-restart", "50")
 
+// Fork runs and tests
+
+fork := true
+
 // Rats! setup
 
 sbtRatsSettings
