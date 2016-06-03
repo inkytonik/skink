@@ -1,7 +1,7 @@
 # Ubuntu box for running Skink, not dev box
 Vagrant.configure(2) do |config|
   config.vm.provider "virtualbox" do |v|
-    v.memory = 1024
+    v.memory = 2048
   end
   config.vm.box = "ubuntu/trusty64"
   config.vm.provision "shell", inline: <<-SHELL
