@@ -19,8 +19,9 @@ before_script:
   - cd -
   - wget --no-check-certificate https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
   - unzip z3-4.4.1-x64-ubuntu-14.04.zip
-  - mv z3-4.4.1-x64-ubuntu-14.04/ z3
-  - echo "export PATH=$PATH:/home/vagrant/z3/bin" >> ~/.profile
+  - cd clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04/
+  - cp -R * /usr/local
+  - cd - 
   - wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
   - wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
   - echo "export OPT=opt" >> ~/.profile

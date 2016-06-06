@@ -26,8 +26,9 @@ Vagrant.configure(2) do |config|
     # z3 install
     wget --no-check-certificate https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
     unzip z3-4.4.1-x64-ubuntu-14.04.zip
-    mv z3-4.4.1-x64-ubuntu-14.04/ z3
-    echo "export PATH=$PATH:/home/vagrant/z3/bin" >> ~/.profile
+    cd z3-4.4.1-x64-ubuntu-14.04/
+    cp -R * /usr/local
+    cd -
 
     # install svcomp benchmark programs
     # TODO: get this back > git clone --depth 1 https://github.com/dbeyer/sv-benchmarks.git
