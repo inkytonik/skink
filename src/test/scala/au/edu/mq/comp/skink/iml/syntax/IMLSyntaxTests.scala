@@ -5,13 +5,12 @@ import IMLSyntax.Program
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
 /**
- * Tests that check that the IML parser and pretty-printers build
- * the correct trees that pretty-print to the correct output.
+ * Tests that check that the IML parser produces the correct output.
  */
 class IMLSyntaxTests extends Driver with TestCompilerWithConfig[Program, SkinkConfig] {
 
     val path = "src/test/scala/au/edu/mq/comp/skink/iml/syntax"
-    filetests("IML parse and print", path, ".iml", ".out",
-        argslist = List(Array("-p", "-s")))
+    filetests("IML parse", path, ".iml", ".out",
+        argslist = List(Array("-p")))
 
 }

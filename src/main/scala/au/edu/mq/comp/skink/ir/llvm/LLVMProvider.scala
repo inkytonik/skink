@@ -30,7 +30,7 @@ class LLVMProvider(config : SkinkConfig) extends IRProvider {
         if (pr.hasValue) {
             logger.info("buildFromSource: LLVM program build succeeded")
             val program = p.value(pr).asInstanceOf[Program]
-            val ir = new LLVMIR(program)
+            val ir = new LLVMIR(program, config)
             programLogger.debug("* Program from source\n")
             programLogger.debug(ir.show)
             programLogger.debug("\n* AST from source\n\n")

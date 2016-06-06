@@ -18,7 +18,7 @@ class Compiler(positions : Positions, config : SkinkConfig) {
     // Entry point
 
     def compile(program : IML.Program) : IR =
-        new LLVMIR(translateProgram(program))
+        new LLVMIR(translateProgram(program), config)
 
     // Position access
 

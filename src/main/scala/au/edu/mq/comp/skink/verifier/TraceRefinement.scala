@@ -20,6 +20,7 @@ class TraceRefinement(config : SkinkConfig) {
 
     // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
     import au.edu.mq.comp.smtlib.parser.Analysis
     // import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Pop, Push}
@@ -87,7 +88,7 @@ class TraceRefinement(config : SkinkConfig) {
         //  get a solver specification. This object creation
         //  does not spawn any process merely declare a solver type we
         //  want to use
-        val selectedSolver = new Z3 with QF_LIA with Interpolants
+        val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
@@ -132,7 +133,7 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = function.traceToTerms(trace).map(combineTerms)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"""traceRefinement: trace effect $i: ${traceTerms(i).termDef}""")
+                        logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
                     }
 
                     // Build a single combined term for the trace effect
