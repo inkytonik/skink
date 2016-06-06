@@ -5,8 +5,6 @@ Vagrant.configure(2) do |config|
   end
   config.vm.box = "ubuntu/trusty64"
   config.vm.provision "shell", inline: <<-SHELL
-    echo 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
-    echo 'deb-src http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
     echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
     echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
     echo 'deb https://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list
@@ -19,7 +17,11 @@ Vagrant.configure(2) do |config|
     apt-get install -y --force-yes mercurial
 
     # clang 3.7 install
-    apt-get install -y --force-yes clang-3.7 lldb-3.7
+    wget --no-check-certificate http://llvm.org/releases/3.7.1/clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+    tar xvf clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz 
+    cd clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04/
+    cp -R * /usr/local
+    cd -
 
     # z3 install
     wget --no-check-certificate https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
@@ -37,6 +39,6 @@ Vagrant.configure(2) do |config|
     wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
 
     #prep for skink
-    echo "export OPT=opt-3.7" >> ~/.profile
+    echo "export OPT=opt" >> ~/.profile
   SHELL
 end
