@@ -30,15 +30,15 @@ before_script:
   - wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
   - echo "export OPT=opt" >> ~/.profile
   - hg clone https://bitbucket.org/inkytonik/sbt-rats
-  - cd sbt-rats; sbt publish-local; cd -
+  - cd sbt-rats; /usr/bin/sbt publish-local; cd -
   - hg clone https://bitbucket.org/inkytonik/kiama
-  - cd kiama; sbt publish-local; sbt "test:publish-local"; cd -
+  - cd kiama; sbt publish-local; /usr/bin/sbt "test:publish-local"; cd -
   - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
-  - cd scalallvm; export JAVA_TOOL_OPTIONS="-Xss200M" && sbt publish-local; cd -
+  - cd scalallvm; /usr/bin/sbt publish-local; cd -
   - git clone git@bitbucket.org:franck44/automat.git
-  - cd automat; sbt publish-local; cd -
+  - cd automat; /usr/bin/sbt publish-local; cd -
   - git clone git@bitbucket.org:franck44/mq-scala-smtlib.git
-  - cd mq-scala-smtlib; sbt publish-local; cd -
+  - cd mq-scala-smtlib; /usr/bin/sbt publish-local; cd -
 
 script:
     - sbt clean test
