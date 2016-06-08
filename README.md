@@ -1,8 +1,6 @@
 Skink: A static verification tool
 =================================
 
-Note: this is a specific SVCOMP16 readme file.
-
 Installation
 ------------
 

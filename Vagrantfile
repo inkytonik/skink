@@ -1,35 +1,37 @@
 # Ubuntu box for running Skink, not dev box
 Vagrant.configure(2) do |config|
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 2048
+  end
   config.vm.box = "ubuntu/trusty64"
   config.vm.provision "shell", inline: <<-SHELL
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    echo 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
-    echo 'deb-src http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
     echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
     echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
+    echo 'deb https://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list
     apt-get update
 
     # tool install    
     apt-get install -y --force-yes git
-    apt-get install -y --force-yes make
-    apt-get install -y --force-yes python3-pip
-
-    #cvc4 install
-    apt-get install -y --force-yes cvc4
+    apt-get install -y --force-yes sbt
+    apt-get install -y --force-yes unzip
+    apt-get install -y --force-yes mercurial
 
     # clang 3.7 install
-    apt-get install -y --force-yes clang-3.7 lldb-3.7
+    wget --no-check-certificate http://llvm.org/releases/3.7.1/clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+    tar xvf clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz 
+    cd clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04/
+    cp -R * /usr/local
+    cd -
 
     # z3 install
-    export CC=clang-3.7
-    export CXX=clang++-3.7
-    git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build; make && sudo make install && cd ~
+    wget --no-check-certificate https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
+    unzip z3-4.4.1-x64-ubuntu-14.04.zip
+    cd z3-4.4.1-x64-ubuntu-14.04/
+    cp -R * /usr/local
+    cd -
 
     # install svcomp benchmark programs
-    git clone https://github.com/dbeyer/sv-benchmarks.git
+    # TODO: get this back > git clone --depth 1 https://github.com/dbeyer/sv-benchmarks.git
 
     # java install
     wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
@@ -37,21 +39,7 @@ Vagrant.configure(2) do |config|
     #smtinterpol install
     wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
 
-    # CPAChecker install
-    wget --no-check-certificate http://cpachecker.sosy-lab.org/CPAchecker-1.4-svcomp16-unix.tar.bz2  && bzip2 -d CPAchecker-1.4-svcomp16-unix.tar.bz2 && mkdir -p /home/vagrant/cpa && tar -xf CPAchecker-1.4-svcomp16-unix.tar -C /home/vagrant/cpa
- 
-    # benchexex install
-    pip3 install benchexec
-    mount -t cgroup none /sys/fs/cgroup
-    chmod o+wt '/sys/fs/cgroup/'
-
-    # env for testing skink
-    echo "export PYTHONPATH=$PYTHONPATH:/vagrant" >> ~/.profile
-    echo "export PATH=$PATH:/vagrant" >> ~/.profile
-    echo "export SKINK_DEBUG=yes" >> ~/.profile
-    echo "export PATH_TO_CPACHECKER=/home/vagrant/cpa/CPAchecker-1.4-svcomp16-unix" >> ~/.profile
-
     #prep for skink
-    echo "export OPT=opt-3.7" >> ~/.profile
+    echo "export OPT=opt" >> ~/.profile
   SHELL
 end
