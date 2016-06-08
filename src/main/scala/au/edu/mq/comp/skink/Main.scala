@@ -226,3 +226,19 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 }
 
 object Main extends Driver
+
+trait CDriver extends Driver {
+    override def processfile(filename : String, config : SkinkConfig) {
+        import sys.process._
+        val clangwargs : String = "-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
+        val clangdefs : String = "-Dassert=__VERIFIER_assert"
+        val clangargs : String = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
+        val llfile : String = (if (filename.lastIndexOf(".") >= 0) { filename.substring(0, filename.lastIndexOf('.')) } else { filename }) + ".ll"
+        logger.info(s"generate temp ll file: $filename > $llfile")
+        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -o $llfile").!
+        if (res != 0) { logger.info(s"conversion to llvm failed with code $res") }
+        super.processfile(llfile, config)
+    }
+}
+
+object CMain extends CDriver
