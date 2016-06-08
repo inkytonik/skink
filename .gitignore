@@ -11,3 +11,4 @@ skink.jar
 witness_checks
 .tag*
 *.dot
+src/test/resources/citests/*.ll
