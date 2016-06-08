@@ -5,14 +5,14 @@ scala:
   - 2.11.8
 
 before_script:
-  - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
-  - cd scalallvm; export JAVA_TOOL_OPTIONS="-Xss64M" && sbt publish-local; cd -
   - echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
   - echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main' >> /etc/apt/sources.list
   - echo 'deb http://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list
   - apt-get update
   - apt-get install -y --force-yes mercurial
   - apt-get install -y --force-yes sbt
+  - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
+  - cd scalallvm; export JAVA_TOOL_OPTIONS="-Xss64M" && sbt publish-local; cd -
   - apt-get install -y --force-yes unzip
   - wget --no-check-certificate http://llvm.org/releases/3.7.1/clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
   - tar xvf clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz 
