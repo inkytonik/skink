@@ -19,7 +19,7 @@ before_script:
   - cd -
   - wget --no-check-certificate https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
   - unzip z3-4.4.1-x64-ubuntu-14.04.zip
-  - cd clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04/
+  - cd z3-4.4.1-x64-ubuntu-14.04/
   - cp -R * /usr/local
   - cd - 
   - wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
@@ -30,7 +30,7 @@ before_script:
   - hg clone https://bitbucket.org/inkytonik/kiama
   - cd kiama; sbt publish-local; sbt "test:publish-local"; cd -
   - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
-  - cd scalallvm; export JAVA_TOOL_OPTIONS="-Xss64M" && sbt publish-local; cd -
+  - cd scalallvm; export JAVA_TOOL_OPTIONS="-Xss200M" && sbt publish-local; cd -
   - git clone git@bitbucket.org:franck44/automat.git
   - cd automat; sbt publish-local; cd -
   - git clone git@bitbucket.org:franck44/mq-scala-smtlib.git
