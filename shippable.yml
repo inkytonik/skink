@@ -30,7 +30,7 @@ before_script:
   - hg clone https://bitbucket.org/inkytonik/kiama
   - cd kiama; sbt publish-local; sbt "test:publish-local"; cd -
   - hg clone ssh://hg@bitbucket.org/inkytonik/scalallvm
-  - cd scalallvm; sbt publish-local; cd -
+  - cd scalallvm; sbt -J-Xmx512m publish-local; cd -
   - git clone git@bitbucket.org:franck44/automat.git
   - cd automat; sbt publish-local; cd -
   - git clone git@bitbucket.org:franck44/mq-scala-smtlib.git
