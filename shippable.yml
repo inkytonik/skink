@@ -41,7 +41,7 @@ before_script:
   - cd mq-scala-smtlib; /usr/bin/sbt publish-local; cd -
 
 script:
-    - sbt clean test
+    - sbt clean "test-only au.edu.mq.comp.skink.CITests"
 
 jdk:
   - oraclejdk8
