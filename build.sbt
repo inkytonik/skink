@@ -61,6 +61,8 @@ resolvers ++= Seq (
     Resolver.sonatypeRepo ("snapshots")
 )
 
+javaOptions in run += "-Dlogback.configurationFile=src/test/resources/logback-test.xml"
+
 scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
                                             // "-diagrams-dot-path",
                                             // "/usr/local/bin/dot",

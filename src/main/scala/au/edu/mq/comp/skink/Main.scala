@@ -226,3 +226,37 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 }
 
 object Main extends Driver
+
+trait CDriver extends Driver {
+    def dotc2dotll(filename : String) : String = {
+        (if (filename.lastIndexOf(".") >= 0)
+            filename.substring(0, filename.lastIndexOf('.'))
+        else
+            filename) + ".ll"
+    }
+
+    override def processfile(filename : String, config : SkinkConfig) {
+        import sys.process._
+        val clangwargs = "-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
+        val clangdefs = "-Dassert=__VERIFIER_assert"
+        val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
+        val llfile = dotc2dotll(filename)
+        logger.info(s"generate temp ll file: $filename > $llfile")
+
+        val devnull = new java.io.ByteArrayOutputStream
+        val clangq = ("which clang" #> devnull).! == 0
+        val optq = ("which opt" #> devnull).! == 0
+        if (!clangq || !optq) { logger.info(s"clang or opt not present on path") }
+
+        val clangv = "clang --version".!!
+        val optv = "opt --version".!!
+        logger.info(s"clang version is $clangv")
+        logger.info(s"opt version is $optv")
+
+        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -o $llfile").!
+        if (res != 0) { logger.info(s"conversion to llvm failed with code $res") }
+        super.processfile(llfile, config)
+    }
+}
+
+object CMain extends CDriver
