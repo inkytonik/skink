@@ -8,28 +8,28 @@ import au.edu.mq.comp.skink.SkinkConfig
  */
 class TraceRefinement(config : SkinkConfig) {
 
+    //  NFA
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
+
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
-    // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
+    //  SMTLIB
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
     import au.edu.mq.comp.smtlib.parser.Analysis
-    // import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Pop, Push}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{QualifiedId, Term}
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-    // import smtlib.util.Implicits._
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, Value}
     import au.edu.mq.comp.smtlib.solvers._
@@ -85,36 +85,39 @@ class TraceRefinement(config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        //  get a solver specification. This object creation
-        //  does not spawn any process merely declare a solver type we
-        //  want to use
+        /*
+         * get a solver specification. This object creation
+         * does not spawn any process merely declare a solver type we want to use
+         */
         val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
-        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
+        def refineRec(r : NFA[Int, Int], iteration : Int = 0) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
-                // No accepting trace in the language, so there are no failure traces.
+                /* No accepting trace in the language, so there are no failure traces. */
                 case None =>
                     logger.info(s"traceRefinem  ent: ${function.name} has no failure traces")
                     Success(None)
 
-                // Found a potential failure trace given by the choices. We
-                // need to check if it's feasible. If so, it's a real failure.
-                // If not, refine and try again.
+                /*
+                 * Found a potential failure trace given by the choices. We
+                 * need to check if it's feasible. If so, it's a real failure.
+                 * If not, refine and try again.
+                 */
                 case Some(choices) =>
 
                     logger.info(s"traceRefinement: ${function.name} has a failure trace")
                     logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
 
                     /*
-                     * Combine terms via conjunction, dealing with case where
+                     * Combine terms via conjunction, dealing with the case where
                      * are no terms so effect is "true".
                      */
                     def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
@@ -136,11 +139,13 @@ class TraceRefinement(config : SkinkConfig) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
                     }
 
-                    // Build a single combined term for the trace effect
+                    /* Build a single combined term for the trace effect */
                     val fullTerm = traceTerms.reduceLeft(_ & _)
 
-                    //  a solver with spec selectedSolver is spawned and killed
-                    //  at the end of the using scope
+                    /*
+                     * a solver with spec selectedSolver is spawned and killed
+                     * at the end of the using scope
+                     */
                     val result = using(selectedSolver) {
                         implicit solver =>
                             isSat(traceTerms : _*)
@@ -149,20 +154,25 @@ class TraceRefinement(config : SkinkConfig) {
                     // Check to see if the trace is feasible.
                     result match {
 
-                        // Yes, feasible. We've found a way in which the program
-                        // can file. Build the failure trace and return.
+                        /*
+                         * Yes, feasible. We've found a way in which the program
+                         * can fail. Build the failure trace and return.
+                         */
                         case Success(Sat()) =>
                             logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
                             val failTrace = makeFailureTrace(trace, traceTerms)
                             Success(Some(failTrace))
 
-                        // No, infeasible. That trace can't occur in a program
-                        // execution. If we've got iterations to spare, try
-                        // again after removing the infeasible trace (and perhaps
-                        // other traces that fail for related reasons).
+                        /*
+                         * No, infeasible. That trace can't occur in a program
+                         * execution. If we've got iterations to spare, try
+                         * again after removing the infeasible trace (and perhaps
+                         * other traces that fail for related reasons).
+                         */
                         case Success(UnSat()) =>
                             logger.info(s"traceRefinement: the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
+                                logger.info(s"traceRefinement: Computing refinement")
                                 refineRec(
                                     toDetNFA(r + interpolantAuto(choices)),
                                     iteration + 1
@@ -179,8 +189,8 @@ class TraceRefinement(config : SkinkConfig) {
             }
         }
 
-        // Start the refinement algorithm with no "ruled out" traces.
-        refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
+        /* Start the refinement algorithm with no "ruled out" traces i.e. an empty NFA for the refinement . */
+        refineRec(NFA[Int, Int](Set(), Set(), Set()))
     }
 
     /**
