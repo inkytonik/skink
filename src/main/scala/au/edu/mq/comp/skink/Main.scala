@@ -100,9 +100,10 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
-    import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
+    import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source, FileSource}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
     import org.rogach.scallop.exceptions.ScallopException
+    import scala.util.{Try, Success, Failure}
 
     val logger = getLogger(this.getClass)
 
@@ -167,6 +168,27 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
                     Right(messages)
             }
 
+        }
+
+    }
+
+    /**
+     * Parse a file containing an LLVM-IR program.
+     *
+     * @param fileName    The full name of the file
+     * @param config      A configuration for Skink
+     *
+     * @return            A Program or a failure with a message indicating what went wrong.
+     */
+    def parseFile(fileName : String, config : SkinkConfig) : Try[IR] = {
+
+        logger.info(s"parseFile: building ${config.irProvider().name} program")
+        config.irProvider().buildFromSource(FileSource(fileName), positions) match {
+            case Left(ir) =>
+                Success(ir)
+            case Right(messages) =>
+                config.output().emitln(s"UNKNOWN\ncan't build ${config.irProvider().name} IR")
+                Failure(new Exception(s"$messages)"))
         }
 
     }
