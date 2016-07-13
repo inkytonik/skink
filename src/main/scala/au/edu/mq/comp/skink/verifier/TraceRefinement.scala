@@ -139,9 +139,6 @@ class TraceRefinement(config : SkinkConfig) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
                     }
 
-                    /* Build a single combined term for the trace effect */
-                    val fullTerm = traceTerms.reduceLeft(_ & _)
-
                     /*
                      * a solver with spec selectedSolver is spawned and killed
                      * at the end of the using scope
