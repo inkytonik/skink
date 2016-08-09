@@ -1,12 +1,11 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import au.edu.mq.comp.skink.ir.IRProvider
-import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.{Frontend, SkinkConfig}
 
 /**
- * Provider for LLVM IR.
+ * Frontend for LLVM.
  */
-class LLVMProvider(config : SkinkConfig) extends IRProvider {
+class LLVMFrontend(config : SkinkConfig) extends Frontend {
 
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
@@ -20,15 +19,13 @@ class LLVMProvider(config : SkinkConfig) extends IRProvider {
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
 
-    // Implementation of IRProvider interface
-
     val name = "LLVM"
 
-    def buildFromSource(source : Source, positions : Positions) : Either[IR, Messages] = {
+    def buildIR(source : Source, positions : Positions) : Either[IR, Messages] = {
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {
-            logger.info("buildFromSource: LLVM program build succeeded")
+            logger.info("buildIR: LLVM program build succeeded")
             val program = p.value(pr).asInstanceOf[Program]
             val ir = new LLVMIR(program, config)
             programLogger.debug("* Program from source\n")

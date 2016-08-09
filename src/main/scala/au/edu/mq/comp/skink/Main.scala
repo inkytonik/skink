@@ -1,47 +1,48 @@
 package au.edu.mq.comp.skink
 
-import au.edu.mq.comp.skink.ir.llvm.LLVMProvider
-import iml.IMLSyntax.Program
+import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
 
-    import au.edu.mq.comp.skink.ir.IRProvider
+    import au.edu.mq.comp.skink.c.CFrontend
+    import au.edu.mq.comp.skink.iml.IMLFrontend
+    import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
     import au.edu.mq.comp.smtlib.solvers._
 
-    lazy val compile = opt[Boolean]("compile", short = 'c',
-        descr = "Compile the IML program")
-
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code")
 
-    val irProviderConverter =
-        new ValueConverter[IRProvider] {
+    val frontendConverter =
+        new ValueConverter[Frontend] {
 
             val argType = ArgType.LIST
 
-            def parse(s : List[(String, List[String])]) : Either[String, Option[IRProvider]] =
+            def parse(s : List[(String, List[String])]) : Either[String, Option[Frontend]] =
                 s match {
+                    case List((_, List("C"))) =>
+                        Right(Some(new CFrontend(config)))
+                    case List((_, List("IML"))) =>
+                        Right(Some(new IMLFrontend(config)))
                     case List((_, List("LLVM"))) =>
-                        Right(Some(new LLVMProvider(config)))
+                        Right(Some(new LLVMFrontend(config)))
                     case List((_, _)) =>
-                        Left("expected 'ir LLVM'")
+                        Left("expected 'frontend C, IML or LLVM'")
                     case _ =>
                         Right(None)
                 }
 
-            val tag = implicitly[TypeTag[IRProvider]]
+            val tag = implicitly[TypeTag[Frontend]]
 
         }
 
-    lazy val irProvider = opt[IRProvider]("ir", short = 'i',
-        descr = "The intermediate representation to use (LLVM)",
-        noshort = true,
-        default = Some(new LLVMProvider(config)))(irProviderConverter)
+    lazy val frontend = opt[Frontend]("frontend", short = 'f',
+        descr = "The frontend to use: C (default), IML, LLVM",
+        default = Some(new CFrontend(config)))(frontendConverter)
 
     lazy val lli = opt[String]("lli", descr = "Program to use to execute target code",
         default = Some("/usr/local/bin/lli"))
@@ -51,7 +52,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some(10))
 
     lazy val parse = opt[Boolean]("parse", short = 'p',
-        descr = "Parse the IML program")
+        descr = "Only parse the program in the front-end")
 
     val solverConverter =
         new ValueConverter[Solver] {
@@ -67,7 +68,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                     case List((_, List("Z3"))) =>
                         Right(Some(new Z3))
                     case List((_, _)) =>
-                        Left("expected CVC4, SMTInterpol, or Z3")
+                        Left("expected CVC4, SMTInterpol or Z3")
                     case _ =>
                         Right(None)
                 }
@@ -77,7 +78,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val solver = opt[Solver]("solver", short = 'e',
-        descr = "SMT solver (Z3, SMTInterpol, CVC4)",
+        descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
         default = Some(new Z3))(solverConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
@@ -93,15 +94,15 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
 }
 
-trait Driver extends CompilerBase[Program, SkinkConfig] {
+trait Driver extends CompilerBase[IR, SkinkConfig] {
 
-    import au.edu.mq.comp.skink.iml.Compiler
-    import au.edu.mq.comp.skink.ir.{IR, IRProvider}
+    import au.edu.mq.comp.skink.iml.IMLCompiler
+    import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
-    import org.bitbucket.inkytonik.kiama.util.Messaging.{Messages, noMessages}
+    import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.rogach.scallop.exceptions.ScallopException
 
     val logger = getLogger(this.getClass)
@@ -129,69 +130,19 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
     }
 
     /**
-     * If we're processing IML, build an AST program for it. The Compiler
-     * support will then call `process`. Otherwise, we are working with IR
-     * directly so build a representation of it and call `processIR`. In
-     * either case if an error occurs return the messages instead.
+     * Build an IR representation for the given source using the current
+     * frontend.
      */
-    override def makeast(source : Source, config : SkinkConfig) : Either[Program, Messages] = {
-
-        if (config.parse() || config.compile()) {
-
-            // We're compiling so input file contains IML. Parse and process
-            // the IML program and then the IR of the compiled program.
-
-            logger.info("makeast: compiling IML program")
-
-            val p = new iml.IML(source, positions)
-            val pr = p.pProgram(0)
-            if (pr.hasValue)
-                Left(p.value(pr).asInstanceOf[Program])
-            else
-                Right(Vector(p.errorToMessage(pr.parseError)))
-
-        } else {
-
-            // We're not compiling IML so input file contains IR code. Get the
-            // IR provider from the configuration and use it to build and then
-            // process the IR.
-
-            logger.info(s"makeast: building ${config.irProvider().name} program")
-
-            config.irProvider().buildFromSource(source, positions) match {
-                case Left(ir) =>
-                    processIR(ir, config)
-                    Right(noMessages)
-                case Right(messages) =>
-                    config.output().emitln(s"UNKNOWN\ncan't build ${config.irProvider().name} IR")
-                    Right(messages)
-            }
-
-        }
-
-    }
-
-    /**
-     * Processing for IML programs: compile to LLVM IR and then process that.
-     */
-    def process(source : Source, program : Program, config : SkinkConfig) {
-
-        import au.edu.mq.comp.skink.iml.IMLPrettyPrinter.{any, pretty}
-
-        logger.info("process")
-
-        if (config.compile()) {
-            val compiler = new Compiler(positions, config)
-            val ir = compiler.compile(program)
-            processIR(ir, config)
-        }
-
+    override def makeast(source : Source, config : SkinkConfig) : Either[IR, Messages] = {
+        val frontend = config.frontend()
+        logger.info(s"makeast: building IR using ${frontend.name} frontend")
+        frontend.buildIR(source, positions)
     }
 
     /**
      * Processing for IR.
      */
-    def processIR(ir : IR, config : SkinkConfig) {
+    def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier
 
@@ -220,43 +171,9 @@ trait Driver extends CompilerBase[Program, SkinkConfig] {
 
     }
 
-    def format(program : Program) : Document =
-        iml.IMLPrettyPrinter.format(program, 5)
+    def format(ir : IR) : Document =
+        new Document(ir.show, Nil)
 
 }
 
 object Main extends Driver
-
-trait CDriver extends Driver {
-    def dotc2dotll(filename : String) : String = {
-        (if (filename.lastIndexOf(".") >= 0)
-            filename.substring(0, filename.lastIndexOf('.'))
-        else
-            filename) + ".ll"
-    }
-
-    override def processfile(filename : String, config : SkinkConfig) {
-        import sys.process._
-        val clangwargs = "-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-        val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
-        val llfile = dotc2dotll(filename)
-        logger.info(s"generate temp ll file: $filename > $llfile")
-
-        val devnull = new java.io.ByteArrayOutputStream
-        val clangq = ("which clang" #> devnull).! == 0
-        val optq = ("which opt" #> devnull).! == 0
-        if (!clangq || !optq) { logger.info(s"clang or opt not present on path") }
-
-        val clangv = "clang --version".!!
-        val optv = "opt --version".!!
-        logger.info(s"clang version is $clangv")
-        logger.info(s"opt version is $optv")
-
-        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -o $llfile").!
-        if (res != 0) { logger.info(s"conversion to llvm failed with code $res") }
-        super.processfile(llfile, config)
-    }
-}
-
-object CMain extends CDriver
