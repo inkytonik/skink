@@ -586,16 +586,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         val errorBlocks = new ListBuffer[Block]()
 
-        def makeErrorLabel(label : OptBlockLabel) : String =
-            label match {
-                case BlockLabel(label) =>
-                    s"__error.$label"
-                case ImplicitLabel(num) =>
-                    s"__error.$num"
-                case NoLabel() =>
-                    s"__error.nolabel"
-            }
-
         def isNotErrorCall(insn : MetaInstruction) : Boolean =
             insn match {
                 case MetaInstruction(
@@ -617,7 +607,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 block
             else {
                 val metadata = after(0).metadata
-                val errorLabel = makeErrorLabel(block.optBlockLabel)
+                val errorLabel = makeLabelFromPrefix(block.optBlockLabel, "__error")
                 val errorBlock =
                     Block(BlockLabel(errorLabel), Vector(), None, after,
                         block.metaTerminatorInstruction)
@@ -645,6 +635,113 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         ret
 
     }
+
+    /**
+     * Split blocks on global variable access to allow permutations of dependent
+     * instructions to be generated between thread functions.
+     */
+    def makeThreadVerifiable : FunctionDefinition = {
+
+        logger.info(s"makeThreadVerifiable: $name")
+
+        val insertedBlocks = new ListBuffer[Block]()
+
+        def isNotGlobalAccess(insn : MetaInstruction) : Boolean =
+            insn match {
+                case MetaInstruction(
+                    Load(
+                        _, _, _, _,
+                        Named(Global(_)),
+                        _
+                        ),
+                    _
+                    ) =>
+                    false
+                case MetaInstruction(
+                    Store(
+                        _, _, _, _,
+                        Named(Global(_)),
+                        _
+                        ),
+                    _
+                    ) =>
+                    false
+                case _ =>
+                    true
+            }
+
+        // Must be a better way to do it, yuck
+        def splitOnGlobalAccess(insns : List[MetaInstruction]) : List[List[MetaInstruction]] =
+            insns span isNotGlobalAccess match {
+                case (Nil, Nil) => Nil
+                case (Nil, access :: remains) => splitOnGlobalAccess(remains) match {
+                    case start :: end => List(access) :: start :: end
+                    case Nil          => List(List(access))
+                }
+                case (remains, Nil)                => List(remains)
+                case (previous, access :: remains) => (previous :+ access) :: splitOnGlobalAccess(remains)
+            }
+
+        def insertBranchOnGlobalAccess(block : Block) : Block = {
+            programLogger.info("Tried to enter replaceErrorCalls")
+            // Get a list of blocks which contain a global memory access as their last
+            // instruction.
+            val splitBlocks = splitOnGlobalAccess(block.optMetaInstructions.toList)
+
+            if (splitBlocks.length <= 1)
+                block
+            else {
+                val first = splitBlocks.head
+                val rest = splitBlocks.drop(1).dropRight(1)
+                val last = splitBlocks.last
+                var label = makeLabelFromPrefix(block.optBlockLabel, "__threading")
+                // Generate the final block in the function and add it to the list
+                insertedBlocks += Block(BlockLabel(label), Vector(), None, last.toVector,
+                    block.metaTerminatorInstruction)
+                var blockCount = 0
+                for (b <- rest.reverse) {
+                    val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
+                    insertedBlocks += Block(BlockLabel(newLabel), Vector(), None, b.toVector,
+                        MetaTerminatorInstruction(
+                            Branch(Label(Local(label))),
+                            Metadata(Vector())
+                        ))
+                    label = newLabel
+                }
+                val startBlock = Block(block.optBlockLabel, Vector(), None, first.toVector,
+                    MetaTerminatorInstruction(
+                        Branch(Label(Local(label))),
+                        Metadata(Vector())
+                    ))
+                startBlock
+            }
+        }
+
+        val startingBlocks = function.functionBody.blocks.map(insertBranchOnGlobalAccess)
+        val functionBodyWithSplitBlocks = FunctionBody(startingBlocks ++ insertedBlocks)
+
+        // Return the new function
+        val ret = function.copy(functionBody = functionBodyWithSplitBlocks)
+        programLogger.info(s"* Function $name for verification:\n")
+        programLogger.info(show(ret))
+        programLogger.info(s"\n* AST of function $name for verification:\n\n")
+        programLogger.info(layout(any(ret)))
+        ret
+    }
+
+    /**
+     * Generate a new label from an existing block label and a supplied prefix
+     * string.
+     */
+    def makeLabelFromPrefix(label : OptBlockLabel, prefix : String) : String =
+        label match {
+            case BlockLabel(label) =>
+                s"$prefix.$label"
+            case ImplicitLabel(num) =>
+                s"$prefix.$num"
+            case NoLabel() =>
+                s"$prefix.nolabel"
+        }
 
     /**
      * Get the name of a block. Currently assumes that a block with no label
