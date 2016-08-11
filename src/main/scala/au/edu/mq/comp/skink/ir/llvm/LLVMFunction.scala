@@ -639,6 +639,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     /**
      * Split blocks on global variable access to allow permutations of dependent
      * instructions to be generated between thread functions.
+     Nice piece of code.
      */
     def makeThreadVerifiable : FunctionDefinition = {
 
