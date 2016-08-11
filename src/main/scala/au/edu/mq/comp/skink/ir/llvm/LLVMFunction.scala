@@ -4,15 +4,49 @@ import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
+trait BlockUtils {
+
+    import org.scalallvm.assembly.AssemblySyntax.{Block, BlockLabel, ImplicitLabel, NoLabel}
+    /**
+     * Get the name of a block. Currently assumes that a block with no label
+     * must be the anonymous entry block (0).
+     */
+    def blockName(block : Block) : String =
+        block.optBlockLabel match {
+            case BlockLabel(s)    => s
+            case ImplicitLabel(i) => i.toString
+            case NoLabel()        => "0"
+        }
+}
+
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
  */
-case class BlockTrace(blocks : Seq[Block], trace : Trace)
+case class BlockTrace(blocks : Seq[Block], trace : Trace) extends BlockUtils {
+
+    /**
+     *  Build a Map from blockNames to indices in the Seq
+     */
+    def groupByName = blocks.zipWithIndex.groupBy {
+        //  groupBy blockName
+        x => blockName(x._1)
+    } map {
+        //  extract the index only: x._2.map(_._2)
+        x => (x._1, x._2.map(_._2))
+    }
+
+    /**
+     * Print trace one block per line
+     */
+    def showNames : String = {
+        blocks.map(blockName).mkString(" ")
+    }
+}
 
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction with BlockUtils {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
@@ -39,10 +73,17 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import scala.util.{Failure, Success}
 
     object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
-    import termStuff.{True => STrue, False => SFalse, _}
+    import termStuff.{
+        True => STrue,
+        False => SFalse,
+        _
+    }
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+
+    //  logger for interpolant related computations
+    val itpLogger = getLogger(this.getClass, ".itp")
 
     // Version of LLVM PP show that avoids line-wrapping
     def longshow(n : ASTNode) : String =
@@ -63,7 +104,30 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
 
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
+    /*
+         * Combine terms via conjunction, dealing with the case where
+         * there are no terms so effect is "true".
+         */
+    private def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
+        if (terms.isEmpty)
+            STrue()
+        else
+            terms.reduceLeft(_ & _)
+
+    def traceToTerms2(
+        trace : Trace
+    ) : Seq[TypedTerm[BoolTerm, Term]] = traceToTerms(trace).map(combineTerms)
+
+    /**
+     * Compute the SSA for term applied to pre. The post is indexed
+     * by the indices of the variables in the last state of the SSA.
+     *
+     * @return The pre indexed by the indices. post indexed by indices in the last
+     * state of the trace, and the the encoding of the trace
+     */
+    def traceToTerms(
+        trace : Trace
+    ) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -78,11 +142,23 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // local variable or store to memory location is counted so that
         // we can treat each such occurrence in SSA form.
 
+        /**
+         * Maps variable names to indices
+         */
         type StoreMap = Map[String, Int]
 
         lazy val stores : Chain[StoreMap] =
             chain(storesin)
 
+        /**
+         * Update the current map from names to indices
+         *
+         * @param m       The current map that provides the latest index for some names
+         * @param name    The variable of increment the counter for
+         *
+         * @return        If `name` is not in m, then m + (name -> 0) otherwise
+         *                m'(name) = m(name) + 1 and m' = m for the the other vars.
+         */
         def bumpcount(m : StoreMap, name : Name) : StoreMap = {
             val s = show(name)
             val count = m.getOrElse(s, 0)
@@ -647,17 +723,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     }
 
     /**
-     * Get the name of a block. Currently assumes that a block with no label
-     * must be the anonymous entry block (0).
-     */
-    def blockName(block : Block) : String =
-        block.optBlockLabel match {
-            case BlockLabel(s)    => s
-            case ImplicitLabel(i) => i.toString
-            case NoLabel()        => "0"
-        }
-
-    /**
      * Convert an LLVM name into its string representation.
      */
     def nameToString(name : Name) : String =
@@ -886,4 +951,98 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             }
     }
 
+    /**
+     * Encode a trace of the form assume(pre) trace assert(post)
+     *
+     * @example  Let pre be x == 1, post be (x == 2 and y == x + 1), and
+     * trace be x = x + 1; y = 2
+     * The encoding returns x_0  == 1, x_1 == x_0 + 1 and y_1 == 2,
+     * x_1 == 2 and y_1 == x_1 + 1
+     */
+    // def AssumeTraceAssertToTerms(
+    //     pre : TypedTerm[BoolTerm, Term],
+    //     trace : Trace,
+    //     post : TypedTerm[BoolTerm, Term]
+    // ) : Tuple3[TypedTerm[BoolTerm, Term], TypedTerm[BoolTerm, Term], TypedTerm[BoolTerm, Term]] = {
+    //     (STrue(), STrue(), STrue())
+    // }
+
+    /**
+     * Return the partition of indices grouped by blockNames
+     *
+     * For instance if the blockTrace is b0, b1, b2, b1, b3, b4 it returns
+     * {0}, {1,4} (b1 appears at index 1 and 4), {2}, {5}, {6}
+     */
+    def partitionWithNames(trace : Trace) : List[Set[Int]] = {
+
+        itpLogger.info(s"[repeatedBlocks] Trace is ${trace.show}\n")
+
+        //  compute the blockTrace
+        val blockTrace = traceToBlockTrace(trace)
+
+        itpLogger.info(s"[repeatedBlocks] BlockTrace is [blocknames are displayed] ${blockTrace.showNames}\n")
+
+        //  find repeated blockNames in blockTrace
+        val blockToTraceLocation = blockTrace.groupByName.map(_._2.toSet).toList
+
+        itpLogger.info(s"[repeatedBlocks] Repetitions are: ${blockToTraceLocation.mkString("\n")}")
+        blockToTraceLocation
+
+    }
+
+    /*
+     * Combine terms via conjunction, dealing with the case where
+     * there are no terms so effect is "true".
+     */
+    // private def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
+    //     if (terms.isEmpty)
+    //         STrue()
+    //     else
+    //         terms.reduceLeft(_ & _)
+
+    /**
+     *  Check whether the last step of a  trace
+     * satisfies a Pre/Post consition.
+     *
+     * @param     pre     The pre-condition
+     * @param     post    The post-condition
+     * @param     trace   The trace the last step of which must be checked
+     */
+    def checkPrePost(
+        pre : TypedTerm[BoolTerm, Term],
+        trace : Trace,
+        post : TypedTerm[BoolTerm, Term]
+    ) : Boolean = {
+
+        import au.edu.mq.comp.smtlib.parser.Analysis
+        import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SortedQId, SSymbol, ISymbol, SymbolId, DelimitedSeq}
+        //  compute the names of a SortedQId
+        def name(x : SortedQId) = x.id match {
+            case SymbolId(sym) => sym match {
+                case SSymbol(name)    => name
+                case ISymbol(name, _) => name
+                case DelimitedSeq(_)  => sys.error("Could not continue")
+            }
+            case _ => sys.error("Could not continue")
+        }
+
+        //  compute the encoding of the trace
+        val traceSSAed = traceToTerms2(trace)
+        for (i <- 0 until traceSSAed.length) {
+            itpLogger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceSSAed(i).termDef)}""")
+        }
+
+        //  index variables in pre with 0
+
+        //  compute largest/smallest indices for each variable in traceSSAed
+        val r = traceSSAed.flatMap(_.typeDefs).groupBy {
+            x => name(x)
+        }
+
+        itpLogger.info(s"== Computed groupBy name ==\n")
+        itpLogger.info(s"${r.mkString("\n")}")
+        itpLogger.info("\n")
+
+        false
+    }
 }

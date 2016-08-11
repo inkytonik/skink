@@ -36,6 +36,8 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.smtlib.interpreters.SMTSolver
     import au.edu.mq.comp.smtlib.interpreters.Resources
 
+    import interpolant.InterpolantAuto.buildInterpolantAuto
+
     case class ValMap(m : Map[QualifiedId, Value])
 
     object Cmds extends Commands
@@ -118,13 +120,13 @@ class TraceRefinement(config : SkinkConfig) {
 
                     /*
                      * Combine terms via conjunction, dealing with the case where
-                     * are no terms so effect is "true".
+                     * there are no terms so effect is "true".
                      */
-                    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-                        if (terms.isEmpty)
-                            True()
-                        else
-                            terms.reduceLeft(_ & _)
+                    // def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
+                    //     if (terms.isEmpty)
+                    //         True()
+                    //     else
+                    //         terms.reduceLeft(_ & _)
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -133,7 +135,7 @@ class TraceRefinement(config : SkinkConfig) {
                      * conjunction.
                      */
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace).map(combineTerms)
+                    val traceTerms = function.traceToTerms2(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
@@ -171,7 +173,7 @@ class TraceRefinement(config : SkinkConfig) {
                             if (iteration < config.maxIterations()) {
                                 logger.info(s"traceRefinement: Computing refinement")
                                 refineRec(
-                                    toDetNFA(r + interpolantAuto(choices)),
+                                    toDetNFA(r + buildInterpolantAuto(function, choices)),
                                     iteration + 1
                                 )
                             } else {
@@ -195,11 +197,11 @@ class TraceRefinement(config : SkinkConfig) {
      * generate a simple linear automaton so the refinement process will remove
      * just this one trace. Later revisions will be cleverer.
      */
-    def interpolantAuto(choices : Seq[Int]) : NFA[Int, Int] = {
-        val transitions =
-            for (i <- 0 until choices.length)
-                yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
-    }
+    // def interpolantAuto(choices : Seq[Int]) : NFA[Int, Int] = {
+    //     val transitions =
+    //         for (i <- 0 until choices.length)
+    //             yield (i ~> (i + 1))(choices(i))
+    //     NFA(Set(0), transitions.toSet, Set(choices.length))
+    // }
 
 }

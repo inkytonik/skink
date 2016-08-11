@@ -34,10 +34,26 @@ trait IRFunction {
      */
     def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]]
 
+    def traceToTerms2(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
+
     /**
      * Return descriptions of the steps taken by a failure trace for use
      * in witness generation.
      */
     def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
+    /**
+     * Return the partition of indices grouped by blockNames.
+     * @todo Add partition (grouping function)
+     */
+    def partitionWithNames(trace : Trace) : List[Set[Int]]
+
+    /**
+     *  Check whether a trace satisfies a Hoare triple.
+     */
+    def checkPrePost(
+        pre : TypedTerm[BoolTerm, Term],
+        trace : Trace,
+        post : TypedTerm[BoolTerm, Term]
+    ) : Boolean
 }

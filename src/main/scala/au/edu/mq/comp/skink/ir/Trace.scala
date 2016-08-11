@@ -11,7 +11,13 @@ import au.edu.mq.comp.smtlib.typedterms.Value
  * paths to successor blocks, the index will be 0 or 1, indicating which of
  * the possible paths was taken in the trace.
  */
-case class Trace(choices : Seq[Int])
+case class Trace(choices : Seq[Int]) {
+
+    /**
+     * Pretty print the sequence
+     */
+    def show = s"[${choices.size}] " + choices.mkString(" ")
+}
 
 /**
  * A feasible trace that leads to a program failure. `values`, if
