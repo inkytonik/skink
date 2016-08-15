@@ -646,7 +646,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         val insertedBlocks = new ListBuffer[Block]()
 
-        def isNotGlobalAccess(insn : MetaInstruction) : Boolean =
+        def isNotGlobalAccess(insn : MetaInstruction) : Boolean = {
+            programLogger.debug(s"Matching on: $insn \n")
             insn match {
                 case MetaInstruction(
                     Load(
@@ -669,6 +670,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 case _ =>
                     true
             }
+        }
 
         // Must be a better way to do it, yuck
         def splitOnGlobalAccess(insns : List[MetaInstruction]) : List[List[MetaInstruction]] =
@@ -683,10 +685,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             }
 
         def insertBranchOnGlobalAccess(block : Block) : Block = {
-            programLogger.info("Tried to enter replaceErrorCalls")
             // Get a list of blocks which contain a global memory access as their last
             // instruction.
             val splitBlocks = splitOnGlobalAccess(block.optMetaInstructions.toList)
+            programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
             if (splitBlocks.length <= 1)
                 block
@@ -722,9 +724,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         // Return the new function
         val ret = function.copy(functionBody = functionBodyWithSplitBlocks)
-        programLogger.info(s"* Function $name for verification:\n")
+        programLogger.info(s"* Function $name for concurrent verification:\n")
         programLogger.info(show(ret))
-        programLogger.info(s"\n* AST of function $name for verification:\n\n")
+        programLogger.info(s"\n* AST of function $name for concurrent verification:\n\n")
         programLogger.info(layout(any(ret)))
         ret
     }
