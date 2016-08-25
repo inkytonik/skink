@@ -18,6 +18,22 @@
         </encoder>
     </appender>
 
+    <appender name="CFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/C.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="IMLFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/IML.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
     <appender name="LLVMFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/LLVM.log</file>
         <append>false</append>
@@ -40,6 +56,18 @@
 
     <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
+    <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
+        <appender-ref ref="CFILE"/>
+    </logger>
+
+    <logger name="au.edu.mq.comp.skink.iml" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend.program" level="INHERITED" additivity="false">
+        <appender-ref ref="IMLFILE"/>
+    </logger>
+
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
     <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
@@ -52,8 +80,8 @@
     <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
 
     <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMProvider.program" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
