@@ -639,7 +639,12 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     /**
      * Split blocks on global variable access to allow permutations of dependent
      * instructions to be generated between thread functions.
-     Nice piece of code.
+     *
+     * Only necessary for functions which are expected to be used in a concurrent
+     * program.
+     *
+     * TODO: Add all types of memory mutation -- probably easy with slightly
+     * more clever pattern match
      */
     def makeThreadVerifiable : FunctionDefinition = {
 
@@ -650,24 +655,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         def isNotGlobalAccess(insn : MetaInstruction) : Boolean = {
             programLogger.debug(s"Matching on: $insn \n")
             insn match {
-                case MetaInstruction(
-                    Load(
-                        _, _, _, _,
-                        Named(Global(_)),
-                        _
-                        ),
-                    _
-                    ) =>
-                    false
-                case MetaInstruction(
-                    Store(
-                        _, _, _, _,
-                        Named(Global(_)),
-                        _
-                        ),
-                    _
-                    ) =>
-                    false
+                case MetaInstruction(muteInsn, _) => {
+                    muteInsn match {
+                        case Load(_, _, _, _, Named(Global(_)), _)  => false
+                        case Store(_, _, _, _, Named(Global(_)), _) => false
+                        case _                                      => true
+                    }
+                }
                 case _ =>
                     true
             }
@@ -676,13 +670,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // Must be a better way to do it, yuck
         def splitOnGlobalAccess(insns : List[MetaInstruction]) : List[List[MetaInstruction]] =
             insns span isNotGlobalAccess match {
-                case (Nil, Nil) => Nil
                 case (Nil, access :: remains) => splitOnGlobalAccess(remains) match {
                     case start :: end => List(access) :: start :: end
                     case Nil          => List(List(access))
                 }
                 case (remains, Nil)                => List(remains)
                 case (previous, access :: remains) => (previous :+ access) :: splitOnGlobalAccess(remains)
+                case (Nil, Nil)                    => Nil
             }
 
         def insertBranchOnGlobalAccess(block : Block) : Block = {

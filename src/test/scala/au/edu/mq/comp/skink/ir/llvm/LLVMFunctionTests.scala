@@ -53,7 +53,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(func.functionBody.blocks.length == 1)
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
     }
-    
+
     test("Split two stores to same global") {
         val (prog, func, block, analyser) =
             parseProgram(
@@ -68,7 +68,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(func.functionBody.blocks.length == 1)
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
     }
-    
+
     test("Split two loads from different globals") {
         val (prog, func, block, analyser) =
             parseProgram(
@@ -83,7 +83,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(func.functionBody.blocks.length == 1)
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
     }
-    
+
     test("Split two loads from same global") {
         val (prog, func, block, analyser) =
             parseProgram(
@@ -98,7 +98,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(func.functionBody.blocks.length == 1)
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
     }
-  
+
     test("Split a load and a store separated by another insn") {
         val (prog, func, block, analyser) =
             parseProgram(
