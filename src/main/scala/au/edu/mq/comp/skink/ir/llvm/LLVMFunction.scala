@@ -670,13 +670,13 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // Must be a better way to do it, yuck
         def splitOnGlobalAccess(insns : List[MetaInstruction]) : List[List[MetaInstruction]] =
             insns span isNotGlobalAccess match {
+                case (Nil, Nil) => Nil
                 case (Nil, access :: remains) => splitOnGlobalAccess(remains) match {
                     case start :: end => List(access) :: start :: end
                     case Nil          => List(List(access))
                 }
                 case (remains, Nil)                => List(remains)
                 case (previous, access :: remains) => (previous :+ access) :: splitOnGlobalAccess(remains)
-                case (Nil, Nil)                    => Nil
             }
 
         def insertBranchOnGlobalAccess(block : Block) : Block = {
