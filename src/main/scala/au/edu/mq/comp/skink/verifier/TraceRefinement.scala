@@ -12,7 +12,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace, IR}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
@@ -57,7 +57,8 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def makeFailureTrace(
         trace : Trace,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
+        terms : Seq[TypedTerm[BoolTerm, Term]],
+        function : IRFunction
     ) : FailureTrace = {
         // val getids = collect {
         //     case id @ (QualifiedId(_, Some(_))) =>
@@ -73,7 +74,7 @@ class TraceRefinement(config : SkinkConfig) {
         //     case _ =>
         //         Success(ValMap(Map.empty))
         // }
-        FailureTrace(trace, ids, Success(Map[QualifiedId, Value]()))
+        FailureTrace(trace, ids, Success(Map[QualifiedId, Value]()), function)
     }
 
     /**
@@ -81,8 +82,8 @@ class TraceRefinement(config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
-
+    def traceRefinement(ir : IR) : Try[Option[FailureTrace]] = {
+        val function = ir.functions.filter(f => f.name == "main").head
         val functionLang = Lang(function.nfa)
 
         //  get a solver specification. This object creation
@@ -102,7 +103,7 @@ class TraceRefinement(config : SkinkConfig) {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"traceRefinem  ent: ${function.name} has no failure traces")
+                    logger.info(s"traceRefinement: ${function.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -153,7 +154,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success(Sat()) =>
                             logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
-                            val failTrace = makeFailureTrace(trace, traceTerms)
+                            val failTrace = makeFailureTrace(trace, traceTerms, function)
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program

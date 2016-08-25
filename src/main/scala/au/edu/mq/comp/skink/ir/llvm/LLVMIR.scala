@@ -13,6 +13,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor
+    import org.scalallvm.assembly.Analyser.{metadata, filepath}
 
     // Implementation of IR interface
 
@@ -23,6 +24,12 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
         ir.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(ir, fd)
+        }
+
+    lazy val name : String =
+        filepath(metadata(ir)) match {
+            case Some(name) => name
+            case None       => "unknown name"
         }
 
     def show : String =

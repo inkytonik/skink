@@ -16,7 +16,8 @@ class Witnesses(config : SkinkConfig) {
      * Output in SV-COMP result format a witness for the failure given by
      * `failTrace` in the given function .
      */
-    def printWitness(function : IRFunction, failTrace : FailureTrace) {
+    def printWitness(failTrace : FailureTrace) {
+        val function = failTrace.function
 
         def escapeChar(char : Char) =
             char match {

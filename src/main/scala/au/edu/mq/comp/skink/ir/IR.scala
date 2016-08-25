@@ -19,6 +19,11 @@ trait IR {
     def functions : Vector[IRFunction]
 
     /**
+     * The name of this program.
+     */
+    def name : String
+
+    /**
      * Return a pretty-printed version of this IR instance.
      */
     def show : String

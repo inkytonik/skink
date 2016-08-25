@@ -9,21 +9,20 @@ import au.edu.mq.comp.skink.SkinkConfig
 class Verifier(config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.lang.Lang
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IR, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
     import scala.util.{Failure, Success}
 
     val logger = getLogger(this.getClass)
 
     /**
-     * Verify a function and output the result in SV-COMP format.
+     * Verify a program and output the result in SV-COMP format.
      */
-    def verify(function : IRFunction) {
-
-        logger.info(s"verify: ${function.name}")
+    def verify(ir : IR) {
+        logger.info(s"verify: ${ir.name}")
 
         def reportCorrect() {
-            logger.info(s"verify: ${function.name} is correct")
+            logger.info(s"verify: ${ir.name} is correct")
             config.output().emitln("TRUE")
         }
 
@@ -33,20 +32,20 @@ class Verifier(config : SkinkConfig) {
         }
 
         def reportIncorrect(failureTrace : FailureTrace) {
-            logger.info(s"verify: ${function.name} is incorrect")
+            logger.info(s"verify: ${failureTrace.function.name} in ${ir.name} is incorrect")
             config.output().emitln("FALSE")
-            new Witnesses(config).printWitness(function, failureTrace)
+            new Witnesses(config).printWitness(failureTrace)
         }
 
         def reportUnknown(message : String) {
-            logger.info(s"verify: correctness of ${function.name} is unknown")
+            logger.info(s"verify: correctness of ${ir.name} is unknown")
             logger.info(s"verify: $message")
             config.output().emitln(s"UNKNOWN\n$message")
         }
 
         def runVerification() {
             val refiner = new TraceRefinement(config)
-            refiner.traceRefinement(function) match {
+            refiner.traceRefinement(ir) match {
                 case Success(None) =>
                     reportCorrect()
                 case Success(Some(witnessTrace)) =>

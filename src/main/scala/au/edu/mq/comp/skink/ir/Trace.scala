@@ -18,9 +18,12 @@ case class Trace(choices : Seq[Int])
  * present, reports on the values that lead to the failure. It
  * may contain entries for the identifiers in `ids` but may not
  * map them all.
+ *
+ * Carries around the failing IRFunction with it as the Witness
+ * generation requires a specific IRFunction entry point
  */
 case class FailureTrace(trace : Trace, ids : Seq[QualifiedId],
-    values : Try[Map[QualifiedId, Value]])
+    values : Try[Map[QualifiedId, Value]], function : IRFunction)
 
 /**
  * A description of a step in the execution of a trace for use in witness

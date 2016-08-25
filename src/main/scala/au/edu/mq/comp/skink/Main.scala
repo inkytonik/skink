@@ -145,19 +145,9 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier
-
-        for (function <- ir.functions) {
-
-            if (config.verifyTarget()) {
-                if (function.name == "main") {
-                    logger.info(s"processIR: processing ${function.name}")
-                    val verifier = new Verifier(config)
-                    verifier.verify(function)
-                } else {
-                    logger.info(s"processIR: skipping ${function.name}")
-                }
-            }
-
+        if (config.verifyTarget()) {
+            val verifier = new Verifier(config)
+            verifier.verify(ir)
         }
 
         if (config.execute()) {
