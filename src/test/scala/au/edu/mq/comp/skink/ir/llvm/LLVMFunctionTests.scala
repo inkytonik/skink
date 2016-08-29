@@ -115,6 +115,30 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
     }
 
+    test("Label generation for multiple split block") {
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+        val (prog, func, block, analyser) =
+            parseProgram(
+                """define i32 @main() {
+                  |  %1 = load i32, i32* @i, align 4, !dbg !52
+                  |  %2 = add nsw i32 0, %1, !dbg !57
+                  |  store i32 %2, i32* @x, align 4, !dbg !1
+                  |  %3 = load i32, i32* @x, align 4, !dbg !52
+                  |  ret i32 0
+                  |}
+                  |""".stripMargin
+            )
+        val wrappedFun = new LLVMFunction(prog, func)
+        assert(func.functionBody.blocks.length == 1)
+        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 3)
+        val outputAsm = show(wrappedFun.makeThreadVerifiable)
+        val firstLab = outputAsm.indexOf("__threading0.")
+        val termLab = outputAsm.indexOf("__threading.")
+        assert(firstLab != 0)
+        assert(termLab != 0)
+        assert(firstLab < termLab)
+    }
+
     test("Blocks with no global access should be left alone") {
         val (prog, func, block, analyser) =
             parseProgram(
@@ -129,6 +153,33 @@ class LLVMFunctionTests extends FunSuiteLike {
         val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
         assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 1)
+    }
+
+    test("Find thread name in main with pthread_create") {
+        val (prog, func, block, analyser) =
+            parseProgram(
+                """define i32 @main() {
+                  | %1 = alloca i32, align 4
+                  | %2 = alloca i32, align 4
+                  | %3 = alloca i8**, align 8
+                  | %id1 = alloca i64, align 8
+                  | %id2 = alloca i64, align 8
+                  | store i32 0, i32* %1
+                  | store i32 %argc, i32* %2, align 4
+                  | call void @llvm.dbg.declare(metadata i32* %2, metadata !94, metadata !28), !dbg !95
+                  | store i8** %argv, i8*** %3, align 8
+                  | call void @llvm.dbg.declare(metadata i8*** %3, metadata !96, metadata !28), !dbg !97
+                  | call void @llvm.dbg.declare(metadata i64* %id1, metadata !98, metadata !28), !dbg !102
+                  | call void @llvm.dbg.declare(metadata i64* %id2, metadata !103, metadata !28), !dbg !104
+                  | %4 = call i32 @pthread_create(i64* %id1, %union.pthread_attr_t* null, i8* (i8*)* @t1, i8* null) #4, !dbg !105
+                  | ret i32 0
+                  |}
+                  |""".stripMargin
+            )
+        val wrappedFun = new LLVMFunction(prog, func)
+        assert(func.functionBody.blocks.length == 1)
+        assert(wrappedFun.threadFunctions.length == 1)
+        assert(wrappedFun.threadFunctions.head == "t1")
     }
 
 }

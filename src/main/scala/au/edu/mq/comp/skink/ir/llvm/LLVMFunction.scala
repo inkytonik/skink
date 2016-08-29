@@ -636,6 +636,47 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     }
 
+    def threadFunctions : List[String] = {
+        def isThreadCreation(insn : MetaInstruction) : Boolean = {
+            insn match {
+                case MetaInstruction(
+                    Call(
+                        _, _, _, _, _,
+                        Function(Named(Global("pthread_create"))),
+                        _, _
+                        ),
+                    _
+                    ) =>
+                    true
+                case _ =>
+                    false
+            }
+        }
+
+        def extractThreadName(insn : MetaInstruction) : String = {
+            insn match {
+                case MetaInstruction(
+                    Call(
+                        _, _, _, _, _,
+                        Function(Named(Global("pthread_create"))),
+                        Vector(_, _, ValueArg(_, _, Named(Global(thread_name))), _),
+                        _
+                        ),
+                    _
+                    ) =>
+                    thread_name
+                case _ =>
+                    "unknown_thread"
+            }
+        }
+
+        val buf = ListBuffer[MetaInstruction]()
+        for (block <- function.functionBody.blocks) {
+            buf ++= block.optMetaInstructions.filter(isThreadCreation)
+        }
+        buf.toList.map(extractThreadName)
+    }
+
     /**
      * Split blocks on global variable access to allow permutations of dependent
      * instructions to be generated between thread functions.
@@ -695,6 +736,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 // Generate the final block in the function and add it to the list
                 insertedBlocks += Block(BlockLabel(label), Vector(), None, last.toVector,
                     block.metaTerminatorInstruction)
+                // Working backwards over the list so that we can keep around the label for the next
+                // block in the function. This is fine as the actual order of the blocks in the list
+                // has no relation to the structure of the function.
                 var blockCount = 0
                 for (b <- rest.reverse) {
                     val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
