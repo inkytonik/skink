@@ -7,7 +7,7 @@ import org.scalallvm.assembly.AssemblySyntax.Program
 /**
  * Representation of LLVM IR.
  */
-class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
+class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
     import org.scalallvm.assembly.AssemblyPrettyPrinter
@@ -18,21 +18,21 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     // Implementation of IR interface
 
     def execute() : (String, Int) =
-        Executor.execute(ir, config.lli())
+        Executor.execute(program, config.lli())
 
     def functions : Vector[IRFunction] =
-        ir.items.collect {
+        program.items.collect {
             case fd : FunctionDefinition =>
-                new LLVMFunction(ir, fd)
+                new LLVMFunction(this, fd)
         }
 
     lazy val name : String =
-        filepath(metadata(ir)) match {
+        filepath(metadata(program)) match {
             case Some(name) => name
             case None       => "unknown name"
         }
 
     def show : String =
-        AssemblyPrettyPrinter.show(ir, 5)
+        AssemblyPrettyPrinter.show(program, 5)
 
 }

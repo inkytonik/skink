@@ -12,7 +12,8 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class LLVMFunctionTests extends FunSuiteLike {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMFunction
+    import au.edu.mq.comp.skink.SkinkConfig
+    import au.edu.mq.comp.skink.ir.llvm.{LLVMFunction, LLVMIR}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.{Assembly, Analyser}
     import org.bitbucket.inkytonik.kiama.relation.Tree
@@ -23,7 +24,7 @@ class LLVMFunctionTests extends FunSuiteLike {
      * for the whole program, its first function, that function's first
      * block and an analyser for the function.
      */
-    def parseProgram(defns : String) : (Program, FunctionDefinition, Block, Analyser) = {
+    def parseProgram(defns : String) : (Program, FunctionDefinition, LLVMFunction) = {
         val positions = new Positions
         val source = new StringSource(defns)
         val p = new Assembly(source, positions)
@@ -31,16 +32,14 @@ class LLVMFunctionTests extends FunSuiteLike {
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
             val func = prog.items(0).asInstanceOf[FunctionDefinition]
-            val block = func.functionBody.blocks(0)
-            val tree = new Tree[ASTNode, FunctionDefinition](func)
-            val analyser = new Analyser(tree)
-            (prog, func, block, analyser)
+            val wrappedFun = new LLVMFunction(new LLVMIR(prog, new SkinkConfig(List())), func)
+            (prog, func, wrappedFun)
         } else
             fail(s"parse error: ${pr.parseError.msg}")
     }
 
     test("Split two stores to different globals") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  store i32 0, i32* @x, align 4, !dbg !1
@@ -49,13 +48,12 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 2)
     }
 
     test("Split two stores to same global") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  store i32 0, i32* @x, align 4, !dbg !1
@@ -64,13 +62,12 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 2)
     }
 
     test("Split two loads from different globals") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  %1 = load i32, i32* @i, align 4, !dbg !52
@@ -79,13 +76,12 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 2)
     }
 
     test("Split two loads from same global") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  %1 = load i32, i32* @i, align 4, !dbg !52
@@ -94,13 +90,12 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 2)
     }
 
     test("Split a load and a store separated by another insn") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  %1 = load i32, i32* @i, align 4, !dbg !52
@@ -110,14 +105,13 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 2)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 2)
     }
 
     test("Label generation for multiple split block") {
         import org.scalallvm.assembly.AssemblyPrettyPrinter.show
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  %1 = load i32, i32* @i, align 4, !dbg !52
@@ -128,10 +122,9 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 3)
-        val outputAsm = show(wrappedFun.makeThreadVerifiable)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 3)
+        val outputAsm = show(wrappedFun.makeVerifiable)
         val firstLab = outputAsm.indexOf("__threading0.")
         val termLab = outputAsm.indexOf("__threading.")
         assert(firstLab != 0)
@@ -140,7 +133,7 @@ class LLVMFunctionTests extends FunSuiteLike {
     }
 
     test("Blocks with no global access should be left alone") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   |  store i32 0, i32* %1, align 4, !dbg !1
@@ -150,13 +143,12 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.makeThreadVerifiable.functionBody.blocks.length == 1)
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 1)
     }
 
     test("Find thread name in main with pthread_create") {
-        val (prog, func, block, analyser) =
+        val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
                   | %1 = alloca i32, align 4
@@ -176,10 +168,9 @@ class LLVMFunctionTests extends FunSuiteLike {
                   |}
                   |""".stripMargin
             )
-        val wrappedFun = new LLVMFunction(prog, func)
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.threadFunctions.length == 1)
-        assert(wrappedFun.threadFunctions.head == "t1")
+        assert(wrappedFun.threadFunctionNames.length == 1)
+        assert(wrappedFun.threadFunctionNames.head == "t1")
     }
 
 }

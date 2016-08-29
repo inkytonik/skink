@@ -12,7 +12,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
@@ -467,7 +467,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(program, block) match {
+                    Analyser.blockPosition(ir.program, block) match {
                         case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
                             (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
                         case _ =>
@@ -477,7 +477,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 val (optTermLine, optTermCode) =
                     block.metaTerminatorInstruction match {
                         case MetaTerminatorInstruction(insn, metadata) =>
-                            funanalyser.instructionPosition(program, insn, metadata) match {
+                            funanalyser.instructionPosition(ir.program, insn, metadata) match {
                                 case Some(Position(termLine, _, termSource)) =>
                                     val termCode = getSourceLine(termSource, termLine)
                                     (Some(termLine), Some(termCode))
@@ -505,6 +505,16 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         // Shouldn't get LLVM function with no blocks
         assert(!blocks.isEmpty)
+
+        // Do we need to assemble an NFA for a concurrent program?
+        val names = threadFunctionNames
+        if (names.length != 0) {
+            val threadFunctions = ir.functions.filter(f => names.contains(f.name))
+            val threadNFAs = names.zip(threadFunctions.map(_.nfa))
+            // Now use them -- should there be a generic Defn -> NFA function
+            // then buildNFA either assembles larger NFA or just returns the 
+            // result of the function
+        }
 
         val initial = Set(blockName(blocks.head))
         val accepting = blocks.map(blockName).filter(_.startsWith("__error")).toSet
@@ -548,6 +558,18 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     }
 
+    def makeVerifiable : FunctionDefinition = {
+        val processedBody = makeErrorsVerifiable(makeThreadVerifiable(function.functionBody))
+
+        // Return the new function
+        val ret = function.copy(functionBody = processedBody)
+        programLogger.info(s"* Function $name for verification:\n")
+        programLogger.info(show(ret))
+        programLogger.info(s"\n* AST of function $name for verification:\n\n")
+        programLogger.info(layout(any(ret)))
+        ret
+    }
+
     /**
      * Prepare the IR of a function for verification and return the
      * new IR form. The transformation is:
@@ -580,7 +602,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    def makeVerifiable : FunctionDefinition = {
+    def makeErrorsVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
         logger.info(s"makeVerifiable: $name")
 
@@ -605,6 +627,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
             if (after.isEmpty)
                 block
+        val wrappedFun = new LLVMFunction(prog, func)
             else {
                 val metadata = after(0).metadata
                 val errorLabel = makeLabelFromPrefix(block.optBlockLabel, "__error")
@@ -621,22 +644,19 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
 
         val functionBodyWithProcessedBlocks =
-            function.functionBody.blocks.map(replaceErrorCalls)
+            functionBody.blocks.map(replaceErrorCalls)
 
         val functionBodyWithErrorBlock =
             FunctionBody(functionBodyWithProcessedBlocks ++ errorBlocks)
 
-        // Return the new function
-        val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-        programLogger.debug(s"* Function $name for verification:\n")
-        programLogger.debug(show(ret))
-        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
-        programLogger.debug(layout(any(ret)))
-        ret
+        functionBodyWithErrorBlock
 
     }
 
-    def threadFunctions : List[String] = {
+    /**
+     * Returns the names of functions used in thread creation calls
+     */
+    def threadFunctionNames : List[String] = {
         def isThreadCreation(insn : MetaInstruction) : Boolean = {
             insn match {
                 case MetaInstruction(
@@ -687,7 +707,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
      * TODO: Add all types of memory mutation -- probably easy with slightly
      * more clever pattern match
      */
-    def makeThreadVerifiable : FunctionDefinition = {
+    def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
         logger.info(s"makeThreadVerifiable: $name")
 
@@ -758,16 +778,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             }
         }
 
-        val startingBlocks = function.functionBody.blocks.map(insertBranchOnGlobalAccess)
+        val startingBlocks = functionBody.blocks.map(insertBranchOnGlobalAccess)
         val functionBodyWithSplitBlocks = FunctionBody(startingBlocks ++ insertedBlocks)
-
-        // Return the new function
-        val ret = function.copy(functionBody = functionBodyWithSplitBlocks)
-        programLogger.info(s"* Function $name for concurrent verification:\n")
-        programLogger.info(show(ret))
-        programLogger.info(s"\n* AST of function $name for concurrent verification:\n\n")
-        programLogger.info(layout(any(ret)))
-        ret
+        functionBodyWithSplitBlocks
     }
 
     /**
