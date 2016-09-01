@@ -4,9 +4,10 @@ import au.edu.mq.comp.skink.SkinkConfig
 import org.bitbucket.inkytonik.kiama.util.Positions
 
 /**
- * Compiler from IML to LLVM IR.
+ * Compiler from IML to LLVM IR. Does essentially no error checking
+ * and some IML constructs are not implemented.
  */
-class Compiler(positions : Positions, config : SkinkConfig) {
+class IMLCompiler(positions : Positions, config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.iml.{IMLSyntax => IML}
     import au.edu.mq.comp.skink.ir.IR

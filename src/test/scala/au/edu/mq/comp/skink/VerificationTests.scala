@@ -1,10 +1,10 @@
 package au.edu.mq.comp.skink
 
-import iml.IMLSyntax.Program
+import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 import org.scalatest.FunSuiteLike
 
-trait TestBase extends Driver with TestCompilerWithConfig[Program, SkinkConfig] {
+trait TestBase extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
 
     import org.scalatest.{Args, Reporter, Status}
     import org.scalatest.events.{Event, InfoProvided, Ordinal, NameInfo, TestFailed, TestSucceeded}
@@ -116,7 +116,7 @@ trait TestBase extends Driver with TestCompilerWithConfig[Program, SkinkConfig] 
         status
     }
 
-    val defaultArgsList = List(List("-v", "-m15", "-eZ3"))
+    val defaultArgsList = List(List("-f", "LLVM", "-v", "-m15", "-eZ3"))
 
 }
 

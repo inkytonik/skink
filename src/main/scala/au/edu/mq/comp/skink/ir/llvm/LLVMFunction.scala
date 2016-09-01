@@ -516,7 +516,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
             }
 
         // If blocks occur more than once in the block trace they will be
-        // shared. We need each instance to be treated separatey so we use
+        // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = tree.root
 
