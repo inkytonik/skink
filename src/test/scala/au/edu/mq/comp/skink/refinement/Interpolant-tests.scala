@@ -3,14 +3,13 @@ package au.edu.mq.comp.skink
 package verifier
 package tests
 
-import org.scalatest.{
-    FunSuite,
-    Matchers
-}
+import org.scalatest.{FunSuite, Matchers}
 import scala.util.{Try, Success, Failure}
-import org.bitbucket.inkytonik.kiama.util.{FileSource}
 
 class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
+
+    import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
+    import org.bitbucket.inkytonik.kiama.util.FileSource
 
     //  create and init the config
     val config = createAndInitConfig(
@@ -21,16 +20,15 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
         )
     )
 
-    //  source file
+    val frontend = new LLVMFrontend(config)
+
     val srcFileName = "programs/simple/simple-loop_true-unreach-call.ll"
 
-    test("Trying to prove correctness of program programs/simple/simple-loop_true-unreach-call.ll") {
+    test(s"Trying to prove correctness of program $srcFileName") {
 
-        //  Try to parse the program
-        parseFile(srcFileName, config) match {
+        frontend.buildIR(FileSource(srcFileName), positions) match {
 
-            case Success(prog) =>
-                //  now analyse the program
+            case Left(prog) =>
                 import au.edu.mq.comp.skink.verifier.Verifier
 
                 val fun = prog.functions.find(_.name == "main")
@@ -41,11 +39,14 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
                         refiner.traceRefinement(main) shouldBe Success(None)
                     case None =>
                         logger.error(s"no main found")
-                        fail(s"no main found")
+                        fail("no main found")
                 }
 
-            case Failure(m) => fail("Could not parse program")
+            case Right(messages) =>
+                fail(formatMessages(messages))
 
         }
+
     }
+
 }
