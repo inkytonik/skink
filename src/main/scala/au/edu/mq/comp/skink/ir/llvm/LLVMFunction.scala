@@ -627,7 +627,6 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
             val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
             if (after.isEmpty)
                 block
-        val wrappedFun = new LLVMFunction(prog, func)
             else {
                 val metadata = after(0).metadata
                 val errorLabel = makeLabelFromPrefix(block.optBlockLabel, "__error")
