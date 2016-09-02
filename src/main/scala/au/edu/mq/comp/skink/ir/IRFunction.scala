@@ -5,25 +5,20 @@ package au.edu.mq.comp.skink.ir
  */
 trait IRFunction {
 
-    import au.edu.mq.comp.automat.auto.NFA
+    import au.edu.mq.comp.automat.auto.DetAuto
     import au.edu.mq.comp.skink.ir.FailureTrace
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import scala.collection.mutable.ListMap
+    import org.scalallvm.assembly.AssemblySyntax.Block
 
     /**
      * The IR-level name of this function.
      */
     def name : String
 
-    /**
-     * An NFA that represents the possible control flow of executions of
-     * the function where final states represent failures. State labels
-     * are not interpreted but are usually block names to aid logging.
-     * Edges must be labelled with choice indices. See the documentation
-     * of the `Trace` type for more detail on choices.
-     */
-    def nfa : NFA[String, Int]
+    def dca : DetAuto[ListMap[String, Block], Int]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for

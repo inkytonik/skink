@@ -84,20 +84,20 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(ir : IR) : Try[Option[FailureTrace]] = {
         val function = ir.functions.filter(f => f.name == "main").head
-        val functionLang = Lang(function.nfa)
+        val functionLang = Lang(function.dca)
 
         //  get a solver specification. This object creation
         //  does not spawn any process merely declare a solver type we
         //  want to use
         val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
 
-        cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
+        //cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${function.name} iteration $iteration")
-            cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
+            //cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 

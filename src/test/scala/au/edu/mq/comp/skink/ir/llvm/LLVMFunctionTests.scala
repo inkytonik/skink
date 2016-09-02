@@ -147,7 +147,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 1)
     }
 
-    test("Find thread name in main with pthread_create") {
+    test("Find thread name in main with pthread_create and ensure block has been split on pthread_create call") {
         val (_, func, wrappedFun) =
             parseProgram(
                 """define i32 @main() {
@@ -158,19 +158,19 @@ class LLVMFunctionTests extends FunSuiteLike {
                   | %id2 = alloca i64, align 8
                   | store i32 0, i32* %1
                   | store i32 %argc, i32* %2, align 4
-                  | call void @llvm.dbg.declare(metadata i32* %2, metadata !94, metadata !28), !dbg !95
+                  | %4 = call i32 @pthread_create(i64* %id1, %union.pthread_attr_t* null, i8* (i8*)* @t1, i8* null) #4, !dbg !105
                   | store i8** %argv, i8*** %3, align 8
                   | call void @llvm.dbg.declare(metadata i8*** %3, metadata !96, metadata !28), !dbg !97
-                  | call void @llvm.dbg.declare(metadata i64* %id1, metadata !98, metadata !28), !dbg !102
-                  | call void @llvm.dbg.declare(metadata i64* %id2, metadata !103, metadata !28), !dbg !104
                   | %4 = call i32 @pthread_create(i64* %id1, %union.pthread_attr_t* null, i8* (i8*)* @t1, i8* null) #4, !dbg !105
+                  | call void @llvm.dbg.declare(metadata i64* %id1, metadata !98, metadata !28), !dbg !102
+                  | %4 = call i32 @pthread_create(i64* %id1, %union.pthread_attr_t* null, i8* (i8*)* @t1, i8* null) #4, !dbg !105
+                  | call void @llvm.dbg.declare(metadata i64* %id2, metadata !103, metadata !28), !dbg !104
                   | ret i32 0
                   |}
                   |""".stripMargin
             )
         assert(func.functionBody.blocks.length == 1)
-        assert(wrappedFun.threadFunctionNames.length == 1)
-        assert(wrappedFun.threadFunctionNames.head == "t1")
+        assert(wrappedFun.makeVerifiable.functionBody.blocks.length == 4)
     }
 
 }

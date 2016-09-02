@@ -12,10 +12,11 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends Attribution with IRFunction {
 
-    import au.edu.mq.comp.automat.auto.NFA
+    import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAuto
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
@@ -36,6 +37,7 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
+    import scala.collection.mutable.ListMap
     import scala.util.{Failure, Success}
 
     object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
@@ -60,8 +62,7 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
     lazy val name : String =
         nameToString(function.global)
 
-    lazy val nfa : NFA[String, Int] =
-        buildNFA(makeVerifiable)
+    lazy val dca : DetAuto[ListMap[String, Block], Int] = new LLVMConcurrentAuto(new LLVMFunction(ir, makeVerifiable)).asInstanceOf[DetAuto[ListMap[String, Block], Int]]
 
     def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
 
@@ -491,73 +492,6 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
 
     // Helper methods
 
-    /**
-     * Build the Control Flow Graph NFA for the function.
-     */
-    def buildNFA(function : FunctionDefinition) : NFA[String, Int] = {
-
-        import au.edu.mq.comp.automat.edge.LabDiEdge
-        import au.edu.mq.comp.automat.edge.Implicits._
-
-        logger.info(s"buildNFA: $name")
-
-        val blocks = function.functionBody.blocks
-
-        // Shouldn't get LLVM function with no blocks
-        assert(!blocks.isEmpty)
-
-        // Do we need to assemble an NFA for a concurrent program?
-        val names = threadFunctionNames
-        if (names.length != 0) {
-            val threadFunctions = ir.functions.filter(f => names.contains(f.name))
-            val threadNFAs = names.zip(threadFunctions.map(_.nfa))
-            // Now use them -- should there be a generic Defn -> NFA function
-            // then buildNFA either assembles larger NFA or just returns the 
-            // result of the function
-        }
-
-        val initial = Set(blockName(blocks.head))
-        val accepting = blocks.map(blockName).filter(_.startsWith("__error")).toSet
-
-        val transitions = {
-            val buf = new ListBuffer[LabDiEdge[String, Int]]
-            for (srcBlock <- blocks) {
-                val src = blockName(srcBlock)
-                srcBlock.metaTerminatorInstruction.terminatorInstruction match {
-
-                    // Unconditional branch
-                    case Branch(Label(Local(tgt))) =>
-                        buf += (src ~> tgt)(0)
-
-                    // Two-sided conditional branch
-                    case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                        buf += (src ~> trueTgt)(0)
-                        buf += (src ~> falseTgt)(1)
-
-                    // Multi-way branch
-                    case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-                        cases.zipWithIndex.foreach {
-                            case (Case(_, _, Label(Local(tgt))), i) =>
-                                buf += (src ~> tgt)(i)
-                        }
-                        buf += (src ~> dfltTgt)(cases.length)
-
-                    // Return
-                    case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                    // Do nothing
-
-                    case i =>
-                        sys.error(s"nfa: unexpected form of terminator insn: $i")
-
-                }
-            }
-            buf.toSet
-        }
-
-        NFA(initial, transitions, accepting)
-
-    }
-
     def makeVerifiable : FunctionDefinition = {
         val processedBody = makeErrorsVerifiable(makeThreadVerifiable(function.functionBody))
 
@@ -590,14 +524,7 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
      *   <insns1>
      *   br label __error.14 #4
      *
-     * And the error block
-     *
-     *  __error.14:
-     *   call void (...) @__VERIFIER_error() #4
-     *   <insns2>
-     *   <terminator>
-     *
-     * The metadata from the call is transferred to the new branch so it can
+     * And the error block __error.14: call void (...) @__VERIFIER_error() #4 <insns2> <terminator> The metadata from the call is transferred to the new branch so it can
      * recovered later during reporting.
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
@@ -653,50 +580,6 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
     }
 
     /**
-     * Returns the names of functions used in thread creation calls
-     */
-    def threadFunctionNames : List[String] = {
-        def isThreadCreation(insn : MetaInstruction) : Boolean = {
-            insn match {
-                case MetaInstruction(
-                    Call(
-                        _, _, _, _, _,
-                        Function(Named(Global("pthread_create"))),
-                        _, _
-                        ),
-                    _
-                    ) =>
-                    true
-                case _ =>
-                    false
-            }
-        }
-
-        def extractThreadName(insn : MetaInstruction) : String = {
-            insn match {
-                case MetaInstruction(
-                    Call(
-                        _, _, _, _, _,
-                        Function(Named(Global("pthread_create"))),
-                        Vector(_, _, ValueArg(_, _, Named(Global(thread_name))), _),
-                        _
-                        ),
-                    _
-                    ) =>
-                    thread_name
-                case _ =>
-                    "unknown_thread"
-            }
-        }
-
-        val buf = ListBuffer[MetaInstruction]()
-        for (block <- function.functionBody.blocks) {
-            buf ++= block.optMetaInstructions.filter(isThreadCreation)
-        }
-        buf.toList.map(extractThreadName)
-    }
-
-    /**
      * Split blocks on global variable access to allow permutations of dependent
      * instructions to be generated between thread functions.
      *
@@ -712,8 +595,23 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
 
         val insertedBlocks = new ListBuffer[Block]()
 
+        def isNotThreadPrimitive(insn : MetaInstruction) : Boolean = {
+            insn match {
+                case MetaInstruction(
+                    Call(
+                        _, _, _, _, _,
+                        Function(Named(Global("pthread_create"))),
+                        _, _
+                        ),
+                    _
+                    ) =>
+                    false
+                case _ =>
+                    true
+            }
+        }
+
         def isNotGlobalAccess(insn : MetaInstruction) : Boolean = {
-            programLogger.debug(s"Matching on: $insn \n")
             insn match {
                 case MetaInstruction(muteInsn, _) => {
                     muteInsn match {
@@ -728,21 +626,27 @@ class LLVMFunction(ir : LLVMIR, function : FunctionDefinition) extends Attributi
         }
 
         // Must be a better way to do it, yuck
-        def splitOnGlobalAccess(insns : List[MetaInstruction]) : List[List[MetaInstruction]] =
-            insns span isNotGlobalAccess match {
+        def splitOnPredicate(
+            insns : List[MetaInstruction],
+            pred : MetaInstruction => Boolean
+        ) : List[List[MetaInstruction]] =
+            insns.span(pred) match {
                 case (Nil, Nil) => Nil
-                case (Nil, access :: remains) => splitOnGlobalAccess(remains) match {
+                case (Nil, access :: remains) => splitOnPredicate(remains, pred) match {
                     case start :: end => List(access) :: start :: end
                     case Nil          => List(List(access))
                 }
                 case (remains, Nil)                => List(remains)
-                case (previous, access :: remains) => (previous :+ access) :: splitOnGlobalAccess(remains)
+                case (previous, access :: remains) => (previous :+ access) :: splitOnPredicate(remains, pred)
             }
 
         def insertBranchOnGlobalAccess(block : Block) : Block = {
             // Get a list of blocks which contain a global memory access as their last
             // instruction.
-            val splitBlocks = splitOnGlobalAccess(block.optMetaInstructions.toList)
+            val splitBlocks = splitOnPredicate(
+                block.optMetaInstructions.toList,
+                i => isNotThreadPrimitive(i) && isNotGlobalAccess(i)
+            )
             programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
             if (splitBlocks.length <= 1)

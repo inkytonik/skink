@@ -20,7 +20,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
 
-    def functions : Vector[IRFunction] =
+    def functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(this, fd)
