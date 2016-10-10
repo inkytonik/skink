@@ -50,15 +50,6 @@ object LLVMHelper {
     // Extractors to make matching more convenient
 
     /**
-     * Extractor to match stores to array elements. By default, we don't
-     * know if anything is an array, so we always fail.
-     */
-    object ArrayElement {
-        def unapply(value : Value) : Option[(Name, Value)] =
-            None
-    }
-
-    /**
      * Matcher for assumption function names.
      */
     object AssumeName {
@@ -180,43 +171,5 @@ object LLVMHelper {
                     None
             }
     }
-
-}
-
-class LLVMFunctionHelper(function : FunctionDefinition) {
-
-    import org.bitbucket.inkytonik.kiama.relation.Tree
-    import org.scalallvm.assembly.{Analyser, ElementProperty}
-
-    val funtree = new Tree[ASTNode, FunctionDefinition](function)
-    val funanalyser = new Analyser(funtree)
-    val properties = funanalyser.propertiesOfFunction(funtree.root)
-
-    /**
-     * Extractor to match stores to array elements. Currently only looks for
-     * array element references that have a zero index (to deref the array
-     * pointer), followed by the actual index.
-     * FIXME: there may well be other cases we should detect.
-     */
-    object ArrayElement {
-        def unapply(value : Value) : Option[(Name, Value)] =
-            value match {
-                case Named(name) =>
-                    elementProperty(name)
-                case _ =>
-                    None
-            }
-    }
-
-    /*
-     * Get the array element property for name, if there is one.
-     */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
-        properties(name).collectFirst {
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-        }
 
 }

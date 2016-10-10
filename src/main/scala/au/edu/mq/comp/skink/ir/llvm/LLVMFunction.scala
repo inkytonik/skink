@@ -42,8 +42,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
 
-    val helper = new LLVMFunctionHelper(function)
-    import helper._
+    val funTree = new Tree[ASTNode, FunctionDefinition](function)
+    val funAnalyser = new Analyser(funTree)
 
     // Gather properties of the function
 
@@ -62,16 +62,16 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
-        val tree = new Tree[Product, BlockTrace](blockTrace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(helper, tree)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
         val termBuilder = new LLVMTermBuilder(namer)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = tree.root
+        val treeBlockTrace = traceTree.root
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -106,7 +106,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 val (optTermLine, optTermCode) =
                     block.metaTerminatorInstruction match {
                         case MetaTerminatorInstruction(insn, metadata) =>
-                            funanalyser.instructionPosition(program, insn, metadata) match {
+                            funAnalyser.instructionPosition(program, insn, metadata) match {
                                 case Some(Position(termLine, _, termSource)) =>
                                     val termCode = getSourceLine(termSource, termLine)
                                     (Some(termLine), Some(termCode))

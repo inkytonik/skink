@@ -2,16 +2,21 @@ package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
 import org.bitbucket.inkytonik.kiama.relation.Tree
+import org.scalallvm.assembly.Analyser
 import org.scalallvm.assembly.AssemblySyntax._
 import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
+trait ArrayElementExtractor {
+    def unapply(value : Value) : Option[(Name, Value)]
+}
+
 trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators {
 
-    import org.scalallvm.assembly.ElementProperty
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
+    import org.scalallvm.assembly.ElementProperty
 
     // Methods for constructing basic terms for named entities
 
@@ -23,7 +28,7 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
      */
     def indexOf(use : Product, s : String) : Int
 
-    // Concrete mthods
+    // Concrete methods
 
     /**
      * Return the id that should be used in the term for a variable with
@@ -92,17 +97,60 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
     def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
         ntermAtB(name, name)
 
+    /**
+     * Extractor to match stores to array elements. By default, we don't
+     * know if anything is an array, so we always fail.
+     */
+    val ArrayElement =
+        new ArrayElementExtractor {
+            def unapply(value : Value) : Option[(Name, Value)] =
+                None
+        }
+
 }
 
-class LLVMFunctionNamer(helper : LLVMFunctionHelper, tree : Tree[Product, Product]) extends LLVMNamer {
+/**
+ * A namer for the given function which names uniquely over the given name tree.
+ */
+class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
+        nametree : Tree[Product, Product]) extends LLVMNamer {
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
+    import org.scalallvm.assembly.{Analyser, ElementProperty}
 
-    import helper._
+    val properties = funanalyser.propertiesOfFunction(funtree.root)
 
-    val decorators = new Decorators(tree)
+    val decorators = new Decorators(nametree)
     import decorators._
+
+    /**
+     * Extractor to match stores to array elements. Currently only looks for
+     * array element references that have a zero index (to deref the array
+     * pointer), followed by the actual index.
+     * FIXME: there may well be other cases we should detect.
+     */
+    override val ArrayElement =
+        new ArrayElementExtractor {
+            def unapply(value : Value) : Option[(Name, Value)] =
+                value match {
+                    case Named(name) =>
+                        elementProperty(name)
+                    case _ =>
+                        None
+                }
+        }
+
+    /*
+     * Get the array element property for name, if there is one.
+     */
+    def elementProperty(name : Name) : Option[(Name, Value)] =
+        properties(name).collectFirst {
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+                (array, index)
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
+                (array, index)
+        }
 
     // Chain keeping track of stores to memory. Each assignment to a
     // local variable or store to memory location is counted so that
@@ -120,7 +168,7 @@ class LLVMFunctionNamer(helper : LLVMFunctionHelper, tree : Tree[Product, Produc
     }
 
     def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
-        case n if tree.isRoot(n) =>
+        case n if nametree.isRoot(n) =>
             Map[String, Int]()
         case n @ Binding(name) =>
             bumpcount(in(n), name)
