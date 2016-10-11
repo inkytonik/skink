@@ -94,7 +94,7 @@ class TraceRefinement(config : SkinkConfig) {
         //cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
-        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
+        def refineRec(r : NFA[Int, (Int, Int)], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${function.name} iteration $iteration")
             //cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
@@ -181,7 +181,7 @@ class TraceRefinement(config : SkinkConfig) {
         }
 
         // Start the refinement algorithm with no "ruled out" traces.
-        refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
+        refineRec(NFA[Int, (Int, Int)](Set(), Set(), Set()), 0)
     }
 
     /**
@@ -189,11 +189,11 @@ class TraceRefinement(config : SkinkConfig) {
      * generate a simple linear automaton so the refinement process will remove
      * just this one trace. Later revisions will be cleverer.
      */
-    def interpolantAuto(choices : Seq[Int]) : NFA[Int, Int] = {
+    def interpolantAuto(choices : Seq[(Int, Int)]) : NFA[Int, (Int, Int)] = {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
+        NFA(Set(0), transitions.toSet, Set())
     }
 
 }

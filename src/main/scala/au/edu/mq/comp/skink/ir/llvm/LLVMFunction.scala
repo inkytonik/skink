@@ -62,7 +62,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
     lazy val name : String =
         nameToString(function.global)
 
-    lazy val dca : DetAuto[ListMap[String, Block], Int] = new LLVMConcurrentAuto(new LLVMFunction(ir, makeVerifiable)).asInstanceOf[DetAuto[ListMap[String, Block], Int]]
+    lazy val dca : DetAuto[Map[Int, String], (Int, Int)] = new LLVMConcurrentAuto(new LLVMFunction(ir, makeVerifiable))
 
     def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
 
@@ -586,8 +586,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
      * Only necessary for functions which are expected to be used in a concurrent
      * program.
      *
-     * TODO: Add all types of memory mutation -- probably easy with slightly
-     * more clever pattern match
+     * TODO: Add all types of memory mutation
      */
     def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
