@@ -80,7 +80,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((op, term) <- booleanBinaryOps) {
-        test(s"binary Boolean ${show(op)}insn is encoded correctly") {
+        test(s"binary Boolean ${show(op)} insn is encoded correctly") {
             hasEffect(Binary(Binding(z), op, IntT(1), xexp, yexp), term)
         }
     }
@@ -95,7 +95,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((op, term) <- integerBinaryOps) {
-        test(s"binary integer ${show(op)}insn is encoded correctly") {
+        test(s"binary integer ${show(op)} insn is encoded correctly") {
             hasEffect(Binary(Binding(z), op, IntT(32), xexp, yexp), term)
         }
     }
@@ -108,7 +108,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
-        test(s"binary ${show(op)}insn on ${show(tipe)} should not be handled") {
+        test(s"binary ${show(op)} insn on ${show(tipe)} should not be handled") {
             isNotHandled(Binary(Binding(z), op, tipe, xexp, yexp), msg)
         }
     }
@@ -141,7 +141,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((cond, term) <- booleanCompares) {
-        test(s"compare Boolean with ${show(cond)}is encoded correctly") {
+        test(s"compare Boolean with ${show(cond)} is encoded correctly") {
             hasEffect(Compare(Binding(z), ICmp(cond), IntT(1), xexp, yexp), term)
         }
     }
@@ -160,7 +160,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((cond, term) <- integerCompares) {
-        test(s"compare integer with ${show(cond)}is encoded correctly") {
+        test(s"compare integer with ${show(cond)} is encoded correctly") {
             hasEffect(Compare(Binding(z), ICmp(cond), IntT(32), xexp, yexp), term)
         }
     }
@@ -172,7 +172,7 @@ class LLVMTermTests extends Tests {
     )
 
     for ((cond, tipe, msg) <- badCompares) {
-        test(s"binary compare ${show(cond)}insn on ${show(tipe)} should not be handled") {
+        test(s"binary compare ${show(cond)} insn on ${show(tipe)} should not be handled") {
             isNotHandled(Compare(Binding(z), ICmp(cond), tipe, xexp, yexp), msg)
         }
     }
@@ -193,7 +193,7 @@ class LLVMTermTests extends Tests {
 
     for (convOp <- convOps) {
         for ((fromType, toType, term) <- conversions) {
-            test(s"${show(convOp)}conversion from ${show(fromType)} to ${show(toType)} is encoded correctly") {
+            test(s"${show(convOp)} conversion from ${show(fromType)} to ${show(toType)} is encoded correctly") {
                 hasEffect(Convert(Binding(x), convOp, fromType, yexp, toType), term)
             }
         }
