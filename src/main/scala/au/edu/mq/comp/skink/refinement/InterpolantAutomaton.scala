@@ -62,7 +62,7 @@ object InterpolantAuto extends Resources with Commands with Core {
 
         //  From the sequence of choices, retrieve the sequence of terms that encodes the semantics
         //  of the trace
-        val traceTerms = function.traceToTerms2(Trace(choices))
+        val traceTerms = function.traceToTerms(Trace(choices))
 
         //  make NamedTerms with an index
         val namedTerms = for { (tt, n) ← traceTerms.zipWithIndex } yield tt.named("P" + n)
