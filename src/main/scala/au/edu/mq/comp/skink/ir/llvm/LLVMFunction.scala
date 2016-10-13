@@ -57,7 +57,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
 
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -67,6 +67,18 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
         val termBuilder = new LLVMTermBuilder(namer)
+
+        import namer._
+
+        /*
+        * Combine terms via conjunction, dealing with case where
+        * are no terms so effect is "true".
+        */
+        def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
+            if (terms.isEmpty)
+                True()
+            else
+                terms.reduceLeft(_ & _)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -84,7 +96,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 termBuilder.blockTerms(block, optPrevBlock, choice)
-        }
+        }.map(combineTerms)
 
     }
 
