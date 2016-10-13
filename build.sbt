@@ -93,7 +93,7 @@ ratsUseKiama := 2
 
 test in assembly := {}
 
-mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
+mainClass in assembly := Some ("au.edu.mq.comp.skink.CMain")
 
 // ScalariForm
 
@@ -107,3 +107,8 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
     .setPreference (SpacesAroundMultiImports, false)
+
+assemblyMergeStrategy in assembly := {
+ case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+ case x => MergeStrategy.first
+}
