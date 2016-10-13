@@ -4,52 +4,19 @@ import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
-trait BlockUtils {
-
-    import org.scalallvm.assembly.AssemblySyntax.{Block, BlockLabel, ImplicitLabel, NoLabel}
-    /**
-     * Get the name of a block. Currently assumes that a block with no label
-     * must be the anonymous entry block (0).
-     */
-    def blockName(block : Block) : String =
-        block.optBlockLabel match {
-            case BlockLabel(s)    => s
-            case ImplicitLabel(i) => i.toString
-            case NoLabel()        => "0"
-        }
-}
-
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
  */
-case class BlockTrace(blocks : Seq[Block], trace : Trace) extends BlockUtils {
-
-    /**
-     *  Build a Map from blockNames to indices in the Seq
-     */
-    def groupByName = blocks.zipWithIndex.groupBy {
-        //  groupBy blockName
-        x => blockName(x._1)
-    } map {
-        //  extract the index only: x._2.map(_._2)
-        x => (x._1, x._2.map(_._2))
-    }
-
-    /**
-     * Print trace one block per line
-     */
-    def showNames : String = {
-        blocks.map(blockName).mkString(" ")
-    }
-}
+case class BlockTrace(blocks : Seq[Block], trace : Trace)
 
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction with BlockUtils {
+class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
@@ -72,28 +39,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     import scala.annotation.tailrec
     import scala.util.{Failure, Success}
 
-    object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
-    import termStuff.{
-        True => STrue,
-        False => SFalse,
-        _
-    }
-
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
 
-    //  logger for interpolant related computations
-    val itpLogger = getLogger(this.getClass, ".itp")
-
-    // Version of LLVM PP show that avoids line-wrapping
-    def longshow(n : ASTNode) : String =
-        show(n, 1000)
+    val funTree = new Tree[ASTNode, FunctionDefinition](function)
+    val funAnalyser = new Analyser(funTree)
 
     // Gather properties of the function
 
-    val funtree = new Tree[ASTNode, FunctionDefinition](function)
-    val funanalyser = new Analyser(funtree)
-    val properties = funanalyser.propertiesOfFunction(funtree.root)
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
@@ -104,421 +57,21 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
 
-    /*
-         * Combine terms via conjunction, dealing with the case where
-         * there are no terms so effect is "true".
-         */
-    private def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-        if (terms.isEmpty)
-            STrue()
-        else
-            terms.reduceLeft(_ & _)
-
-    def traceToTerms2(
-        trace : Trace
-    ) : Seq[TypedTerm[BoolTerm, Term]] = traceToTerms(trace).map(combineTerms)
-
-    /**
-     * Compute the SSA for term applied to pre. The post is indexed
-     * by the indices of the variables in the last state of the SSA.
-     *
-     * @return The pre indexed by the indices. post indexed by indices in the last
-     * state of the trace, and the the encoding of the trace
-     */
-    def traceToTerms(
-        trace : Trace
-    ) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
+    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
-        val tree = new Tree[Product, BlockTrace](blockTrace)
-        val decorators = new Decorators(tree)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
-        import tree._
-        import decorators._
-
-        // Chain keeping track of stores to memory. Each assignment to a
-        // local variable or store to memory location is counted so that
-        // we can treat each such occurrence in SSA form.
-
-        /**
-         * Maps variable names to indices
-         */
-        type StoreMap = Map[String, Int]
-
-        lazy val stores : Chain[StoreMap] =
-            chain(storesin)
-
-        /**
-         * Update the current map from names to indices
-         *
-         * @param m       The current map that provides the latest index for some names
-         * @param name    The variable of increment the counter for
-         *
-         * @return        If `name` is not in m, then m + (name -> 0) otherwise
-         *                m'(name) = m(name) + 1 and m' = m for the the other vars.
-         */
-        def bumpcount(m : StoreMap, name : Name) : StoreMap = {
-            val s = show(name)
-            val count = m.getOrElse(s, 0)
-            m.updated(s, count + 1)
-        }
-
-        def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
-            case _ : BlockTrace =>
-                Map[String, Int]()
-            case n @ Binding(name) =>
-                bumpcount(in(n), name)
-            case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-                bumpcount(in(n), name)
-            case n @ Store(_, _, _, _, Named(name), _) =>
-                bumpcount(in(n), name)
-        }
-
-        /*
-         * Retrieve the index of a particular occurrence of a program variable
-         * in a trace.
-         */
-        def indexOf(use : Product, s : String) : Int = {
-            stores(use).get(s).getOrElse(0)
-        }
-
-        /*
-         * Return terms that express the effect of an LLVM node, including of
-         * phi insns given entry to the block from a particular previous block
-         * (if there is one), and exit from this block using a particular choice.
-         */
-        def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-            logger.info(s"blockTerms: $name block ${blockName(block)}")
-            val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
-            val effects = block.optMetaInstructions.map(insnTerm)
-            val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
-            val allEffects = phiEffects ++ effects :+ exitEffect
-            allEffects.filter(_ != STrue())
-        }
-
-        /*
-         * Return a term that expresses the effect of an LLVM phi instruction
-         * given that control comes from a particular previous block (if any).
-         */
-        def phiInsnTerm(metaInsn : MetaPhiInstruction, optPrevBlock : Option[Block]) : TypedTerm[BoolTerm, Term] = {
-            val insn = metaInsn.phiInstruction
-            val term : TypedTerm[BoolTerm, Term] =
-                optPrevBlock match {
-                    case Some(prevBlock) =>
-                        val prevLabel = blockName(prevBlock)
-                        insn match {
-                            case insn @ Phi(Binding(to), tipe, preds) =>
-                                // Bound phi result, find value
-                                preds.find(_.label == prevLabel) match {
-                                    case Some(pred) =>
-                                        equality(to, tipe, pred.value, tipe)
-                                    case None =>
-                                        sys.error(s"phiInsnTerm: can't find $prevLabel in $insn")
-                                }
-                            case Phi(NoBinding(), _, _) =>
-                                // No effect since result of phi is not bound
-                                STrue()
-                        }
-                    case None =>
-                        // No previous block so phi insns don't make sense...
-                        STrue()
-                }
-            logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
-            term
-        }
-
-        /*
-         * Return a term that expresses the effect of an LLVM terminator instruction
-         * that exits a block using a particular choice.
-         * Exits or choices are integers >=0, typically 0 and 1 for an if-then-else, 0 for
-         * a non-conditional exit.
-         */
-        def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term] = {
-            val insn = metaInsn.terminatorInstruction
-            val term =
-                insn match {
-                    case Branch(label) if choice == 0 =>
-                        STrue()
-
-                    case BranchCond(value, label1, label2) if choice == 0 =>
-                        vtermB(value)
-
-                    case BranchCond(value, label1, label2) if choice == 1 =>
-                        !vtermB(value)
-
-                    case insn =>
-                        sys.error(s"exitTerm: can't handle choice $choice of $insn")
-                }
-            logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${showTerm(term.termDef)}")
-            term
-        }
-
-        /*
-         * Return a term that expresses the effect of a regular LLVM instruction.
-         */
-        def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
-            val insn = metaInsn.instruction
-            val term =
-                insn match {
-
-                    /*
-                     * Ignore stack memory allocation.
-                     */
-                    case _ : Alloca =>
-                        STrue()
-
-                    /*
-                     * Boolean binary operation (`left` `op` `right` into `to`).
-                     */
-                    case Binary(Binding(to), op, BoolT(), left, right) =>
-                        val lterm = vtermB(left)
-                        val rterm = vtermB(right)
-                        val exp =
-                            op match {
-                                case _ : And => lterm & rterm
-                                case _ : Or  => lterm | rterm
-                                case _ : XOr => lterm xor rterm
-                                case _ =>
-                                    sys.error(s"binary Boolean op $op not handled")
-                            }
-                        ntermB(to) === exp
-
-                    /*
-                     * Integer binary operation (`left` `op` `right` into `to`).
-                     */
-                    case Binary(Binding(to), op, IntT(_), left, right) =>
-                        val lterm = vtermI(left)
-                        val rterm = vtermI(right)
-                        val exp =
-                            op match {
-                                case _ : Add  => lterm + rterm
-                                case _ : Mul  => lterm * rterm
-                                case _ : SDiv => lterm / rterm
-                                case _ : SRem => lterm % rterm
-                                case _ : Sub  => lterm - rterm
-                                case _ =>
-                                    sys.error(s"binary integer op $op not handled")
-                            }
-                        ntermI(to) === exp
-
-                    // Call to `assume`
-                    case Call(_, _, _, _, _, VerifierFunction(AssumeName()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
-                        tipe match {
-                            case BoolT() => vtermB(arg)
-                            case IntT(_) => !(vtermI(arg) === 0)
-                            case _ =>
-                                sys.error(s"insnTerm: unexpected type $tipe in assume call")
-                        }
-
-                    // Call to `nondet_*`
-                    case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
-                        STrue()
-
-                    case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
-                        STrue()
-
-                    // Compare two Boolean values
-
-                    case Compare(Binding(to), ICmp(icond), BoolT(), left, right) =>
-                        val lterm = vtermB(left)
-                        val rterm = vtermB(right)
-                        val exp =
-                            icond match {
-                                case EQ() => lterm === rterm
-                                case NE() => !(lterm === rterm)
-                                case _ =>
-                                    sys.error(s"Boolean comparison $icond not handled")
-                            }
-                        ntermB(to) === exp
-
-                    // Compare two integer or pointer values
-
-                    case Compare(Binding(to), ICmp(icond), ComparisonType(), left, right) =>
-                        val lterm = vtermI(left)
-                        val rterm = vtermI(right)
-                        val exp =
-                            icond match {
-                                case EQ()  => lterm === rterm
-                                case NE()  => !(lterm === rterm)
-                                case UGT() => lterm > rterm
-                                case UGE() => lterm >= rterm
-                                case ULT() => lterm < rterm
-                                case ULE() => lterm <= rterm
-                                case SGT() => lterm > rterm
-                                case SGE() => lterm >= rterm
-                                case SLT() => lterm < rterm
-                                case SLE() => lterm <= rterm
-                                case _ =>
-                                    sys.error(s"integer comparison $icond not handled")
-                            }
-                        ntermB(to) === exp
-
-                    // Conversions
-
-                    case Convert(Binding(to), _, fromType, from, toType) =>
-                        equality(to, toType, from, fromType)
-
-                    // Pointer dereference
-
-                    case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
-                        sys.error(s"insnTerm: unsupported getelementptr insn $insn")
-
-                    case _ : GetElementPtr =>
-                        // We ignore these here, but the associations that they establish
-                        // between their bound name and their arguments are expressed in
-                        // the element properties of the name.
-                        STrue()
-
-                    // Array loads and stores, just non-Boolean, integer elements for now
-
-                    case insn @ Load(Binding(to), _, IntegerT(_), _, ArrayElement(array, index), _) =>
-                        ntermI(to) === arrayTermAt(insn, array).at(vtermAtI(insn, index))
-
-                    case insn @ Store(_, IntegerT(_), from, _, ArrayElement(array, index), _) =>
-                        arrayTermAt(insn, array) === prevArrayTermAt(insn, array).store(vtermAtI(insn, index), vtermI(from))
-
-                    // Non-array loads and stores
-
-                    case Load(Binding(to), _, tipe, _, from, _) =>
-                        equality(to, tipe, from, tipe)
-
-                    case Store(_, tipe, from, _, Named(to), _) =>
-                        equality(to, tipe, from, tipe)
-
-                    case insn =>
-                        sys.error(s"insnTerm: don't know the effect of $insn")
-
-                }
-            logger.debug(s"insnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
-            term
-        }
-
-        /*
-         * Make an ArrayTerm for the named variable where `id` is the base name
-         * identifier and include an optional index.
-         */
-        def arrayTerm(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
-            ArrayInt1(id).indexed(index)
-
-        /*
-         * Return an array term that expresses a name when referenced from node.
-         */
-        def arrayTermAt(node : ASTNode, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-            arrayTerm(show(name), indexOf(node, show(name)))
-
-        /*
-         * Return a term that expresses the previous version of a name when
-         * referenced from node.
-         */
-        def prevArrayTermAt(node : ASTNode, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-            arrayTerm(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
-
-        /*
-         * Make an integer term for the named variable where `id` is the base name
-         * identifier and index it.
-         */
-        def varTermI(id : String, index : Int) : TypedTerm[IntTerm, Term] =
-            new VarTerm(id, IntSort(), Some(index))
-
-        /*
-         * Make a Boolean term for the named variable where `id` is the base name
-         * identifier and index it.
-         */
-        def varTermB(id : String, index : Int) : TypedTerm[BoolTerm, Term] =
-            new VarTerm(id, BoolSort(), Some(index))
-
-        /*
-         * Return an integer term that expresses a name when referenced from node.
-         */
-        def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-            varTermI(show(name), indexOf(node, show(name)))
-
-        /*
-         * Return a Boolean term that expresses a name when referenced from node.
-         */
-        def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-            varTermB(show(name), indexOf(node, show(name)))
-
-        /*
-         * Return an integer term that expresses an LLVM name when referenced
-         * from the name node.
-         */
-        def ntermI(name : Name) : TypedTerm[IntTerm, Term] =
-            ntermAtI(name, name)
-
-        /*
-         * Return a Boolean term that expresses an LLVM name when referenced
-         * from the name node.
-         */
-        def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
-            ntermAtB(name, name)
-
-        /*
-         * Return an IntTerm that expresses an LLVM ik value, k > 0.
-         */
-        def vtermI(value : Value) : TypedTerm[IntTerm, Term] =
-            value match {
-                case Const(IntC(i)) =>
-                    Ints(i.toInt) //  warning: BigInt!!
-                case Named(name) =>
-                    ntermI(name)
-                case value =>
-                    sys.error(s"vtermI: unexpected value $value")
-            }
-
-        /*
-         * Return an IntTerm that expresses a value when referenced from node.
-         */
-        def vtermAtI(node : ASTNode, value : Value) : TypedTerm[IntTerm, Term] =
-            value match {
-                case Named(name) =>
-                    ntermAtI(node, name)
-                case _ =>
-                    vtermI(value)
-            }
-
-        /*
-         * Return a BoolTerm that expresses an LLVM i1 value.
-         */
-        def vtermB(value : Value) : TypedTerm[BoolTerm, Term] =
-            value match {
-                case Const(FalseC()) =>
-                    SFalse()
-                case Const(TrueC()) =>
-                    STrue()
-                case Named(name) =>
-                    ntermB(name)
-                case value =>
-                    sys.error(s"vtermB: unexpected value $value")
-            }
-
-        /*
-         * Make an equality term between an LLVM name and an LLVM value. The
-         * kind of equality depends on the type of the name. We mostly handle
-         * integer and Boolean equalities, but also pointers as integers.
-         */
-        def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, EqualTerm] =
-            (toType, fromType) match {
-                case (BoolT(), BoolT()) =>
-                    ntermB(to) === vtermB(from)
-                case (BoolT(), IntT(_)) =>
-                    ntermB(to) === !(vtermI(from) === 0)
-                case (IntT(_), BoolT()) =>
-                    ntermI(to) === vtermB(from).ite(Ints(1), Ints(0))
-                case (IntT(_), IntT(_)) =>
-                    ntermI(to) === vtermI(from)
-                case (PointerT(_, _), PointerT(_, _)) =>
-                    ntermI(to) === vtermI(from)
-                case _ =>
-                    sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
-            }
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        val termBuilder = new LLVMTermBuilder(namer)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = tree.root
+        val treeBlockTrace = traceTree.root
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -530,7 +83,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
-                blockTerms(block, optPrevBlock, choice)
+                termBuilder.blockTerms(block, optPrevBlock, choice)
         }
 
     }
@@ -553,7 +106,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                 val (optTermLine, optTermCode) =
                     block.metaTerminatorInstruction match {
                         case MetaTerminatorInstruction(insn, metadata) =>
-                            funanalyser.instructionPosition(program, insn, metadata) match {
+                            funAnalyser.instructionPosition(program, insn, metadata) match {
                                 case Some(Position(termLine, _, termSource)) =>
                                     val termCode = getSourceLine(termSource, termLine)
                                     (Some(termLine), Some(termCode))
@@ -723,45 +276,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     }
 
     /**
-     * Convert an LLVM name into its string representation.
-     */
-    def nameToString(name : Name) : String =
-        name match {
-            case Global(s) => s
-            case Local(s)  => s
-        }
-
-    /*
-     * Get the array element property for name, if there is one.
-     */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
-        properties(name).collectFirst {
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-        }
-
-    /**
-     * Return whether or not the named function is a special verifier
-     * function.
-     */
-    def isVerifierFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER")
-
-    /**
-     * Return whether or not the named function is an LLVM intrinsic.
-     */
-    def isLLVMIntrinsic(name : String) : Boolean =
-        name.startsWith("llvm")
-
-    /**
-     * Return whether or not the named function is a memory allcoation function.
-     */
-    def isMemoryAllocFunction(name : String) : Boolean =
-        List("alloca", "calloc", "free", "malloc") contains name
-
-    /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
      */
@@ -810,239 +324,4 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
     }
 
-    // Extractors to make matching more convenient
-
-    /**
-     * Extractor to match stores to array elements. Currently only looks for
-     * array element references that have a zero index (to deref the array
-     * pointer), followed by the actual index.
-     * FIXME: there may well be other cases we should detect.
-     */
-    object ArrayElement {
-        def unapply(value : Value) : Option[(Name, Value)] =
-            value match {
-                case Named(name) =>
-                    elementProperty(name)
-                case _ =>
-                    None
-            }
-    }
-
-    /**
-     * Matcher for assumption function names.
-     */
-    object AssumeName {
-        def unapply(name : Name) : Boolean =
-            name == Global("__VERIFIER_assume")
-    }
-
-    /**
-     * Matcher for LLVM Boolean types (i.e., i1).
-     */
-    object BoolT {
-        def unapply(tipe : Type) : Boolean =
-            tipe match {
-                case IntT(n) if n == 1 =>
-                    true
-                case _ =>
-                    false
-            }
-    }
-
-    /**
-     * Matcher for LLVM Integer (non-Boolean) types (i.e., in, n > 1).
-     * Return n for successful matches.
-     */
-    object IntegerT {
-        def unapply(tipe : Type) : Option[Int] =
-            tipe match {
-                case IntT(n) if n > 1 =>
-                    Some(n.toInt)
-                case _ =>
-                    None
-            }
-    }
-
-    /**
-     * Matcher for types that we support comparisons between.
-     */
-    object ComparisonType {
-        def unapply(tipe : Type) : Boolean =
-            tipe match {
-                case _ : IntT | _ : PointerT =>
-                    true
-                case _ =>
-                    false
-            }
-    }
-
-    /*
-     * Extractor that recognises functions whose calls we want to ignore when
-     * generating effect terms. Currently:
-     *   - any LLVM intrinsic, such as llvm.stacksave
-     *   - special verifier fns, such as __VERIFIER_nondet_int
-     */
-    object IgnoredFunction {
-        def unapply(fn : Function) : Boolean =
-            fn match {
-                case Function(Named(Global(s))) =>
-                    isLLVMIntrinsic(s) || isVerifierFunction(s)
-                // || isMemoryAllocFunction(s)
-                case _ =>
-                    false
-            }
-    }
-
-    /**
-     * Matcher for nondet function names. Successful matches return the
-     * identifier of the type that is returned by the matched function.
-     */
-    object NondetFunctionName {
-        def unapply(name : Name) : Option[String] = {
-            val NondetName = "__VERIFIER_nondet_(.+)$".r
-            name match {
-                case Global(NondetName(tipe)) =>
-                    Some(tipe)
-                case _ =>
-                    None
-            }
-        }
-    }
-
-    /*
-     * Extractor for variable names that matches if the variable is a
-     * user-level variable (i.e., one defined in the source code) as
-     * opposed to a compiler-defined temporary. If a match is found,
-     * the basename of the variable is returned and the index attached
-     * is ignored (e.g., `%i@1` returns `i`).
-     */
-    object UserLevelVarName {
-        def unapply(name : Name) : Option[String] = {
-            val BaseName = "[@%](.+)@[0-9]+".r
-            val TempName = "[@%][0-9]+@[0-9]+".r
-            nameToString(name) match {
-                case TempName() =>
-                    None
-                case BaseName(base) =>
-                    Some(base)
-                case _ =>
-                    None
-            }
-        }
-    }
-
-    /**
-     * Extractor to match various forms of calls to verifier functions,
-     * returning the function name. The main reason for the differences
-     * between the forms seems to be whether a correct prototype is
-     * available when the LLVM IR is produced. To simplify things, we
-     * don't assume that the proper prototype is there, so we support
-     * these multiple forms.
-     */
-    object VerifierFunction {
-        def unapply(v : CalledValue) : Option[Name] =
-            v match {
-                case Function(Named(name)) =>
-                    Some(name)
-                case Function(Const(ConvertC(Bitcast(), _, NameC(name), _))) =>
-                    Some(name)
-                case _ =>
-                    None
-            }
-    }
-
-    /**
-     * Encode a trace of the form assume(pre) trace assert(post)
-     *
-     * @example  Let pre be x == 1, post be (x == 2 and y == x + 1), and
-     * trace be x = x + 1; y = 2
-     * The encoding returns x_0  == 1, x_1 == x_0 + 1 and y_1 == 2,
-     * x_1 == 2 and y_1 == x_1 + 1
-     */
-    // def AssumeTraceAssertToTerms(
-    //     pre : TypedTerm[BoolTerm, Term],
-    //     trace : Trace,
-    //     post : TypedTerm[BoolTerm, Term]
-    // ) : Tuple3[TypedTerm[BoolTerm, Term], TypedTerm[BoolTerm, Term], TypedTerm[BoolTerm, Term]] = {
-    //     (STrue(), STrue(), STrue())
-    // }
-
-    /**
-     * Return the partition of indices grouped by blockNames
-     *
-     * For instance if the blockTrace is b0, b1, b2, b1, b3, b4 it returns
-     * {0}, {1,4} (b1 appears at index 1 and 4), {2}, {5}, {6}
-     */
-    def partitionWithNames(trace : Trace) : List[Set[Int]] = {
-
-        itpLogger.info(s"[repeatedBlocks] Trace is ${trace.show}\n")
-
-        //  compute the blockTrace
-        val blockTrace = traceToBlockTrace(trace)
-
-        itpLogger.info(s"[repeatedBlocks] BlockTrace is [blocknames are displayed] ${blockTrace.showNames}\n")
-
-        //  find repeated blockNames in blockTrace
-        val blockToTraceLocation = blockTrace.groupByName.map(_._2.toSet).toList
-
-        itpLogger.info(s"[repeatedBlocks] Repetitions are: ${blockToTraceLocation.mkString("\n")}")
-        blockToTraceLocation
-
-    }
-
-    /*
-     * Combine terms via conjunction, dealing with the case where
-     * there are no terms so effect is "true".
-     */
-    // private def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-    //     if (terms.isEmpty)
-    //         STrue()
-    //     else
-    //         terms.reduceLeft(_ & _)
-
-    /**
-     *  Check whether the last step of a  trace
-     * satisfies a Pre/Post consition.
-     *
-     * @param     pre     The pre-condition
-     * @param     post    The post-condition
-     * @param     trace   The trace the last step of which must be checked
-     */
-    def checkPrePost(
-        pre : TypedTerm[BoolTerm, Term],
-        trace : Trace,
-        post : TypedTerm[BoolTerm, Term]
-    ) : Boolean = {
-
-        import au.edu.mq.comp.smtlib.parser.Analysis
-        import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SortedQId, SSymbol, ISymbol, SymbolId, DelimitedSeq}
-        //  compute the names of a SortedQId
-        def name(x : SortedQId) = x.id match {
-            case SymbolId(sym) => sym match {
-                case SSymbol(name)    => name
-                case ISymbol(name, _) => name
-                case DelimitedSeq(_)  => sys.error("Could not continue")
-            }
-            case _ => sys.error("Could not continue")
-        }
-
-        //  compute the encoding of the trace
-        val traceSSAed = traceToTerms2(trace)
-        for (i <- 0 until traceSSAed.length) {
-            itpLogger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceSSAed(i).termDef)}""")
-        }
-
-        //  index variables in pre with 0
-
-        //  compute largest/smallest indices for each variable in traceSSAed
-        val r = traceSSAed.flatMap(_.typeDefs).groupBy {
-            x => name(x)
-        }
-
-        itpLogger.info(s"== Computed groupBy name ==\n")
-        itpLogger.info(s"${r.mkString("\n")}")
-        itpLogger.info("\n")
-
-        false
-    }
 }
