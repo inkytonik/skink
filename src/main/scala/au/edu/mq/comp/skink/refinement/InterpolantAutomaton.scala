@@ -58,7 +58,7 @@ object InterpolantAuto extends Resources with Commands with Core {
         val linearAuto : NFA[Int, Int] = buildAutoForTrace(choices)
 
         //  Collect partition of indices according to blockNames
-        val indexPartition : List[Set[Int]] = function.partitionWithNames(Trace(choices))
+        val indexPartition = function.traceToRepetitions(Trace(choices))
 
         //  From the sequence of choices, retrieve the sequence of terms that encodes the semantics
         //  of the trace
