@@ -32,7 +32,7 @@ trait IRFunction {
      * sequences collect terms that express the effect of each block
      * that appears in the trace.
      */
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]]
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
 
     /**
      * Return descriptions of the steps taken by a failure trace for use

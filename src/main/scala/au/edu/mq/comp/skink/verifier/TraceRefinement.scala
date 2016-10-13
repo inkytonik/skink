@@ -114,23 +114,13 @@ class TraceRefinement(config : SkinkConfig) {
                     logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
 
                     /*
-                     * Combine terms via conjunction, dealing with case where
-                     * are no terms so effect is "true".
-                     */
-                    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-                        if (terms.isEmpty)
-                            True()
-                        else
-                            terms.reduceLeft(_ & _)
-
-                    /*
                      * Get the SMTlib terms that describe the meaning of the operations
                      * that would be executed. If an empty collection of terms is returned,
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace).map(combineTerms)
+                    val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
