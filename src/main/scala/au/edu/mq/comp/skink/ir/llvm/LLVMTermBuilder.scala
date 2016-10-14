@@ -147,8 +147,12 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                             sys.error(s"insnTerm: unexpected type $tipe in assume call")
                     }
 
-                // Call to `nondet_*`
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                // Call to `nondet_X` where X is an unsigned type
+                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(UnsignedType())), Vector(), _) =>
+                    ntermI(to) >= 0
+
+                // Other calls to `nondet_X`
+                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
                     STrue()
 
                 case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
