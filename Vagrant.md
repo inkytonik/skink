@@ -40,6 +40,17 @@ you will want to move over there. Also, you can edit files on the host
 machine and the VM will see the changes, so you don't need to edit in
 the VM.
 
+* Build Skink for use in the benchmarks
+
+You should build the Skink project on your host machine. Use the sbt
+command
+
+    assembly
+
+which will build and package Skink into a standalone jar. This jar is
+used by the BenchExec setup to run Skink so things won't work if you
+just compile Skink into class files.
+
 * Find the sv-benchmarks
 
 The sv-benchmarks repo will be checked out at /home/vagrant/sv-benchmarks
