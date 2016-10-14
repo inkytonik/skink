@@ -28,7 +28,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             case None =>
                 val msg = "C frontend requires a file source"
                 logger.info(s"buildIR: $msg")
-                Right(Vector(Message(null, msg)))
+                Right(Vector(Message(msg, msg)))
         }
     }
 
@@ -49,7 +49,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         if (!clangq || !optq) {
             val msg = "buildIRFromFile: clang or opt not present on path"
             logger.info(msg)
-            return Right(Vector(Message(null, msg)))
+            return Right(Vector(Message(msg, msg)))
         }
         val clangv = "clang --version".!!
         val optv = "opt --version".!!
@@ -63,7 +63,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         } else {
             val msg = s"buildIRFromFile: conversion to LLVM failed with code $res"
             logger.info(msg)
-            return Right(Vector(Message(null, msg)))
+            return Right(Vector(Message(msg, msg)))
         }
 
         // Use LLVM frontend from here
