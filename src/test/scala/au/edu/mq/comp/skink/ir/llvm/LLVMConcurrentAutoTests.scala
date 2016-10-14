@@ -41,14 +41,16 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
     test("Load an ll program and produce a DCA") {
         val (_, _, main) = parseProgram("src/test/resources/llvm/fib_bench_false-unreach-call.ll")
         val dca = main.dca
-        var state = dca.getInit
-        val r = scala.util.Random
-        for (a <- 1 until 10) {
-            val branch = r.nextInt(dca.enabledIn(state).size - 1)
-            state = dca.succ(state, branch)
-            println(state.keys)
-            println(state.values.map(_.optBlockLabel))
-        }
+        //var state = dca.getInit
+        //val r = scala.util.Random
+        //for (a <- 1 until 10) {
+        //val branch = r.nextInt(dca.enabledIn(state).size - 1)
+        //state = dca.succ(state, branch)
+        //println(state.keys)
+        //println(state.values.map(_.optBlockLabel))
+        //}
+        import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+        toDetNFA(dca)
     }
 
 }

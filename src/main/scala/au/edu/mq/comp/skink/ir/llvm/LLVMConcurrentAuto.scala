@@ -3,11 +3,11 @@ package au.edu.mq.comp.skink.ir.llvm
 import au.edu.mq.comp.automat.auto.DetAuto
 import org.scalallvm.assembly.AssemblySyntax.Block
 import au.edu.mq.comp.skink.ir.IRFunction
-import scala.collection.mutable.ListMap
+import scala.collection.mutable.Map
 
 class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[Int, String], (Int, Int)] {
     import org.scalallvm.assembly.AssemblySyntax._
-    import scala.collection.mutable.{Map, ListBuffer}
+    import scala.collection.mutable.ListBuffer
 
     private val functionBlocks : Map[Int, Map[String, Block]] = Map(0 -> Map(main.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
     private var threadCount = 1

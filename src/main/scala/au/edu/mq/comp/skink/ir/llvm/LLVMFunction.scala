@@ -37,7 +37,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
-    import scala.collection.mutable.ListMap
+    import scala.collection.mutable.Map
     import scala.util.{Failure, Success}
 
     object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
@@ -455,7 +455,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
-                blockTerms(block, optPrevBlock, choice)
+                blockTerms(block, optPrevBlock, choice._2)
         }
 
     }
@@ -758,7 +758,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
         val (finalBlock, blocks) =
             trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
                 case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice), blocks :+ block)
+                    (nextBlock(block, choice._2), blocks :+ block)
                 case ((None, blocks), choice) =>
                     (None, blocks)
             }

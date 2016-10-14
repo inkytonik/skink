@@ -50,6 +50,15 @@
         </encoder>
     </appender>
 
+    <appender name="AUTOMATFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/automat.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+
     <root level="OFF">
         <appender-ref ref="SKINKFILE"/>
     </root>
@@ -95,6 +104,11 @@
 
     <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
+    </logger>
+
+    <!-- util logger -->
+    <logger name="au.edu.mq.comp.automat.util" level="INFO" additivity="false">
+        <appender-ref ref="AUTOMATFILE"/>
     </logger>
 
 </configuration>
