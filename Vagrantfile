@@ -44,6 +44,7 @@ Vagrant.configure(2) do |config|
 
     # install svcomp benchmark programs
     git clone --depth 1 https://github.com/dbeyer/sv-benchmarks.git
+    chown -R vagrant:vagrant sv-benchmarks
 
   SHELL
 end
