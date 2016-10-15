@@ -41,6 +41,8 @@ shellPrompt <<= (name, version) { (n, v) =>
      _ => n + " " + v + "> "
 }
 
+cancelable in Global := true
+
 // Dependencies
 
 libraryDependencies ++=

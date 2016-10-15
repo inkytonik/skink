@@ -10,7 +10,7 @@ trait IRFunction {
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
-    import scala.collection.mutable.Map
+    import scala.collection.immutable.Map
 
     /**
      * The IR-level name of this function.

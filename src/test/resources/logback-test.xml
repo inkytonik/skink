@@ -98,6 +98,11 @@
         <appender-ref ref="LLVMFILE"/>
     </logger>
 
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAutoTests" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAutoTests.cfg" level="INHERITED" additivity="false">
+        <appender-ref ref="CFGFILE"/>
+    </logger>
+
     <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
     </logger>

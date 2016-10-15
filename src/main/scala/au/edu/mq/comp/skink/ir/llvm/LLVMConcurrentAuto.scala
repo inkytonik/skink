@@ -3,14 +3,17 @@ package au.edu.mq.comp.skink.ir.llvm
 import au.edu.mq.comp.automat.auto.DetAuto
 import org.scalallvm.assembly.AssemblySyntax.Block
 import au.edu.mq.comp.skink.ir.IRFunction
-import scala.collection.mutable.Map
+import scala.collection.immutable.Map
 
 class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[Int, String], (Int, Int)] {
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable.ListBuffer
+    import au.edu.mq.comp.skink.Skink.getLogger
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
 
-    private val functionBlocks : Map[Int, Map[String, Block]] = Map(0 -> Map(main.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
-    private var threadCount = 1
+    private val logger = getLogger(this.getClass)
+    private var threadCount = 0
+    private var functionBlocks : Map[Int, Map[String, Block]] = Map(0 -> Map(main.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
 
     /**
      * Get the name of a block. Currently assumes that a block with no label
@@ -20,7 +23,10 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
         block.optBlockLabel match {
             case BlockLabel(s)    => s
             case ImplicitLabel(i) => i.toString
-            case NoLabel()        => "0"
+            case NoLabel() => block.metaTerminatorInstruction match {
+                case MetaTerminatorInstruction(Ret(_, _), _) => "return"
+                case _                                       => "0"
+            }
         }
 
     val name : String = main.name
@@ -38,19 +44,25 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
 
         for ((threadId, blockName) <- state) {
             val block = functionBlocks.get(threadId).get(blockName)
+            logger.info(s"nextBlocks: Discovering available branches from block $blockName on thread $threadId")
+            if (threadId != 0)
+                logger.info("nextBlocks: Got block " + layout(any(block)))
             block.metaTerminatorInstruction.terminatorInstruction match {
 
                 // Unconditional branch
                 case Branch(Label(Local(tgt))) =>
+                    logger.info(s"nextBlocks: Found an unconditional branch on thread $threadId")
                     buf += ((threadId, tgt))
 
                 // Two-sided conditional branch
                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
+                    logger.info(s"nextBlocks: Found a two way branch  on thread $threadId")
                     buf += ((threadId, trueTgt))
                     buf += ((threadId, trueTgt))
 
                 // Multi-way branch
                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
+                    logger.info(s"nextBlocks: Found a multiway branch on thread $threadId")
                     cases.zipWithIndex.foreach {
                         case (Case(_, _, Label(Local(tgt))), i) =>
                             buf += ((threadId, tgt))
@@ -59,6 +71,7 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
 
                 // Return
                 case _ : Ret | _ : RetVoid | _ : Unreachable =>
+                    logger.info(s"nextBlocks: Found a block with no next branch on thread $threadId")
                 // Do nothing
 
                 case i =>
@@ -70,6 +83,7 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
     }
 
     def succ(state : Map[Int, String], label : (Int, Int)) : Map[Int, String] = {
+
         def threadCreationInfo(block : Block) : List[(String, String)] = {
             def isThreadCreation(insn : MetaInstruction) : Boolean = {
                 insn match {
@@ -110,6 +124,8 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
         val (threadId, branchId) = label
         // Find the next block for the selected branch
         val (_, newBlock) = nextBlocks(state).filter(_._1 == threadId)(branchId)
+        var newState = state - threadId + (threadId -> newBlock)
+        logger.info(s"succ: Emitting successor $newState for $state with label $label")
 
         // Get thread creation info for this block
         val block = state.get(threadId).get
@@ -118,21 +134,26 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
             // Got a new thread, we should only have one new thread per 
             // block
             assert(threadInfo.length == 1)
-            val (threadId, threadFn) = threadInfo.head
+            val (_, threadFn) = threadInfo.head
+            logger.info(s"succ: Discovered a new thread with info $threadInfo")
             val threadIRFn = main.ir.functions.filter(_.name == threadFn).head
+            logger.info("thread ir fn " + show(threadIRFn.function))
             val transformedIRFn = new LLVMFunction(threadIRFn.ir, threadIRFn.makeVerifiable)
-            val threadStartBlock = threadIRFn.function.functionBody.blocks.head
+            val threadStartBlock = transformedIRFn.function.functionBody.blocks.head
+            logger.info("start block " + show(threadStartBlock))
             threadCount += 1
             val newThreadId = threadCount
-            functionBlocks += (newThreadId -> Map(threadIRFn.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
-            state += (newThreadId -> blockName(threadStartBlock))
+            functionBlocks = functionBlocks + (newThreadId -> Map(transformedIRFn.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
+            logger.info("adding function " + show(threadIRFn.function))
+            newState = newState + (newThreadId -> blockName(threadStartBlock))
+            logger.info(s"succ: Additional thread added to state producing successor $newState")
         }
-        state.update(threadId, newBlock)
-        state
+        newState
     }
 
     def enabledIn(state : Map[Int, String]) : Set[(Int, Int)] = {
         val buf = new ListBuffer[(Int, Int)]
+        logger.info("enabledIn: Enumerating enabled labels for state {} with nextBlocks {}", state, nextBlocks(state))
         for ((threadId, branches) <- nextBlocks(state).groupBy(_._1)) {
             for (branchId <- 0 to branches.length - 1) {
                 buf += ((threadId, branchId))

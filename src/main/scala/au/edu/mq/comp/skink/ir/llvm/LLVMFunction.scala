@@ -37,7 +37,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
-    import scala.collection.mutable.Map
+    import scala.collection.immutable.Map
     import scala.util.{Failure, Success}
 
     object termStuff extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators
@@ -493,6 +493,8 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {
+        logger.info(s"makeVerifiable: $name")
+
         val processedBody = makeErrorsVerifiable(makeThreadVerifiable(function.functionBody))
 
         // Return the new function
@@ -531,7 +533,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
      */
     def makeErrorsVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
-        logger.info(s"makeVerifiable: $name")
+        logger.info(s"makeErrorsVerifiable: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 
@@ -648,9 +650,11 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
             )
             programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
-            if (splitBlocks.length <= 1)
+            if (splitBlocks.length <= 1) {
+                logger.info(s"makeThreadVerifiable: No concurrent operations encountered")
                 block
-            else {
+            } else {
+                logger.info(s"makeThreadVerifiable: Concurrent operations encountered, inserting new blocks")
                 val first = splitBlocks.head
                 val rest = splitBlocks.drop(1).dropRight(1)
                 val last = splitBlocks.last
@@ -664,12 +668,14 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
                 var blockCount = 0
                 for (b <- rest.reverse) {
                     val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
+                    logger.info(s"makeThreadVerifiable: Inserted new block with label $newLabel")
                     insertedBlocks += Block(BlockLabel(newLabel), Vector(), None, b.toVector,
                         MetaTerminatorInstruction(
                             Branch(Label(Local(label))),
                             Metadata(Vector())
                         ))
                     label = newLabel
+                    blockCount += 1
                 }
                 val startBlock = Block(block.optBlockLabel, Vector(), None, first.toVector,
                     MetaTerminatorInstruction(
