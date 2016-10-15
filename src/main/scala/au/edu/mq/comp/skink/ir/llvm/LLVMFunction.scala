@@ -225,37 +225,6 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
 
         val insertedBlocks = new ListBuffer[Block]()
 
-        def isNotThreadPrimitive(insn : MetaInstruction) : Boolean = {
-            insn match {
-                case MetaInstruction(
-                    Call(
-                        _, _, _, _, _,
-                        Function(Named(Global("pthread_create"))),
-                        _, _
-                        ),
-                    _
-                    ) =>
-                    false
-                case _ =>
-                    true
-            }
-        }
-
-        def isNotGlobalAccess(insn : MetaInstruction) : Boolean = {
-            insn match {
-                case MetaInstruction(muteInsn, _) => {
-                    muteInsn match {
-                        case Load(_, _, _, _, Named(Global(_)), _)  => false
-                        case Store(_, _, _, _, Named(Global(_)), _) => false
-                        case _                                      => true
-                    }
-                }
-                case _ =>
-                    true
-            }
-        }
-
-        // Must be a better way to do it, yuck
         def splitOnPredicate(
             insns : List[MetaInstruction],
             pred : MetaInstruction => Boolean
@@ -275,7 +244,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
             // instruction.
             val splitBlocks = splitOnPredicate(
                 block.optMetaInstructions.toList,
-                i => isNotThreadPrimitive(i) && isNotGlobalAccess(i)
+                i => !isThreadPrimitive(i) && !isGlobalAccess(i)
             )
             programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
@@ -319,20 +288,6 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
         val functionBodyWithSplitBlocks = FunctionBody(startingBlocks ++ insertedBlocks)
         functionBodyWithSplitBlocks
     }
-
-    /**
-     * Generate a new label from an existing block label and a supplied prefix
-     * string.
-     */
-    def makeLabelFromPrefix(label : OptBlockLabel, prefix : String) : String =
-        label match {
-            case BlockLabel(label) =>
-                s"$prefix.$label"
-            case ImplicitLabel(num) =>
-                s"$prefix.$num"
-            case NoLabel() =>
-                s"$prefix.nolabel"
-        }
 
     /**
      * Follow the choices given by a trace to construct the trace of blocks

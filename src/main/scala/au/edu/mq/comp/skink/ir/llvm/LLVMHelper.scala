@@ -18,6 +18,20 @@ object LLVMHelper {
         }
 
     /**
+     * Generate a new label from an existing block label and a supplied prefix
+     * string.
+     */
+    def makeLabelFromPrefix(label : OptBlockLabel, prefix : String) : String =
+        label match {
+            case BlockLabel(label) =>
+                s"$prefix.$label"
+            case ImplicitLabel(num) =>
+                s"$prefix.$num"
+            case NoLabel() =>
+                s"$prefix.nolabel"
+        }
+
+    /**
      * Convert an LLVM name into its string representation.
      */
     def nameToString(name : Name) : String =
@@ -46,6 +60,29 @@ object LLVMHelper {
      */
     def isMemoryAllocFunction(name : String) : Boolean =
         List("alloca", "calloc", "free", "malloc") contains name
+
+    def isThreadPrimitive(insn : MetaInstruction) : Boolean = {
+        insn match {
+            case MetaInstruction(GlobalFunctionCall("pthread_create"), _) =>
+                true
+            case _ =>
+                false
+        }
+    }
+
+    def isGlobalAccess(insn : MetaInstruction) : Boolean = {
+        insn match {
+            case MetaInstruction(muteInsn, _) => {
+                muteInsn match {
+                    case Load(_, _, _, _, Named(Global(_)), _)  => false
+                    case Store(_, _, _, _, Named(Global(_)), _) => false
+                    case _                                      => true
+                }
+            }
+            case _ =>
+                true
+        }
+    }
 
     // Extractors to make matching more convenient
 
@@ -172,4 +209,19 @@ object LLVMHelper {
             }
     }
 
+    object GlobalFunctionCall {
+        def unapply(call : Call) : Option[String] =
+            call match {
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(name))),
+                    _, _
+                    ) =>
+                    Some(name)
+                case _ =>
+                    None
+
+            }
+
+    }
 }
