@@ -13,6 +13,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
@@ -85,10 +86,18 @@ class TraceRefinement(config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        //  get a solver specification. This object creation
-        //  does not spawn any process merely declare a solver type we
-        //  want to use
-        val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
+        // Get a solver specification as per configuration options. This
+        // object creation does not spawn any process merely declare a solver
+        // type we want to use
+        val selectedSolver =
+            config.solverMode() match {
+                case Z3SolverMode() =>
+                    new Z3 with QF_AUFLIA with Interpolants
+                case CVC4SolverMode() =>
+                    new CVC4 with QF_AUFLIA
+                case SMTInterpolSolverMode() =>
+                    new SMTInterpol with QF_AUFLIA with Interpolants
+            }
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
