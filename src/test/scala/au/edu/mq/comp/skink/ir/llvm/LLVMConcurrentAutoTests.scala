@@ -39,6 +39,7 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
     test("Load an ll program and produce a DCA") {
         import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
         import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
 
         val (_, main) = parseProgram("src/test/resources/llvm/simple_threads.c")
         val dca = main.dca

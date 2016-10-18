@@ -8,13 +8,16 @@ object LLVMHelper {
 
     /**
      * Get the name of a block. Currently assumes that a block with no label
-     * must be the anonymous entry block (0).
+     * must be a block with a return or the anonymous entry block (0)
      */
     def blockName(block : Block) : String =
         block.optBlockLabel match {
             case BlockLabel(s)    => s
             case ImplicitLabel(i) => i.toString
-            case NoLabel()        => "0"
+            case NoLabel() => block.metaTerminatorInstruction match {
+                case MetaTerminatorInstruction(Ret(_, _), _) => "return"
+                case _                                       => "0"
+            }
         }
 
     /**
@@ -38,6 +41,29 @@ object LLVMHelper {
         name match {
             case Global(s) => s
             case Local(s)  => s
+        }
+
+    def branchLabels(block : Block) : Option[List[String]] =
+        block.metaTerminatorInstruction.terminatorInstruction match {
+
+            // Unconditional branch
+            case Branch(Label(Local(tgt))) =>
+                Some(List(tgt))
+
+            // Two-sided conditional branch
+            case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
+                Some(List(trueTgt, falseTgt))
+
+            // Multi-way branch
+            case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
+                Some((cases.map { case Case(_, _, Label(Local(tgt))) => tgt }).toList :+ dfltTgt)
+
+            // Return
+            case _ : Ret | _ : RetVoid | _ : Unreachable =>
+                None
+
+            case i =>
+                sys.error(s"dca: unexpected form of terminator insn: $i")
         }
 
     // Useful predicates
@@ -74,13 +100,13 @@ object LLVMHelper {
         insn match {
             case MetaInstruction(muteInsn, _) => {
                 muteInsn match {
-                    case Load(_, _, _, _, Named(Global(_)), _)  => false
-                    case Store(_, _, _, _, Named(Global(_)), _) => false
-                    case _                                      => true
+                    case Load(_, _, _, _, Named(Global(_)), _)  => true
+                    case Store(_, _, _, _, Named(Global(_)), _) => true
+                    case _                                      => false
                 }
             }
             case _ =>
-                true
+                false
         }
     }
 

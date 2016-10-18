@@ -10,24 +10,11 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
     import scala.collection.mutable.ListBuffer
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
 
     private val logger = getLogger(this.getClass)
     private var threadCount = 0
     private var functionBlocks : Map[Int, Map[String, Block]] = Map(0 -> Map(main.function.functionBody.blocks.map(b => (blockName(b), b)) : _*))
-
-    /**
-     * Get the name of a block. Currently assumes that a block with no label
-     * must be the anonymous entry block (0).
-     */
-    def blockName(block : Block) : String =
-        block.optBlockLabel match {
-            case BlockLabel(s)    => s
-            case ImplicitLabel(i) => i.toString
-            case NoLabel() => block.metaTerminatorInstruction match {
-                case MetaTerminatorInstruction(Ret(_, _), _) => "return"
-                case _                                       => "0"
-            }
-        }
 
     val name : String = main.name
 
@@ -58,7 +45,7 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
                     logger.info(s"nextBlocks: Found a two way branch  on thread $threadId")
                     buf += ((threadId, trueTgt))
-                    buf += ((threadId, trueTgt))
+                    buf += ((threadId, falseTgt))
 
                 // Multi-way branch
                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
@@ -87,14 +74,7 @@ class LLVMConcurrentAuto(private val main : LLVMFunction) extends DetAuto[Map[In
         def threadCreationInfo(block : Block) : List[(String, String)] = {
             def isThreadCreation(insn : MetaInstruction) : Boolean = {
                 insn match {
-                    case MetaInstruction(
-                        Call(
-                            _, _, _, _, _,
-                            Function(Named(Global("pthread_create"))),
-                            _, _
-                            ),
-                        _
-                        ) =>
+                    case MetaInstruction(GlobalFunctionCall("pthread_create"), _) =>
                         true
                     case _ =>
                         false
