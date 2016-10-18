@@ -87,7 +87,7 @@ object LLVMHelper {
      * Extractor that recognises functions whose calls we want to ignore when
      * generating effect terms. Currently:
      *   - any LLVM intrinsic, such as llvm.stacksave
-     *   - special verifier fns, such as __VERIFIER_nondet_int
+     *   - special verifier fns
      */
     object IgnoredFunction {
         def unapply(fn : Function) : Boolean =
@@ -128,6 +128,15 @@ object LLVMHelper {
                     None
             }
         }
+    }
+
+    /**
+     * Matcher for names of unsigned types X that might occur with __VERIFIER_nondet_X()
+     * functions.
+     */
+    object UnsignedType {
+        def unapply(typeName : String) : Boolean =
+            List("u32", "uchar", "uint", "ulong", "unsigned", "ushort").contains(typeName)
     }
 
     /*

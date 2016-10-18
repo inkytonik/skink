@@ -103,8 +103,8 @@ class LLVMTermTests extends Tests {
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "binary Boolean op Add(Vector()) not handled"),
-        (And(), IntT(32), "binary integer op And() not handled")
+        (Add(Vector()), IntT(1), "binary Boolean op add not handled"),
+        (And(), IntT(32), "binary integer op and not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -168,7 +168,7 @@ class LLVMTermTests extends Tests {
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison UGT() not handled")
+        (UGT(), IntT(1), "Boolean comparison ugt not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {

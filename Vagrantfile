@@ -10,15 +10,16 @@ Vagrant.configure(2) do |config|
     echo 'deb https://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list
     apt-get update
 
-    # tool install    
+    # tool install
     apt-get install -y --force-yes git
     apt-get install -y --force-yes sbt
     apt-get install -y --force-yes unzip
     apt-get install -y --force-yes mercurial
+    apt-get install -y --force-yes python3-pip
 
     # clang 3.7 install
     wget --no-check-certificate http://llvm.org/releases/3.7.1/clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-    tar xvf clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz 
+    tar xvf clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
     cd clang+llvm-3.7.1-x86_64-linux-gnu-ubuntu-14.04/
     cp -R * /usr/local
     cd -
@@ -30,16 +31,20 @@ Vagrant.configure(2) do |config|
     cp -R * /usr/local
     cd -
 
-    # install svcomp benchmark programs
-    # TODO: get this back > git clone --depth 1 https://github.com/dbeyer/sv-benchmarks.git
-
     # java install
     wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
 
-    #smtinterpol install
+    # smtinterpol install
     wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
 
-    #prep for skink
-    echo "export OPT=opt" >> ~/.profile
+    # benchexec install
+    pip3 install benchexec
+    mount -t cgroup none /sys/fs/cgroup
+    chmod o+wt '/sys/fs/cgroup/'
+
+    # install svcomp benchmark programs
+    git clone --depth 1 https://github.com/dbeyer/sv-benchmarks.git
+    chown -R vagrant:vagrant sv-benchmarks
+
   SHELL
 end
