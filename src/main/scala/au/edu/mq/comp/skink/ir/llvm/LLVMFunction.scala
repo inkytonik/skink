@@ -1,5 +1,6 @@
 package au.edu.mq.comp.skink.ir.llvm
 
+import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
@@ -12,12 +13,17 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(program : Program, function : FunctionDefinition, config : SkinkConfig) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
+    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.Tree
@@ -30,17 +36,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         Property,
         TypeProperty
     }
-    import scala.collection.mutable.ListBuffer
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
+    import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+
+    // An analyser for this function and its associated tree
 
     val funTree = new Tree[ASTNode, FunctionDefinition](function)
     val funAnalyser = new Analyser(funTree)
@@ -66,19 +69,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(namer)
+        val termBuilder = new LLVMTermBuilder(namer, config)
 
         import namer._
-
-        /*
-        * Combine terms via conjunction, dealing with case where
-        * are no terms so effect is "true".
-        */
-        def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-            if (terms.isEmpty)
-                True()
-            else
-                terms.reduceLeft(_ & _)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -96,7 +89,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 termBuilder.blockTerms(block, optPrevBlock, choice)
-        }.map(combineTerms)
+        }.map(termBuilder.combineTerms)
 
     }
 

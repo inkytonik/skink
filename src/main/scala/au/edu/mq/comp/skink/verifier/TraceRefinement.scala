@@ -12,6 +12,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
@@ -92,11 +93,26 @@ class TraceRefinement(config : SkinkConfig) {
         val selectedSolver =
             config.solverMode() match {
                 case Z3SolverMode() =>
-                    new Z3 with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new Z3 with QF_AUFLIA with Interpolants
+                        case BitIntegerMode() =>
+                            new Z3 with QF_ABV with Interpolants
+                    }
                 case CVC4SolverMode() =>
-                    new CVC4 with QF_AUFLIA
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new CVC4 with QF_AUFLIA
+                        case BitIntegerMode() =>
+                            new CVC4 with QF_ABV
+                    }
                 case SMTInterpolSolverMode() =>
-                    new SMTInterpol with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTInterpol with QF_AUFLIA with Interpolants
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
+                    }
             }
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
