@@ -62,6 +62,14 @@ class LLVMTermTests extends Tests {
         termBuilder.insnTerm(MetaInstruction(insn, noMetadata)) shouldBe effect
     }
 
+    def hasPhiEffect[A, B <: Term](
+        insn : PhiInstruction,
+        optPrevBlock : Option[Block],
+        effect : TypedTerm[A, B]
+    ) {
+        termBuilder.phiInsnTerm(MetaPhiInstruction(insn, noMetadata), optPrevBlock) shouldBe effect
+    }
+
     def isNotHandled(insn : Instruction, msg : String) {
         val e = intercept[RuntimeException] {
             termBuilder.insnTerm(MetaInstruction(insn, noMetadata))
@@ -244,6 +252,68 @@ class LLVMTermTests extends Tests {
         test(s"$desc insn is ignored") {
             hasNoEffect(insn)
         }
+    }
+
+    // Phi instructions
+
+    def makeDummyBlock(name : String) =
+        Block(BlockLabel(name), Vector(), None, Vector(),
+            MetaTerminatorInstruction(Unreachable(), noMetadata))
+
+    val fooBlock = makeDummyBlock("foo")
+    val barBlock = makeDummyBlock("bar")
+    val bleBlock = makeDummyBlock("ble")
+
+    val phiPredecessors =
+        Vector(
+            PhiPredecessor(Const(IntC(1)), Label(Local("foo"))),
+            PhiPredecessor(Const(IntC(2)), Label(Local("bar")))
+        )
+
+    test("a phi insn with no binding has no effect") {
+        hasPhiEffect(
+            Phi(NoBinding(), IntT(32), phiPredecessors),
+            Some(fooBlock),
+            STrue()
+        )
+    }
+
+    test("a phi insn with a binding and first predecessor gives correct term") {
+        hasPhiEffect(
+            Phi(Binding(x), IntT(32), phiPredecessors),
+            Some(fooBlock),
+            ix === 1
+        )
+    }
+
+    test("a phi insn with a binding and non-first predecessor gives correct term") {
+        hasPhiEffect(
+            Phi(Binding(x), IntT(32), phiPredecessors),
+            Some(barBlock),
+            ix === 2
+        )
+    }
+
+    test("a phi insn and no previous block is an error") {
+        val e = intercept[RuntimeException] {
+            hasPhiEffect(
+                Phi(NoBinding(), IntT(32), phiPredecessors),
+                None,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "phiInsnTerm: found phi i32 [ 1, %foo ], [ 2, %bar ] but have no previous block"
+    }
+
+    test("a phi insn and a bogus previous block is an error") {
+        val e = intercept[RuntimeException] {
+            hasPhiEffect(
+                Phi(Binding(x), IntT(32), phiPredecessors),
+                Some(bleBlock),
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "phiInsnTerm: can't find %ble in %x = phi i32 [ 1, %foo ], [ 2, %bar ]"
     }
 
 }

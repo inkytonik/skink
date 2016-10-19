@@ -42,7 +42,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
         val term : TypedTerm[BoolTerm, Term] =
             optPrevBlock match {
                 case Some(prevBlock) =>
-                    val prevLabel = blockName(prevBlock)
+                    val prevLabel = Label(Local(blockName(prevBlock)))
                     insn match {
                         case insn @ Phi(Binding(to), tipe, preds) =>
                             // Bound phi result, find value
@@ -50,7 +50,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                                 case Some(pred) =>
                                     equality(to, tipe, pred.value, tipe)
                                 case None =>
-                                    sys.error(s"phiInsnTerm: can't find $prevLabel in $insn")
+                                    sys.error(s"phiInsnTerm: can't find ${show(prevLabel)} in${longshow(insn)}")
                             }
                         case Phi(NoBinding(), _, _) =>
                             // No effect since result of phi is not bound
@@ -58,7 +58,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                     }
                 case None =>
                     // No previous block so phi insns don't make sense...
-                    STrue()
+                    sys.error(s"phiInsnTerm: found${longshow(insn)} but have no previous block")
             }
         logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
