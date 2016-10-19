@@ -50,7 +50,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                                 case Some(pred) =>
                                     equality(to, tipe, pred.value, tipe)
                                 case None =>
-                                    sys.error(s"phiInsnTerm: can't find ${show(prevLabel)} in${longshow(insn)}")
+                                    sys.error(s"phiInsnTerm: can't find ${show(prevLabel)} in ${longshow(insn)}")
                             }
                         case Phi(NoBinding(), _, _) =>
                             // No effect since result of phi is not bound
@@ -58,9 +58,9 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                     }
                 case None =>
                     // No previous block so phi insns don't make sense...
-                    sys.error(s"phiInsnTerm: found${longshow(insn)} but have no previous block")
+                    sys.error(s"phiInsnTerm: found ${longshow(insn)} but have no previous block")
             }
-        logger.debug(s"phiInsnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"phiInsnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 
@@ -101,9 +101,9 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                     vtermI(value) === vtermI(cases(choice - 1).value)
 
                 case insn =>
-                    sys.error(s"exitTerm: can't handle choice $choice of${longshow(insn)}")
+                    sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
             }
-        logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 
@@ -244,10 +244,10 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                     equality(to, tipe, from, tipe)
 
                 case insn =>
-                    sys.error(s"insnTerm: don't know the effect of${longshow(insn)}")
+                    sys.error(s"insnTerm: don't know the effect of ${longshow(insn)}")
 
             }
-        logger.debug(s"insnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"insnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 
