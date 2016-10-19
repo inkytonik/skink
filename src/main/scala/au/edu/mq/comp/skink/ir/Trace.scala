@@ -5,13 +5,21 @@ import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.QualifiedId
 import au.edu.mq.comp.smtlib.typedterms.Value
 
 /**
+ * A choice is defined by the id of the program thread to which it belongs
+ * and the index of the branch chosen on that thread. Eg. Choosing the
+ * second branch on the main thread (with id 0) is represented by
+ * Choice(0, 1).
+ */
+case class Choice(threadId : Int, branchId : Int)
+
+/**
  * A trace is given by a sequence of choices. The blocks visited by a trace
  * are implied by the choices to be the start block of the function, followed
  * by successor blocks given by the choices. E.g., if a block has two possible
  * paths to successor blocks, the index will be 0 or 1, indicating which of
  * the possible paths was taken in the trace.
  */
-case class Trace(choices : Seq[(Int, Int)])
+case class Trace(choices : Seq[Choice])
 
 /**
  * A feasible trace that leads to a program failure. `values`, if
@@ -23,7 +31,7 @@ case class Trace(choices : Seq[(Int, Int)])
  * generation requires a specific IRFunction entry point
  */
 case class FailureTrace(trace : Trace, ids : Seq[QualifiedId],
-    values : Try[Map[QualifiedId, Value]], function : IRFunction)
+    values : Try[Map[QualifiedId, Value]], ir : IR)
 
 /**
  * A description of a step in the execution of a trace for use in witness

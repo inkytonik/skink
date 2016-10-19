@@ -32,7 +32,7 @@ class LLVMFunctionTests extends FunSuiteLike {
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
             val func = prog.items(0).asInstanceOf[FunctionDefinition]
-            val wrappedFun = new LLVMFunction(new LLVMIR(prog, new SkinkConfig(List())), func)
+            val wrappedFun = new LLVMFunction(func)
             (prog, func, wrappedFun)
         } else
             fail(s"parse error: ${pr.parseError.msg}")

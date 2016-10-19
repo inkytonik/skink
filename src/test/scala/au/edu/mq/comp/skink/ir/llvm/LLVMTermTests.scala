@@ -1,10 +1,16 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
+import org.scalallvm.assembly.AssemblySyntax._
+import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
 class DummyNamer extends LLVMNamer {
+
     def indexOf(use : Product, s : String) : Int =
         0
+
+    def nameOf(name : Name) : String =
+        show(name)
 }
 
 class LLVMTermTests extends Tests {
@@ -12,8 +18,6 @@ class LLVMTermTests extends Tests {
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
-    import org.scalallvm.assembly.AssemblySyntax._
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     val namer = new DummyNamer
     import namer.{True => STrue, False => SFalse, _}

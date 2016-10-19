@@ -32,7 +32,7 @@ main(int argc, char **argv)
   pthread_create(&id1, NULL, t1, NULL);
   pthread_create(&id2, NULL, t2, NULL);
 
-  if (i + j > 4) {
+  if (1) {
     ERROR: __VERIFIER_error();
   }
 

@@ -76,6 +76,12 @@ object LLVMHelper {
         name.startsWith("__VERIFIER")
 
     /**
+     * Return whether or not a function is from the pthread library.
+     */
+    def isThreadFunction(name : String) : Boolean =
+        name.startsWith("pthread")
+
+    /**
      * Return whether or not the named function is an LLVM intrinsic.
      */
     def isLLVMIntrinsic(name : String) : Boolean =
@@ -87,24 +93,27 @@ object LLVMHelper {
     def isMemoryAllocFunction(name : String) : Boolean =
         List("alloca", "calloc", "free", "malloc") contains name
 
-    def isThreadPrimitive(insn : MetaInstruction) : Boolean = {
-        insn match {
-            case MetaInstruction(GlobalFunctionCall("pthread_create"), _) =>
+    def isThreadPrimitive(use : Product) : Boolean = {
+        use match {
+            case GlobalFunctionCall("pthread_create") =>
                 true
             case _ =>
                 false
         }
     }
 
-    def isGlobalAccess(insn : MetaInstruction) : Boolean = {
-        insn match {
-            case MetaInstruction(muteInsn, _) => {
-                muteInsn match {
-                    case Load(_, _, _, _, Named(Global(_)), _)  => true
-                    case Store(_, _, _, _, Named(Global(_)), _) => true
-                    case _                                      => false
-                }
-            }
+    def isGlobalAccess(use : Product) : Boolean = {
+        use match {
+            case Load(_, _, _, _, Named(Global(_)), _)  => true
+            case Store(_, _, _, _, Named(Global(_)), _) => true
+            case _                                      => false
+        }
+    }
+
+    def isLocalStore(use : Product) : Boolean = {
+        use match {
+            case Binding(Local(_))                     => true
+            case Store(_, _, _, _, Named(Local(_)), _) => true
             case _ =>
                 false
         }
@@ -156,7 +165,7 @@ object LLVMHelper {
         def unapply(fn : Function) : Boolean =
             fn match {
                 case Function(Named(Global(s))) =>
-                    isLLVMIntrinsic(s) || isVerifierFunction(s)
+                    isLLVMIntrinsic(s) || isVerifierFunction(s) || isThreadFunction(s)
                 // || isMemoryAllocFunction(s)
                 case _ =>
                     false

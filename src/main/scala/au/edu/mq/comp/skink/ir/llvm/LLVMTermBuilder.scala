@@ -22,15 +22,23 @@ class LLVMTermBuilder(namer : LLVMNamer) {
     /*
      * Return terms that express the effect of an LLVM node, including of
      * phi insns given entry to the block from a particular previous block
-     * (if there is one), and exit from this block using a particular choice.
+     * (if there is one), and exit from this block using a particular branch.
      */
-    def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
+    def blockTerms(block : Block, optPrevBlock : Option[Block], branch : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
         logger.info(s"blockTerms: block ${blockName(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
-        val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
+        val exitEffect = exitTerm(block.metaTerminatorInstruction, branch)
         val allEffects = phiEffects ++ effects :+ exitEffect
         allEffects.filter(_ != STrue())
+    }
+
+    def globalTerm(global : GlobalVariableDefinition) : TypedTerm[BoolTerm, Term] = {
+        global match {
+            case GlobalVariableDefinition(GlobalBinding(name), _, _, _, _, _, _, _, _, tipe, Init(value), _, _, _) =>
+                equality(name, tipe, Const(value), tipe)
+            case _ => sys.error(s"Invalid global variable definition ${show(global)}")
+        }
     }
 
     /*
@@ -66,27 +74,27 @@ class LLVMTermBuilder(namer : LLVMNamer) {
 
     /*
      * Return a term that expresses the effect of an LLVM terminator instruction
-     * that exits a block using a particular choice.
-     * Exits or choices are integers >=0, typically 0 and 1 for an if-then-else, 0 for
+     * that exits a block using a particular branch.
+     * Exits or branches are integers >=0, typically 0 and 1 for an if-then-else, 0 for
      * a non-conditional exit.
      */
-    def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term] = {
+    def exitTerm(metaInsn : MetaTerminatorInstruction, branch : Int) : TypedTerm[BoolTerm, Term] = {
         val insn = metaInsn.terminatorInstruction
         val term =
             insn match {
-                case Branch(label) if choice == 0 =>
+                case Branch(label) if branch == 0 =>
                     STrue()
 
-                case BranchCond(value, label1, label2) if choice == 0 =>
+                case BranchCond(value, label1, label2) if branch == 0 =>
                     vtermB(value)
 
-                case BranchCond(value, label1, label2) if choice == 1 =>
+                case BranchCond(value, label1, label2) if branch == 1 =>
                     !vtermB(value)
 
                 case insn =>
-                    sys.error(s"exitTerm: can't handle choice $choice of $insn")
+                    sys.error(s"exitTerm: can't handle branch $branch of $insn")
             }
-        logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"exitTerm: branch $branch of${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 

@@ -28,6 +28,12 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
      */
     def indexOf(use : Product, s : String) : Int
 
+    /**
+     * Retreive the unique name of a particular variable (needed
+     * when there are nested/concurrent scopes within a program).
+     */
+    def nameOf(name : Name) : String
+
     // Concrete methods
 
     /**
@@ -48,14 +54,14 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
      * Return an array term that expresses a name when referenced from node.
      */
     def arrayTermAt(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTerm(show(name), indexOf(node, show(name)))
+        arrayTerm(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return a term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAt(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTerm(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTerm(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
 
     /**
      * Make an integer term for the named variable where `id` is the base name
@@ -75,13 +81,13 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(show(name), indexOf(node, show(name)))
+        varTermI(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(show(name), indexOf(node, show(name)))
+        varTermB(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return an integer term that expresses an LLVM name when referenced
@@ -109,20 +115,62 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
 
 }
 
-/**
- * A namer for the given function which names uniquely over the given name tree.
- */
-class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
-        nametree : Tree[Product, Product]) extends LLVMNamer {
-
+abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMNamer {
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
     import org.scalallvm.assembly.{Analyser, ElementProperty}
 
-    val properties = funanalyser.propertiesOfFunction(funtree.root)
-
     val decorators = new Decorators(nametree)
     import decorators._
+
+    // Chain keeping track of stores to memory. Each assignment to a
+    // local variable or store to memory location is counted so that
+    // we can treat each such occurrence in SSA form.
+    type StoreMap = Map[String, Int]
+
+    lazy val stores : Chain[StoreMap] =
+        chain(storesin)
+
+    def bumpcount(m : StoreMap, name : Name) : StoreMap = {
+        val s = show(name)
+        val count = m.getOrElse(s, 0)
+        m.updated(s, count + 1)
+    }
+
+    def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
+        case n if nametree.isRoot(n) =>
+            Map[String, Int]()
+        case n @ Binding(name) =>
+            bumpcount(in(n), name)
+        case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
+            bumpcount(in(n), name)
+        case n @ Store(_, _, _, _, Named(name), _) =>
+            bumpcount(in(n), name)
+    }
+}
+
+class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
+
+    def indexOf(use : Product, s : String) : Int = {
+        use match {
+            case Global(_) => 0
+            case _         => stores(use).get(s).getOrElse(0)
+        }
+    }
+
+    def nameOf(name : Name) : String = s"global${show(name)}"
+}
+
+/**
+ * A namer for the given function which names uniquely over the given name tree.
+ */
+class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
+        nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
+
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.isLocalStore
+    import org.scalallvm.assembly.{Analyser, ElementProperty}
+
+    val properties = funanalyser.propertiesOfFunction(funtree.root)
 
     /**
      * Extractor to match stores to array elements. Currently only looks for
@@ -152,38 +200,22 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
                 (array, index)
         }
 
-    // Chain keeping track of stores to memory. Each assignment to a
-    // local variable or store to memory location is counted so that
-    // we can treat each such occurrence in SSA form.
-
-    type StoreMap = Map[String, Int]
-
-    lazy val stores : Chain[StoreMap] =
-        chain(storesin)
-
-    def bumpcount(m : StoreMap, name : Name) : StoreMap = {
-        val s = show(name)
-        val count = m.getOrElse(s, 0)
-        m.updated(s, count + 1)
-    }
-
-    def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
-        case n if nametree.isRoot(n) =>
-            Map[String, Int]()
-        case n @ Binding(name) =>
-            bumpcount(in(n), name)
-        case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
-            bumpcount(in(n), name)
-        case n @ Store(_, _, _, _, Named(name), _) =>
-            bumpcount(in(n), name)
-    }
-
     /*
      * Retrieve the index of a particular occurrence of a program variable
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
-        stores(use).get(s).getOrElse(0)
+        if (isLocalStore(use))
+            stores(use).get(s).getOrElse(0)
+        else
+            globalNamer.indexOf(use, s)
     }
 
+    def nameOf(name : Name) : String = {
+        name match {
+            case Global(_) => globalNamer.nameOf(name)
+            case Local(_)  => s"thread$threadId${show(name)}"
+        }
+    }
 }
+

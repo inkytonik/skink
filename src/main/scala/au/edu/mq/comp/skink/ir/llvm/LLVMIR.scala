@@ -9,11 +9,21 @@ import org.scalallvm.assembly.AssemblySyntax.Program
  */
 class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
-    import au.edu.mq.comp.skink.ir.IRFunction
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
+    import au.edu.mq.comp.skink.ir.{IRFunction, Choice, Trace, FailureTrace, Step}
+    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+    import au.edu.mq.comp.smtlib.theories.BoolTerm
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, GlobalVariableDefinition}
     import org.scalallvm.assembly.AssemblyPrettyPrinter
-    import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor
     import org.scalallvm.assembly.Analyser.{metadata, filepath}
+    import org.scalallvm.assembly.{
+        Analyser,
+        ElementProperty,
+        Property,
+        TypeProperty
+    }
 
     // Implementation of IR interface
 
@@ -23,8 +33,17 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
-                new LLVMFunction(this, fd)
+                new LLVMFunction(fd)
         }
+
+    def globalVars : Vector[GlobalVariableDefinition] =
+        program.items.collect {
+            case g : GlobalVariableDefinition => g
+        }
+
+    val main = functions.filter(_.name == "main").head
+    var functionIds = Map(0 -> main)
+    lazy val dca = new LLVMConcurrentAuto(this)
 
     lazy val name : String =
         filepath(metadata(program)) match {
@@ -35,4 +54,76 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def show : String =
         AssemblyPrettyPrinter.show(program, 5)
 
+    /**
+     * Follow the choices given by a trace to construct the trace of blocks
+     * that are executed by the trace.
+     */
+    def traceToBlockTrace(trace : Trace) : BlockTrace = {
+        import scala.collection.mutable.ListBuffer
+
+        var threadBlocks = Map[Int, Block]()
+        val blocks = new ListBuffer[Block]()
+        for (c <- trace.choices) {
+            val threadFn = dca.getFunctionById(c.threadId).get
+            val nextBlock = threadBlocks.get(c.threadId) match {
+                case Some(block) => {
+                    threadFn.nextBlock(block, c.branchId).get
+                }
+                case None => {
+                    threadFn.function.functionBody.blocks(0)
+                }
+            }
+            threadBlocks = threadBlocks - c.threadId + (c.threadId -> nextBlock)
+            blocks += nextBlock
+        }
+        BlockTrace(blocks.toList, trace)
+    }
+
+    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
+        // Construct a map of threadId -> blocktraces
+        // Construct a unique function namer for each
+        // Each of those function namers shares a GlobalNamer instance
+        // which they call into to index and name variables
+
+        import org.bitbucket.inkytonik.kiama.relation.Tree
+
+        // Make the block trace that corresponds to this trace and set it
+        // up so we can do context-dependent computations on it.
+        val blockTrace = traceToBlockTrace(trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace)
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMGlobalNamer(traceTree)
+        val termBuilder = new LLVMTermBuilder(namer)
+        val globalNamer = new LLVMGlobalNamer(traceTree)
+        val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer))))
+        val globalBuilder = new LLVMTermBuilder(globalNamer)
+
+        // If blocks occur more than once in the block trace they will be
+        // shared. We need each instance to be treated separately so we use
+        // the block trace after it has been made into a proper tree.
+        val treeBlockTrace = traceTree.root
+
+        val globalTerms = globalVars.map(globalBuilder.globalTerm)
+
+        // Return the terms corresponding to the traced blocks, not including
+        // the last step since that is to the error block.
+        val traceTerms = trace.choices.init.zipWithIndex.map {
+            case (choice, count) =>
+                val block = treeBlockTrace.blocks(count)
+                val optPrevBlock =
+                    if (count == 0)
+                        None
+                    else
+                        Some(treeBlockTrace.blocks(count - 1))
+                val namer = funBuilders.get(choice.threadId).get
+                namer.blockTerms(block, optPrevBlock, choice.branchId)
+        }
+
+        Seq(globalTerms) ++ traceTerms
+    }
+
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
+        Seq()
+    }
 }

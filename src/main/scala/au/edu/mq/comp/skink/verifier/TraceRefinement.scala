@@ -12,7 +12,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace, IR}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace, IR, Choice}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
@@ -58,7 +58,7 @@ class TraceRefinement(config : SkinkConfig) {
     def makeFailureTrace(
         trace : Trace,
         terms : Seq[TypedTerm[BoolTerm, Term]],
-        function : IRFunction
+        ir : IR
     ) : FailureTrace = {
         // val getids = collect {
         //     case id @ (QualifiedId(_, Some(_))) =>
@@ -74,7 +74,7 @@ class TraceRefinement(config : SkinkConfig) {
         //     case _ =>
         //         Success(ValMap(Map.empty))
         // }
-        FailureTrace(trace, ids, Success(Map[QualifiedId, Value]()), function)
+        FailureTrace(trace, ids, Success(Map[QualifiedId, Value]()), ir)
     }
 
     /**
@@ -83,8 +83,7 @@ class TraceRefinement(config : SkinkConfig) {
      * program is incorrect.
      */
     def traceRefinement(ir : IR) : Try[Option[FailureTrace]] = {
-        val function = ir.functions.filter(f => f.name == "main").head
-        val functionLang = Lang(function.dca)
+        val lang = Lang(ir.dca)
 
         //  get a solver specification. This object creation
         //  does not spawn any process merely declare a solver type we
@@ -94,16 +93,16 @@ class TraceRefinement(config : SkinkConfig) {
         //cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
-        def refineRec(r : NFA[Int, (Int, Int)], iteration : Int) : Try[Option[FailureTrace]] = {
+        def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
-            logger.info(s"traceRefinement: ${function.name} iteration $iteration")
+            logger.info(s"traceRefinement: ${ir.name} iteration $iteration")
             //cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
-            (functionLang \ Lang(r)).getAcceptedTrace match {
+            (lang \ Lang(r)).getAcceptedTrace match {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"traceRefinement: ${function.name} has no failure traces")
+                    logger.info(s"traceRefinement: ${ir.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -111,7 +110,7 @@ class TraceRefinement(config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
-                    logger.info(s"traceRefinement: ${function.name} has a failure trace")
+                    logger.info(s"traceRefinement: ${ir.name} has a failure trace")
                     logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
 
                     /*
@@ -131,7 +130,7 @@ class TraceRefinement(config : SkinkConfig) {
                      * conjunction.
                      */
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace).map(combineTerms)
+                    val traceTerms = ir.traceToTerms(trace).map(combineTerms)
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
@@ -154,7 +153,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success(Sat()) =>
                             logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
-                            val failTrace = makeFailureTrace(trace, traceTerms, function)
+                            val failTrace = makeFailureTrace(trace, traceTerms, ir)
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program
@@ -181,7 +180,7 @@ class TraceRefinement(config : SkinkConfig) {
         }
 
         // Start the refinement algorithm with no "ruled out" traces.
-        refineRec(NFA[Int, (Int, Int)](Set(), Set(), Set()), 0)
+        refineRec(NFA[Int, Choice](Set(), Set(), Set()), 0)
     }
 
     /**
@@ -189,7 +188,7 @@ class TraceRefinement(config : SkinkConfig) {
      * generate a simple linear automaton so the refinement process will remove
      * just this one trace. Later revisions will be cleverer.
      */
-    def interpolantAuto(choices : Seq[(Int, Int)]) : NFA[Int, (Int, Int)] = {
+    def interpolantAuto(choices : Seq[Choice]) : NFA[Int, Choice] = {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))

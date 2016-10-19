@@ -32,7 +32,7 @@ class Verifier(config : SkinkConfig) {
         }
 
         def reportIncorrect(failureTrace : FailureTrace) {
-            logger.info(s"verify: ${failureTrace.function.name} in ${ir.name} is incorrect")
+            logger.info(s"verify: ${ir.name} is incorrect")
             config.output().emitln("FALSE")
             new Witnesses(config).printWitness(failureTrace)
         }

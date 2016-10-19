@@ -41,9 +41,17 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
 
-        val (_, main) = parseProgram("src/test/resources/llvm/simple_threads.c")
-        val dca = main.dca
+        val (ir, main) = parseProgram("src/test/resources/llvm/simple_threads.c")
+        val dca = ir.dca
         val cfgLogger = getLogger(this.getClass, ".cfg")
         cfgLogger.info(toDot(toDetNFA(dca), s"${dca.name} tree"))
+
+        import au.edu.mq.comp.automat.lang.Lang
+        import au.edu.mq.comp.skink.ir.{Trace}
+
+        val t = Trace(Lang(dca).getAcceptedTrace.get)
+        println(t)
+        for (b <- ir.asInstanceOf[LLVMIR].traceToBlockTrace(t).blocks)
+            println(layout(any(b)))
     }
 }

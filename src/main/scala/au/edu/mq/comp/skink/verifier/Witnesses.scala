@@ -7,7 +7,7 @@ import au.edu.mq.comp.skink.SkinkConfig
  */
 class Witnesses(config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import au.edu.mq.comp.skink.ir.FailureTrace
     import au.edu.mq.comp.skink.Skink.getLogger
 
     val logger = getLogger(this.getClass)
@@ -17,7 +17,6 @@ class Witnesses(config : SkinkConfig) {
      * `failTrace` in the given function .
      */
     def printWitness(failTrace : FailureTrace) {
-        val function = failTrace.function
 
         def escapeChar(char : Char) =
             char match {
@@ -30,7 +29,7 @@ class Witnesses(config : SkinkConfig) {
         def escapeString(string : String) =
             string.flatMap(escapeChar)
 
-        val steps = function.traceToSteps(failTrace)
+        val steps = failTrace.ir.traceToSteps(failTrace)
         val numsteps = steps.length
 
         def field[T](field : Option[T]) : String =

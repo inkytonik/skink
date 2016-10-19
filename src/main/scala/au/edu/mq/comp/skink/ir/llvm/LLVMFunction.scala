@@ -12,16 +12,16 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAuto
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
+    import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
-    import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
@@ -44,6 +44,11 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
 
+    // Implementation of IRFunction interface
+
+    lazy val name : String = nameToString(functionDef.global)
+
+    val function = makeVerifiable
     val funTree = new Tree[ASTNode, FunctionDefinition](function)
     val funAnalyser = new Analyser(funTree)
 
@@ -51,83 +56,15 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
 
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
-    // Implementation of IRFunction interface
-
-    lazy val name : String =
-        nameToString(function.global)
-
-    lazy val dca : DetAuto[Map[Int, String], (Int, Int)] = new LLVMConcurrentAuto(new LLVMFunction(ir, makeVerifiable))
-
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
-
-        // Make the block trace that corresponds to this trace and set it
-        // up so we can do context-dependent computations on it.
-        val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace)
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(namer)
-
-        // If blocks occur more than once in the block trace they will be
-        // shared. We need each instance to be treated separately so we use
-        // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree.root
-
-        // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block.
-        trace.choices.init.zipWithIndex.map {
-            case (choice, count) =>
-                val block = treeBlockTrace.blocks(count)
-                val optPrevBlock =
-                    if (count == 0)
-                        None
-                    else
-                        Some(treeBlockTrace.blocks(count - 1))
-                termBuilder.blockTerms(block, optPrevBlock, choice._2)
-        }
-
-    }
-
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-
-        def getSourceLine(source : Source, line : Int) : String =
-            source.optLineContents(line).getOrElse("").trim
-
-        traceToBlockTrace(failTrace.trace).blocks.map {
-            block =>
-                val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(ir.program, block) match {
-                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
-                            (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
-                        case _ =>
-                            (None, None)
-                    }
-                val optBlockName = Some(blockName(block))
-                val (optTermLine, optTermCode) =
-                    block.metaTerminatorInstruction match {
-                        case MetaTerminatorInstruction(insn, metadata) =>
-                            funAnalyser.instructionPosition(ir.program, insn, metadata) match {
-                                case Some(Position(termLine, _, termSource)) =>
-                                    val termCode = getSourceLine(termSource, termLine)
-                                    (Some(termLine), Some(termCode))
-                                case _ =>
-                                    (None, None)
-                            }
-                    }
-                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
-        }
-    }
-
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {
         logger.info(s"makeVerifiable: $name")
 
-        val processedBody = makeErrorsVerifiable(makeThreadVerifiable(function.functionBody))
+        val processedBody = makeErrorsVerifiable(makeThreadVerifiable(functionDef.functionBody))
 
         // Return the new function
-        val ret = function.copy(functionBody = processedBody)
+        val ret = functionDef.copy(functionBody = processedBody)
         programLogger.info(s"* Function $name for verification:\n")
         programLogger.info(show(ret))
         programLogger.info(s"\n* AST of function $name for verification:\n\n")
@@ -244,7 +181,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
             // instruction.
             val splitBlocks = splitOnPredicate(
                 block.optMetaInstructions.toList,
-                i => !isThreadPrimitive(i) && !isGlobalAccess(i)
+                i => !isThreadPrimitive(i.instruction) && !isGlobalAccess(i.instruction)
             )
             programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
@@ -298,7 +235,7 @@ class LLVMFunction(val ir : LLVMIR, val function : FunctionDefinition) extends A
         val (finalBlock, blocks) =
             trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
                 case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice._2), blocks :+ block)
+                    (nextBlock(block, choice.branchId), blocks :+ block)
                 case ((None, blocks), choice) =>
                     (None, blocks)
             }
