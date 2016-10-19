@@ -52,6 +52,9 @@ class LLVMTermTests extends Tests {
     val iy = makeVarTermI("%y")
     val iz = makeVarTermI("%z")
 
+    def makeLabel(name : String) =
+        Label(Local(name))
+
     // Helper functions
 
     def hasNoEffect(insn : Instruction) {
@@ -68,6 +71,14 @@ class LLVMTermTests extends Tests {
         effect : TypedTerm[A, B]
     ) {
         termBuilder.phiInsnTerm(MetaPhiInstruction(insn, noMetadata), optPrevBlock) shouldBe effect
+    }
+
+    def hasExitEffect[A, B <: Term](
+        insn : TerminatorInstruction,
+        choice : Int,
+        effect : TypedTerm[A, B]
+    ) {
+        termBuilder.exitTerm(MetaTerminatorInstruction(insn, noMetadata), choice) shouldBe effect
     }
 
     def isNotHandled(insn : Instruction, msg : String) {
@@ -266,8 +277,8 @@ class LLVMTermTests extends Tests {
 
     val phiPredecessors =
         Vector(
-            PhiPredecessor(Const(IntC(1)), Label(Local("foo"))),
-            PhiPredecessor(Const(IntC(2)), Label(Local("bar")))
+            PhiPredecessor(Const(IntC(1)), makeLabel("foo")),
+            PhiPredecessor(Const(IntC(2)), makeLabel("bar"))
         )
 
     test("a phi insn with no binding has no effect") {
@@ -294,7 +305,7 @@ class LLVMTermTests extends Tests {
         )
     }
 
-    test("a phi insn and no previous block is an error") {
+    test("the effect of a phi insn and no previous block is an error") {
         val e = intercept[RuntimeException] {
             hasPhiEffect(
                 Phi(NoBinding(), IntT(32), phiPredecessors),
@@ -305,7 +316,7 @@ class LLVMTermTests extends Tests {
         e.getMessage shouldBe "phiInsnTerm: found phi i32 [ 1, %foo ], [ 2, %bar ] but have no previous block"
     }
 
-    test("a phi insn and a bogus previous block is an error") {
+    test("the effect of a phi insn and a bogus previous block is an error") {
         val e = intercept[RuntimeException] {
             hasPhiEffect(
                 Phi(Binding(x), IntT(32), phiPredecessors),
@@ -314,6 +325,167 @@ class LLVMTermTests extends Tests {
             )
         }
         e.getMessage shouldBe "phiInsnTerm: can't find %ble in %x = phi i32 [ 1, %foo ], [ 2, %bar ]"
+    }
+
+    // Terminator instructions
+
+    test("the effect of a branch is an error if the choice is negative") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Branch(makeLabel("foo")),
+                -1,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice -1 of br label %foo"
+    }
+
+    test("the effect of a branch is true if the choice is zero") {
+        hasExitEffect(
+            Branch(makeLabel("foo")),
+            0,
+            STrue()
+        )
+    }
+
+    test("the effect of a branch is an error if the choice is not zero") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Branch(makeLabel("foo")),
+                1,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 1 of br label %foo"
+    }
+
+    test("the effect of a conditional branch is value if the choice is zero") {
+        hasExitEffect(
+            BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
+            0,
+            bx
+        )
+    }
+
+    test("the effect of a conditional branch is complement of value if the choice is one") {
+        hasExitEffect(
+            BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
+            1,
+            !bx
+        )
+    }
+
+    test("the effect of a conditional branch is an error if the choice is two") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
+                2,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 2 of br i1 %x, label %foo, label %bar"
+    }
+
+    test("the effect of an indirect branch is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                IndirectBr(PointerT(IntT(32), DefaultAddrSpace()), xexp,
+                    Vector(makeLabel("foo"), makeLabel("bar"))),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of indirectbr i32* %x, [%foo, %bar]"
+    }
+
+    test("the effect of an invoke instruction is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Invoke(NoBinding(), DefaultCC(), Vector(), IntT(32),
+                    Function(Named(Global("func"))), Vector(), Vector(),
+                    makeLabel("foo"), makeLabel("bar")),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of invoke i32 @func() to label %foo unwind label %bar"
+    }
+
+    test("the effect of a resume instruction is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Resume(IntT(32), Const(IntC(1))),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of resume i32 1"
+    }
+
+    test("the effect of a non-void ret instruction is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Ret(IntT(32), Const(IntC(1))),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret i32 1"
+    }
+
+    test("the effect of a void ret instruction is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                RetVoid(),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret void"
+    }
+
+    val sw =
+        Switch(
+            IntT(32), xexp, makeLabel("foo"),
+            Vector(
+                Case(IntT(32), Const(IntC(1)), makeLabel("bar")),
+                Case(IntT(32), Const(IntC(2)), makeLabel("ble")),
+                Case(IntT(32), Const(IntC(3)), makeLabel("bar"))
+            )
+        )
+
+    test("the effect of a switch instruction with choice zero selects opposite of all cases") {
+        hasExitEffect(sw, 0, !(ix === 1) & !(ix === 2) & !(ix === 3))
+    }
+
+    test("the effect of a switch instruction with choice one selects first case") {
+        hasExitEffect(sw, 1, ix === 1)
+    }
+
+    test("the effect of a switch instruction with choice two selects second case") {
+        hasExitEffect(sw, 2, ix === 2)
+    }
+
+    test("the effect of a switch instruction with choice three selects third case") {
+        hasExitEffect(sw, 3, ix === 3)
+    }
+
+    test("the effect of a switch instruction with choice out of range is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(sw, 4, STrue())
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 4 of switch i32 %x, label %foo [ i32 1, label %bar i32 2, label %ble i32 3, label %bar ]"
+    }
+
+    test("the effect of an unreachable instruction is an error") {
+        val e = intercept[RuntimeException] {
+            hasExitEffect(
+                Unreachable(),
+                0,
+                STrue()
+            )
+        }
+        e.getMessage shouldBe "exitTerm: can't handle choice 0 of unreachable"
     }
 
 }

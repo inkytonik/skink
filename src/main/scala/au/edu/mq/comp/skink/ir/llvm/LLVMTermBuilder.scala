@@ -65,6 +65,17 @@ class LLVMTermBuilder(namer : LLVMNamer) {
     }
 
     /*
+     * FIXME: duplicated from LLVMFunction for now but will be removed later
+     * Combine terms via conjunction, dealing with case where
+     * are no terms so effect is "true".
+     */
+    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
+        if (terms.isEmpty)
+            STrue()
+        else
+            terms.reduceLeft(_ & _)
+
+    /*
      * Return a term that expresses the effect of an LLVM terminator instruction
      * that exits a block using a particular choice.
      * Exits or choices are integers >=0, typically 0 and 1 for an if-then-else, 0 for
@@ -74,17 +85,23 @@ class LLVMTermBuilder(namer : LLVMNamer) {
         val insn = metaInsn.terminatorInstruction
         val term =
             insn match {
-                case Branch(label) if choice == 0 =>
+                case Branch(_) if choice == 0 =>
                     STrue()
 
-                case BranchCond(value, label1, label2) if choice == 0 =>
+                case BranchCond(value, _, _) if choice == 0 =>
                     vtermB(value)
 
-                case BranchCond(value, label1, label2) if choice == 1 =>
+                case BranchCond(value, _, _) if choice == 1 =>
                     !vtermB(value)
 
+                case Switch(IntegerT(_), value, _, cases) if choice == 0 =>
+                    combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
+
+                case Switch(IntegerT(_), value, _, cases) if choice <= cases.length =>
+                    vtermI(value) === vtermI(cases(choice - 1).value)
+
                 case insn =>
-                    sys.error(s"exitTerm: can't handle choice $choice of $insn")
+                    sys.error(s"exitTerm: can't handle choice $choice of${longshow(insn)}")
             }
         logger.debug(s"exitTerm: choice $choice of${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
