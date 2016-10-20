@@ -120,14 +120,14 @@ class TraceRefinement(config : SkinkConfig) {
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
-            logger.info(s"traceRefinement: ${function.name} iteration $iteration")
+            logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"traceRefinem  ent: ${function.name} has no failure traces")
+                    logger.info(s"${function.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -135,8 +135,8 @@ class TraceRefinement(config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
-                    logger.info(s"traceRefinement: ${function.name} has a failure trace")
-                    logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
+                    logger.info(s"${function.name} has a failure trace")
+                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -148,7 +148,7 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
+                        logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
                     }
 
                     // Build a single combined term for the trace effect
@@ -167,8 +167,8 @@ class TraceRefinement(config : SkinkConfig) {
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
                         case Success(Sat()) =>
-                            logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
                             val failTrace = makeFailureTrace(trace, traceTerms)
+                            logger.info(s"failure trace is feasible, program is incorrect")
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program
@@ -176,7 +176,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // again after removing the infeasible trace (and perhaps
                         // other traces that fail for related reasons).
                         case Success(UnSat()) =>
-                            logger.info(s"traceRefinement: the failure trace is not feasible")
+                            logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 refineRec(
                                     toDetNFA(r + interpolantAuto(choices)),
