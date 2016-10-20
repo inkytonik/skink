@@ -12,7 +12,9 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
@@ -85,10 +87,33 @@ class TraceRefinement(config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        //  get a solver specification. This object creation
-        //  does not spawn any process merely declare a solver type we
-        //  want to use
-        val selectedSolver = new Z3 with QF_AUFLIA with Interpolants
+        // Get a solver specification as per configuration options. This
+        // object creation does not spawn any process merely declare a solver
+        // type we want to use
+        val selectedSolver =
+            config.solverMode() match {
+                case Z3SolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new Z3 with QF_AUFLIA with Interpolants
+                        case BitIntegerMode() =>
+                            new Z3 with QF_ABV with Interpolants
+                    }
+                case CVC4SolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new CVC4 with QF_AUFLIA
+                        case BitIntegerMode() =>
+                            new CVC4 with QF_ABV
+                    }
+                case SMTInterpolSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTInterpol with QF_AUFLIA with Interpolants
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
+                    }
+            }
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
@@ -114,23 +139,13 @@ class TraceRefinement(config : SkinkConfig) {
                     logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
 
                     /*
-                     * Combine terms via conjunction, dealing with case where
-                     * are no terms so effect is "true".
-                     */
-                    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-                        if (terms.isEmpty)
-                            True()
-                        else
-                            terms.reduceLeft(_ & _)
-
-                    /*
                      * Get the SMTlib terms that describe the meaning of the operations
                      * that would be executed. If an empty collection of terms is returned,
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
                     val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace).map(combineTerms)
+                    val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
