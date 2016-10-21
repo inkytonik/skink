@@ -70,13 +70,13 @@ class TraceRefinement(config : SkinkConfig) {
                     case Sat() =>
                         getDeclCmd() match {
                             case Success(xs) =>
-                                val vs = xs.map {
-                                    x => getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id))))
+                                val map = xs.map {
+                                    x => (x, getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
                                 }.collect {
-                                    case Success(v) =>
-                                        v
-                                }
-                                (Sat(), xs.zip(vs).toMap)
+                                    case (x, Success(v)) =>
+                                        (x, v)
+                                }.toMap
+                                (Sat(), map)
                             case _ =>
                                 (Sat(), Map())
                         }
