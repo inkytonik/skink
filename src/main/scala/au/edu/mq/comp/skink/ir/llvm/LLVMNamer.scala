@@ -167,7 +167,6 @@ class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexe
 class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
         nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.isLocalStore
     import org.scalallvm.assembly.{Analyser, ElementProperty}
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
@@ -205,7 +204,18 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
-        if (isLocalStore(use))
+        def isLocalName(use : Product) : Boolean = {
+            use match {
+                case Local(_)                              => true
+                case Binding(Local(_))                     => true
+                case Load(_, _, _, _, Named(Local(_)), _)  => true
+                case Store(_, _, _, _, Named(Local(_)), _) => true
+                case _ =>
+                    false
+            }
+        }
+
+        if (isLocalName(use))
             stores(use).get(s).getOrElse(0)
         else
             globalNamer.indexOf(use, s)

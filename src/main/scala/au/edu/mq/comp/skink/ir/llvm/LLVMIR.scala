@@ -24,6 +24,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         Property,
         TypeProperty
     }
+    import au.edu.mq.comp.skink.Skink.getLogger
+
+    private val logger = getLogger(this.getClass)
 
     // Implementation of IR interface
 
@@ -59,6 +62,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
      * that are executed by the trace.
      */
     def traceToBlockTrace(trace : Trace) : BlockTrace = {
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
         import scala.collection.mutable.ListBuffer
 
         var threadBlocks = Map[Int, Block]()
@@ -72,9 +76,11 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case None => {
                     threadFn.function.functionBody.blocks(0)
                 }
+
             }
             threadBlocks = threadBlocks - c.threadId + (c.threadId -> nextBlock)
             blocks += nextBlock
+            logger.info(s"traceToBlockTrace: found ${showBlock(nextBlock)} with choice $c")
         }
         BlockTrace(blocks.toList, trace)
     }

@@ -192,7 +192,7 @@ class TraceRefinement(config : SkinkConfig) {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set())
+        NFA(Set(0), transitions.toSet, Set(choices.length))
     }
 
 }

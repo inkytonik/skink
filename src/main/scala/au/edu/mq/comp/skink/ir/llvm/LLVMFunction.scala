@@ -242,6 +242,13 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
         BlockTrace(blocks, trace)
     }
 
+    def nextBlocks(block : Block, startChoice : Int) : List[Block] = {
+        nextBlock(block, startChoice) match {
+            case Some(next) => next +: nextBlocks(block, startChoice + 1)
+            case None       => List()
+        }
+    }
+
     /**
      * Get the block that follows `block` when we make a given choice.
      * Return `None` if there is no such block.
@@ -257,10 +264,8 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
                     Some(label2)
                 case IndirectBr(_, _, labels) if (choice >= 0) && (choice < labels.length) =>
                     Some(labels(choice))
-                case Unreachable() =>
+                case _ =>
                     None
-                case insn =>
-                    sys.error(s"nextBlock: unexpected terminator insn $insn")
             }
         optNextBlockLabel match {
             case Some(Label(name)) =>

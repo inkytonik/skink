@@ -110,15 +110,6 @@ object LLVMHelper {
         }
     }
 
-    def isLocalStore(use : Product) : Boolean = {
-        use match {
-            case Binding(Local(_))                     => true
-            case Store(_, _, _, _, Named(Local(_)), _) => true
-            case _ =>
-                false
-        }
-    }
-
     // Extractors to make matching more convenient
 
     /**

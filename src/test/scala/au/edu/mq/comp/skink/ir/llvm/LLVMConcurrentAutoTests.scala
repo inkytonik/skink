@@ -46,12 +46,5 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         val cfgLogger = getLogger(this.getClass, ".cfg")
         cfgLogger.info(toDot(toDetNFA(dca), s"${dca.name} tree"))
 
-        import au.edu.mq.comp.automat.lang.Lang
-        import au.edu.mq.comp.skink.ir.{Trace}
-
-        val t = Trace(Lang(dca).getAcceptedTrace.get)
-        println(t)
-        for (b <- ir.asInstanceOf[LLVMIR].traceToBlockTrace(t).blocks)
-            println(layout(any(b)))
     }
 }
