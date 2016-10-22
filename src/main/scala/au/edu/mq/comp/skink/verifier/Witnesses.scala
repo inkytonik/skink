@@ -9,6 +9,7 @@ class Witnesses(config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
+    import java.io.File
 
     val logger = getLogger(this.getClass)
 
@@ -44,6 +45,12 @@ class Witnesses(config : SkinkConfig) {
             value.map(v =>
                 s"""  <data key="$key">${escapeString(v.toString)}</data>\n""").getOrElse("")
 
+        def trimFileName(filename : String) : String =
+            if (config.onlyFilenames())
+                new File(filename).getName()
+            else
+                filename
+
         val nodesAndEdges =
             steps.zipWithIndex.map {
                 case (step, index) =>
@@ -54,22 +61,24 @@ class Witnesses(config : SkinkConfig) {
                             "\n  <data key=\"violation\">true</data>"
                         else
                             ""
+                    val optFileName = step.optFileName.map(trimFileName)
                     val node =
                         s"""<node id="N$index">$key\n""" +
-                            mkData(step.optFileName, "file") +
+                            mkData(optFileName, "file") +
                             mkData(step.optBlockName, "block") +
                             mkData(step.optBlockCode, "sourcecode") +
                             "</node>\n"
                     val edge =
                         if (index == numsteps - 1)
                             ""
-                        else
+                        else {
                             s"""\n<edge id="E$index" source="N${index}" target="N${index + 1}">\n""" +
-                                mkData(step.optFileName, "file") +
+                                mkData(optFileName, "file") +
                                 mkData(step.optTermCode, "sourcecode") +
                                 mkData(step.optTermLine, "startline") +
                                 mkData(step.optTermLine, "endline") +
                                 "</edge>\n"
+                        }
                     s"$node$edge"
             }
 
