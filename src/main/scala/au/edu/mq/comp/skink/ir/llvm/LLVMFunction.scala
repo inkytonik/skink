@@ -179,7 +179,6 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
                 block.optMetaInstructions.toList,
                 i => !isThreadPrimitive(i.instruction) && !isGlobalAccess(i.instruction)
             )
-            programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
             if (splitBlocks.length <= 1) {
                 logger.info(s"makeThreadVerifiable: No concurrent operations encountered")

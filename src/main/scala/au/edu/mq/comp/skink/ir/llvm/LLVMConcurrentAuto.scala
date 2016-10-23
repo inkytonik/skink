@@ -44,18 +44,18 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
 
                 // Unconditional branch
                 case Branch(Label(Local(tgt))) =>
-                    logger.info(s"nextBlocks: Found an unconditional branch on thread $threadId")
+                    logger.debug(s"nextBlocks: Found an unconditional branch on thread $threadId")
                     buf += ((threadId, tgt))
 
                 // Two-sided conditional branch
                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                    logger.info(s"nextBlocks: Found a two way branch  on thread $threadId")
+                    logger.debug(s"nextBlocks: Found a two way branch  on thread $threadId")
                     buf += ((threadId, trueTgt))
                     buf += ((threadId, falseTgt))
 
                 // Multi-way branch
                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-                    logger.info(s"nextBlocks: Found a multiway branch on thread $threadId")
+                    logger.debug(s"nextBlocks: Found a multiway branch on thread $threadId")
                     cases.zipWithIndex.foreach {
                         case (Case(_, _, Label(Local(tgt))), i) =>
                             buf += ((threadId, tgt))
@@ -64,8 +64,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
 
                 // Return
                 case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                    logger.info(s"nextBlocks: Found a block with no next branch on thread $threadId")
-                // Do nothing
+                    logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
 
                 case i =>
                     sys.error(s"dca: unexpected form of terminator insn: $i")
@@ -75,8 +74,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
         buf.toList
     }
 
-    def succ(state : Map[Int, String], label : Choice) : Map[Int, String] = {
-
+    def threadCreationEffects(threadId : Int, block : Block) : Option[(Int, String)] = {
         def threadCreationInfo(block : Block) : List[(String, String)] = {
             def isThreadCreation(insn : MetaInstruction) : Boolean = {
                 insn match {
@@ -107,35 +105,41 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
             block.optMetaInstructions.toList.filter(isThreadCreation(_)).map(extractThreadInfo(_))
         }
 
-        val threadId = label.threadId
-        val branchId = label.branchId
-        // Find the next block for the selected branch
-        val (_, newBlock) = nextBlocks(state).filter(_._1 == threadId)(branchId)
-        var newState = state - threadId + (threadId -> newBlock)
-        logger.info(s"succ: Emitting successor $newState for $state with label $label")
-
-        // Get thread creation info for this block
-        val block = state.get(threadId).get
-        val threadInfo = threadCreationInfo(getBlockByName(threadId, block))
+        val threadInfo = threadCreationInfo(block)
         if (threadInfo.length != 0) {
             // Got a new thread, we should only have one new thread per 
             // block
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
-            logger.info(s"succ: Discovered a new thread with info $threadInfo")
+            logger.info(s"Discovered a new thread with id $threadName and function $threadFn")
             val threadIRFn = ir.functions.filter(_.name == threadFn).head
-            logger.info("thread ir fn " + show(threadIRFn.function))
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
-            logger.info("start block " + show(threadStartBlock))
             if (!seenThreads.contains(threadName)) {
                 threadCount += 1
                 ir.functionIds = ir.functionIds + (threadCount -> threadIRFn)
                 seenThreads += threadName
             }
-            logger.info("adding function " + show(threadIRFn.function))
-            newState = newState + (threadCount -> blockName(threadStartBlock))
-            logger.info(s"succ: Additional thread added to state producing successor $newState")
+            Some((threadCount -> blockName(threadStartBlock)))
+        } else
+            None
+    }
+
+    def succ(state : Map[Int, String], label : Choice) : Map[Int, String] = {
+        val threadId = label.threadId
+        val branchId = label.branchId
+
+        // Find the next block for the selected branch
+        val (_, newBlock) = nextBlocks(state).filter(_._1 == threadId)(branchId)
+        var newState = state - threadId + (threadId -> newBlock)
+
+        // Get thread creation info for this block
+        val block = getBlockByName(threadId, state.get(threadId).get)
+        threadCreationEffects(threadId, block) match {
+            case Some((newThreadId, blockName)) => newState = newState + (newThreadId -> blockName)
+            case _                              =>
         }
+
+        logger.info(s"succ: Emitting successor $newState for $state with label $label")
         newState
     }
 
