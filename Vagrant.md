@@ -119,11 +119,19 @@ You can also use the program table-generator to produce a HTML table report from
 the results files. BenchExec will print out the command to use at the end of the
 run (see the last line of the example above).
 
+* Run BenchExec on specific tasks
+
+You can supply an argument to the bench script to just run on particular benchmark
+tasks, as in
+
+    ./bench --tasks Loops
+
 * Run Skink on a single benchmark file
 
-If you want to investigate a single benchmark, you can run Skink as follows:
+If you want to investigate a single benchmark without using BenchExec, you can run
+Skink as follows:
 
-    ./skink.sh programs/simple/array-hard_true-unreach-call.c
+    ./skink.sh src/test/resources/citests/array-sequence_true-unreach-call.c
 
 and you will see logging information, etc.    
 

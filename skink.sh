@@ -1,11 +1,18 @@
 #!/bin/bash
-base=${1%.*}
+
+if test $# -eq 0
+then
+  echo "usage: skink.sh option... file.c"
+  exit 1
+fi
+
+base=${@:-1%.*}
 wtnfile=$base.graphml
 veriffile=$base.verif
 
 skinkdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-java -jar $skinkdir/target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar -f C -v -eZ3 -m20 $1 | tee $veriffile
+java -jar $skinkdir/target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar -f C -v -eZ3 -m20 $* | tee $veriffile
 
 case `head -1 $veriffile` in
     FALSE*)
