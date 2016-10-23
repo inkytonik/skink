@@ -6,7 +6,8 @@ then
   exit 1
 fi
 
-base=${@:-1%.*}
+file=${@: -1}
+base=${file%.*}
 wtnfile=$base.graphml
 veriffile=$base.verif
 
