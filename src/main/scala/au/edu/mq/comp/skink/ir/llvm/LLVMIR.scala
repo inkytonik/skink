@@ -15,7 +15,12 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
-    import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, GlobalVariableDefinition}
+    import org.scalallvm.assembly.AssemblySyntax.{
+        Block,
+        FunctionDefinition,
+        GlobalVariableDefinition,
+        MetaTerminatorInstruction
+    }
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.Executor
     import org.scalallvm.assembly.Analyser.{metadata, filepath}
@@ -126,6 +131,32 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-        Seq()
+        def getSourceLine(source : Source, line : Int) : String =
+            source.optLineContents(line).getOrElse("").trim
+
+        traceToBlockTrace(failTrace.trace).blocks.zip(failTrace.trace.choices).map {
+            case (block, choice) =>
+                val (optFileName, optBlockCode) =
+                    Analyser.blockPosition(program, block) match {
+                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
+                            (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
+                        case _ =>
+                            (None, None)
+                    }
+                val optBlockName = Some(blockName(block))
+                val function = functionIds.get(choice.threadId).get
+                val (optTermLine, optTermCode) =
+                    block.metaTerminatorInstruction match {
+                        case MetaTerminatorInstruction(insn, metadata) =>
+                            function.funAnalyser.instructionPosition(program, insn, metadata) match {
+                                case Some(Position(termLine, _, termSource)) =>
+                                    val termCode = getSourceLine(termSource, termLine)
+                                    (Some(termLine), Some(termCode))
+                                case _ =>
+                                    (None, None)
+                            }
+                    }
+                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
+        }
     }
 }
