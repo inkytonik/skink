@@ -275,7 +275,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
 
     // Terminator instructions
 
-    test("the effect of a branch is an error if the choice is negative") {
+    test("the effect of a branch is an error if the branch is negative") {
         val e = intercept[RuntimeException] {
             hasExitEffect(
                 Branch(makeLabel("foo")),
@@ -283,10 +283,10 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice -1 of br label %foo"
+        e.getMessage shouldBe "exitTerm: can't handle branch -1 of br label %foo"
     }
 
-    test("the effect of a branch is true if the choice is zero") {
+    test("the effect of a branch is true if the branch is zero") {
         hasExitEffect(
             Branch(makeLabel("foo")),
             0,
@@ -294,7 +294,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
         )
     }
 
-    test("the effect of a branch is an error if the choice is not zero") {
+    test("the effect of a branch is an error if the branch is not zero") {
         val e = intercept[RuntimeException] {
             hasExitEffect(
                 Branch(makeLabel("foo")),
@@ -302,10 +302,10 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 1 of br label %foo"
+        e.getMessage shouldBe "exitTerm: can't handle branch 1 of br label %foo"
     }
 
-    test("the effect of a conditional branch is value if the choice is zero") {
+    test("the effect of a conditional branch is value if the branch is zero") {
         hasExitEffect(
             BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
             0,
@@ -313,7 +313,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
         )
     }
 
-    test("the effect of a conditional branch is complement of value if the choice is one") {
+    test("the effect of a conditional branch is complement of value if the branch is one") {
         hasExitEffect(
             BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
             1,
@@ -321,7 +321,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
         )
     }
 
-    test("the effect of a conditional branch is an error if the choice is two") {
+    test("the effect of a conditional branch is an error if the branch is two") {
         val e = intercept[RuntimeException] {
             hasExitEffect(
                 BranchCond(xexp, makeLabel("foo"), makeLabel("bar")),
@@ -329,7 +329,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 2 of br i1 %x, label %foo, label %bar"
+        e.getMessage shouldBe "exitTerm: can't handle branch 2 of br i1 %x, label %foo, label %bar"
     }
 
     test("the effect of an indirect branch is an error") {
@@ -341,7 +341,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of indirectbr i32* %x, [%foo, %bar]"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of indirectbr i32* %x, [%foo, %bar]"
     }
 
     test("the effect of an invoke instruction is an error") {
@@ -354,7 +354,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of invoke i32 @func() to label %foo unwind label %bar"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of invoke i32 @func() to label %foo unwind label %bar"
     }
 
     test("the effect of a resume instruction is an error") {
@@ -365,7 +365,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of resume i32 1"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of resume i32 1"
     }
 
     test("the effect of a non-void ret instruction is an error") {
@@ -376,7 +376,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret i32 1"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of ret i32 1"
     }
 
     test("the effect of a void ret instruction is an error") {
@@ -387,7 +387,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret void"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of ret void"
     }
 
     val sw =
@@ -400,27 +400,27 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
             )
         )
 
-    test("the effect of a switch instruction with choice zero selects opposite of all cases") {
+    test("the effect of a switch instruction with branch zero selects opposite of all cases") {
         hasExitEffect(sw, 0, !(ix === 1) & !(ix === 2) & !(ix === 3))
     }
 
-    test("the effect of a switch instruction with choice one selects first case") {
+    test("the effect of a switch instruction with branch one selects first case") {
         hasExitEffect(sw, 1, ix === 1)
     }
 
-    test("the effect of a switch instruction with choice two selects second case") {
+    test("the effect of a switch instruction with branch two selects second case") {
         hasExitEffect(sw, 2, ix === 2)
     }
 
-    test("the effect of a switch instruction with choice three selects third case") {
+    test("the effect of a switch instruction with branch three selects third case") {
         hasExitEffect(sw, 3, ix === 3)
     }
 
-    test("the effect of a switch instruction with choice out of range is an error") {
+    test("the effect of a switch instruction with branch out of range is an error") {
         val e = intercept[RuntimeException] {
             hasExitEffect(sw, 4, True())
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 4 of switch i32 %x, label %foo [ i32 1, label %bar i32 2, label %ble i32 3, label %bar ]"
+        e.getMessage shouldBe "exitTerm: can't handle branch 4 of switch i32 %x, label %foo [ i32 1, label %bar i32 2, label %ble i32 3, label %bar ]"
     }
 
     test("the effect of an unreachable instruction is an error") {
@@ -431,7 +431,7 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
                 True()
             )
         }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of unreachable"
+        e.getMessage shouldBe "exitTerm: can't handle branch 0 of unreachable"
     }
 
 }

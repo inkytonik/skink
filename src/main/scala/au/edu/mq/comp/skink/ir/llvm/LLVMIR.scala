@@ -40,13 +40,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 new LLVMFunction(fd)
         }
 
-    def globalVars : Vector[GlobalVariableDefinition] = 
+    def globalVars : Vector[GlobalVariableDefinition] =
         program.items.collect {
-            case g : GlobalVariableDefinition => g 
+            case g : GlobalVariableDefinition => g
         }
 
     val main = functions.filter(_.name == "main").head
-    var functionIds  = Map(0 -> main)
+    var functionIds = Map(0 -> main)
     lazy val dca = new LLVMConcurrentAuto(this)
 
     lazy val name : String =
@@ -65,29 +65,29 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def traceToBlockTrace(trace : Trace) : BlockTrace = {
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout}
         import scala.collection.mutable.ListBuffer
-        
+
         var threadBlocks = Map[Int, Block]()
-        val blocks = new ListBuffer[Block]() 
+        val blocks = new ListBuffer[Block]()
         for (c <- trace.choices) {
-          logger.info(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
-          val threadFn = dca.getFunctionById(c.threadId).get
-          val currBlock = threadBlocks.get(c.threadId) match {
-            case Some(block) => block
-            case None => threadFn.function.functionBody.blocks(0) 
-          }
-          threadBlocks = threadBlocks - c.threadId + (c.threadId -> threadFn.nextBlock(currBlock, c.branchId).get)
-          blocks += currBlock
-          //logger.info(s"traceToBlockTrace: found ${layout(any(nextBlock))} with choice $c") 
-        } 
+            logger.info(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
+            val threadFn = dca.getFunctionById(c.threadId).get
+            val currBlock = threadBlocks.get(c.threadId) match {
+                case Some(block) => block
+                case None        => threadFn.function.functionBody.blocks(0)
+            }
+            threadBlocks = threadBlocks - c.threadId + (c.threadId -> threadFn.nextBlock(currBlock, c.branchId).get)
+            blocks += currBlock
+            //logger.info(s"traceToBlockTrace: found ${layout(any(nextBlock))} with choice $c") 
+        }
         BlockTrace(blocks.toList, trace)
     }
 
-    def traceToTerms(trace : Trace) : Seq[Seq[TypedTerm[BoolTerm, Term]]] = {
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
         // Construct a map of threadId -> blocktraces
         // Construct a unique function namer for each
         // Each of those function namers shares a GlobalNamer instance
         // which they call into to index and name variables
-      
+
         import org.bitbucket.inkytonik.kiama.relation.Tree
 
         // Make the block trace that corresponds to this trace and set it
@@ -96,7 +96,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
-        val globalNamer = new LLVMGlobalNamer(traceTree) 
+        val globalNamer = new LLVMGlobalNamer(traceTree)
         val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer), config)))
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
@@ -106,7 +106,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         val treeBlockTrace = traceTree.root
 
         val globalTerms = globalVars.map(globalBuilder.globalTerm)
-    
+
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
         val traceTerms = trace.choices.init.zipWithIndex.map {
@@ -118,14 +118,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 val namer = funBuilders.get(choice.threadId).get
-                logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer") 
+                logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
-        }.map(globalBuilder.combineTerms)
+        }
 
-      globalTerms ++ traceTerms 
+        globalTerms ++ traceTerms.map(globalBuilder.combineTerms)
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-      Seq()
+        Seq()
     }
 }

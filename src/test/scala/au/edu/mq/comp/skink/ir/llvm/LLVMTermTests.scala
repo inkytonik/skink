@@ -1,19 +1,7 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
-<<<<<<< HEAD
-import org.scalallvm.assembly.AssemblySyntax._
-import org.scalallvm.assembly.AssemblyPrettyPrinter.show
-
-class DummyNamer extends LLVMNamer {
-
-    def indexOf(use : Product, s : String) : Int =
-        0
-
-    def nameOf(name : Name) : String =
-        show(name)
-}
-
+import au.edu.mq.comp.smtlib.theories.Core
 
 /**
  * Helpers for all term tests.
@@ -24,6 +12,7 @@ trait LLVMTermTests extends Tests with Core {
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.scalallvm.assembly.AssemblySyntax._
 
     val namer = new DummyNamer
     import namer._

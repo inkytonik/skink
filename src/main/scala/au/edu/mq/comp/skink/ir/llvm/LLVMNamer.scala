@@ -4,7 +4,6 @@ import org.bitbucket.inkytonik.kiama.relation.Tree
 import org.scalallvm.assembly.Analyser
 import org.scalallvm.assembly.AssemblySyntax._
 import org.scalallvm.assembly.AssemblyPrettyPrinter.show
-import au.edu.mq.comp.smtlib.typedterms.TypedTerm
 
 /**
  * Interface for extractors of array elements. If successful, the return
@@ -40,66 +39,6 @@ trait LLVMNamer {
      */
     def termid(baseid : String) : String =
         baseid
-
-    /**
-     * Make an ArrayTerm for the named variable where `id` is the base name
-     * identifier and include an optional index.
-     */
-    def arrayTerm(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        ArrayInt1(termid(id)).indexed(index)
-
-    /**
-     * Return an array term that expresses a name when referenced from node.
-     */
-    def arrayTermAt(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTerm(nameOf(name), indexOf(node, show(name)))
-
-    /**
-     * Return a term that expresses the previous version of a name when
-     * referenced from node.
-     */
-    def prevArrayTermAt(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTerm(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
-
-    /**
-     * Make an integer term for the named variable where `id` is the base name
-     * identifier and index it.
-     */
-    def varTermI(id : String, index : Int) : TypedTerm[IntTerm, Term] =
-        new VarTerm(termid(id), IntSort(), Some(index))
-
-    /**
-     * Make a Boolean term for the named variable where `id` is the base name
-     * identifier and index it.
-     */
-    def varTermB(id : String, index : Int) : TypedTerm[BoolTerm, Term] =
-        new VarTerm(termid(id), BoolSort(), Some(index))
-
-    /**
-     * Return an integer term that expresses a name when referenced from node.
-     */
-    def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(nameOf(name), indexOf(node, show(name)))
-
-    /**
-     * Return a Boolean term that expresses a name when referenced from node.
-     */
-    def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(nameOf(name), indexOf(node, show(name)))
-
-    /**
-     * Return an integer term that expresses an LLVM name when referenced
-     * from the name node.
-     */
-    def ntermI(name : Name) : TypedTerm[IntTerm, Term] =
-        ntermAtI(name, name)
-
-    /**
-     * Return a Boolean term that expresses an LLVM name when referenced
-     * from the name node.
-     */
-    def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
-        ntermAtB(name, name)
 
     /**
      * Extractor to match stores to array elements. By default, we don't
@@ -163,11 +102,9 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 
     import org.scalallvm.assembly.{Analyser, ElementProperty}
 
-    // Properties and decoration of function tree
+    // Properties of function tree
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
-    val decorators = new Decorators(nametree)
-    import decorators._
 
     /**
      * Extractor to match stores to array elements. Currently only looks for

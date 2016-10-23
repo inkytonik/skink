@@ -14,7 +14,6 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
-    import namer.{True, False, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{show, layout, any}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
@@ -96,25 +95,25 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         val insn = metaInsn.terminatorInstruction
         val term =
             insn match {
-                case Branch(_) if choice == 0 =>
+                case Branch(_) if branch == 0 =>
                     True()
 
-                case BranchCond(value, _, _) if choice == 0 =>
+                case BranchCond(value, _, _) if branch == 0 =>
                     vtermB(value)
 
-                case BranchCond(value, _, _) if choice == 1 =>
+                case BranchCond(value, _, _) if branch == 1 =>
                     !vtermB(value)
 
-                case Switch(IntegerT(_), value, _, cases) if choice == 0 =>
+                case Switch(IntegerT(_), value, _, cases) if branch == 0 =>
                     combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
 
-                case Switch(IntegerT(_), value, _, cases) if choice <= cases.length =>
-                    vtermI(value) === vtermI(cases(choice - 1).value)
+                case Switch(IntegerT(_), value, _, cases) if branch <= cases.length =>
+                    vtermI(value) === vtermI(cases(branch - 1).value)
 
                 case insn =>
-                    sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
+                    sys.error(s"exitTerm: can't handle branch $branch of ${longshow(insn)}")
             }
-        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"exitTerm: branch $branch of ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 

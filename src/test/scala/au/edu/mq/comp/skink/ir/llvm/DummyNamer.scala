@@ -1,5 +1,8 @@
 package au.edu.mq.comp.skink.ir.llvm
 
+import org.scalallvm.assembly.AssemblyPrettyPrinter.{show}
+import org.scalallvm.assembly.AssemblySyntax.Name
+
 /**
  * A dummy namer for use in tests where naming is not relevant.
  * Always returns an index of zero.
@@ -7,4 +10,7 @@ package au.edu.mq.comp.skink.ir.llvm
 class DummyNamer extends LLVMNamer {
     def indexOf(use : Product, s : String) : Int =
         0
+
+    def nameOf(name : Name) : String =
+        show(name)
 }
