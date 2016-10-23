@@ -26,7 +26,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         TypeProperty
     }
     import au.edu.mq.comp.skink.Skink.getLogger
-    
+
     private val logger = getLogger(this.getClass)
 
     // Implementation of IR interface
@@ -39,7 +39,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
             case fd : FunctionDefinition =>
                 new LLVMFunction(fd)
         }
-    
+
     def globalVars : Vector[GlobalVariableDefinition] = 
         program.items.collect {
             case g : GlobalVariableDefinition => g 
@@ -48,7 +48,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     val main = functions.filter(_.name == "main").head
     var functionIds  = Map(0 -> main)
     lazy val dca = new LLVMConcurrentAuto(this)
-    
+
     lazy val name : String =
         filepath(metadata(program)) match {
             case Some(name) => name
@@ -57,7 +57,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     def show : String =
         AssemblyPrettyPrinter.show(program, 5)
-    
+
     /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
@@ -96,11 +96,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
-        val namer = new LLVMGlobalNamer(traceTree)
-        val termBuilder = new LLVMTermBuilder(namer)
         val globalNamer = new LLVMGlobalNamer(traceTree) 
-        val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer))))
-        val globalBuilder = new LLVMTermBuilder(globalNamer)
+        val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer), config)))
+        val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -122,8 +120,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 val namer = funBuilders.get(choice.threadId).get
                 logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer") 
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
-        }.map(termBuilder.combineTerms)
-      
+        }.map(globalBuilder.combineTerms)
+
       globalTerms ++ traceTerms 
     }
 

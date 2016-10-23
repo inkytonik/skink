@@ -1,26 +1,24 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
 import org.bitbucket.inkytonik.kiama.relation.Tree
 import org.scalallvm.assembly.Analyser
 import org.scalallvm.assembly.AssemblySyntax._
 import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+import au.edu.mq.comp.smtlib.typedterms.TypedTerm
 
+/**
+ * Interface for extractors of array elements. If successful, the return
+ * is the name of the array and a value that encodes the index of the
+ * identified element.
+ */
 trait ArrayElementExtractor {
     def unapply(value : Value) : Option[(Name, Value)]
 }
 
-trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayExOperators {
-
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Term}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import org.scalallvm.assembly.ElementProperty
-
-    // Methods for constructing basic terms for named entities
-
-    // Abstract methods
+/**
+ * Interface for support of naming within structures.
+ */
+trait LLVMNamer {
 
     /**
      * Retrieve the index of a particular occurrence of a program variable
@@ -112,7 +110,6 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
             def unapply(value : Value) : Option[(Name, Value)] =
                 None
         }
-
 }
 
 abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMNamer {
@@ -152,24 +149,25 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
 class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
 
     def indexOf(use : Product, s : String) : Int = {
-        use match {
-            case Global(_) => 0
-            case _         => stores(use).get(s).getOrElse(0)
-        }
+        stores(use).get(s).getOrElse(0)
     }
 
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
 /**
- * A namer for the given function which names uniquely over the given name tree.
+ * Naming for a given function which names uniquely over the given name tree.
  */
 class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
         nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
 
     import org.scalallvm.assembly.{Analyser, ElementProperty}
 
+    // Properties and decoration of function tree
+
     val properties = funanalyser.propertiesOfFunction(funtree.root)
+    val decorators = new Decorators(nametree)
+    import decorators._
 
     /**
      * Extractor to match stores to array elements. Currently only looks for

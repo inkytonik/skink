@@ -13,6 +13,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Trace, IR, Choice}
+    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
@@ -99,11 +100,26 @@ class TraceRefinement(config : SkinkConfig) {
         val selectedSolver =
             config.solverMode() match {
                 case Z3SolverMode() =>
-                    new Z3 with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new Z3 with QF_AUFLIA with Interpolants with Models
+                        case BitIntegerMode() =>
+                            new Z3 with QF_ABV with Interpolants with Models
+                    }
                 case CVC4SolverMode() =>
-                    new CVC4 with QF_AUFLIA
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new CVC4 with QF_AUFLIA with Models
+                        case BitIntegerMode() =>
+                            new CVC4 with QF_ABV with Models
+                    }
                 case SMTInterpolSolverMode() =>
-                    new SMTInterpol with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTInterpol with QF_AUFLIA with Interpolants with Models
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
+                    }
             }
 
         cfgLogger.debug(toDot(toDetNFA(program.dca), s"${program.name} initial"))
@@ -118,7 +134,7 @@ class TraceRefinement(config : SkinkConfig) {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"traceRefinement: ${program.name} has no failure traces")
+                    logger.info(s"${program.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -126,8 +142,8 @@ class TraceRefinement(config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
-                    logger.info(s"traceRefinement: ${program.name} has a failure trace")
-                    logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
+                    logger.info(s"${program.name} has a failure trace")
+                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations

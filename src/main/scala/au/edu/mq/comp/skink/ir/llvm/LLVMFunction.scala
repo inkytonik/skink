@@ -1,5 +1,6 @@
 package au.edu.mq.comp.skink.ir.llvm
 
+import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
@@ -31,15 +32,9 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
         Property,
         TypeProperty
     }
-    import scala.collection.mutable.ListBuffer
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
     import scala.collection.immutable.Map
-    import scala.util.{Failure, Success}
+    import scala.collection.mutable.ListBuffer
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -49,13 +44,14 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
     lazy val name : String = nameToString(functionDef.global)
 
     val function = makeVerifiable
+
+    // An analyser for this function and its associated tree
     val funTree = new Tree[ASTNode, FunctionDefinition](function)
     val funAnalyser = new Analyser(funTree)
 
     // Gather properties of the function
 
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
-
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {

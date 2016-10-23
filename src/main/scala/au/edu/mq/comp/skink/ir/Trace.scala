@@ -22,10 +22,8 @@ case class Choice(threadId : Int, branchId : Int)
 case class Trace(choices : Seq[Choice])
 
 /**
- * A feasible trace that leads to a program failure. `values`, if
- * present, reports on the values that lead to the failure. It
- * may contain entries for the identifiers in `ids` but may not
- * map them all.
+ * A feasible trace that leads to a program failure. `values` maps ids
+ * from the trace to values.
  *
  * Carries around the failing IRFunction with it as the Witness
  * generation requires a specific IRFunction entry point
