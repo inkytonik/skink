@@ -15,7 +15,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
     private val logger = getLogger(this.getClass)
     private var threadCount = 0
     private var seenThreads = new ListBuffer[String]()
-    private var locksHeld = new Map[String, Int]()
+    private var locksHeld = Map[String, Int]()
     val name : String = ir.name
 
     private def getBlockByName(threadId : Int, blockName : String) : Block =
@@ -30,8 +30,8 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
     def acceptsAll(state : Map[Int, String]) : Boolean = isFinal(state)
 
     def acceptsNone(state : Map[Int, String]) : Boolean = getBlockByName(0, state.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
-      case _ : Ret => true
-      case _ => false
+        case _ : Ret => true
+        case _       => false
     }
 
     def nextBlocks(state : Map[Int, String]) : List[(Int, String)] = {

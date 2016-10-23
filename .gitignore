@@ -13,3 +13,5 @@ witness_checks
 *.dot
 *.ll
 *.png
+*.verif
+.ctags

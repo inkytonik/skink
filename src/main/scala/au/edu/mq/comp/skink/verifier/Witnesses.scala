@@ -1,6 +1,7 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.ir.IR
 
 /**
  * Support for SV-COMP witness generation.
@@ -16,7 +17,7 @@ class Witnesses(config : SkinkConfig) {
      * Output in SV-COMP result format a witness for the failure given by
      * `failTrace` in the given function .
      */
-    def printWitness(failTrace : FailureTrace) {
+    def printWitness(ir : IR, failTrace : FailureTrace) {
 
         def escapeChar(char : Char) =
             char match {
@@ -29,7 +30,7 @@ class Witnesses(config : SkinkConfig) {
         def escapeString(string : String) =
             string.flatMap(escapeChar)
 
-        val steps = failTrace.ir.traceToSteps(failTrace)
+        val steps = ir.traceToSteps(failTrace)
         val numsteps = steps.length
 
         def field[T](field : Option[T]) : String =

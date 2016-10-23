@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir
 
 import scala.util.Try
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.QualifiedId
+import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
 import au.edu.mq.comp.smtlib.typedterms.Value
 
 /**
@@ -30,8 +30,7 @@ case class Trace(choices : Seq[Choice])
  * Carries around the failing IRFunction with it as the Witness
  * generation requires a specific IRFunction entry point
  */
-case class FailureTrace(trace : Trace, ids : Seq[QualifiedId],
-    values : Try[Map[QualifiedId, Value]], ir : IR)
+case class FailureTrace(trace : Trace, values : Map[SortedQId, Value])
 
 /**
  * A description of a step in the execution of a trace for use in witness

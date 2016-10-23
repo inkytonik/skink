@@ -125,7 +125,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                             case _ : Or  => lterm | rterm
                             case _ : XOr => lterm xor rterm
                             case _ =>
-                                sys.error(s"binary Boolean op $op not handled")
+                                sys.error(s"binary Boolean op ${show(op)} not handled")
                         }
                     ntermB(to) === exp
 
@@ -143,7 +143,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                             case _ : SRem => lterm % rterm
                             case _ : Sub  => lterm - rterm
                             case _ =>
-                                sys.error(s"binary integer op $op not handled")
+                                sys.error(s"binary integer op ${show(op)} not handled")
                         }
                     ntermI(to) === exp
 
@@ -153,11 +153,15 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                         case BoolT() => vtermB(arg)
                         case IntT(_) => !(vtermI(arg) === 0)
                         case _ =>
-                            sys.error(s"insnTerm: unexpected type $tipe in assume call")
+                            sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
                     }
 
-                // Call to `nondet_*`
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                // Call to `nondet_X` where X is an unsigned type
+                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(UnsignedType())), Vector(), _) =>
+                    ntermI(to) >= 0
+
+                // Other calls to `nondet_X`
+                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
                     STrue()
 
                 case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
@@ -173,7 +177,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                             case EQ() => lterm === rterm
                             case NE() => !(lterm === rterm)
                             case _ =>
-                                sys.error(s"Boolean comparison $icond not handled")
+                                sys.error(s"Boolean comparison ${show(icond)} not handled")
                         }
                     ntermB(to) === exp
 
@@ -195,7 +199,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                             case SLT() => lterm < rterm
                             case SLE() => lterm <= rterm
                             case _ =>
-                                sys.error(s"integer comparison $icond not handled")
+                                sys.error(s"integer comparison ${show(icond)} not handled")
                         }
                     ntermB(to) === exp
 
@@ -207,7 +211,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                 // Pointer dereference
 
                 case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
-                    sys.error(s"insnTerm: unsupported getelementptr insn $insn")
+                    sys.error(s"insnTerm: unsupported getelementptr insn ${longshow(insn)}")
 
                 case _ : GetElementPtr =>
                     // We ignore these here, but the associations that they establish
@@ -232,7 +236,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
                     equality(to, tipe, from, tipe)
 
                 case insn =>
-                    sys.error(s"insnTerm: don't know the effect of $insn")
+                    sys.error(s"insnTerm: don't know the effect of${longshow(insn)}")
 
             }
         logger.debug(s"insnTerm:${longshow(insn)} -> ${showTerm(term.termDef)}")
@@ -249,7 +253,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
             case Named(name) =>
                 ntermI(name)
             case value =>
-                sys.error(s"vtermI: unexpected value $value")
+                sys.error(s"vtermI: unexpected value value")
         }
 
     /*

@@ -3,6 +3,11 @@ package au.edu.mq.comp.skink
 import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
+sealed abstract class SolverMode
+case class CVC4SolverMode() extends SolverMode
+case class SMTInterpolSolverMode() extends SolverMode
+case class Z3SolverMode() extends SolverMode
+
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
@@ -77,9 +82,32 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
         }
 
-    lazy val solver = opt[Solver]("solver", short = 'e',
+    val solverModeConverter =
+        new ValueConverter[SolverMode] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[SolverMode]] =
+                s match {
+                    case List((_, List("CVC4"))) =>
+                        Right(Some(CVC4SolverMode()))
+                    case List((_, List("SMTInterpol"))) =>
+                        Right(Some(SMTInterpolSolverMode()))
+                    case List((_, List("Z3"))) =>
+                        Right(Some(Z3SolverMode()))
+                    case List((_, _)) =>
+                        Left("expected CVC4, SMTInterpol or Z3")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[SolverMode]]
+
+        }
+
+    lazy val solverMode = opt[SolverMode]("solver", short = 'e',
         descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
-        default = Some(new Z3))(solverConverter)
+        default = Some(Z3SolverMode()))(solverModeConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
         descr = "Timeout for SMT solvers (seconds)",
