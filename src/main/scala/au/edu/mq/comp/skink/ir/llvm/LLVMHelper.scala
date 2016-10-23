@@ -95,8 +95,8 @@ object LLVMHelper {
 
     def isThreadPrimitive(use : Product) : Boolean = {
         use match {
-            case GlobalFunctionCall("pthread_create") =>
-                true
+            case GlobalFunctionCall(name) =>
+                name.startsWith("pthread")
             case _ =>
                 false
         }
@@ -107,6 +107,17 @@ object LLVMHelper {
             case Load(_, _, _, _, Named(Global(_)), _)  => true
             case Store(_, _, _, _, Named(Global(_)), _) => true
             case _                                      => false
+        }
+    }
+
+    def isLocalName(use : Product) : Boolean = {
+        use match {
+            case Local(_)                              => true
+            case Binding(Local(_))                     => true
+            case Load(_, _, _, _, Named(Local(_)), _)  => true
+            case Store(_, _, _, _, Named(Local(_)), _) => true
+            case _ =>
+                false
         }
     }
 

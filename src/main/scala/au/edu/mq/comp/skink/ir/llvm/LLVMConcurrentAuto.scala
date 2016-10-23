@@ -15,6 +15,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
     private val logger = getLogger(this.getClass)
     private var threadCount = 0
     private var seenThreads = new ListBuffer[String]()
+    private var locksHeld = new Map[String, Int]()
     val name : String = ir.name
 
     private def getBlockByName(threadId : Int, blockName : String) : Block =
@@ -29,8 +30,8 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
     def acceptsAll(state : Map[Int, String]) : Boolean = isFinal(state)
 
     def acceptsNone(state : Map[Int, String]) : Boolean = getBlockByName(0, state.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
-        case _ : Ret => true
-        case _       => false
+      case _ : Ret => true
+      case _ => false
     }
 
     def nextBlocks(state : Map[Int, String]) : List[(Int, String)] = {
@@ -39,8 +40,37 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
         for ((threadId, blockLabel) <- state) {
             val block = getBlockByName(threadId, blockLabel)
             logger.info(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
-            val nextBlocks = getFunctionById(threadId).get.nextBlocks(block, 0)
-            buf ++= nextBlocks.map(b => (threadId, blockName(b)))
+            block.metaTerminatorInstruction.terminatorInstruction match {
+
+                // Unconditional branch
+                case Branch(Label(Local(tgt))) =>
+                    logger.info(s"nextBlocks: Found an unconditional branch on thread $threadId")
+                    buf += ((threadId, tgt))
+
+                // Two-sided conditional branch
+                case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
+                    logger.info(s"nextBlocks: Found a two way branch  on thread $threadId")
+                    buf += ((threadId, trueTgt))
+                    buf += ((threadId, falseTgt))
+
+                // Multi-way branch
+                case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
+                    logger.info(s"nextBlocks: Found a multiway branch on thread $threadId")
+                    cases.zipWithIndex.foreach {
+                        case (Case(_, _, Label(Local(tgt))), i) =>
+                            buf += ((threadId, tgt))
+                    }
+                    buf += ((threadId, dfltTgt))
+
+                // Return
+                case _ : Ret | _ : RetVoid | _ : Unreachable =>
+                    logger.info(s"nextBlocks: Found a block with no next branch on thread $threadId")
+                // Do nothing
+
+                case i =>
+                    sys.error(s"dca: unexpected form of terminator insn: $i")
+
+            }
         }
         buf.toList
     }

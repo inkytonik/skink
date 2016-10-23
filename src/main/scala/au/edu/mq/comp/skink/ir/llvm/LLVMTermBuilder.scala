@@ -10,7 +10,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import namer.{True => STrue, False => SFalse, _}
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{show, layout, any}
     import org.scalallvm.assembly.AssemblySyntax._
 
     val logger = getLogger(this.getClass)
@@ -103,6 +103,7 @@ class LLVMTermBuilder(namer : LLVMNamer) {
      */
     def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
         val insn = metaInsn.instruction
+        logger.info(s"term generation on insn ${layout(any(insn))}")
         val term =
             insn match {
 

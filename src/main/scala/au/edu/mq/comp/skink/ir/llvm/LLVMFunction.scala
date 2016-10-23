@@ -227,46 +227,27 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
     }
 
     /**
-     * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace.
-     */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        val entryBlock = function.functionBody.blocks(0)
-        val (finalBlock, blocks) =
-            trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
-                case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice.branchId), blocks :+ block)
-                case ((None, blocks), choice) =>
-                    (None, blocks)
-            }
-        BlockTrace(blocks, trace)
-    }
-
-    def nextBlocks(block : Block, startChoice : Int) : List[Block] = {
-        nextBlock(block, startChoice) match {
-            case Some(next) => next +: nextBlocks(block, startChoice + 1)
-            case None       => List()
-        }
-    }
-
-    /**
-     * Get the block that follows `block` when we make a given choice.
+     * Get the block that follows `block` when we make a given branch.
      * Return `None` if there is no such block.
      */
-    def nextBlock(block : Block, choice : Int) : Option[Block] = {
+    def nextBlock(block : Block, branch : Int) : Option[Block] = {
+        logger.info(s"nextBlock: ${blockName(block)} with branch $branch")
         val optNextBlockLabel =
             block.metaTerminatorInstruction.terminatorInstruction match {
-                case Branch(label) if choice == 0 =>
+                case Branch(label) if branch == 0 =>
                     Some(label)
-                case BranchCond(_, label1, label2) if choice == 0 =>
+                case BranchCond(_, label1, _) if branch == 0 =>
                     Some(label1)
-                case BranchCond(_, label1, label2) if choice == 1 =>
+                case BranchCond(_, _, label2) if branch == 1 =>
                     Some(label2)
-                case IndirectBr(_, _, labels) if (choice >= 0) && (choice < labels.length) =>
-                    Some(labels(choice))
-                case _ =>
+                case IndirectBr(_, _, labels) if (branch >= 0) && (branch < labels.length) =>
+                    Some(labels(branch))
+                case Unreachable() =>
                     None
+                case insn =>
+                    sys.error(s"nextBlock: unexpected terminator insn $insn")
             }
+        logger.info(s"nextBlock: got $optNextBlockLabel")
         optNextBlockLabel match {
             case Some(Label(name)) =>
                 blockMap.get(nameToString(name)) match {

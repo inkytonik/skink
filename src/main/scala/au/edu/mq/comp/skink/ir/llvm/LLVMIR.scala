@@ -11,6 +11,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import au.edu.mq.comp.skink.ir.{IRFunction, Choice, Trace, FailureTrace, Step}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
@@ -62,25 +63,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
      * that are executed by the trace.
      */
     def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout}
         import scala.collection.mutable.ListBuffer
 
         var threadBlocks = Map[Int, Block]()
         val blocks = new ListBuffer[Block]()
         for (c <- trace.choices) {
+            logger.info(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
             val threadFn = dca.getFunctionById(c.threadId).get
-            val nextBlock = threadBlocks.get(c.threadId) match {
-                case Some(block) => {
-                    threadFn.nextBlock(block, c.branchId).get
-                }
-                case None => {
-                    threadFn.function.functionBody.blocks(0)
-                }
-
+            val currBlock = threadBlocks.get(c.threadId) match {
+                case Some(block) => block
+                case None        => threadFn.function.functionBody.blocks(0)
             }
-            threadBlocks = threadBlocks - c.threadId + (c.threadId -> nextBlock)
-            blocks += nextBlock
-            logger.info(s"traceToBlockTrace: found ${showBlock(nextBlock)} with choice $c")
+            threadBlocks = threadBlocks - c.threadId + (c.threadId -> threadFn.nextBlock(currBlock, c.branchId).get)
+            blocks += currBlock
+            //logger.info(s"traceToBlockTrace: found ${layout(any(nextBlock))} with choice $c") 
         }
         BlockTrace(blocks.toList, trace)
     }
@@ -123,6 +120,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 val namer = funBuilders.get(choice.threadId).get
+                logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
         }
 

@@ -29,7 +29,7 @@ trait LLVMNamer extends Core with IntegerArithmetics with ArrayExInt with ArrayE
     def indexOf(use : Product, s : String) : Int
 
     /**
-     * Retreive the unique name of a particular variable (needed
+     * Retrieve the unique name of a particular variable (needed
      * when there are nested/concurrent scopes within a program).
      */
     def nameOf(name : Name) : String
