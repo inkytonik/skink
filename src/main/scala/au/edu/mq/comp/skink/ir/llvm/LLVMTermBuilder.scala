@@ -17,7 +17,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{show, layout, any}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
-    import namer.{ArrayElement, indexOf, termid}
+    import namer.{ArrayElement, indexOf, termid, nameOf}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.language.implicitConversions
@@ -48,6 +48,10 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
 
     def globalTerm(global : GlobalVariableDefinition) : TypedTerm[BoolTerm, Term] = {
         global match {
+            case GlobalVariableDefinition(_, _, _, _, _, _, _, _, _, PThreadType(_), _, _, _, _) => {
+                logger.info(s"globalTerm: ignoring pthread variable creation $global")
+                True()
+            }
             case GlobalVariableDefinition(GlobalBinding(name), _, _, _, _, _, _, _, _, tipe, Init(value), _, _, _) =>
                 equality(name, tipe, Const(value), tipe)
             case _ => sys.error(s"Invalid global variable definition ${show(global)}")
@@ -347,27 +351,27 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Return a bit vector array term that expresses a name when referenced from node.
      */
     def arrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), indexOf(node, show(name)))
+        arrayTermBV(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
      */
     def arrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), indexOf(node, show(name)))
+        arrayTermI(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermBV(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermI(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
@@ -394,19 +398,19 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(show(name), indexOf(node, show(name)))
+        varTermB(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtBV(node : ASTNode, name : Name) : TypedTerm[BVTerm, Term] =
-        varTermBV(show(name), indexOf(node, show(name)))
+        varTermBV(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(show(name), indexOf(node, show(name)))
+        varTermI(nameOf(name), indexOf(node, show(name)))
 
     /**
      * Return a Boolean term that expresses an LLVM name when referenced

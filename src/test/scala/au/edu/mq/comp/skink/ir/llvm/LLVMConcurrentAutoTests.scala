@@ -12,7 +12,7 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class LLVMConcurrentAutoTests extends FunSuiteLike {
     import org.scalallvm.assembly.AssemblySyntax._
-    import au.edu.mq.comp.skink.ir.{IR, IRFunction}
+    import au.edu.mq.comp.skink.ir.{IR, IRFunction, Choice, Trace}
     import au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAuto
 
     /**
@@ -36,7 +36,7 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
             fail(s"parse error: ${ir.right}")
     }
 
-    test("Load an ll program and produce a DCA") {
+    test("Load a c program and produce a DCA") {
         import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
         import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
@@ -47,4 +47,5 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         cfgLogger.info(toDot(toDetNFA(dca), s"${dca.name} tree"))
 
     }
+
 }

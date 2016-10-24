@@ -110,7 +110,6 @@ class Witnesses(config : SkinkConfig) {
                |""".stripMargin
 
         config.output().emit(witness)
-
     }
 
 }

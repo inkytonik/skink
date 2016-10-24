@@ -39,7 +39,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
 
-    def functions : Vector[LLVMFunction] =
+    val functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(fd)
@@ -80,9 +80,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case Some(block) => block
                 case None        => threadFn.function.functionBody.blocks(0)
             }
-            threadBlocks = threadBlocks - c.threadId + (c.threadId -> threadFn.nextBlock(currBlock, c.branchId).get)
+            threadBlocks = threadBlocks - c.threadId
+            threadFn.nextBlock(currBlock, c.branchId) match {
+                case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
+                case None        =>
+            }
             blocks += currBlock
-            //logger.info(s"traceToBlockTrace: found ${layout(any(nextBlock))} with choice $c") 
+            logger.info(s"blocks ${blocks.map(blockName(_))}")
         }
         BlockTrace(blocks.toList, trace)
     }

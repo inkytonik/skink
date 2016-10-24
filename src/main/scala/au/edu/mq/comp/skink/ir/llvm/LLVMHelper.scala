@@ -96,7 +96,7 @@ object LLVMHelper {
     def isThreadPrimitive(use : Product) : Boolean = {
         use match {
             case GlobalFunctionCall(name) =>
-                name.startsWith("pthread")
+                isThreadFunction(name)
             case _ =>
                 false
         }
@@ -161,7 +161,7 @@ object LLVMHelper {
      * Extractor that recognises functions whose calls we want to ignore when
      * generating effect terms. Currently:
      *   - any LLVM intrinsic, such as llvm.stacksave
-     *   - special verifier fns
+     *   - special verifier fns, such as __VERIFIER_nondet_int
      */
     object IgnoredFunction {
         def unapply(fn : Function) : Boolean =
@@ -250,6 +250,51 @@ object LLVMHelper {
                     Some(name)
                 case Function(Const(ConvertC(Bitcast(), _, NameC(name), _))) =>
                     Some(name)
+                case _ =>
+                    None
+            }
+    }
+
+    object PThreadType {
+        def unapply(tipe : Type) : Option[Type] =
+            tipe match {
+                case NameT(Local(name)) if name.contains("pthread") => Some(tipe)
+                case _ => None
+            }
+    }
+
+    /**
+     * Big ugly extractor for function calls which might contain information about
+     * operations on Pthread synchronisation tokens.
+     *
+     * TODO: Currently assumes all init calls are constructing null (unlocked) mutexes
+     * and false conds
+     */
+    object PThreadOperation {
+        def unapplySeq(insn : MetaInstruction) : Option[Seq[String]] =
+            insn.instruction match {
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(call_name))),
+                    Vector(ValueArg(_, _, Named(Global(mutex_name)))),
+                    _
+                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock").contains(call_name) =>
+                    Some(List(call_name, mutex_name))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(call_name))),
+                    Vector(ValueArg(_, _, Named(Global(signal)))),
+                    _
+                    ) if call_name.contains("pthread_cond_signal") =>
+                    Some(List(call_name, signal))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(call_name))),
+                    Vector(ValueArg(_, _, Named(Global(signal))),
+                        ValueArg(_, _, _)),
+                    _
+                    ) if List("pthread_mutex_init", "pthread_cond_init").contains(call_name) =>
+                    Some(List(call_name, signal))
                 case _ =>
                     None
             }
