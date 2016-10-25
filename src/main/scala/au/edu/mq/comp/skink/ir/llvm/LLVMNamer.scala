@@ -20,6 +20,12 @@ trait ArrayElementExtractor {
 trait LLVMNamer {
 
     /**
+     * Get the default index of a program variable. I.e., the index that
+     * should be used for the initial value of that variable.
+     */
+    def defaultIndexOf(s : String) : Int
+
+    /**
      * Retrieve the index of a particular occurrence of a program variable
      * in a trace.
      */
@@ -113,12 +119,11 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
             bumpcount(in(n), name)
     }
 
-    /*
-     * Retrieve the index of a particular occurrence of a program variable
-     * in a trace.
-     */
+    def defaultIndexOf(s : String) : Int =
+        0
+
     def indexOf(use : Product, s : String) : Int = {
-        stores(use).get(s).getOrElse(0)
+        stores(use).get(s).getOrElse(defaultIndexOf(s))
     }
 
 }
