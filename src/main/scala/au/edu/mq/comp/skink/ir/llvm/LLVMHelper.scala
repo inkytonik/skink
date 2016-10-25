@@ -214,12 +214,12 @@ object LLVMHelper {
     }
 
     /*
-     * Extractor for variable names that matches if the variable is a
-     * user-level variable (i.e., one defined in the source code) as
-     * opposed to a compiler-defined temporary. If a match is found,
-     * the basename of the variable is returned and the index attached
-     * is ignored (e.g., `%i@1` returns `i`).
-     */
+   * Extractor for variable names that matches if the variable is a
+   * user-level variable (i.e., one defined in the source code) as
+   * opposed to a compiler-defined temporary. If a match is found,
+   * the basename of the variable is returned and the index attached
+   * is ignored (e.g., `%i@1` returns `i`).
+   */
     object UserLevelVarName {
         def unapply(name : Name) : Option[String] = {
             val BaseName = "[@%](.+)@[0-9]+".r
@@ -278,14 +278,14 @@ object LLVMHelper {
                     Function(Named(Global(call_name))),
                     Vector(ValueArg(_, _, Named(Global(mutex_name)))),
                     _
-                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock").contains(call_name) =>
+                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock", "pthread_join").contains(call_name) =>
                     Some(List(call_name, mutex_name))
                 case Call(
                     _, _, _, _, _,
                     Function(Named(Global(call_name))),
                     Vector(ValueArg(_, _, Named(Global(signal)))),
                     _
-                    ) if call_name.contains("pthread_cond_signal") =>
+                    ) if call_name.equals("pthread_cond_signal") =>
                     Some(List(call_name, signal))
                 case Call(
                     _, _, _, _, _,
@@ -295,6 +295,14 @@ object LLVMHelper {
                     _
                     ) if List("pthread_mutex_init", "pthread_cond_init").contains(call_name) =>
                     Some(List(call_name, signal))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(call_name))),
+                    Vector(ValueArg(_, _, Named(Global(signal))),
+                        ValueArg(_, _, Named(Global(returnMutex)))),
+                    _
+                    ) if call_name.equals("pthread_cond_wait") =>
+                    Some(List(call_name, signal, returnMutex))
                 case _ =>
                     None
             }

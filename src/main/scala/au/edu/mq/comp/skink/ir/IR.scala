@@ -34,7 +34,7 @@ trait IR {
      */
     def show : String
 
-    def dca : DetAuto[Map[Int, String], Choice]
+    def dca : DetAuto[_, Choice]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for

@@ -3,6 +3,7 @@ package au.edu.mq.comp.skink.ir.llvm
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.IR
 import org.scalallvm.assembly.AssemblySyntax.Program
+import scala.collection.immutable.Map
 
 /**
  * Representation of LLVM IR.
@@ -30,6 +31,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         Property,
         TypeProperty
     }
+    import scala.collection.mutable.{Map => MutableMap}
     import au.edu.mq.comp.skink.Skink.getLogger
 
     private val logger = getLogger(this.getClass)
@@ -51,7 +53,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         }
 
     val main = functions.filter(_.name == "main").head
-    var functionIds = Map(0 -> main)
+    var functionIds = MutableMap(0 -> main)
     lazy val dca = new LLVMConcurrentAuto(this)
 
     lazy val name : String =
