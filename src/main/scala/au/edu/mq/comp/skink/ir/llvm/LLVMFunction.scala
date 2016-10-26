@@ -429,8 +429,6 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         programLogger.info(s"pre-condition is")
 
-        // Success(false)
-
         //  Index the variables in pre with index 0
         val indexedPre = pre indexedBy { case _ => 0 }
         programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
