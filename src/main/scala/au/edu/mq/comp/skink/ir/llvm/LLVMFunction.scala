@@ -50,8 +50,20 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
     val funAnalyser = new Analyser(funTree)
 
     // Gather properties of the function
-
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
+
+    def branchesToBlocks(branches : Seq[Int]) : Seq[Block] = {
+        val entryBlock = function.functionBody.blocks(0)
+        val (finalBlock, blocks) =
+            branches.foldLeft(Option(entryBlock), Vector[Block]()) {
+                case ((Some(block), blocks), branch) =>
+                    (nextBlock(block, branch), blocks :+ block)
+                case ((None, blocks), branch) =>
+                    (None, blocks)
+            }
+        blocks
+    }
+
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {

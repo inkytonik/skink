@@ -25,14 +25,18 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
 
     def getFunctionById(threadId : Int) : Option[LLVMFunction] = ir.functionIds.get(threadId)
 
-    def isFinal(state : Map[Int, String]) : Boolean = state.values.filter(_.contains("__error")).toVector.length != 0
+    def isFinal(state : Map[Int, String]) : Boolean = {
+        logger.info(s"Checking isFinal for $state with return ${state.values.filter(_.contains("__error")).toVector.length != 0}")
+        state.values.filter(_.contains("__error")).toVector.length != 0
+    }
 
     def acceptsAll(state : Map[Int, String]) : Boolean = isFinal(state)
 
-    def acceptsNone(state : Map[Int, String]) : Boolean = getBlockByName(0, state.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
-        case _ : Ret => true
-        case _       => false
-    }
+    def acceptsNone(state : Map[Int, String]) : Boolean = false
+    //getBlockByName(0, state.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
+    //case _ : Ret => true
+    //case _       => false
+    //}
 
     def nextBlocks(state : Map[Int, String]) : List[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]
@@ -122,18 +126,19 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
             // block
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
-            logger.info(s"succ: Discovered a new thread with info $threadInfo")
             val threadIRFn = ir.functions.filter(_.name == threadFn).head
-            logger.info("thread ir fn " + show(threadIRFn.function))
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
-            logger.info("start block " + show(threadStartBlock))
-            if (!seenThreads.contains(threadName)) {
+            val newThreadId = if (!seenThreads.contains(threadName)) {
+                logger.info(s"succ: Discovered a new thread with info $threadInfo")
                 threadCount += 1
                 ir.functionIds = ir.functionIds + (threadCount -> threadIRFn)
                 seenThreads += threadName
+                threadCount
+            } else {
+                logger.info(s"succ: Re-discovered thread $threadName with id ${seenThreads.indexOf(threadName) + 1}")
+                seenThreads.indexOf(threadName) + 1
             }
-            logger.info("adding function " + show(threadIRFn.function))
-            newState = newState + (threadCount -> blockName(threadStartBlock))
+            newState = newState + (newThreadId -> blockName(threadStartBlock))
             logger.info(s"succ: Additional thread added to state producing successor $newState")
         }
         newState

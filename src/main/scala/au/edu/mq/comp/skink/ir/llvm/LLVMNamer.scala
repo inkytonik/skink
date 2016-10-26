@@ -52,9 +52,12 @@ trait LLVMNamer {
 }
 
 abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMNamer {
+    import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
     import org.scalallvm.assembly.{Analyser, ElementProperty}
+
+    val logger = getLogger(this.getClass)
 
     val decorators = new Decorators(nametree)
     import decorators._
@@ -94,24 +97,10 @@ class LLVMInitNamer extends LLVMNamer {
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
-class LLVMGlobalNamer extends LLVMNamer {
+class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
 
-    var stores = Map[String, Int]()
-
-    def bumpcount(s : String) = {
-        stores = stores + (s -> (stores.get(s).getOrElse(0) + 1))
-    }
-
-    def indexOf(use : Product, s : String) : Int = {
-        use match {
-            case n @ Binding(name) =>
-                bumpcount(s)
-            case n @ Store(_, _, _, _, Named(name), _) =>
-                bumpcount(s)
-            case _ =>
-            // Do Nothing
-        }
-        stores.get(s).getOrElse(0)
+    override def indexOf(use : Product, s : String) : Int = {
+        stores(use).get(s).getOrElse(0)
     }
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
@@ -124,9 +113,6 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 
     import org.scalallvm.assembly.{Analyser, ElementProperty}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
-    import au.edu.mq.comp.skink.Skink.getLogger
-
-    private val logger = getLogger(this.getClass)
 
     // Properties of function tree
 
@@ -138,27 +124,27 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * pointer), followed by the actual index.
      * FIXME: there may well be other cases we should detect.
      */
-    override val ArrayElement =
-        new ArrayElementExtractor {
-            def unapply(value : Value) : Option[(Name, Value)] =
-                value match {
-                    case Named(name) =>
-                        elementProperty(name)
-                    case _ =>
-                        None
-                }
-        }
+    //override val ArrayElement =
+    //new ArrayElementExtractor {
+    //def unapply(value : Value) : Option[(Name, Value)] =
+    //value match {
+    //case Named(name) =>
+    //elementProperty(name)
+    //case _ =>
+    //None
+    //}
+    //}
 
     /*
      * Get the array element property for name, if there is one.
      */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
-        properties(name).collectFirst {
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-        }
+    //def elementProperty(name : Name) : Option[(Name, Value)] =
+    //properties(name).collectFirst {
+    //case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+    //(array, index)
+    //case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
+    //(array, index)
+    //}
 
     /*
      * Retrieve the index of a particular occurrence of a program variable

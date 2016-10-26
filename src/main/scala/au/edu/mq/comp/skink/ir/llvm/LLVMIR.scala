@@ -87,6 +87,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
                 case None        =>
             }
+            assert(threadBlocks.get(c.threadId).get != currBlock)
             blocks += currBlock
             logger.info(s"blocks ${blocks.map(blockName(_))}")
         }
@@ -109,8 +110,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
-        val globalNamer = new LLVMGlobalNamer()
-        val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer), config)))
+        val globalNamer = new LLVMGlobalNamer(traceTree)
+        val funBlockTraces = functionIds.map(
+          f =>
+            (
+             f._1,
+             BlockTrace(
+                f._2.branchesToBlocks(
+                          trace.choices.filter(_.threadId == f._1).map(_.branchId)
+                ),
+                new Trace(trace.choices.filter(_.threadId == f._1))
+              )
+            )
+        )
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
+        val funBuilders = functionIds.map(f => (f._1, new LLVMTermBuilder(new LLVMFunctionNamer(f._2.funAnalyser, f._2.funTree, new Tree[Product, BlockTrace](funBlockTraces.get(f._1).get), f._1, globalNamer), config)))
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
         // If blocks occur more than once in the block trace they will be
