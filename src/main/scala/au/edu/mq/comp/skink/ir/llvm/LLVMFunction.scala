@@ -395,4 +395,64 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         }
     }
 
+    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import scala.util.{Try, Success, Failure}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+
+    /**
+     *  Check that the image of a precondition is included in a postcondition
+     *
+     * @param     pre         the precondition over a set of prgram variables `V`
+     * @param     blockTerm   an SSA term that encodes the semantics of a
+     *                        sequence of instructions
+     * @param     post        the postcondition over a set of program variables `v`
+     */
+    def checkPost(
+        pre : TypedTerm[BoolTerm, Term],
+        trace : Trace,
+        index : Int,
+        choice : Int,
+        post : TypedTerm[BoolTerm, Term]
+    )(
+        implicit
+        solver : ExtendedSMTLIB2Interpreter
+    ) : Try[Boolean] = {
+
+        import au.edu.mq.comp.smtlib.theories.Core
+        import au.edu.mq.comp.smtlib.typedterms.{Commands}
+
+        object BoolOps extends Core with Commands
+        import BoolOps._
+
+        object Comm extends Commands
+        import Comm.isSat
+
+        programLogger.info(s"pre-condition is")
+
+        // Success(false)
+
+        //  Index the variables in pre with index 0
+        val indexedPre = pre indexedBy { case _ => 0 }
+        programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
+
+        //  index the variables in post with index
+        val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
+        //  this renaming should be OK if we do not have quantified
+        //  variables and all the vars in the term are free vars
+        val indexedPost = post indexedBy {
+            case SSymbol(x) => lastIndex.getOrElse(x, 0)
+        }
+        //  instantiate a solver and check SAT
+        isSat(indexedPre & blockEffect & !indexedPost) match {
+            case Success(Sat())   => Success(true)
+            case Success(UnSat()) => Success(false)
+            case Success(UnKnown()) =>
+                programLogger.error(s"Solver returned UnKnown for check-sat")
+                sys.error(s"Solver returned UnKnown for check-sat")
+            case Failure(f) =>
+                programLogger.error(s"Solver failed to determine sat-status in checkpost $f")
+                sys.error(s"Solver failed to determine sat-status in checkpost $f")
+        }
+    }
+
 }

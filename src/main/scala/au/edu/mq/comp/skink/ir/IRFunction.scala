@@ -59,4 +59,25 @@ trait IRFunction {
      */
     def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
+    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import scala.util.{Try, Success, Failure}
+    /**
+     *  Check that the image of a precondition is included in a postcondition
+     *
+     * @param     pre         the precondition over a set of prgram variables `V`
+     * @param     blockTerm   an SSA term that encodes the semantics of a
+     *                        sequence of instructions
+     * @param     post        the postcondition over a set of program variables `v`
+     */
+    def checkPost(
+        pre : TypedTerm[BoolTerm, Term],
+        trace : Trace,
+        index : Int,
+        choice : Int,
+        post : TypedTerm[BoolTerm, Term]
+    )(
+        implicit
+        solver : ExtendedSMTLIB2Interpreter
+    ) : Try[Boolean]
+
 }
