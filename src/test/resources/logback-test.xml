@@ -58,14 +58,6 @@
         </encoder>
     </appender>
 
-    <appender name="SMTLIBFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/smtlib.log</file>
-        <append>false</append>
-        <encoder>
-            <pattern>${DEFAULT_PATTERN}</pattern>
-        </encoder>
-    </appender>
-
     <root level="OFF">
         <appender-ref ref="SKINKFILE"/>
     </root>
@@ -104,19 +96,15 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkPost2" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="DEBUG" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="INFO" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="DEBUG" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
-    </logger>
-
-    <logger name="au.edu.mq.comp.smtlib.parser" level="DEBUG" additivity="false">
-        <appender-ref ref="SMTLIBFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">
