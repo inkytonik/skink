@@ -82,11 +82,12 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case Some(block) => block
                 case None        => threadFn.function.functionBody.blocks(0)
             }
-            threadBlocks = threadBlocks - c.threadId
             threadFn.nextBlock(currBlock, c.branchId) match {
                 case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
                 case None        =>
             }
+            if (threadBlocks.get(c.threadId).get == currBlock)
+                logger.info(s"Got a nextBlock of None for $currBlock")
             blocks += currBlock
             logger.info(s"blocks ${blocks.map(blockName(_))}")
         }

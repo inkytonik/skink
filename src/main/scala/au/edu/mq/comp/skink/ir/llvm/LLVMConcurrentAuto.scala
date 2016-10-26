@@ -36,6 +36,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
 
     def nextBlocks(state : Map[Int, String]) : List[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]
+        logger.info(s"nextBlocks: Discovering available blocks from $state")
 
         for ((threadId, blockLabel) <- state) {
             val block = getBlockByName(threadId, blockLabel)
@@ -72,6 +73,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
 
             }
         }
+        logger.info(s"nextBlocks: Discovered blocks $buf")
         buf.toList
     }
 
@@ -122,17 +124,14 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
             // block
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
-            logger.info(s"succ: Discovered a new thread with info $threadInfo")
             val threadIRFn = ir.functions.filter(_.name == threadFn).head
-            logger.info("thread ir fn " + show(threadIRFn.function))
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
-            logger.info("start block " + show(threadStartBlock))
             if (!seenThreads.contains(threadName)) {
+                logger.info(s"succ: Discovered a new thread with info $threadInfo")
                 threadCount += 1
                 ir.functionIds = ir.functionIds + (threadCount -> threadIRFn)
                 seenThreads += threadName
             }
-            logger.info("adding function " + show(threadIRFn.function))
             newState = newState + (threadCount -> blockName(threadStartBlock))
             logger.info(s"succ: Additional thread added to state producing successor $newState")
         }
