@@ -102,16 +102,16 @@ class TraceRefinement(config : SkinkConfig) {
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new Z3 with QF_AUFLIA with Interpolants with Models
+                            new Z3 with AUFNIRA with Interpolants with Models
                         case BitIntegerMode() =>
-                            new Z3 with QF_ABV with Interpolants with Models
+                            new Z3 with AUFNIRA with Interpolants with Models
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new CVC4 with QF_AUFLIA with Models
+                            new CVC4 with AUFNIRA with Models
                         case BitIntegerMode() =>
-                            new CVC4 with QF_ABV with Models
+                            new CVC4 with AUFNIRA with Models
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
