@@ -142,7 +142,6 @@ object InterpolantAuto extends Resources with Commands with Core {
                     linearAuto.accepting
                 )
 
-
             case Failure(f) =>
                 itpLogger.error(s"Solver could note compute interpolants $f")
                 sys.error(s"Solver could note compute interpolants $f")
