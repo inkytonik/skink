@@ -23,7 +23,6 @@ class TraceRefinement(config : SkinkConfig) {
     // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
     import au.edu.mq.comp.smtlib.parser.Analysis
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
