@@ -22,7 +22,7 @@ main(int argc, char **argv)
 
   pthread_create(&id1, NULL, t1, NULL);
 
-  if (i > 1) {
+  if (i > 0) {
     ERROR: __VERIFIER_error();
   }
 

@@ -124,27 +124,27 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * pointer), followed by the actual index.
      * FIXME: there may well be other cases we should detect.
      */
-    //override val ArrayElement =
-    //new ArrayElementExtractor {
-    //def unapply(value : Value) : Option[(Name, Value)] =
-    //value match {
-    //case Named(name) =>
-    //elementProperty(name)
-    //case _ =>
-    //None
-    //}
-    //}
+    override val ArrayElement =
+        new ArrayElementExtractor {
+            def unapply(value : Value) : Option[(Name, Value)] =
+                value match {
+                    case Named(name) if isLocalName(name) =>
+                        elementProperty(name)
+                    case _ =>
+                        None
+                }
+        }
 
     /*
      * Get the array element property for name, if there is one.
      */
-    //def elementProperty(name : Name) : Option[(Name, Value)] =
-    //properties(name).collectFirst {
-    //case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-    //(array, index)
-    //case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-    //(array, index)
-    //}
+    def elementProperty(name : Name) : Option[(Name, Value)] =
+        properties(name).collectFirst {
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+                (array, index)
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
+                (array, index)
+        }
 
     /*
      * Retrieve the index of a particular occurrence of a program variable
