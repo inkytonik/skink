@@ -151,11 +151,12 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
-        logger.info(s"Getting indexOf $use")
-        if (isLocalName(use))
+        if (isLocalName(use)) {
+            logger.info(s"Getting indexOf $use")
             stores(use).get(s).getOrElse(0)
-        else
+        } else {
             globalNamer.indexOf(use, s)
+        }
     }
 
     def nameOf(name : Name) : String = {

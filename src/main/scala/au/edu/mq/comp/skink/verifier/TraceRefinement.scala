@@ -29,6 +29,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
     // import smtlib.util.Implicits._
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
     import au.edu.mq.comp.smtlib.solvers._

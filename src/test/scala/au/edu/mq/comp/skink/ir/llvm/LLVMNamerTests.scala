@@ -9,49 +9,49 @@ import org.scalatest.FunSuiteLike
 import org.scalatest.junit.JUnitRunner
 
 /**
-  * Tests for the transformations on functions relating to concurrency in
-  * LLVMFunction. Test structure mostly lifted from scalallvm's test suite
-  * written by Tony.
-  */
+ * Tests for the transformations on functions relating to concurrency in
+ * LLVMFunction. Test structure mostly lifted from scalallvm's test suite
+ * written by Tony.
+ */
 @RunWith(classOf[JUnitRunner])
 class LLVMNamerTests extends FunSuiteLike {
-  import au.edu.mq.comp.skink.ir.{IR, IRFunction, Trace, Choice}
-  import au.edu.mq.comp.skink.SkinkConfig
+    import au.edu.mq.comp.skink.ir.{IR, IRFunction, Trace, Choice}
+    import au.edu.mq.comp.skink.SkinkConfig
 
-  import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.AssemblySyntax._
 
-  /**
-    * Parse a piece of LLVM IR that is a program and return the AST nodes
-    * for the whole program, its first function, that function's first
-    * block and an analyser for the function.
-    */
-  /**
-    * Parse a piece of LLVM IR that is a program and return the AST nodes
-    * for the whole program, its first function, that function's first
-    * block and an analyser for the function.
-    */
-  def parseProgram(defns : String) : (LLVMIR, LLVMFunction) = {
-    val positions = new Positions
-    val source = new StringSource(defns)
-    val p = new Assembly(source, positions)
-    val pr = p.pProgram(0)
-    if (pr.hasValue) {
-      val prog = p.value(pr).asInstanceOf[Program]
-      val config = new SkinkConfig(Seq())
-      config.verify()
-      val ir = new LLVMIR(prog, config)
-      val main = ir.functions.filter(_.name == "main").head
-      (ir, main)
-    } else
-      fail(s"parse error: ${pr.parseError.msg}")
-  }
+    /**
+     * Parse a piece of LLVM IR that is a program and return the AST nodes
+     * for the whole program, its first function, that function's first
+     * block and an analyser for the function.
+     */
+    /**
+     * Parse a piece of LLVM IR that is a program and return the AST nodes
+     * for the whole program, its first function, that function's first
+     * block and an analyser for the function.
+     */
+    def parseProgram(defns : String) : (LLVMIR, LLVMFunction) = {
+        val positions = new Positions
+        val source = new StringSource(defns)
+        val p = new Assembly(source, positions)
+        val pr = p.pProgram(0)
+        if (pr.hasValue) {
+            val prog = p.value(pr).asInstanceOf[Program]
+            val config = new SkinkConfig(Seq())
+            config.verify()
+            val ir = new LLVMIR(prog, config)
+            val main = ir.functions.filter(_.name == "main").head
+            (ir, main)
+        } else
+            fail(s"parse error: ${pr.parseError.msg}")
+    }
 
-  test("Get a name that is not been encounterd") {
-    import au.edu.mq.comp.automat.lang.Lang
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    test("Get a name that is not been encounterd") {
+        import au.edu.mq.comp.automat.lang.Lang
+        import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
-    val (ir, main) = parseProgram(
-                      """
+        val (ir, main) = parseProgram(
+            """
                         ; ModuleID = '<stdin>'
                         |target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
                         |target triple = "x86_64-unknown-linux-gnu"
@@ -223,14 +223,14 @@ class LLVMNamerTests extends FunSuiteLike {
                         |!65 = !DILocation(line: 39, column: 3, scope: !10)
                         |
                         """.stripMargin
-                    )
-    val lang = Lang(ir.dca)
+        )
+        val lang = Lang(ir.dca)
 
-    var trace = lang.getAcceptedTrace.get
-    println(trace)
-    val terms = ir.traceToTerms(Trace(trace))
-    for (i <- 0 until terms.length) {
-      println(s"trace effect $i: ${showTerm(terms(i).termDef)}")
+        var trace = lang.getAcceptedTrace.get
+        println(trace)
+        val terms = ir.traceToTerms(Trace(trace))
+        for (i <- 0 until terms.length) {
+            println(s"trace effect $i: ${showTerm(terms(i).termDef)}")
+        }
     }
-  }
 }

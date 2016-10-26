@@ -112,16 +112,16 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         // Get a function-specifc namer and term builder
         val globalNamer = new LLVMGlobalNamer(traceTree)
         val funBlockTraces = functionIds.map(
-          f =>
-            (
-             f._1,
-             BlockTrace(
-                f._2.branchesToBlocks(
-                          trace.choices.filter(_.threadId == f._1).map(_.branchId)
-                ),
-                new Trace(trace.choices.filter(_.threadId == f._1))
-              )
-            )
+            f =>
+                (
+                    f._1,
+                    BlockTrace(
+                        f._2.branchesToBlocks(
+                            trace.choices.filter(_.threadId == f._1).map(_.branchId)
+                        ),
+                        new Trace(trace.choices.filter(_.threadId == f._1))
+                    )
+                )
         )
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
         val funBuilders = functionIds.map(f => (f._1, new LLVMTermBuilder(new LLVMFunctionNamer(f._2.funAnalyser, f._2.funTree, new Tree[Product, BlockTrace](funBlockTraces.get(f._1).get), f._1, globalNamer), config)))
