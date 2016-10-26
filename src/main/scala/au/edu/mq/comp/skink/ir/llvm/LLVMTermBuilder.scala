@@ -110,6 +110,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 case Switch(IntegerT(_), value, _, cases) if branch <= cases.length =>
                     vtermI(value) === vtermI(cases(branch - 1).value)
 
+                case Unreachable() => True()
+
                 case insn =>
                     sys.error(s"exitTerm: can't handle branch $branch of ${longshow(insn)}")
             }

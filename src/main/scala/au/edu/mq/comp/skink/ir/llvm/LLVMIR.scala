@@ -3,6 +3,7 @@ package au.edu.mq.comp.skink.ir.llvm
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.IR
 import org.scalallvm.assembly.AssemblySyntax.Program
+import scala.collection.immutable.Map
 
 /**
  * Representation of LLVM IR.
@@ -30,6 +31,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         Property,
         TypeProperty
     }
+    import scala.collection.mutable.{Map => MutableMap}
     import au.edu.mq.comp.skink.Skink.getLogger
 
     private val logger = getLogger(this.getClass)
@@ -39,7 +41,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
 
-    def functions : Vector[LLVMFunction] =
+    val functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(fd)
@@ -51,7 +53,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         }
 
     val main = functions.filter(_.name == "main").head
-    var functionIds = Map(0 -> main)
+    var functionIds = MutableMap(0 -> main)
     lazy val dca = new LLVMConcurrentAuto(this)
 
     lazy val name : String =
@@ -80,9 +82,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case Some(block) => block
                 case None        => threadFn.function.functionBody.blocks(0)
             }
-            threadBlocks = threadBlocks - c.threadId + (c.threadId -> threadFn.nextBlock(currBlock, c.branchId).get)
+            threadBlocks = threadBlocks - c.threadId
+            threadFn.nextBlock(currBlock, c.branchId) match {
+                case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
+                case None        =>
+            }
             blocks += currBlock
-            //logger.info(s"traceToBlockTrace: found ${layout(any(nextBlock))} with choice $c") 
+            logger.info(s"blocks ${blocks.map(blockName(_))}")
         }
         BlockTrace(blocks.toList, trace)
     }
@@ -95,13 +101,15 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
         import org.bitbucket.inkytonik.kiama.relation.Tree
 
+        val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
+
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
-        val globalNamer = new LLVMGlobalNamer(traceTree)
+        val globalNamer = new LLVMGlobalNamer()
         val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer), config)))
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
@@ -109,8 +117,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = traceTree.root
-
-        val globalTerms = globalVars.map(globalBuilder.globalTerm)
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.

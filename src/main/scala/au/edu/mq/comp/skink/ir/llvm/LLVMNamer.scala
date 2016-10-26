@@ -85,12 +85,34 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
     }
 }
 
-class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
+class LLVMInitNamer extends LLVMNamer {
 
     def indexOf(use : Product, s : String) : Int = {
-        stores(use).get(s).getOrElse(0)
+        return 0
     }
 
+    def nameOf(name : Name) : String = s"global${show(name)}"
+}
+
+class LLVMGlobalNamer extends LLVMNamer {
+
+    var stores = Map[String, Int]()
+
+    def bumpcount(s : String) = {
+        stores = stores + (s -> (stores.get(s).getOrElse(0) + 1))
+    }
+
+    def indexOf(use : Product, s : String) : Int = {
+        use match {
+            case n @ Binding(name) =>
+                bumpcount(s)
+            case n @ Store(_, _, _, _, Named(name), _) =>
+                bumpcount(s)
+            case _ =>
+            // Do Nothing
+        }
+        stores.get(s).getOrElse(0)
+    }
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
@@ -101,6 +123,10 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
 
     import org.scalallvm.assembly.{Analyser, ElementProperty}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+    import au.edu.mq.comp.skink.Skink.getLogger
+
+    private val logger = getLogger(this.getClass)
 
     // Properties of function tree
 
@@ -139,17 +165,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
-        def isLocalName(use : Product) : Boolean = {
-            use match {
-                case Local(_)                              => true
-                case Binding(Local(_))                     => true
-                case Load(_, _, _, _, Named(Local(_)), _)  => true
-                case Store(_, _, _, _, Named(Local(_)), _) => true
-                case _ =>
-                    false
-            }
-        }
-
+        logger.info(s"Getting indexOf $use")
         if (isLocalName(use))
             stores(use).get(s).getOrElse(0)
         else
