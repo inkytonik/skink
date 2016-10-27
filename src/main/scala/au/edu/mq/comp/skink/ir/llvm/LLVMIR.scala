@@ -76,7 +76,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         var threadBlocks = Map[Int, Block]()
         val blocks = new ListBuffer[Block]()
         for (c <- trace.choices) {
-            logger.info(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
+            logger.debug(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
             val threadFn = dca.getFunctionById(c.threadId).get
             val currBlock = threadBlocks.get(c.threadId) match {
                 case Some(block) => block
@@ -89,7 +89,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
             }
             assert(threadBlocks.get(c.threadId).get != currBlock)
             blocks += currBlock
-            logger.info(s"blocks ${blocks.map(blockName(_))}")
+            logger.debug(s"blocks ${blocks.map(blockName(_))}")
         }
         BlockTrace(blocks.toList, trace)
     }
@@ -143,7 +143,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 val namer = funBuilders.get(choice.threadId).get
-                logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
+                logger.debug(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
         }
 

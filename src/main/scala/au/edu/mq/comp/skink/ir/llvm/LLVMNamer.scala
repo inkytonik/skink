@@ -71,7 +71,7 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
         chain(storesin)
 
     def bumpcount(m : StoreMap, name : Name) : StoreMap = {
-        val s = show(name)
+        val s = nameOf(name)
         val count = m.getOrElse(s, 0)
         m.updated(s, count + 1)
     }
@@ -100,6 +100,7 @@ class LLVMInitNamer extends LLVMNamer {
 class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
 
     override def indexOf(use : Product, s : String) : Int = {
+        logger.debug(s"indexOf: use $use")
         stores(use).get(s).getOrElse(0)
     }
     def nameOf(name : Name) : String = s"global${show(name)}"
@@ -151,8 +152,8 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
+        logger.debug(s"indexOf: use $use")
         if (isLocalName(use)) {
-            logger.info(s"Getting indexOf $use")
             stores(use).get(s).getOrElse(0)
         } else {
             globalNamer.indexOf(use, s)

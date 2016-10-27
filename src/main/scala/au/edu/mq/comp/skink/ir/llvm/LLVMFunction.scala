@@ -67,7 +67,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {
-        logger.info(s"makeVerifiable: $name")
+        logger.debug(s"makeVerifiable: $name")
 
         val processedBody = makeErrorsVerifiable(makeThreadVerifiable(functionDef.functionBody))
 
@@ -107,7 +107,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
      */
     def makeErrorsVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
-        logger.info(s"makeErrorsVerifiable: $name")
+        logger.debug(s"makeErrorsVerifiable: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 
@@ -166,7 +166,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
      */
     def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
 
-        logger.info(s"makeThreadVerifiable: $name")
+        logger.debug(s"makeThreadVerifiable: $name")
 
         val insertedBlocks = new ListBuffer[Block]()
 
@@ -194,10 +194,10 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
             programLogger.debug(s"Splitblocks: $splitBlocks\n")
 
             if (splitBlocks.length <= 1) {
-                logger.info(s"makeThreadVerifiable: No concurrent operations encountered")
+                logger.debug(s"makeThreadVerifiable: No concurrent operations encountered")
                 block
             } else {
-                logger.info(s"makeThreadVerifiable: Concurrent operations encountered, inserting new blocks")
+                logger.debug(s"makeThreadVerifiable: Concurrent operations encountered, inserting new blocks")
                 val first = splitBlocks.head
                 val rest = splitBlocks.drop(1).dropRight(1)
                 val last = splitBlocks.last
@@ -211,7 +211,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
                 var blockCount = 0
                 for (b <- rest.reverse) {
                     val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
-                    logger.info(s"makeThreadVerifiable: Inserted new block with label $newLabel")
+                    logger.debug(s"makeThreadVerifiable: Inserted new block with label $newLabel")
                     insertedBlocks += Block(BlockLabel(newLabel), Vector(), None, b.toVector,
                         MetaTerminatorInstruction(
                             Branch(Label(Local(label))),
@@ -239,7 +239,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
      * Return `None` if there is no such block.
      */
     def nextBlock(block : Block, branch : Int) : Option[Block] = {
-        logger.info(s"nextBlock: ${blockName(block)} with branch $branch")
+        logger.debug(s"nextBlock: ${blockName(block)} with branch $branch")
         val optNextBlockLabel =
             block.metaTerminatorInstruction.terminatorInstruction match {
                 case Branch(label) if branch == 0 =>
@@ -255,7 +255,7 @@ class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IR
                 case insn =>
                     sys.error(s"nextBlock: unexpected terminator insn $insn")
             }
-        logger.info(s"nextBlock: got $optNextBlockLabel")
+        logger.debug(s"nextBlock: got $optNextBlockLabel")
         optNextBlockLabel match {
             case Some(Label(name)) =>
                 blockMap.get(nameToString(name)) match {

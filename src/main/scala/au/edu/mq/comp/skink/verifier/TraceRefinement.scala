@@ -143,7 +143,7 @@ class TraceRefinement(config : SkinkConfig) {
                 case Some(choices) =>
 
                     logger.info(s"${program.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
+                    logger.info(s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
