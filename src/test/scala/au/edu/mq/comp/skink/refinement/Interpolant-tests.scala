@@ -44,9 +44,6 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
 
             case Right(messages) =>
                 fail(formatMessages(messages))
-
         }
-
     }
-
 }
