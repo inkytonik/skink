@@ -33,10 +33,6 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[Map[Int, Strin
     def acceptsAll(state : Map[Int, String]) : Boolean = false
 
     def acceptsNone(state : Map[Int, String]) : Boolean = false
-    //getBlockByName(0, state.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
-    //case _ : Ret => true
-    //case _       => false
-    //}
 
     def nextBlocks(state : Map[Int, String]) : List[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]

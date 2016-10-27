@@ -155,7 +155,7 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = program.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
+                        logger.info(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
                     }
 
                     // Build a single combined term for the trace effect

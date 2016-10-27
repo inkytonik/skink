@@ -13,7 +13,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(functionDef : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.{DetAuto, NFA}
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}

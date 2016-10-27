@@ -31,10 +31,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         Property,
         TypeProperty
     }
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
     import scala.collection.mutable.{Map => MutableMap}
     import au.edu.mq.comp.skink.Skink.getLogger
 
     private val logger = getLogger(this.getClass)
+
+    val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
 
     // Implementation of IR interface
 
@@ -102,8 +105,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
         import org.bitbucket.inkytonik.kiama.relation.Tree
 
-        val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
-
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
@@ -123,7 +124,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                     )
                 )
         )
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
         val funBuilders = functionIds.map(f => (f._1, new LLVMTermBuilder(new LLVMFunctionNamer(f._2.funAnalyser, f._2.funTree, new Tree[Product, BlockTrace](funBlockTraces.get(f._1).get), f._1, globalNamer), config)))
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
@@ -151,32 +151,44 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-        def getSourceLine(source : Source, line : Int) : String =
+
+      def getSourceLine(source : Source, line : Int) : String =
             source.optLineContents(line).getOrElse("").trim
 
-        traceToBlockTrace(failTrace.trace).blocks.zip(failTrace.trace.choices).map {
-            case (block, choice) =>
-                val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(program, block) match {
-                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
-                            (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
-                        case _ =>
-                            (None, None)
-                    }
-                val optBlockName = Some(blockName(block))
-                val function = functionIds.get(choice.threadId).get
-                val (optTermLine, optTermCode) =
-                    block.metaTerminatorInstruction match {
-                        case MetaTerminatorInstruction(insn, metadata) =>
-                            function.funAnalyser.instructionPosition(program, insn, metadata) match {
-                                case Some(Position(termLine, _, termSource)) =>
-                                    val termCode = getSourceLine(termSource, termLine)
-                                    (Some(termLine), Some(termCode))
-                                case _ =>
-                                    (None, None)
-                            }
-                    }
-                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
-        }
+      // Workaround for ensuring that the error block we produce in the witness is correct
+      // Lookup the label that leads into the error block (ie. which branches to an __error label)
+      // inside the original untransformed function of the thread upon which the error occurs.
+      // Then we concatenate it to the end of the blocks in our block trace, dropping the
+      // previous terminating block.
+      val blocks = traceToBlockTrace(failTrace.trace).blocks
+      val errorFunction = functionIds.get(failTrace.trace.choices.last.threadId).get
+      val lastBlock = errorFunction.functionDef.functionBody.blocks.filter(blockName(_) == blockName(blocks.last)).head
+      val combinedBlocks = blocks.init :+ lastBlock
+
+      combinedBlocks.zip(failTrace.trace.choices).map {
+          case (block, choice) =>
+              val (optFileName, optBlockCode) =
+                  Analyser.blockPosition(program, block) match {
+                      case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
+                          (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
+                      case _ =>
+                          (None, None)
+                  }
+              logger.debug(s"got $optFileName and $optBlockCode for ${showBlock(block)}")
+              val optBlockName = Some(blockName(block))
+              val function = functionIds.get(choice.threadId).get
+              val (optTermLine, optTermCode) =
+                  block.metaTerminatorInstruction match {
+                      case MetaTerminatorInstruction(insn, metadata) =>
+                          function.funAnalyser.instructionPosition(program, insn, metadata) match {
+                              case Some(Position(termLine, _, termSource)) =>
+                                  val termCode = getSourceLine(termSource, termLine)
+                                  (Some(termLine), Some(termCode))
+                              case _ =>
+                                  (None, None)
+                          }
+                  }
+              Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
+      }
     }
 }
