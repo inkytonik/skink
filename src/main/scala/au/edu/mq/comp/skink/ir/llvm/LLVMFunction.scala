@@ -352,7 +352,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(namer)
+        val termBuilder = new LLVMTermBuilder(namer, config)
 
         // Make a single term for this block and choice
         val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
@@ -376,6 +376,26 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
             }
         BlockTrace(blocks, trace)
     }
+
+    /**
+     * Follow the choices given by a trace to construct the trace of blocks
+     * that are executed by the trace. It's useful for this to be an attribute
+     * since we may need it more than once if we are doing different things
+     * with the trace which mostly required the actual blocks.
+     */
+    lazy val blockTrace : Trace => BlockTrace =
+        attr {
+            case trace =>
+                val entryBlock = function.functionBody.blocks(0)
+                val (finalBlock, blocks) =
+                    trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
+                        case ((Some(block), blocks), choice) =>
+                            (nextBlock(block, choice), blocks :+ block)
+                        case ((None, blocks), choice) =>
+                            (None, blocks)
+                    }
+                BlockTrace(blocks, trace)
+        }
 
     /**
      * Get the block that follows `block` when we make a given choice.
