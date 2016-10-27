@@ -2,7 +2,7 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 #include <pthread.h>
 
-int i=1, j=2;
+int i = 2, j = 1;
 
 #define NUM 5
 
@@ -27,12 +27,13 @@ t2(void* arg)
 int
 main(int argc, char **argv)
 {
-  pthread_t id1, id2;
+  pthread_t id1;
+  pthread_t id2;
 
   pthread_create(&id1, NULL, t1, NULL);
   pthread_create(&id2, NULL, t2, NULL);
 
-  if (i + j > 0) {
+  if (i + j > 4) {
     ERROR: __VERIFIER_error();
   }
 

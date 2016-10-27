@@ -38,7 +38,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * (if there is one), and exit from this block using a particular branch.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], branch : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(s"blockTerms: block ${blockName(block)}")
+        logger.debug(s"blockTerms: block ${blockName(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, branch)
@@ -114,6 +114,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 case Switch(IntegerT(_), value, _, cases) if branch <= cases.length =>
                     vtermI(value) === vtermI(cases(branch - 1).value)
 
+                case Unreachable() => True()
+
                 case insn =>
                     sys.error(s"exitTerm: can't handle branch $branch of ${longshow(insn)}")
             }
@@ -126,7 +128,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      */
     def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
         val insn = metaInsn.instruction
-        logger.info(s"term generation on insn ${layout(any(insn))}")
+        logger.debug(s"term generation on insn ${layout(any(insn))}")
         val term =
             insn match {
 
@@ -351,27 +353,27 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Return a bit vector array term that expresses a name when referenced from node.
      */
     def arrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), indexOf(node, show(name)))
+        arrayTermBV(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
      */
     def arrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(nameOf(name), indexOf(node, show(name)))
+        arrayTermI(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermBV(nameOf(name), scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(nameOf(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermI(nameOf(name), scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
@@ -398,19 +400,19 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(nameOf(name), indexOf(node, show(name)))
+        varTermB(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtBV(node : ASTNode, name : Name) : TypedTerm[BVTerm, Term] =
-        varTermBV(nameOf(name), indexOf(node, show(name)))
+        varTermBV(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(nameOf(name), indexOf(node, show(name)))
+        varTermI(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return a Boolean term that expresses an LLVM name when referenced

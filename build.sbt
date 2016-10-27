@@ -64,6 +64,7 @@ resolvers ++= Seq (
 )
 
 javaOptions in run += "-Dlogback.configurationFile=src/test/resources/logback-test.xml"
+javaOptions in run += "-Xss10M"
 
 scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
                                             // "-diagrams-dot-path",

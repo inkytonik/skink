@@ -52,9 +52,12 @@ trait LLVMNamer {
 }
 
 abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMNamer {
+    import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
     import org.scalallvm.assembly.{Analyser, ElementProperty}
+
+    val logger = getLogger(this.getClass)
 
     val decorators = new Decorators(nametree)
     import decorators._
@@ -68,7 +71,7 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
         chain(storesin)
 
     def bumpcount(m : StoreMap, name : Name) : StoreMap = {
-        val s = show(name)
+        val s = nameOf(name)
         val count = m.getOrElse(s, 0)
         m.updated(s, count + 1)
     }
@@ -85,12 +88,21 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
     }
 }
 
-class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
+class LLVMInitNamer extends LLVMNamer {
 
     def indexOf(use : Product, s : String) : Int = {
-        stores(use).get(s).getOrElse(0)
+        return 0
     }
 
+    def nameOf(name : Name) : String = s"global${show(name)}"
+}
+
+class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
+
+    override def indexOf(use : Product, s : String) : Int = {
+        logger.debug(s"indexOf: use $use")
+        stores(use).get(s).getOrElse(0)
+    }
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
@@ -101,6 +113,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
 
     import org.scalallvm.assembly.{Analyser, ElementProperty}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
 
     // Properties of function tree
 
@@ -116,7 +129,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         new ArrayElementExtractor {
             def unapply(value : Value) : Option[(Name, Value)] =
                 value match {
-                    case Named(name) =>
+                    case Named(name) if isLocalName(name) =>
                         elementProperty(name)
                     case _ =>
                         None
@@ -139,21 +152,12 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * in a trace.
      */
     def indexOf(use : Product, s : String) : Int = {
-        def isLocalName(use : Product) : Boolean = {
-            use match {
-                case Local(_)                              => true
-                case Binding(Local(_))                     => true
-                case Load(_, _, _, _, Named(Local(_)), _)  => true
-                case Store(_, _, _, _, Named(Local(_)), _) => true
-                case _ =>
-                    false
-            }
-        }
-
-        if (isLocalName(use))
+        logger.debug(s"indexOf: use $use")
+        if (isLocalName(use)) {
             stores(use).get(s).getOrElse(0)
-        else
+        } else {
             globalNamer.indexOf(use, s)
+        }
     }
 
     def nameOf(name : Name) : String = {

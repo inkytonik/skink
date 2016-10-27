@@ -23,13 +23,13 @@ class TraceRefinement(config : SkinkConfig) {
     // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
     import au.edu.mq.comp.smtlib.parser.Analysis
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
     // import smtlib.util.Implicits._
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
     import au.edu.mq.comp.smtlib.solvers._
@@ -143,7 +143,7 @@ class TraceRefinement(config : SkinkConfig) {
                 case Some(choices) =>
 
                     logger.info(s"${program.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
+                    logger.info(s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -155,7 +155,7 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = program.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
+                        logger.info(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
                     }
 
                     // Build a single combined term for the trace effect

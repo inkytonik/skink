@@ -31,10 +31,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         Property,
         TypeProperty
     }
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
     import scala.collection.mutable.{Map => MutableMap}
     import au.edu.mq.comp.skink.Skink.getLogger
 
     private val logger = getLogger(this.getClass)
+
+    val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
 
     // Implementation of IR interface
 
@@ -79,7 +82,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         var threadBlocks = Map[Int, Block]()
         val blocks = new ListBuffer[Block]()
         for (c <- trace.choices) {
-            logger.info(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
+            logger.debug(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
             val threadFn = dca.getFunctionById(c.threadId).get
             val currBlock = threadBlocks.get(c.threadId) match {
                 case Some(block) => block
@@ -90,8 +93,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
                 case None        =>
             }
+            assert(threadBlocks.get(c.threadId).get != currBlock)
             blocks += currBlock
-            logger.info(s"blocks ${blocks.map(blockName(_))}")
+            logger.debug(s"blocks ${blocks.map(blockName(_))}")
         }
         BlockTrace(blocks.toList, trace)
     }
@@ -111,15 +115,25 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
         // Get a function-specifc namer and term builder
         val globalNamer = new LLVMGlobalNamer(traceTree)
-        val funBuilders = functionIds.map(p => (p._1, new LLVMTermBuilder(new LLVMFunctionNamer(p._2.funAnalyser, p._2.funTree, traceTree, p._1, globalNamer), config)))
+        val funBlockTraces = functionIds.map(
+            f =>
+                (
+                    f._1,
+                    BlockTrace(
+                        f._2.branchesToBlocks(
+                            trace.choices.filter(_.threadId == f._1).map(_.branchId)
+                        ),
+                        new Trace(trace.choices.filter(_.threadId == f._1))
+                    )
+                )
+        )
+        val funBuilders = functionIds.map(f => (f._1, new LLVMTermBuilder(new LLVMFunctionNamer(f._2.funAnalyser, f._2.funTree, new Tree[Product, BlockTrace](funBlockTraces.get(f._1).get), f._1, globalNamer), config)))
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = traceTree.root
-
-        val globalTerms = globalVars.map(globalBuilder.globalTerm)
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -132,7 +146,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                     else
                         Some(treeBlockTrace.blocks(count - 1))
                 val namer = funBuilders.get(choice.threadId).get
-                logger.info(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
+                logger.debug(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
         }
 
@@ -140,10 +154,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
+
         def getSourceLine(source : Source, line : Int) : String =
             source.optLineContents(line).getOrElse("").trim
 
-        traceToBlockTrace(failTrace.trace).blocks.zip(failTrace.trace.choices).map {
+        // Workaround for ensuring that the error block we produce in the witness is correct
+        // Lookup the label that leads into the error block (ie. which branches to an __error label)
+        // inside the original untransformed function of the thread upon which the error occurs.
+        // Then we concatenate it to the end of the blocks in our block trace, dropping the
+        // previous terminating block.
+        val blocks = traceToBlockTrace(failTrace.trace).blocks
+        val errorFunction = functionIds.get(failTrace.trace.choices.last.threadId).get
+        val lastBlock = errorFunction.functionDef.functionBody.blocks.filter(blockName(_) == blockName(blocks.last)).head
+        val combinedBlocks = blocks.init :+ lastBlock
+
+        combinedBlocks.zip(failTrace.trace.choices).map {
             case (block, choice) =>
                 val (optFileName, optBlockCode) =
                     Analyser.blockPosition(program, block) match {
@@ -152,6 +177,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                         case _ =>
                             (None, None)
                     }
+                logger.debug(s"got $optFileName and $optBlockCode for ${showBlock(block)}")
                 val optBlockName = Some(blockName(block))
                 val function = functionIds.get(choice.threadId).get
                 val (optTermLine, optTermCode) =

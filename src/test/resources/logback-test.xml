@@ -63,7 +63,7 @@
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink" level="INFO"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
@@ -111,8 +111,8 @@
         <appender-ref ref="SKINKFILE"/>
     </logger>
 
-    <!-- util logger -->
-    <logger name="au.edu.mq.comp.automat.util" level="INFO" additivity="false">
+     <!--util logger -->
+    <logger name="au.edu.mq.comp.automat.util" level="INHERITED" additivity="false">
         <appender-ref ref="AUTOMATFILE"/>
     </logger>
 

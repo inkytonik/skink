@@ -31,7 +31,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
     def acceptsNone(state : LLVMState) : Boolean = false
 
     def isExitBlock(block : Block) : Boolean = {
-        logger.info(s"checking if ${blockName(block)} is exit block")
+        logger.debug(s"checking if ${blockName(block)} is exit block")
         block.metaTerminatorInstruction.terminatorInstruction match {
             case _ : Ret | _ : RetVoid => return true
             case _                     => // Do nothing
@@ -49,7 +49,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
             // We should have at most one thread primitive per block
             assert(threadInsns.length == 1)
 
-            logger.info(s"isBlocked: checking if ${show(threadInsns.head._1)} is blocking with tokens ${state.syncTokens}")
+            logger.debug(s"isBlocked: checking if ${show(threadInsns.head._1)} is blocking with tokens ${state.syncTokens}")
             threadInsns.head match {
                 case (PThreadOperation(callName, syncToken), i) => callName match {
                     case "pthread_mutex_lock" => state.syncTokens.get(syncToken).getOrElse(false)
@@ -71,7 +71,8 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                     // If the condition we are waiting on is false or not set (shouldn't happen)
                     // we release the mutex we were holding and block or else we're unblocked.
                     case "pthread_cond_wait" =>
-                        !state.syncTokens.get(syncToken).getOrElse(true)
+                        !state.syncTokens.get(syncToken).getOrElse(false) ||
+                            state.syncTokens.get(returnMutex).getOrElse(true)
                     case _ => false
                 }
                 case _ => false
@@ -84,13 +85,13 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
     def nextBlocks(state : LLVMState) : List[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]
 
-        logger.info(s"nextBlocks: filtering blocks ${state} for blocked blocks")
+        logger.debug(s"nextBlocks: filtering blocks ${state} for blocked blocks")
         val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(ir.getBlockByName(s._1, s._2), state))
-        logger.info(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
+        logger.debug(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
 
         for ((threadId, blockLabel) <- unblockedBlocks) {
             val block = ir.getBlockByName(threadId, blockLabel)
-            logger.info(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
+            logger.debug(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
             block.metaTerminatorInstruction.terminatorInstruction match {
 
                 // Unconditional branch
@@ -116,6 +117,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                 // Return
                 case _ : Ret | _ : RetVoid | _ : Unreachable =>
                     logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
+                // Do nothing
 
                 case i =>
                     sys.error(s"dca: unexpected form of terminator insn: $i")
@@ -161,16 +163,20 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
             // Got a new thread, we should only have one new thread per block 
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
-            logger.info(s"Discovered a new thread with id $threadName and function $threadFn")
+            logger.debug(s"Discovered a new thread with id $threadName and function $threadFn")
             val threadIRFn = ir.functions.filter(_.name == threadFn).head
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
-            if (!seenThreads.isDefinedAt(threadName)) {
-                logger.info(s"Discovered a new thread with id $threadName and function $threadFn")
+            val newThreadId = if (!seenThreads.isDefinedAt(threadName)) {
+                logger.debug(s"Discovered a new thread with name $threadName and function $threadFn")
                 threadCount += 1
                 ir.functionIds.update(threadCount, threadIRFn)
                 seenThreads += (threadName -> threadCount)
+                threadCount
+            } else {
+                logger.debug(s"Re-discovered a new thread with name $threadName and function $threadFn")
+                seenThreads.get(threadName).get
             }
-            Some((threadCount -> blockName(threadStartBlock)))
+            Some((newThreadId -> blockName(threadStartBlock)))
         } else
             None
     }
@@ -181,7 +187,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
         if (threadInsns.length != 0) {
             // We should have atmost one thread primitive per block
             assert(threadInsns.length == 1)
-            logger.info(s"outSyncEffects: checking effect of ${show(threadInsns.head)}")
+            logger.debug(s"outSyncEffects: checking effect of ${show(threadInsns.head)}")
             newSyncTokens = threadInsns.head match {
                 case PThreadOperation(callName, syncToken) => callName match {
                     case "pthread_cond_init"    => syncTokens + (syncToken -> false)
@@ -208,7 +214,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
             }
         }
 
-        logger.info(s"outSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        logger.debug(s"outSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
         newSyncTokens
     }
 
@@ -241,7 +247,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
             }
         }
 
-        logger.info(s"inSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        logger.debug(s"inSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
         newSyncTokens
     }
 
@@ -263,19 +269,21 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
         var newSyncTokens = outSyncEffects(block, state.syncTokens)
         newSyncTokens = inSyncEffects(ir.getBlockByName(threadId, newBlock), newSyncTokens)
 
-        logger.info(s"succ: Emitting successor ${LLVMState(newThreadLocs, newSyncTokens)} for $state with label $label")
+        logger.debug(s"succ: Emitting successor ${LLVMState(newThreadLocs, newSyncTokens)} for $state with label $label")
         LLVMState(newThreadLocs, newSyncTokens)
     }
 
     def enabledIn(state : LLVMState) : Set[Choice] = {
         val buf = new ListBuffer[Choice]
-        logger.info(s"enabledIn: Enumerating enabled labels for state $state with nextBlocks ${nextBlocks(state)}")
+        if (isFinal(state))
+            return buf.toSet
+        logger.debug(s"enabledIn: Enumerating enabled labels for state $state with nextBlocks ${nextBlocks(state)}")
         for ((threadId, branches) <- nextBlocks(state).groupBy(_._1)) {
             for (branchId <- 0 to branches.length - 1) {
                 buf += Choice(threadId, branchId)
             }
         }
-        logger.info(s"enabledIn: returning $buf")
+        logger.debug(s"enabledIn: returning $buf")
         buf.toSet
     }
 }
