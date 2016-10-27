@@ -41,16 +41,19 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
 
-    val functions : Vector[LLVMFunction] =
+    lazy val functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(fd)
         }
 
-    def globalVars : Vector[GlobalVariableDefinition] =
+    lazy val globalVars : Vector[GlobalVariableDefinition] =
         program.items.collect {
             case g : GlobalVariableDefinition => g
         }
+
+    def getBlockByName(threadId : Int, blockName : String) : Block =
+        functionIds.get(threadId).get.blockMap.get(blockName).get
 
     val main = functions.filter(_.name == "main").head
     var functionIds = MutableMap(0 -> main)

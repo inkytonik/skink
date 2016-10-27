@@ -20,76 +20,76 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
     private var seenThreads = MutableMap[String, Int]()
     val name : String = ir.name
 
-    private def getBlockByName(threadId : Int, blockName : String) : Block =
-        ir.functionIds.get(threadId).get.blockMap.get(blockName).get
-
     def getInit : LLVMState = LLVMState(Map(0 -> blockName(ir.main.function.functionBody.blocks.head)), Map())
 
     def getFunctionById(threadId : Int) : Option[LLVMFunction] = ir.functionIds.get(threadId)
 
-    // TODO: format this
     def isFinal(state : LLVMState) : Boolean = state.threadLocs.values.filter(_.contains("__error")).toVector.length != 0
 
-    def acceptsAll(state : LLVMState) : Boolean = isFinal(state)
+    def acceptsAll(state : LLVMState) : Boolean = false
 
-    // TODO: Clean this up
-    def acceptsNone(state : LLVMState) : Boolean = 
-        getBlockByName(0, state.threadLocs.get(0).get).metaTerminatorInstruction.terminatorInstruction match {
-            case _ : Ret => true
-            case _       => false
-        }
+    def acceptsNone(state : LLVMState) : Boolean = false
 
     def isExitBlock(block : Block) : Boolean = {
-        val exitInsns = block.optMetaInstructions.collect {
-            case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => exitInsn
+        logger.info(s"checking if ${blockName(block)} is exit block")
+        block.metaTerminatorInstruction.terminatorInstruction match {
+            case _ : Ret | _ : RetVoid => return true
+            case _                     => // Do nothing
         }
-        logger.debug(s"got exit instructions $exitInsns")
-        exitInsns.length >= 1
+        val exitInsns = block.optMetaInstructions.collect {
+            case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
+        }
+        false
     }
 
     def isBlocked(block : Block, state : LLVMState) : Boolean = {
-        val threadInsns = block.optMetaInstructions.filter(i => isThreadPrimitive(i.instruction))
+        val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
 
         if (threadInsns.length != 0) {
             // We should have at most one thread primitive per block
             assert(threadInsns.length == 1)
 
-            logger.info(s"isBlocked: checking if ${show(threadInsns.head)} is blocking with tokens $state.syncTokens")
-            return threadInsns.head match {
-                case PThreadOperation(call_name, syncToken) => call_name match {
+            logger.info(s"isBlocked: checking if ${show(threadInsns.head._1)} is blocking with tokens ${state.syncTokens}")
+            threadInsns.head match {
+                case (PThreadOperation(callName, syncToken), i) => callName match {
                     case "pthread_mutex_lock" => state.syncTokens.get(syncToken).getOrElse(false)
                     case "pthread_join" => {
-                        val threadId = seenThreads.get(syncToken).getOrElse(-1)
+                        val threadName = block.optMetaInstructions(i - 1).instruction match {
+                            case Load(Binding(Local(registerName)), _, _, _, Named(Local(threadName)), _) => threadName
+                            case _ => sys.error("Couldn't get threadName for join")
+                        }
+                        val threadId = seenThreads.get(threadName).getOrElse(-1)
                         val syncThreadBlock = state.threadLocs.get(threadId)
                         syncThreadBlock match {
-                            case Some(blockName) => isExitBlock(getBlockByName(threadId, blockName))
-                            case None => true
+                            case Some(blockName) => !isExitBlock(ir.getBlockByName(threadId, blockName))
+                            case None            => true
                         }
                     }
                     case _ => false
                 }
-                case PThreadOperation(call_name, syncToken, returnMutex) => call_name match {
+                case (PThreadOperation(callName, syncToken, returnMutex), _) => callName match {
                     // If the condition we are waiting on is false or not set (shouldn't happen)
                     // we release the mutex we were holding and block or else we're unblocked.
                     case "pthread_cond_wait" =>
-                        state.syncTokens.get(syncToken).getOrElse(false)
+                        !state.syncTokens.get(syncToken).getOrElse(true)
                     case _ => false
                 }
                 case _ => false
             }
+        } else {
+            false
         }
-        false
     }
 
     def nextBlocks(state : LLVMState) : List[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]
 
-        logger.info(s"nextBlocks: filtering blocks ${state} for blocked blocks") 
-        val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(getBlockByName(s._1, s._2), state))
-        logger.info(s"nextBlocks: got unblocked blocks ${unblockedBlocks}") 
+        logger.info(s"nextBlocks: filtering blocks ${state} for blocked blocks")
+        val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(ir.getBlockByName(s._1, s._2), state))
+        logger.info(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
 
         for ((threadId, blockLabel) <- unblockedBlocks) {
-            val block = getBlockByName(threadId, blockLabel)
+            val block = ir.getBlockByName(threadId, blockLabel)
             logger.info(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
             block.metaTerminatorInstruction.terminatorInstruction match {
 
@@ -98,13 +98,13 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                     logger.debug(s"nextBlocks: Found an unconditional branch on thread $threadId")
                     buf += ((threadId, tgt))
 
-                    // Two-sided conditional branch
+                // Two-sided conditional branch
                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
                     logger.debug(s"nextBlocks: Found a two way branch  on thread $threadId")
                     buf += ((threadId, trueTgt))
                     buf += ((threadId, falseTgt))
 
-                    // Multi-way branch
+                // Multi-way branch
                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
                     logger.debug(s"nextBlocks: Found a multiway branch on thread $threadId")
                     cases.zipWithIndex.foreach {
@@ -113,12 +113,12 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                     }
                     buf += ((threadId, dfltTgt))
 
-                    // Return
-                        case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                            logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
+                // Return
+                case _ : Ret | _ : RetVoid | _ : Unreachable =>
+                    logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
 
-                        case i =>
-                            sys.error(s"dca: unexpected form of terminator insn: $i")
+                case i =>
+                    sys.error(s"dca: unexpected form of terminator insn: $i")
 
             }
         }
@@ -144,9 +144,9 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                             Function(Named(Global("pthread_create"))),
                             Vector(ValueArg(_, _, Named(Local(threadName))), _, ValueArg(_, _, Named(Global(threadFn))), _),
                             _
-                        ),
-                    _
-                ) =>
+                            ),
+                        _
+                        ) =>
                         (threadName, threadFn)
                     case _ =>
                         ("unknown id", "unknown thread")
@@ -158,8 +158,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
 
         val threadInfo = threadCreationInfo(block)
         if (threadInfo.length != 0) {
-            // Got a new thread, we should only have one new thread per 
-            // block
+            // Got a new thread, we should only have one new thread per block 
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
             logger.info(s"Discovered a new thread with id $threadName and function $threadFn")
@@ -169,50 +168,81 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                 logger.info(s"Discovered a new thread with id $threadName and function $threadFn")
                 threadCount += 1
                 ir.functionIds.update(threadCount, threadIRFn)
-                seenThreads += (threadName -> threadCount) 
+                seenThreads += (threadName -> threadCount)
             }
             Some((threadCount -> blockName(threadStartBlock)))
         } else
             None
     }
 
-    def syncEffects(block : Block, syncTokens : Map[String, Boolean]) : Map[String, Boolean]  = {
+    def outSyncEffects(block : Block, syncTokens : Map[String, Boolean]) : Map[String, Boolean] = {
         val threadInsns = block.optMetaInstructions.filter(i => isThreadPrimitive(i.instruction))
         var newSyncTokens = syncTokens
-        if (threadInsns.length != 0) { 
+        if (threadInsns.length != 0) {
             // We should have atmost one thread primitive per block
             assert(threadInsns.length == 1)
-            logger.info(s"syncEffects: checking effect of ${show(threadInsns.head)}")
+            logger.info(s"outSyncEffects: checking effect of ${show(threadInsns.head)}")
             newSyncTokens = threadInsns.head match {
-                case PThreadOperation(call_name, syncToken) => call_name match {
-                    case "pthread_cond_init" => syncTokens + (syncToken -> false)
-                    case "pthread_mutex_init" => syncTokens + (syncToken -> false)
-                    case "pthread_mutex_lock" => syncTokens + (syncToken -> true)
+                case PThreadOperation(callName, syncToken) => callName match {
+                    case "pthread_cond_init"    => syncTokens + (syncToken -> false)
+                    case "pthread_mutex_init"   => syncTokens + (syncToken -> false)
+                    case "pthread_mutex_lock"   => syncTokens + (syncToken -> true)
                     case "pthread_mutex_unlock" => syncTokens + (syncToken -> false)
-                    case "pthread_cond_signal" => syncTokens + (syncToken -> true)
+                    case "pthread_cond_signal"  => syncTokens + (syncToken -> true)
+                    case _                      => syncTokens
                 }
-                    case PThreadOperation(call_name, syncToken, returnMutex) => call_name match {
-                        // If we have unblocked (ie. if we are allowed to compute the effect of this block)
-                        // then the cond argument to this function is already true. So we re-take the mutex
-                        // that was released when we blocked.
+                case PThreadOperation(callName, syncToken, returnMutex) => callName match {
                     case "pthread_cond_wait" => {
-                        // We need to be holding the mutex associated with this wait call
-                        assert(syncTokens.get(returnMutex).get)
-                        if (syncTokens.get(syncToken).getOrElse(false))
-                            syncTokens + (returnMutex -> true)
-                        else
-                            syncTokens
+                        // We must be unblocked in order to exit a wait block, so we
+                        // assert that our condition is true and that the mutex is free
+                        assert(syncTokens.get(syncToken).getOrElse(false))
+                        assert(!syncTokens.get(returnMutex).getOrElse(true))
+                        syncTokens + (returnMutex -> true)
                     }
-                    }
-                    case _ => {
-                        logger.info(s"syncEffects: ignoring thread operation")
-                        syncTokens 
-                    }
+                    case _ => syncTokens
+                }
+                case _ => {
+                    logger.debug(s"outSyncEffects: ignoring thread operation")
+                    syncTokens
+                }
             }
         }
 
-        logger.info(s"syncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
-        newSyncTokens 
+        logger.info(s"outSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        newSyncTokens
+    }
+
+    def inSyncEffects(block : Block, syncTokens : Map[String, Boolean]) : Map[String, Boolean] = {
+        val threadInsns = block.optMetaInstructions.filter(i => isThreadPrimitive(i.instruction))
+        var newSyncTokens = syncTokens
+        if (threadInsns.length != 0) {
+            // We should have atmost one thread primitive per block
+            assert(threadInsns.length == 1)
+            newSyncTokens = threadInsns.head match {
+                case PThreadOperation(callName, syncToken, returnMutex) => callName match {
+                    // When we arrive in a thread with a wait call in it, we need to decide
+                    // if we should release the mutex in order to block, or hold it as
+                    // we are unblocked.
+                    case "pthread_cond_wait" => {
+                        // We need to be holding the mutex associated with this wait call
+                        assert(syncTokens.get(returnMutex).get)
+                        // If we are going to block, we need to give back the mutex 
+                        if (!syncTokens.get(syncToken).getOrElse(true))
+                            syncTokens + (returnMutex -> false)
+                        // Else if we're unblocked, we hold it
+                        else
+                            syncTokens
+                    }
+                }
+                case _ => {
+                    logger.debug(s"inSyncEffects: ignoring thread operation")
+                    syncTokens
+                }
+            }
+        }
+
+        logger.info(s"inSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        newSyncTokens
     }
 
     def succ(state : LLVMState, label : Choice) : LLVMState = {
@@ -224,13 +254,14 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
         var newThreadLocs = state.threadLocs + (threadId -> newBlock)
 
         // Get thread creation info for this block
-        val block = getBlockByName(threadId, state.threadLocs.get(threadId).get)
+        val block = ir.getBlockByName(threadId, state.threadLocs.get(threadId).get)
         threadCreationEffects(block) match {
             case Some((newThreadId, blockName)) => newThreadLocs = newThreadLocs + (newThreadId -> blockName)
             case _                              =>
         }
 
-        var newSyncTokens = syncEffects(block, state.syncTokens)
+        var newSyncTokens = outSyncEffects(block, state.syncTokens)
+        newSyncTokens = inSyncEffects(ir.getBlockByName(threadId, newBlock), newSyncTokens)
 
         logger.info(s"succ: Emitting successor ${LLVMState(newThreadLocs, newSyncTokens)} for $state with label $label")
         LLVMState(newThreadLocs, newSyncTokens)

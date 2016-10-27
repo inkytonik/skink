@@ -275,34 +275,43 @@ object LLVMHelper {
             insn.instruction match {
                 case Call(
                     _, _, _, _, _,
-                    Function(Named(Global(call_name))),
-                    Vector(ValueArg(_, _, Named(Global(mutex_name)))),
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
                     _
-                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock", "pthread_join").contains(call_name) =>
-                    Some(List(call_name, mutex_name))
+                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock", "pthread_cond_signal").contains(callName) =>
+                    Some(List(callName, syncToken))
                 case Call(
                     _, _, _, _, _,
-                    Function(Named(Global(call_name))),
-                    Vector(ValueArg(_, _, Named(Global(signal)))),
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
                     _
-                    ) if call_name.equals("pthread_cond_signal") =>
-                    Some(List(call_name, signal))
+                    ) if callName == "pthread_cond_condition" =>
+                    Some(List(callName, syncToken))
                 case Call(
                     _, _, _, _, _,
-                    Function(Named(Global(call_name))),
-                    Vector(ValueArg(_, _, Named(Global(signal))),
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))),
                         ValueArg(_, _, _)),
                     _
-                    ) if List("pthread_mutex_init", "pthread_cond_init").contains(call_name) =>
-                    Some(List(call_name, signal))
+                    ) if List("pthread_mutex_init", "pthread_cond_init").contains(callName) =>
+                    Some(List(callName, syncToken))
                 case Call(
                     _, _, _, _, _,
-                    Function(Named(Global(call_name))),
-                    Vector(ValueArg(_, _, Named(Global(signal))),
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))),
                         ValueArg(_, _, Named(Global(returnMutex)))),
                     _
-                    ) if call_name.equals("pthread_cond_wait") =>
-                    Some(List(call_name, signal, returnMutex))
+                    ) if callName == "pthread_cond_wait" =>
+                    Some(List(callName, syncToken, returnMutex))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(
+                        ValueArg(_, _, Named(Local(threadNameRegister))),
+                        _),
+                    _
+                    ) if callName == "pthread_join" =>
+                    Some(List(callName, threadNameRegister))
                 case _ =>
                     None
             }
