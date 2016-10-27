@@ -17,6 +17,7 @@ object InterpolantAuto extends Resources with Commands with Core {
 
     val logger = getLogger(this.getClass)
     val itpLogger = getLogger(this.getClass, ".itp")
+    val itpAutoLogger = getLogger(this.getClass, ".dot")
 
     /**
      * Make an interpolant automaton for the given trace choices. For now, we just
@@ -103,6 +104,10 @@ object InterpolantAuto extends Resources with Commands with Core {
                 itpLogger.info(s"Partitions $indexPartition");
                 itpLogger.info(s"Non-singleton partitions ${indexPartition.filter(_.size > 1)}");
 
+                //  Compute candidate backEdges from the indexPartition
+                //  for each partition with more than 2 elements, build the candidate min, max
+                val candidatePairs = indexPartition.filter(_.size > 1) map (xl => (xl.min, xl.max))
+
                 /**
                  * Check if backedges can be added to the linear automaton
                  * If there is a repetition of a block at index i and j, we
@@ -113,13 +118,13 @@ object InterpolantAuto extends Resources with Commands with Core {
                  */
                 val newBackEdges =
                     for (
-                        p <- indexPartition if (p.size > 1);
-                        i = p.head min p.tail.head;
-                        j = p.head max p.tail.head;
+                        (i, j) <- candidatePairs;
                         tgtItp = completeItp(i + 1);
                         srcItp = completeItp(j);
                         x1 = srcItp.unIndexed;
                         x2 = tgtItp.unIndexed;
+                        //  if computing interpolants is successful and checkPost inclusion
+                        //  is true add them to list
                         if using(new Z3 with QF_AUFLIA) {
                             implicit solver =>
                                 function.checkPost(
@@ -136,11 +141,16 @@ object InterpolantAuto extends Resources with Commands with Core {
                     }
 
                 //  add the new edges to the linearAuto basis
-                NFA(
+                val itpAuto = NFA(
                     linearAuto.getInit,
                     linearAuto.transitions ++ newBackEdges,
                     linearAuto.accepting
                 )
+
+                //  dump the automaton if logger is enabled
+                import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+                itpAutoLogger.debug(toDot(toDetNFA(itpAuto), "itp"))
+                itpAuto
 
             case Failure(f) =>
                 itpLogger.error(s"Solver could note compute interpolants $f")
