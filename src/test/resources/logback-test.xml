@@ -50,6 +50,14 @@
         </encoder>
     </appender>
 
+    <appender name="ITPAUTOFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/interpolantAuto.dot</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
     <appender name="CFGFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/CFG.dot</file>
         <append>false</append>
@@ -101,6 +109,9 @@
     </logger>
     <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="DEBUG" additivity="false">
         <appender-ref ref="ITPFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="DEBUG" additivity="false">
+        <appender-ref ref="ITPAUTOFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
