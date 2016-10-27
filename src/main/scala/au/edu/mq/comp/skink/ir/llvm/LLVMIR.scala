@@ -22,7 +22,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     def functions : Vector[IRFunction] =
         ir.items.collect {
             case fd : FunctionDefinition =>
-                new LLVMFunction(ir, fd)
+                new LLVMFunction(ir, fd, config)
         }
 
     def show : String =

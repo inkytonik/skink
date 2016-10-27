@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir
 
 import scala.util.Try
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.QualifiedId
+import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
 import au.edu.mq.comp.smtlib.typedterms.Value
 
 /**
@@ -20,13 +20,10 @@ case class Trace(choices : Seq[Int]) {
 }
 
 /**
- * A feasible trace that leads to a program failure. `values`, if
- * present, reports on the values that lead to the failure. It
- * may contain entries for the identifiers in `ids` but may not
- * map them all.
+ * A feasible trace that leads to a program failure. `values` maps ids
+ * from the trace to values.
  */
-case class FailureTrace(trace : Trace, ids : Seq[QualifiedId],
-    values : Try[Map[QualifiedId, Value]])
+case class FailureTrace(trace : Trace, values : Map[SortedQId, Value])
 
 /**
  * A description of a step in the execution of a trace for use in witness

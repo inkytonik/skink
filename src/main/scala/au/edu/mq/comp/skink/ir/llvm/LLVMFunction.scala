@@ -1,5 +1,6 @@
 package au.edu.mq.comp.skink.ir.llvm
 
+import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
@@ -12,12 +13,17 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition) extends Attribution with IRFunction {
+class LLVMFunction(program : Program, function : FunctionDefinition, config : SkinkConfig) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
+    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.Tree
@@ -30,17 +36,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         Property,
         TypeProperty
     }
-    import scala.collection.mutable.ListBuffer
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import scala.annotation.tailrec
+    import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+
+    // An analyser for this function and its associated tree
 
     val funTree = new Tree[ASTNode, FunctionDefinition](function)
     val funAnalyser = new Analyser(funTree)
@@ -57,13 +60,17 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
 
-    /*
+    /**
      * Combine terms via conjunction, dealing with teh case where there are no
      * terms so effect is "true". THe namer is used to access the underlying
      * term operations.
      */
     def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
         import namer._
+        import au.edu.mq.comp.smtlib.theories.Core
+        object BoolOps extends Core
+        import BoolOps._
+
         if (terms.isEmpty)
             True()
         else
@@ -74,11 +81,17 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        val traceTree = new Tree[Product, BlockTrace](blockTrace(trace))
+        val blockTrace = traceToBlockTrace(trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(namer)
+        val termBuilder = new LLVMTermBuilder(namer, config)
+
+        import namer._
+
+        // The term for the effects of program initialisation
+        val initTerm = termBuilder.initTerm(program)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -87,71 +100,23 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
-        trace.choices.init.zipWithIndex.map {
-            case (choice, count) =>
-                val block = treeBlockTrace.blocks(count)
-                val optPrevBlock =
-                    if (count == 0)
-                        None
-                    else
-                        Some(treeBlockTrace.blocks(count - 1))
-                termBuilder.blockTerms(block, optPrevBlock, choice)
-        }.map(combineTerms(namer, _))
-
-    }
-
-    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
-
-        val blocks = blockTrace(trace).blocks
-
-        // Build the steps between optional previous block and next block, but
-        // only include a previous block if the current block has phi insns
-        // (and hence the previous block can affect the behaviour of the current
-        // block). We do this with block name strings since the full block data
-        // is not needed and it's easier for debugging
-        val steps =
+        val blockTerms =
             trace.choices.init.zipWithIndex.map {
                 case (choice, count) =>
-                    val block = blocks(count)
+                    val block = treeBlockTrace.blocks(count)
                     val optPrevBlock =
                         if (count == 0)
                             None
                         else
-                            Some(blockName(blocks(count - 1)))
-                    if (block.optMetaPhiInstructions.isEmpty)
-                        (None, blockName(block))
-                    else
-                        (optPrevBlock, blockName(block))
-            }
+                            Some(treeBlockTrace.blocks(count - 1))
+                    termBuilder.blockTerms(block, optPrevBlock, choice)
+            }.map(termBuilder.combineTerms)
 
-        // Combine steps with their indices, accumulate indices for same step,
-        // throw away steps, turn into Seq
-        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
-            case (m, (k, i)) =>
-                val s = m.getOrElse(k, Vector())
-                m.updated(k, s :+ i)
-        }.values.toIndexedSeq
-
-    }
-
-    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
-
-        // Get a tree for the relevant block
-        val blocks = blockTrace(trace).blocks
-        if ((index < 0) || (index >= blocks.length))
-            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
-        val blockTree = new Tree[Product, Block](blocks(index))
-        val block = blockTree.root
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(namer)
-
-        // Make a single term for this block and choice
-        val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
-
-        // Return the term and the name mapping that applies after the block
-        (term, namer.stores(block))
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            Seq(initTerm)
+        else
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
 
     }
 
@@ -160,7 +125,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
         def getSourceLine(source : Source, line : Int) : String =
             source.optLineContents(line).getOrElse("").trim
 
-        blockTrace(failTrace.trace).blocks.map {
+        traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
                     Analyser.blockPosition(program, block) match {
@@ -342,25 +307,75 @@ class LLVMFunction(program : Program, function : FunctionDefinition) extends Att
 
     }
 
+    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
+
+        val blocks = blockTrace(trace).blocks
+
+        // Build the steps between optional previous block and next block, but
+        // only include a previous block if the current block has phi insns
+        // (and hence the previous block can affect the behaviour of the current
+        // block). We do this with block name strings since the full block data
+        // is not needed and it's easier for debugging
+        val steps =
+            trace.choices.init.zipWithIndex.map {
+                case (choice, count) =>
+                    val block = blocks(count)
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            Some(blockName(blocks(count - 1)))
+                    if (block.optMetaPhiInstructions.isEmpty)
+                        (None, blockName(block))
+                    else
+                        (optPrevBlock, blockName(block))
+            }
+
+        // Combine steps with their indices, accumulate indices for same step,
+        // throw away steps, turn into Seq
+        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
+            case (m, (k, i)) =>
+                val s = m.getOrElse(k, Vector())
+                m.updated(k, s :+ i)
+        }.values.toIndexedSeq
+
+    }
+
+    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+
+        // Get a tree for the relevant block
+        val blocks = blockTrace(trace).blocks
+        if ((index < 0) || (index >= blocks.length))
+            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
+        val blockTree = new Tree[Product, Block](blocks(index))
+        val block = blockTree.root
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
+        val termBuilder = new LLVMTermBuilder(namer)
+
+        // Make a single term for this block and choice
+        val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
+
+        // Return the term and the name mapping that applies after the block
+        (term, namer.stores(block))
+
+    }
     /**
      * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace. It's useful for this to be an attribute
-     * since we may need it more than once if we are doing different things
-     * with the trace which mostly required the actual blocks.
+     * that are executed by the trace.
      */
-    lazy val blockTrace : Trace => BlockTrace =
-        attr {
-            case trace =>
-                val entryBlock = function.functionBody.blocks(0)
-                val (finalBlock, blocks) =
-                    trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
-                        case ((Some(block), blocks), choice) =>
-                            (nextBlock(block, choice), blocks :+ block)
-                        case ((None, blocks), choice) =>
-                            (None, blocks)
-                    }
-                BlockTrace(blocks, trace)
-        }
+    def traceToBlockTrace(trace : Trace) : BlockTrace = {
+        val entryBlock = function.functionBody.blocks(0)
+        val (finalBlock, blocks) =
+            trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
+                case ((Some(block), blocks), choice) =>
+                    (nextBlock(block, choice), blocks :+ block)
+                case ((None, blocks), choice) =>
+                    (None, blocks)
+            }
+        BlockTrace(blocks, trace)
+    }
 
     /**
      * Get the block that follows `block` when we make a given choice.

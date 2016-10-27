@@ -12,6 +12,7 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
@@ -21,18 +22,16 @@ class TraceRefinement(config : SkinkConfig) {
 
     // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
     import au.edu.mq.comp.smtlib.parser.Analysis
-    // import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Pop, Push}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{QualifiedId, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
     // import smtlib.util.Implicits._
     import au.edu.mq.comp.smtlib.typedterms.Commands
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, Value}
+    import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
     import au.edu.mq.comp.smtlib.solvers._
     import au.edu.mq.comp.smtlib.interpreters.SMTSolver
     import au.edu.mq.comp.smtlib.interpreters.Resources
@@ -51,31 +50,40 @@ class TraceRefinement(config : SkinkConfig) {
     val logger = getLogger(this.getClass)
     val cfgLogger = getLogger(this.getClass, ".cfg")
 
-    /**
-     * Build a failure trace out of the given trace and terms that describe
-     * the trace effect. The failure trace will include the identifiers and
-     * values for all of the variables that are mentioned in the terms.
-     */
-    def makeFailureTrace(
-        trace : Trace,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : FailureTrace = {
-        // val getids = collect {
-        //     case id @ (QualifiedId(_, Some(_))) =>
-        //         id
-        // }
-        val ids = terms
-            .map(_.termDef)
-            .flatMap { Analysis(_).ids }
-        // val ids = getids(terms).toSet.toSeq
-        // val values = ids match {
-        //     case h +: t =>
-        //         getValue(h, t)(solver)
-        //     case _ =>
-        //         Success(ValMap(Map.empty))
-        // }
-        FailureTrace(trace, ids, Success(Map[QualifiedId, Value]()))
+    implicit object SortedQIdeOrdering extends Ordering[SortedQId] {
+        def compare(a : SortedQId, b : SortedQId) =
+            showTerm(a) compare showTerm(b)
     }
+
+    /**
+     * Run the given solver to see if the given terms are satisifiable. If so,
+     * return `Sat()` and a map that relates ids from the terms to their values.
+     * If the term is not satisfiable, return `UnSat()` and an empty map.
+     */
+    def runSolver(
+        selectedSolver : Solver,
+        terms : Seq[TypedTerm[BoolTerm, Term]]
+    ) : Try[(SatResponses, Map[SortedQId, Value])] =
+        using(selectedSolver) {
+            implicit solver =>
+                isSat(terms : _*) map {
+                    case Sat() =>
+                        getDeclCmd() match {
+                            case Success(xs) =>
+                                val map = xs.map {
+                                    x => (x, getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                }.collect {
+                                    case (x, Success(v)) =>
+                                        (x, v)
+                                }.toMap
+                                (Sat(), map)
+                            case _ =>
+                                (Sat(), Map())
+                        }
+                    case r =>
+                        (r, Map())
+                }
+        }
 
     /**
      * Implement the refinement loop for the given function, optionally
@@ -92,11 +100,26 @@ class TraceRefinement(config : SkinkConfig) {
         val selectedSolver =
             config.solverMode() match {
                 case Z3SolverMode() =>
-                    new Z3 with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new Z3 with AUFNIRA with Interpolants with Models
+                        case BitIntegerMode() =>
+                            new Z3 with AUFNIRA with Interpolants with Models
+                    }
                 case CVC4SolverMode() =>
-                    new CVC4 with QF_AUFLIA
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new CVC4 with AUFNIRA with Models
+                        case BitIntegerMode() =>
+                            new CVC4 with AUFNIRA with Models
+                    }
                 case SMTInterpolSolverMode() =>
-                    new SMTInterpol with QF_AUFLIA with Interpolants
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTInterpol with QF_AUFLIA with Interpolants with Models
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
+                    }
             }
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
@@ -104,14 +127,14 @@ class TraceRefinement(config : SkinkConfig) {
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
-            logger.info(s"traceRefinement: ${function.name} iteration $iteration")
+            logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"traceRefinem  ent: ${function.name} has no failure traces")
+                    logger.info(s"${function.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -119,8 +142,8 @@ class TraceRefinement(config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
-                    logger.info(s"traceRefinement: ${function.name} has a failure trace")
-                    logger.debug(s"traceRefinement: failure trace is: ${choices.mkString(", ")}")
+                    logger.info(s"${function.name} has a failure trace")
+                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -132,35 +155,34 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"""traceRefinement: trace effect $i: ${showTerm(traceTerms(i).termDef)}""")
+                        logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
                     }
 
                     // Build a single combined term for the trace effect
                     val fullTerm = traceTerms.reduceLeft(_ & _)
 
-                    //  a solver with spec selectedSolver is spawned and killed
-                    //  at the end of the using scope
-                    val result = using(selectedSolver) {
-                        implicit solver =>
-                            isSat(traceTerms : _*)
-                    }
+                    // Check satisfiability and if Sat, get model values
+                    val result = runSolver(selectedSolver, traceTerms)
 
                     // Check to see if the trace is feasible.
                     result match {
 
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
-                        case Success(Sat()) =>
-                            logger.info(s"traceRefinement: failure trace is feasible, program is incorrect")
-                            val failTrace = makeFailureTrace(trace, traceTerms)
+                        case Success((Sat(), values)) =>
+                            logger.info(s"failure trace is feasible, program is incorrect")
+                            for (x <- values.keys.toSeq.sorted) {
+                                logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
+                            }
+                            val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program
                         // execution. If we've got iterations to spare, try
                         // again after removing the infeasible trace (and perhaps
                         // other traces that fail for related reasons).
-                        case Success(UnSat()) =>
-                            logger.info(s"traceRefinement: the failure trace is not feasible")
+                        case Success((UnSat(), _)) =>
+                            logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
