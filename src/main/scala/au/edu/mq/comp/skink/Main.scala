@@ -83,8 +83,9 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Size of integers in bits when using bit representation (default: 32)",
         default = Some(32))
 
-    lazy val lli = opt[String]("lli", descr = "Program to use to execute target code",
-        default = Some("/usr/local/bin/lli"))
+    lazy val lli = opt[String]("lli", noshort = true,
+        descr = "Program to use to execute target code (default; lli)",
+        default = Some("lli"))
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
         descr = "Maximum number of refinement iterations",
