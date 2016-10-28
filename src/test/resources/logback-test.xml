@@ -42,6 +42,22 @@
         </encoder>
     </appender>
 
+    <appender name="ITPFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/interpolantAuto.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ITPAUTOFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/interpolantAuto.dot</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
     <appender name="CFGFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/CFG.dot</file>
         <append>false</append>
@@ -63,7 +79,7 @@
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="INFO"/>
+    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
@@ -96,6 +112,15 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="DEBUG" additivity="false">
+        <appender-ref ref="ITPFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="DEBUG" additivity="false">
+        <appender-ref ref="ITPFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="DEBUG" additivity="false">
+        <appender-ref ref="ITPAUTOFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAutoTests" level="INHERITED"/>

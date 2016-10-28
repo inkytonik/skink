@@ -150,6 +150,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.rogach.scallop.exceptions.ScallopException
+    import scala.util.{Try, Success, Failure}
 
     val logger = getLogger(this.getClass)
 

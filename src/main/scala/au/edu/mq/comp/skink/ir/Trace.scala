@@ -19,7 +19,13 @@ case class Choice(threadId : Int, branchId : Int)
  * paths to successor blocks, the index will be 0 or 1, indicating which of
  * the possible paths was taken in the trace.
  */
-case class Trace(choices : Seq[Choice])
+case class Trace(choices : Seq[Choice]) {
+
+    /**
+     * Pretty print the sequence
+     */
+    def show = s"[${choices.size}] " + choices.mkString(" ")
+}
 
 /**
  * A feasible trace that leads to a program failure. `values` maps ids

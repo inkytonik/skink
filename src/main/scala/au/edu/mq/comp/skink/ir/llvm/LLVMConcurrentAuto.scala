@@ -252,6 +252,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
     }
 
     def succ(state : LLVMState, label : Choice) : LLVMState = {
+        logger.debug(s"succ: finding successors for $state with $label")
         val threadId = label.threadId
         val branchId = label.branchId
 

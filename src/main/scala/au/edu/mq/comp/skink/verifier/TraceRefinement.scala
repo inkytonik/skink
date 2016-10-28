@@ -184,8 +184,9 @@ class TraceRefinement(config : SkinkConfig) {
                         case Success((UnSat(), _)) =>
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
+                                import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
-                                    toDetNFA(r + interpolantAuto(choices)),
+                                    toDetNFA(r + buildInterpolantAuto(program, choices)),
                                     iteration + 1
                                 )
                             } else {
