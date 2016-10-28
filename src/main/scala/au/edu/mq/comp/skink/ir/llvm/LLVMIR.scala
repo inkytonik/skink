@@ -39,8 +39,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
 
-    // Implementation of IR interface
-
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
 
@@ -100,11 +98,16 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         BlockTrace(blocks.toList, trace)
     }
 
+    /*
+     * Construct the sequence of SMT terms for a given trace
+     */
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
-        // Construct a map of threadId -> blocktraces
-        // Construct a unique function namer for each
-        // Each of those function namers shares a GlobalNamer instance
-        // which they call into to index and name variables
+        // Take a block trace and return a new block trace that includes only blocks and choices 
+        // relevant for the thread with supplied threadId
+        def filterThreadBlocks(threadId : Int, globalBlocks : BlockTrace) : BlockTrace = {
+            val blocks = globalBlocks.blocks.zip(globalBlocks.trace.choices.map(_.threadId)).filter(_._2 == threadId).map(_._1)
+            BlockTrace(blocks, new Trace(globalBlocks.trace.choices.filter(_.threadId == threadId)))
+        }
 
         import org.bitbucket.inkytonik.kiama.relation.Tree
 
@@ -113,27 +116,36 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         val blockTrace = traceToBlockTrace(trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace)
 
-        // Get a function-specifc namer and term builder
-        val globalNamer = new LLVMGlobalNamer(traceTree)
-        val funBlockTraces = functionIds.map(
-            f =>
-                (
-                    f._1,
-                    BlockTrace(
-                        f._2.branchesToBlocks(
-                            trace.choices.filter(_.threadId == f._1).map(_.branchId)
-                        ),
-                        new Trace(trace.choices.filter(_.threadId == f._1))
-                    )
-                )
-        )
-        val funBuilders = functionIds.map(f => (f._1, new LLVMTermBuilder(new LLVMFunctionNamer(f._2.funAnalyser, f._2.funTree, new Tree[Product, BlockTrace](funBlockTraces.get(f._1).get), f._1, globalNamer), config)))
-        val globalBuilder = new LLVMTermBuilder(globalNamer, config)
-
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = traceTree.root
+
+        // Get a global namer and term builder
+        val globalNamer = new LLVMGlobalNamer(traceTree)
+        val globalBuilder = new LLVMTermBuilder(globalNamer, config)
+
+        // Construct a block trace of only the relevant blocks for each function and build
+        // a map of builders to be used for each unique function 
+        val funBlockTraces = functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
+        val funBuilders = functionIds.map(
+            f =>
+                (
+                    f._1,
+                    new LLVMTermBuilder(
+                        new LLVMFunctionNamer(
+                            f._2.funAnalyser,
+                            f._2.funTree,
+                            new Tree[Product, BlockTrace](
+                                funBlockTraces.get(f._1).get
+                            ),
+                            f._1,
+                            globalNamer
+                        ),
+                        config
+                    )
+                )
+        )
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -153,6 +165,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         globalTerms ++ traceTerms.map(globalBuilder.combineTerms)
     }
 
+    /*
+     * Build a sequence of steps connecting original source program with an error trace
+     */
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
 
         def getSourceLine(source : Source, line : Int) : String =
