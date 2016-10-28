@@ -1,15 +1,17 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
-import au.edu.mq.comp.smtlib.theories.IntegerArithmetics
+import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 
 /**
  * Tests of main term construction including mathematical integer
  * terms but also non-integer terms.
  */
-class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
+class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperators
+        with Core with IntegerArithmetics with QuantifiedTerm {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.IntSort
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, SSymbol}
     import au.edu.mq.comp.smtlib.theories.IntTerm
     import au.edu.mq.comp.smtlib.typedterms.VarTerm
     import org.scalallvm.assembly.AssemblySyntax._
@@ -432,6 +434,68 @@ class LLVMMathTermTests extends LLVMTermTests with IntegerArithmetics {
             )
         }
         e.getMessage shouldBe "exitTerm: can't handle branch 0 of unreachable"
+    }
+
+    // Global variable initialisation
+
+    def makeGlobalInitVar(id : String, tipe : Type, constantValue : ConstantValue) : GlobalVariableDefinition =
+        GlobalVariableDefinition(
+            GlobalBinding(Global(id)), Common(), DefaultVisibility(),
+            DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
+            DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
+            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4)
+        )
+
+    val gix = makeVarTermI("@x")
+    val giy = makeVarTermI("@y")
+    val giz = makeVarTermI("@z")
+
+    test("a global initialised Boolean variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("x", IntT(1), IntC(1)),
+            gix === 1
+        )
+    }
+
+    test("a global zero initialised Boolean variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("x", IntT(1), ZeroC()),
+            gix === 0
+        )
+    }
+
+    test("a global initialised integer variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("y", IntT(32), IntC(42)),
+            giy === 42
+        )
+    }
+
+    test("a global zero initialised integer variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("y", IntT(32), ZeroC()),
+            giy === 0
+        )
+    }
+
+    test("a global zero initialised Boolean array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(1)), ZeroC()),
+            forall(SSymbol("i")) {
+                val i = Ints("i")
+                ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
+            }
+        )
+    }
+
+    test("a global zero initialised integer array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(32)), ZeroC()),
+            forall(SSymbol("i")) {
+                val i = Ints("i")
+                ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
+            }
+        )
     }
 
 }

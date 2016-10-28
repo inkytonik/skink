@@ -37,7 +37,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     private val logger = getLogger(this.getClass)
 
-    val globalTerms = globalVars.map(new LLVMTermBuilder(new LLVMInitNamer, config).globalTerm)
+    val initTerm = new LLVMTermBuilder(new LLVMInitNamer, config).initTerm(program)
 
     def execute() : (String, Int) =
         Executor.execute(program, config.lli())
@@ -110,6 +110,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
         }
 
         import org.bitbucket.inkytonik.kiama.relation.Tree
+        import au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder.combineTerms
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -149,7 +150,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
-        val traceTerms = trace.choices.init.zipWithIndex.map {
+        val blockTerms = trace.choices.init.zipWithIndex.map {
             case (choice, count) =>
                 val block = treeBlockTrace.blocks(count)
                 val optPrevBlock =
@@ -160,9 +161,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
                 val namer = funBuilders.get(choice.threadId).get
                 logger.debug(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
-        }
+        }.map(combineTerms)
 
-        globalTerms ++ traceTerms.map(globalBuilder.combineTerms)
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            Seq(initTerm)
+        else
+            combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
     }
 
     /*

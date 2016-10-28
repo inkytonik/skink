@@ -20,6 +20,12 @@ trait ArrayElementExtractor {
 trait LLVMNamer {
 
     /**
+     * Get the default index of a program variable. I.e., the index that
+     * should be used for the initial value of that variable.
+     */
+    def defaultIndexOf(s : String) : Int
+
+    /**
      * Retrieve the index of a particular occurrence of a program variable
      * in a trace.
      */
@@ -90,19 +96,19 @@ abstract class LLVMStoreIndexer(nametree : Tree[Product, Product]) extends LLVMN
 
 class LLVMInitNamer extends LLVMNamer {
 
-    def indexOf(use : Product, s : String) : Int = {
-        return 0
-    }
+    def defaultIndexOf(s : String) : Int = 0
+
+    def indexOf(use : Product, s : String) : Int = 0
 
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
 class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
 
-    override def indexOf(use : Product, s : String) : Int = {
-        logger.debug(s"indexOf: use $use")
-        stores(use).get(s).getOrElse(0)
-    }
+    def defaultIndexOf(s : String) : Int = 0
+
+    override def indexOf(use : Product, s : String) : Int = stores(use).get(s).getOrElse(0)
+
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
@@ -147,14 +153,11 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
                 (array, index)
         }
 
-    /*
-     * Retrieve the index of a particular occurrence of a program variable
-     * in a trace.
-     */
+    def defaultIndexOf(s : String) : Int = 0
+
     def indexOf(use : Product, s : String) : Int = {
         logger.debug(s"indexOf: use $use")
         if (isLocalName(use)) {
-            //println(s"indexOf on $use with hash ${System.identityHashCode(use)}")
             stores(use).get(s).getOrElse(0)
         } else {
             globalNamer.indexOf(use, s)

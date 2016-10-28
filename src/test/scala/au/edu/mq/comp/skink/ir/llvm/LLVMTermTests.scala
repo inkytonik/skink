@@ -83,6 +83,13 @@ trait LLVMTermTests extends Tests with Core {
         termBuilder.exitTerm(MetaTerminatorInstruction(insn, noMetadata), choice) shouldBe effect
     }
 
+    def hasItemEffect[A, B <: Term](
+        item : Item,
+        effect : TypedTerm[A, B]
+    ) {
+        termBuilder.itemTerm(item) shouldBe effect
+    }
+
     def isNotHandled(insn : Instruction, msg : String) {
         val e = intercept[RuntimeException] {
             termBuilder.insnTerm(MetaInstruction(insn, noMetadata))

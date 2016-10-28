@@ -2,16 +2,18 @@ package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics}
+import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 
 class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
-        extends ArrayExInt with ArrayExOperators with BitVectors with Core with IntegerArithmetics {
+        extends ArrayExInt with ArrayExOperators with BitVectors with Core
+        with IntegerArithmetics with QuantifiedTerm {
 
+    import au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder.combineTerms
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, Sort, SSymbol, Term}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{show, layout, any}
@@ -32,6 +34,40 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
     val integerMode = config.integerMode()
     val integerSize = config.integerSize()
 
+    /**
+     * Return a term that expresses the effects of the global variable
+     * initialisers of a program.
+     */
+    def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
+        val term = combineTerms(program.items.map(itemTerm))
+        logger.info(s"initTerm: ${showTerm(term.termDef)}")
+        term
+    }
+
+    /**
+     * Return a term to express the effect of a top-level item, not including
+     * function definitions. Currently only handles initialisation of global
+     * integer variables and zero-initialised global integer arrays.
+     */
+    def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
+        val term = item match {
+            case InitGlobalVar(name, IntT(_), constantValue) =>
+                val id = nameOf(name)
+                varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
+            case InitGlobalVar(name, ArrayT(_, IntT(_)), ZeroC()) =>
+                val id = nameOf(name)
+                val i = Ints("i")
+                forall(SSymbol("i")) {
+                    arrayTermI(id, namer.defaultIndexOf(id)).at(i) === 0
+                }
+            case _ =>
+                True()
+        }
+        if (term != True())
+            logger.info(s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
+        term
+    }
+
     /*
      * Return terms that express the effect of an LLVM node, including of
      * phi insns given entry to the block from a particular previous block
@@ -44,18 +80,6 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, branch)
         val allEffects = phiEffects ++ effects :+ exitEffect
         allEffects.filter(_ != True())
-    }
-
-    def globalTerm(global : GlobalVariableDefinition) : TypedTerm[BoolTerm, Term] = {
-        global match {
-            case GlobalVariableDefinition(_, _, _, _, _, _, _, _, _, PThreadType(_), _, _, _, _) => {
-                logger.info(s"globalTerm: ignoring pthread variable creation $global")
-                True()
-            }
-            case GlobalVariableDefinition(GlobalBinding(name), _, _, _, _, _, _, _, _, tipe, Init(value), _, _, _) =>
-                equality(name, tipe, Const(value), tipe)
-            case _ => sys.error(s"Invalid global variable definition ${show(global)}")
-        }
     }
 
     /*
@@ -486,16 +510,29 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         }
 
     /**
-     * Return a integer term that expresses an LLVM in value with n > 1.
+     * Return an integer term that expresses an LLVM `in` value with n > 1.
      */
     def vtermI(value : Value) : TypedTerm[IntTerm, Term] =
         value match {
-            case Const(IntC(i)) =>
-                i.toInt
+            case Const(c) =>
+                ctermI(c)
             case Named(name) =>
                 ntermI(name)
             case value =>
                 sys.error(s"vtermI: unexpected value $value")
+        }
+
+    /**
+     * Return an integer term that expresses an LLVM integer constant value.
+     */
+    def ctermI(constantValue : ConstantValue) : TypedTerm[IntTerm, Term] =
+        constantValue match {
+            case IntC(i) =>
+                i.toInt
+            case ZeroC() =>
+                0
+            case value =>
+                sys.error(s"ctermI: unexpected constant value $constantValue")
         }
 
     /**
@@ -543,15 +580,22 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      */
     implicit def BVsSize(i : Int) : TypedTerm[BVTerm, Term] =
         BVs(i, integerSize)
+}
+
+object LLVMTermBuilder extends Core {
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+    import au.edu.mq.comp.smtlib.theories.BoolTerm
+    import au.edu.mq.comp.smtlib.theories.Core
 
     /**
      * Combine terms via conjunction, dealing with case where there are no
-     * terms so effect is "true".
+     * terms so effect is "true". Any true terms in the sequence are removed.
      */
     def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
         if (terms.isEmpty)
             True()
         else
-            terms.reduceLeft(_ & _)
+            terms.reduceLeft((l, r) => if (r == True()) l else l & r)
 
 }
