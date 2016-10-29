@@ -42,6 +42,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+    val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
     // An analyser for this function and its associated tree
 
@@ -462,11 +463,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         object Comm extends Commands
         import Comm.isSat
 
-        programLogger.info(s"pre-condition is")
-
         //  Index the variables in pre with index 0
         val indexedPre = pre indexedBy { case _ => 0 }
-        programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
+        checkPostLogger.info(s"indexed pre-condition is ${indexedPre.show}")
 
         //  index the variables in post with index
         val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
@@ -475,15 +474,22 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         val indexedPost = post indexedBy {
             case SSymbol(x) => lastIndex.getOrElse(x, 0)
         }
+        checkPostLogger.info(s"indexed post-condition is ${indexedPost.show}")
+
         //  instantiate a solver and check SAT
         isSat(indexedPre & blockEffect & !indexedPost) match {
-            case Success(Sat())   => Success(true)
-            case Success(UnSat()) => Success(false)
+
+            //  if Sat, checkPost is false
+            case Success(Sat())   => Success(false)
+
+            //  if unSat checkPost is true
+            case Success(UnSat()) => Success(true)
+
             case Success(UnKnown()) =>
-                programLogger.error(s"Solver returned UnKnown for check-sat")
+                checkPostLogger.error(s"Solver returned UnKnown for check-sat")
                 sys.error(s"Solver returned UnKnown for check-sat")
             case Failure(f) =>
-                programLogger.error(s"Solver failed to determine sat-status in checkpost $f")
+                checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
     }
