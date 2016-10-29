@@ -186,7 +186,11 @@ class TraceRefinement(config : SkinkConfig) {
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
-                                    toDetNFA(r + buildInterpolantAuto(function, choices)),
+                                    toDetNFA(r +
+                                        (
+                                            buildInterpolantAuto(function, choices) +
+                                            buildInterpolantAuto(function, choices, fromEnd = true)
+                                        )),
                                     iteration + 1
                                 )
                             } else {
@@ -195,9 +199,7 @@ class TraceRefinement(config : SkinkConfig) {
 
                         case status =>
                             Failure(new Exception(s"strange solver status: $status"))
-
                     }
-
             }
         }
 
