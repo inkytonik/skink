@@ -184,21 +184,25 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         // (and hence the previous block can affect the behaviour of the current
         // block). We do this with block name strings since the full block data
         // is not needed and it's easier for debugging
-        val steps =
-            trace.choices.init.zipWithIndex.map {
+        val steps = {
+            var prevBlocks = Map[Int, String]()
+            trace.choices.zipWithIndex.map {
                 case (choice, count) =>
                     val block = blocks(count)
                     val optPrevBlock =
                         if (count == 0)
                             None
                         else
-                            Some(blockName(blocks(count - 1)))
+                            prevBlocks.get(choice.threadId)
+                    prevBlocks = prevBlocks + (choice.threadId -> blockName(block))
                     if (block.optMetaPhiInstructions.isEmpty)
-                        (None, blockName(block))
+                        (None, choice.threadId + blockName(block))
                     else
-                        (optPrevBlock, blockName(block))
+                        (optPrevBlock, choice.threadId + blockName(block))
             }
+        }
 
+        logger.debug(s"steps for $trace: $steps")
         // Combine steps with their indices, accumulate indices for same step,
         // throw away steps, turn into Seq
         steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {

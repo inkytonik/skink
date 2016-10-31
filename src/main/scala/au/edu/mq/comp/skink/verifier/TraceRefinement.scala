@@ -128,7 +128,7 @@ class TraceRefinement(config : SkinkConfig) {
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${program.name} iteration $iteration")
-            cfgLogger.debug(toDot(toDetNFA(program.dca - r), s"${program.name} iteration $iteration"))
+            cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca) - r), s"${program.name} iteration $iteration"))
 
             (programLang \ Lang(r)).getAcceptedTrace match {
 

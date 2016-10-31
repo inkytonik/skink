@@ -82,7 +82,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
         }
     }
 
-    def nextBlocks(state : LLVMState) : List[(Int, String)] = {
+    def nextBlocks(state : LLVMState) : Seq[(Int, String)] = {
         val buf = new ListBuffer[(Int, String)]
 
         logger.debug(s"nextBlocks: filtering blocks ${state} for blocked blocks")
@@ -124,7 +124,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
 
             }
         }
-        buf.toList
+        buf
     }
 
     def threadCreationEffects(block : Block) : Option[(Int, String)] = {
@@ -252,7 +252,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
     }
 
     def succ(state : LLVMState, label : Choice) : LLVMState = {
-        logger.debug(s"succ: finding successors for $state with $label")
+        logger.debug(s"succ: Finding successors for $state with $label")
         val threadId = label.threadId
         val branchId = label.branchId
 
@@ -284,7 +284,7 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
                 buf += Choice(threadId, branchId)
             }
         }
-        logger.debug(s"enabledIn: returning $buf")
+        logger.debug(s"enabledIn: returning $buf for $state")
         buf.toSet
     }
 }
