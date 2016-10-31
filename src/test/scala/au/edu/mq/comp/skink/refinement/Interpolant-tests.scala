@@ -8,7 +8,7 @@ import scala.util.{Try, Success, Failure}
 
 class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
+    import au.edu.mq.comp.skink.c.CFrontend
     import org.bitbucket.inkytonik.kiama.util.FileSource
 
     //  create and init the config
@@ -20,9 +20,9 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
         )
     )
 
-    val frontend = new LLVMFrontend(config)
+    val frontend = new CFrontend(config)
 
-    val srcFileName = "programs/simple/simple-loop_true-unreach-call.ll"
+    val srcFileName = "src/test/resources/citests/simple-loop_true-unreach-call.c"
 
     test(s"Trying to prove correctness of program $srcFileName") {
 

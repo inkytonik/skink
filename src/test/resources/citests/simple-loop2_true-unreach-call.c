@@ -13,7 +13,7 @@ void __VERIFIER_assert(int cond) {
 
 int main () {
   int i = 0, n = 0;
-  while ( i >= n) {
+  while (i >= n) {
     i++;
   __VERIFIER_assert(i >= n);
   }

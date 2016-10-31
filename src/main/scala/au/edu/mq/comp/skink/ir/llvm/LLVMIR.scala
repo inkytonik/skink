@@ -39,6 +39,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+    val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
     val initTerm = new LLVMTermBuilder(new LLVMInitNamer, config).initTerm(program)
 
@@ -280,13 +281,17 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         }
         //  instantiate a solver and check SAT
         isSat(indexedPre & blockEffect & !indexedPost) match {
-            case Success(Sat())   => Success(true)
-            case Success(UnSat()) => Success(false)
+            //  if Sat, checkPost is false
+            case Success(Sat())   => Success(false)
+
+            //  if unSat checkPost is true
+            case Success(UnSat()) => Success(true)
+
             case Success(UnKnown()) =>
-                programLogger.error(s"Solver returned UnKnown for check-sat")
+                checkPostLogger.error(s"Solver returned UnKnown for check-sat")
                 sys.error(s"Solver returned UnKnown for check-sat")
             case Failure(f) =>
-                programLogger.error(s"Solver failed to determine sat-status in checkpost $f")
+                checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
     }

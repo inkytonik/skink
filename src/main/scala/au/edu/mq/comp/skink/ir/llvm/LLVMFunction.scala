@@ -38,6 +38,7 @@ class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution wit
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+    val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
     // Implementation of IRFunction interface
 
@@ -255,5 +256,4 @@ class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution wit
                 None
         }
     }
-
 }
