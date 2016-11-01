@@ -95,7 +95,10 @@
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="DEBUG">
+        <appender-ref ref="SKINKFILE"/>
+    </logger>
+
     <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
         <appender-ref ref="CFGFILE"/>
     </logger>

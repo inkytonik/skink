@@ -22,6 +22,11 @@ trait AddBackEdges extends Core with Resources {
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
 
+    private def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] = xl match {
+        case l if (l.size < 2) => Nil
+        case a :: xa           => xa.map((a, _)) :: generatePairs(xa)
+    }
+
     /**
      * Provide a list of new edges that preserve infeasibility.
      *
@@ -47,7 +52,15 @@ trait AddBackEdges extends Core with Resources {
 
         //  Compute candidate backEdges from the indexPartition
         //  for each partition with more than 2 elements, build the candidate min, max
-        val candidatePairs = indexPartition.filter(_.size > 1) map (xl => (xl.min, xl.max))
+        // val candidatePairs = indexPartition.filter(_.size > 1) map (xl => (xl.min, xl.max))
+
+        //  Compute candidate backEdges from the indexPartition
+        //  for each partition with more than 2 elements, build the candidate min, max
+        val candidatePairs =
+            indexPartition.filter(_.size > 1).map(_.toList).map(generatePairs(_)).flatten.flatten
+
+        itpLogger.info(s"candidate pairs $candidatePairs")
+        //  (xl => (xl.min, xl.max))
 
         /**
          * Check if backedges can be added to the linear automaton
