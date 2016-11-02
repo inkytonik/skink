@@ -92,7 +92,7 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(program : IR) : Try[Option[FailureTrace]] = {
 
-        val programLang = Lang(program.dca)
+        val programLang = Lang(toDetNFA(program.dca)._1)
 
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
@@ -122,13 +122,18 @@ class TraceRefinement(config : SkinkConfig) {
                     }
             }
 
-        cfgLogger.debug(toDot(toDetNFA(program.dca), s"${program.name} initial"))
+        cfgLogger.debug(toDot(toDetNFA(program.dca)._1, s"${program.name} initial"))
 
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${program.name} iteration $iteration")
-            // cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca) - r), s"${program.name} iteration $iteration"))
+            // cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca)._1 - r)._1, s"${program.name} iteration $iteration"))
+            import reflect.io._
+
+            // File("logs/current.dot").writeAll(toDot(toDetNFA(toDetNFA(program.dca)._1 - r)._1, s"${program.name} iteration $iteration"))
+            // println("type")
+            // val k = scala.io.StdIn.readInt()
 
             (programLang \ Lang(r)).getAcceptedTrace match {
 
@@ -185,15 +190,20 @@ class TraceRefinement(config : SkinkConfig) {
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
+                                if (iteration == config.maxIterations() - 1) {
+                                    cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca)._1 - buildInterpolantAuto(program, choices, iteration))._1, s"${program.name} with last interpolant $iteration"))
+                                }
                                 refineRec(
                                     toDetNFA(r +
-                                        (
-                                            buildInterpolantAuto(program, choices)
-                                        // buildInterpolantAuto(program, choices, fromEnd = true)
-                                        )),
+                                    (
+                                        buildInterpolantAuto(program, choices, iteration)
+                                    // buildInterpolantAuto(program, choices, fromEnd = true)
+                                    ))._1,
                                     iteration + 1
                                 )
                             } else {
+                                cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca)._1 - r)._1, s"${program.name} iteration $iteration"))
+
                                 Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
                             }
 
