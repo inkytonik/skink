@@ -229,7 +229,7 @@ object InterpolantAuto extends AddBackEdges {
                 )
                 //  dump the automaton if logger is enabled
                 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-                itpAutoLogger.info(toDot(toDetNFA(itpAuto), "itp[" + fromEnd + "]"))
+                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, "itp[" + fromEnd + "]"))
                 itpAuto
 
             //  computation of predicates failed

@@ -4,8 +4,6 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 int i = 2, j = 1;
 
-#define NUM 5
-
 void *
 t1(void* arg)
 {

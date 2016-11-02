@@ -22,12 +22,12 @@ object Skink {
     /**
      * Utility method to convert an automta into DOT format.
      */
-    def toDot[S, L](nfa : NFA[S, L], name : String) : String =
+    def toDot[S, L](nfa : NFA[S, L], name : String, stateMap : Map[S, String] = Map[S, String]()) : String =
         DOTPrettyPrinter.show(
             DotConverter.toDot(
                 nfa.copy(name = name),
                 (b : S) => {
-                    val label = Attribute("label", StringLit(b.toString))
+                    val label = Attribute("label", StringLit(stateMap.get(b).getOrElse(b.toString)))
                     val style =
                         Attribute("shape", if (nfa.getInit.contains(b))
                             Ident("circle")

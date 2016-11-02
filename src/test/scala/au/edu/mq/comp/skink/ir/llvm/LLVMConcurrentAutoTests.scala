@@ -44,7 +44,7 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         val (ir, main) = parseProgram("src/test/resources/llvm/simple_threads.c")
         val dca = ir.dca
         val cfgLogger = getLogger(this.getClass, ".cfg")
-        cfgLogger.info(toDot(toDetNFA(dca), s"${dca.name} tree"))
+        cfgLogger.info(toDot(toDetNFA(dca)._1, s"${dca.name} tree"))
     }
 
     test("A state with an __error label in it should be final") {

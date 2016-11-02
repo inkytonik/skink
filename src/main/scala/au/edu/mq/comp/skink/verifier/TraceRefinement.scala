@@ -92,7 +92,7 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(program : IR) : Try[Option[FailureTrace]] = {
 
-        val programLang = Lang(program.dca)
+        val programLang = Lang(toDetNFA(program.dca)._1)
 
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
@@ -122,13 +122,16 @@ class TraceRefinement(config : SkinkConfig) {
                     }
             }
 
-        cfgLogger.debug(toDot(toDetNFA(program.dca), s"${program.name} initial"))
+        import au.edu.mq.comp.skink.ir.llvm.LLVMState
+        import au.edu.mq.comp.automat.auto.DetAuto
+        val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => x.toString })
+        cfgLogger.debug(toDot(progNFA._1, s"${program.name} initial", progNFA._2))
 
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"traceRefinement: ${program.name} iteration $iteration")
-            // cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca) - r), s"${program.name} iteration $iteration"))
+            cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca)._1 - r)._1, s"${program.name} iteration $iteration"))
 
             (programLang \ Lang(r)).getAcceptedTrace match {
 
@@ -187,10 +190,10 @@ class TraceRefinement(config : SkinkConfig) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
                                     toDetNFA(r +
-                                        (
-                                            buildInterpolantAuto(program, choices)
-                                        // buildInterpolantAuto(program, choices, fromEnd = true)
-                                        )),
+                                    (
+                                        buildInterpolantAuto(program, choices) +
+                                        buildInterpolantAuto(program, choices, fromEnd = true)
+                                    ))._1,
                                     iteration + 1
                                 )
                             } else {
@@ -205,18 +208,6 @@ class TraceRefinement(config : SkinkConfig) {
 
         // Start the refinement algorithm with no "ruled out" traces.
         refineRec(NFA[Int, Choice](Set(), Set(), Set()), 0)
-    }
-
-    /**
-     * Make an interpolant automaton for the given trace choices. For now, we just
-     * generate a simple linear automaton so the refinement process will remove
-     * just this one trace. Later revisions will be cleverer.
-     */
-    def interpolantAuto(choices : Seq[Choice]) : NFA[Int, Choice] = {
-        val transitions =
-            for (i <- 0 until choices.length)
-                yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
     }
 
 }
