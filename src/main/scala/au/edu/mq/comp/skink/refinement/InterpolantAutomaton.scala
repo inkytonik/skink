@@ -191,7 +191,7 @@ object InterpolantAuto extends AddBackEdges {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
+        NFA(Set(0), transitions.toSet, Set(choices.length), Set(choices.length))
     }
 
     /**
@@ -201,6 +201,7 @@ object InterpolantAuto extends AddBackEdges {
     def buildInterpolantAuto(
         program : IR,
         choices : Seq[Choice],
+        iteration : Int,
         fromEnd : Boolean = false
     ) : NFA[Int, Choice] = {
 
@@ -225,17 +226,23 @@ object InterpolantAuto extends AddBackEdges {
                 val itpAuto = NFA(
                     linearAuto.getInit,
                     linearAuto.transitions ++ newBackEdges,
+                    linearAuto.accepting,
                     linearAuto.accepting
                 )
                 //  dump the automaton if logger is enabled
                 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-                itpAutoLogger.info(toDot(toDetNFA(itpAuto), "itp[" + fromEnd + "]"))
+                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
                 itpAuto
 
             //  computation of predicates failed
             case Failure(f) =>
                 itpLogger.warn(s"Solver could note compute interpolants $f")
-                linearAuto
+                NFA(
+                    linearAuto.getInit,
+                    linearAuto.transitions,
+                    linearAuto.accepting,
+                    linearAuto.accepting
+                )
         }
     }
 }

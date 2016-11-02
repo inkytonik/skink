@@ -82,20 +82,20 @@
     <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.skink.iml" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.iml" level="INHERITED" additivity="false"/>
+    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend" level="INHERITED" additivity="false"/>
     <logger name="au.edu.mq.comp.skink.iml.IMLFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="IMLFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="DEBUG">
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="DEBUG" additivity="false">
         <appender-ref ref="SKINKFILE"/>
     </logger>
 
@@ -103,20 +103,23 @@
         <appender-ref ref="CFGFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level="INHERITED" additivity="false"/>
 
-    <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED" additivity="false"/>
 
-    <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED" additivity="false"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED" additivity="false"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED" additivity="false"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="DEBUG" additivity="false">
+    <!-- <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAuto" level="DEBUG" additivity="false">
+        <appender-ref ref="SKINKFILE"/>
+    </logger> -->
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="DEBUG" additivity="false">
