@@ -24,7 +24,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.smtlib.solvers._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
-        descr = "Execute the target code")
+        descr = "Execute the target code",
+        default = Some(false))
 
     val frontendConverter =
         new ValueConverter[Frontend] {
@@ -82,15 +83,21 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Size of integers in bits when using bit representation (default: 32)",
         default = Some(32))
 
-    lazy val lli = opt[String]("lli", descr = "Program to use to execute target code",
-        default = Some("/usr/local/bin/lli"))
+    lazy val lli = opt[String]("lli", noshort = true,
+        descr = "Program to use to execute target code (default; lli)",
+        default = Some("lli"))
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
         descr = "Maximum number of refinement iterations",
         default = Some(10))
 
+    lazy val onlyFilenames = opt[Boolean]("onlyfilenames", noshort = true,
+        descr = "Don't include paths in witnesses, just use names",
+        default = Some(false))
+
     lazy val parse = opt[Boolean]("parse", short = 'p',
-        descr = "Only parse the program in the front-end")
+        descr = "Only parse the program in the front-end",
+        default = Some(false))
 
     val solverModeConverter =
         new ValueConverter[SolverMode] {
@@ -128,7 +135,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some(false))
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
-        descr = "Verify the target code")
+        descr = "Verify the target code",
+        default = Some(false))
 
 }
 

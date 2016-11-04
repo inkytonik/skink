@@ -1,2 +1,2 @@
 #! /bin/bash
-benchexec --no-container benchmark.xml
+benchexec --no-container benchmark.xml $*

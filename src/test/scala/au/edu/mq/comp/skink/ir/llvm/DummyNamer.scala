@@ -5,6 +5,8 @@ package au.edu.mq.comp.skink.ir.llvm
  * Always returns an index of zero.
  */
 class DummyNamer extends LLVMNamer {
+    def defaultIndexOf(s : String) : Int =
+        0
     def indexOf(use : Product, s : String) : Int =
         0
 }

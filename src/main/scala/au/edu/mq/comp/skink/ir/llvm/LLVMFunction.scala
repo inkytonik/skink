@@ -73,6 +73,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
         import namer._
 
+        // The term for the effects of program initialisation
+        val initTerm = termBuilder.initTerm(program)
+
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
@@ -80,16 +83,23 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
-        trace.choices.init.zipWithIndex.map {
-            case (choice, count) =>
-                val block = treeBlockTrace.blocks(count)
-                val optPrevBlock =
-                    if (count == 0)
-                        None
-                    else
-                        Some(treeBlockTrace.blocks(count - 1))
-                termBuilder.blockTerms(block, optPrevBlock, choice)
-        }.map(termBuilder.combineTerms)
+        val blockTerms =
+            trace.choices.init.zipWithIndex.map {
+                case (choice, count) =>
+                    val block = treeBlockTrace.blocks(count)
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            Some(treeBlockTrace.blocks(count - 1))
+                    termBuilder.blockTerms(block, optPrevBlock, choice)
+            }.map(termBuilder.combineTerms)
+
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            Seq(initTerm)
+        else
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
 
     }
 
