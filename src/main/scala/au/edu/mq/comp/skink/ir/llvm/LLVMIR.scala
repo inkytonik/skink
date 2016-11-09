@@ -73,6 +73,11 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     def show : String =
         showAsm(program, 5)
 
+    def independent(trace : Seq[Choice])(i : Int, j : Int) : Boolean = {
+        val blocks = blockTrace(Trace(trace)).blocks
+        !areDependent(blocks(i), blocks(j)) && trace(i).threadId != trace(j).threadId
+    }
+
     /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace. It's useful for this to be an attribute
@@ -83,7 +88,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         attr {
             case trace =>
                 import scala.collection.mutable.ListBuffer
-
+                logger.debug(s"doing blocktrace for ${trace.choices}")
                 var threadBlocks = Map[Int, Block]()
                 val blocks = new ListBuffer[Block]()
                 for (c <- trace.choices) {
@@ -96,9 +101,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                     threadBlocks = threadBlocks - c.threadId
                     threadFn.nextBlock(currBlock, c.branchId) match {
                         case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
-                        case None        =>
+                        case None        => threadBlocks = threadBlocks - (c.threadId)
                     }
-                    assert(threadBlocks.get(c.threadId).get != currBlock)
+                    //assert(threadBlocks.get(c.threadId).get != currBlock)
                     blocks += currBlock
                     logger.debug(s"blocks ${blocks.map(blockName(_))}")
                 }

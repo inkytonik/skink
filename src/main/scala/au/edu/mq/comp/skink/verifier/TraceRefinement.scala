@@ -124,7 +124,8 @@ class TraceRefinement(config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.ir.llvm.LLVMState
         import au.edu.mq.comp.automat.auto.DetAuto
-        val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => x.toString })
+        //val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => x.threadLocs.map(l => "(" + l._1 + "," + l._2 + ")").mkString(",")})
+        val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => "" })
         cfgLogger.debug(toDot(progNFA._1, s"${program.name} initial", progNFA._2))
 
         @tailrec

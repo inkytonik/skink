@@ -5,10 +5,11 @@ import org.scalallvm.assembly.AssemblySyntax.Block
 import au.edu.mq.comp.skink.ir.Choice
 import scala.collection.immutable.Map
 import scala.collection.mutable.{Map => MutableMap}
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
 case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
 
-class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Choice] {
+class LLVMConcurrentAuto(private val ir : LLVMIR) extends Attribution with DetAuto[LLVMState, Choice] {
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable.ListBuffer
     import au.edu.mq.comp.skink.Skink.getLogger
@@ -82,50 +83,53 @@ class LLVMConcurrentAuto(private val ir : LLVMIR) extends DetAuto[LLVMState, Cho
         }
     }
 
-    def nextBlocks(state : LLVMState) : Seq[(Int, String)] = {
-        val buf = new ListBuffer[(Int, String)]
+    lazy val nextBlocks : LLVMState => Seq[(Int, String)] =
+        attr {
+            case state =>
+                val buf = new ListBuffer[(Int, String)]
 
-        logger.debug(s"nextBlocks: filtering blocks ${state} for blocked blocks")
-        val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(ir.getBlockByName(s._1, s._2), state))
-        logger.debug(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
+                logger.debug(s"nextBlocks: filtering blocks ${state} for blocked blocks")
+                val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(ir.getBlockByName(s._1, s._2), state))
+                //val unblockedBlocks = state.threadLocs
+                logger.debug(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
 
-        for ((threadId, blockLabel) <- unblockedBlocks) {
-            val block = ir.getBlockByName(threadId, blockLabel)
-            logger.debug(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
-            block.metaTerminatorInstruction.terminatorInstruction match {
+                for ((threadId, blockLabel) <- unblockedBlocks) {
+                    val block = ir.getBlockByName(threadId, blockLabel)
+                    logger.debug(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
+                    block.metaTerminatorInstruction.terminatorInstruction match {
 
-                // Unconditional branch
-                case Branch(Label(Local(tgt))) =>
-                    logger.debug(s"nextBlocks: Found an unconditional branch on thread $threadId")
-                    buf += ((threadId, tgt))
-
-                // Two-sided conditional branch
-                case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                    logger.debug(s"nextBlocks: Found a two way branch  on thread $threadId")
-                    buf += ((threadId, trueTgt))
-                    buf += ((threadId, falseTgt))
-
-                // Multi-way branch
-                case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-                    logger.debug(s"nextBlocks: Found a multiway branch on thread $threadId")
-                    cases.zipWithIndex.foreach {
-                        case (Case(_, _, Label(Local(tgt))), i) =>
+                        // Unconditional branch
+                        case Branch(Label(Local(tgt))) =>
+                            logger.debug(s"nextBlocks: Found an unconditional branch on thread $threadId")
                             buf += ((threadId, tgt))
+
+                        // Two-sided conditional branch
+                        case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
+                            logger.debug(s"nextBlocks: Found a two way branch  on thread $threadId")
+                            buf += ((threadId, trueTgt))
+                            buf += ((threadId, falseTgt))
+
+                        // Multi-way branch
+                        case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
+                            logger.debug(s"nextBlocks: Found a multiway branch on thread $threadId")
+                            cases.zipWithIndex.foreach {
+                                case (Case(_, _, Label(Local(tgt))), i) =>
+                                    buf += ((threadId, tgt))
+                            }
+                            buf += ((threadId, dfltTgt))
+
+                        // Return
+                        case _ : Ret | _ : RetVoid | _ : Unreachable =>
+                            logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
+                        // Do nothing
+
+                        case i =>
+                            sys.error(s"dca: unexpected form of terminator insn: $i")
+
                     }
-                    buf += ((threadId, dfltTgt))
-
-                // Return
-                case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                    logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
-                // Do nothing
-
-                case i =>
-                    sys.error(s"dca: unexpected form of terminator insn: $i")
-
-            }
+                }
+                buf
         }
-        buf
-    }
 
     def threadCreationEffects(block : Block) : Option[(Int, String)] = {
         def threadCreationInfo(block : Block) : Seq[(String, String)] = {

@@ -19,6 +19,7 @@ object Skink {
     def getLogger(clazz : Class[_], suffix : String = "") : Logger =
         Logger(LoggerFactory.getLogger(clazz.getName + suffix))
 
+    import au.edu.mq.comp.skink.ir.Choice
     /**
      * Utility method to convert an automta into DOT format.
      */
@@ -38,7 +39,7 @@ object Skink {
                     List(label, style)
                 },
                 (b : S) => '"' + b.toString + '"',
-                (i : L) => i.toString
+                (i : L) => { val c = i.asInstanceOf[Choice]; c.threadId + "," + c.branchId }
             )
         )
 

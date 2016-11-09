@@ -121,6 +121,19 @@ object LLVMHelper {
         }
     }
 
+    def areDependent(a : Block, b : Block) : Boolean = {
+        def globalAccessNames(block : Block) : (Set[String], Set[String]) =
+            block.optMetaInstructions.map(_.instruction).foldLeft((Set[String](), Set[String]())) {
+                case ((l, s), Load(_, _, _, _, Named(Global(n)), _))  => (l + n, s)
+                case ((l, s), Store(_, _, _, _, Named(Global(n)), _)) => (l, s + n)
+                case ((l, s), _)                                      => (l, s)
+            }
+
+        val (aLoads, aStores) = globalAccessNames(a)
+        val (bLoads, bStores) = globalAccessNames(b)
+        !((aStores & bStores).isEmpty && (aStores & bLoads).isEmpty && (aLoads & bStores).isEmpty)
+    }
+
     // Extractors to make matching more convenient
 
     /**
@@ -230,12 +243,12 @@ object LLVMHelper {
     }
 
     /*
-   * Extractor for variable names that matches if the variable is a
-   * user-level variable (i.e., one defined in the source code) as
-   * opposed to a compiler-defined temporary. If a match is found,
-   * the basename of the variable is returned and the index attached
-   * is ignored (e.g., `%i@1` returns `i`).
-   */
+     * Extractor for variable names that matches if the variable is a
+     * user-level variable (i.e., one defined in the source code) as
+     * opposed to a compiler-defined temporary. If a match is found,
+     * the basename of the variable is returned and the index attached
+     * is ignored (e.g., `%i@1` returns `i`).
+     */
     object UserLevelVarName {
         def unapply(name : Name) : Option[String] = {
             val BaseName = "[@%](.+)@[0-9]+".r

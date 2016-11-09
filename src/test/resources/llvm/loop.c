@@ -4,19 +4,15 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 int a = 0;
 
-#define NUM 5
-
 void *
 t1(void* arg)
 {
     a = 5;
 
     for (int i = 0; i < 10; i++);
+
     pthread_exit(NULL);
 }
-
-
-
 
 int
 main(int argc, char **argv)

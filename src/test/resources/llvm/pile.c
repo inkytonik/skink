@@ -2,18 +2,15 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 #include <pthread.h>
 
-int a = 0;
-
-#define NUM 5
+int a = 1;
 
 void *
 t1(void* arg)
 {
-    // a = 5;
+    for (int i = 0; i < 10; i++)
+        a *= 2;
 
-    while(0);
-    // for (int i = 0; i < 10; i++);
-    // pthread_exit(NULL);
+    pthread_exit(NULL);
 }
 
 
@@ -26,7 +23,7 @@ main(int argc, char **argv)
 
   pthread_create(&id1, NULL, t1, NULL);
 
-  if (a > 0) {
+  if (a > 1024) {
     ERROR: __VERIFIER_error();
   }
 

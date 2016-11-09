@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<?xml version="1.0"?> <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark
+1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 
-<benchmark tool="skink" timelimit="200" hardtimelimit="250" memlimit="500MB" cpuCores="1">
+<benchmark tool="skink" timelimit="500" hardtimelimit="500" memlimit="2000MB" cpuCores="1">
   <!-- competition settings:
       <benchmark tool="true" timelimit="900" hardtimelimit="930" memlimit="15000" cpuCores="8">
   -->
@@ -10,43 +10,11 @@
 
   <rundefinition name="skink17"/>
 
-  <!-- Skink testing categories
 
-  <tasks name="Skink simple">
-    <includesfile>/vagrant/programs/Simple.set</includesfile>
-  </tasks>
-
-  -->
-
-  <!-- Category: Bit Vectors -->
-
-  <tasks name="BitVectorsReach">
-      <includesfile>/home/vagrant/sv-benchmarks/c/BitVectorsReach.set</includesfile>
-      <option name="-i">bit</option>
+  <tasks name="Skink Concurrency">
+    <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
   </tasks>
 
-  <!-- Category: Integers and Control Flow -->
-
-  <tasks name="ControlFlow">
-      <includesfile>/home/vagrant/sv-benchmarks/c/ControlFlow.set</includesfile>
-  </tasks>
-  <tasks name="Simple">
-      <includesfile>/home/vagrant/sv-benchmarks/c/Simple.set</includesfile>
-  </tasks>
-  <tasks name="ECA">
-    <includesfile>/home/vagrant/sv-benchmarks/c/ECA.set</includesfile>
-  </tasks>
-  <tasks name="Loops">
-    <includesfile>/home/vagrant/sv-benchmarks/c/Loops.set</includesfile>
-  </tasks>
-  <tasks name="Recursive">
-      <includesfile>/home/vagrant/sv-benchmarks/c/Recursive.set</includesfile>
-  </tasks>
-  <tasks name="ProductLines">
-    <includesfile>/home/vagrant/sv-benchmarks/c/ProductLines.set</includesfile>
-  </tasks>
-  <tasks name="Sequentialized">
-    <includesfile>/home/vagrant/sv-benchmarks/c/Sequentialized.set</includesfile>
-  </tasks>
 
 </benchmark>
+

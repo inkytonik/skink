@@ -74,8 +74,7 @@
         </encoder>
     </appender>
 
-
-    <root level="OFF">
+    <root level="DEBUG">
         <appender-ref ref="SKINKFILE"/>
     </root>
 
@@ -95,7 +94,7 @@
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="DEBUG">
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED">
         <appender-ref ref="SKINKFILE"/>
     </logger>
 
@@ -116,14 +115,18 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="INHERITED" additivity="false">
         <appender-ref ref="ITPAUTOFILE"/>
+    </logger>
+
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMReductionTests.cfg" level="INHERITED" additivity="false">
+        <appender-ref ref="CFGFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
@@ -138,4 +141,7 @@
         <appender-ref ref="AUTOMATFILE"/>
     </logger>
 
+    <logger name="au.edu.mq.comp.automat.dpor" level="DEBUG" additivity="false">
+        <appender-ref ref="AUTOMATFILE"/>
+    </logger>
 </configuration>

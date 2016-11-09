@@ -13,7 +13,7 @@ veriffile=$base.verif
 
 skinkdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-java -jar $skinkdir/target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar -f C -v -eZ3 -m20 $* | tee $veriffile
+java -Dlogback.configurationFile=src/test/resources/logback-test.xml -Xss10M -jar $skinkdir/target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar -f C -v -eZ3 -m5000 $* | tee $veriffile
 
 case `head -1 $veriffile` in
     FALSE*)

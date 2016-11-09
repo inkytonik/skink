@@ -2,10 +2,10 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 #include <pthread.h>
 
-int i = 2, j = 1;
+int i = 0, j = 1;
 
 void *
-t1(void* arg)
+f1(void* arg)
 {
     int k = i;
     j = k;
@@ -14,7 +14,7 @@ t1(void* arg)
 }
 
 void *
-t2(void* arg)
+f2(void* arg)
 {
     int k = j;
     i = k;
@@ -25,13 +25,12 @@ t2(void* arg)
 int
 main(int argc, char **argv)
 {
-  pthread_t id1;
-  pthread_t id2;
+  pthread_t t1, t2;
 
-  pthread_create(&id1, NULL, t1, NULL);
-  pthread_create(&id2, NULL, t2, NULL);
+  pthread_create(&t1, NULL, f1, NULL);
+  pthread_create(&t2, NULL, f2, NULL);
 
-  if (i + j > 4) {
+  if (i + j > 2) {
     ERROR: __VERIFIER_error();
   }
 

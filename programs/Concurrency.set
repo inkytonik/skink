@@ -1,2 +1,2 @@
-simple/*_false-unreach-call*.c
-simple/*_true-unreach-call*.c
+concurrency/*_false-unreach-call*.c
+concurrency/*_true-unreach-call*.c

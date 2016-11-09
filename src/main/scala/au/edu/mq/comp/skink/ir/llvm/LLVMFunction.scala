@@ -238,7 +238,7 @@ class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution wit
                     Some(label2)
                 case IndirectBr(_, _, labels) if (branch >= 0) && (branch < labels.length) =>
                     Some(labels(branch))
-                case Unreachable() =>
+                case _ : Ret | Unreachable() =>
                     None
                 case insn =>
                     sys.error(s"nextBlock: unexpected terminator insn $insn")
