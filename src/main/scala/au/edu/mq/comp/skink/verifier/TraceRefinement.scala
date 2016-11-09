@@ -128,7 +128,7 @@ class TraceRefinement(config : SkinkConfig) {
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"${function.name} iteration $iteration")
-            cfgLogger.debug(toDot(toDetNFA(function.nfa - r), s"${function.name} iteration $iteration"))
+            cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
@@ -187,10 +187,11 @@ class TraceRefinement(config : SkinkConfig) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
                                     toDetNFA(r +
-                                        (
-                                            buildInterpolantAuto(function, choices) +
-                                            buildInterpolantAuto(function, choices, fromEnd = true)
-                                        )),
+                                    (
+                                        buildInterpolantAuto(function, choices)
+                                    //  +
+                                    // buildInterpolantAuto(function, choices, fromEnd = true)
+                                    ))._1,
                                     iteration + 1
                                 )
                             } else {

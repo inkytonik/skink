@@ -435,6 +435,10 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
     import scala.util.{Try, Success, Failure}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
 
+    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import scala.util.{Try, Success, Failure}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+
     /**
      *  Check that the image of a precondition is included in a postcondition
      *
@@ -463,9 +467,11 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         object Comm extends Commands
         import Comm.isSat
 
+        programLogger.info(s"pre-condition is")
+
         //  Index the variables in pre with index 0
         val indexedPre = pre indexedBy { case _ => 0 }
-        checkPostLogger.info(s"indexed pre-condition is ${indexedPre.show}")
+        programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
 
         //  index the variables in post with index
         val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
@@ -474,11 +480,8 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         val indexedPost = post indexedBy {
             case SSymbol(x) => lastIndex.getOrElse(x, 0)
         }
-        checkPostLogger.info(s"indexed post-condition is ${indexedPost.show}")
-
         //  instantiate a solver and check SAT
         isSat(indexedPre & blockEffect & !indexedPost) match {
-
             //  if Sat, checkPost is false
             case Success(Sat())   => Success(false)
 
