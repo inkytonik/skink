@@ -8,12 +8,12 @@ import au.edu.mq.comp.smtlib.typedterms.{Commands}
 import au.edu.mq.comp.smtlib.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
 import au.edu.mq.comp.skink.ir.IRFunction
+import au.edu.mq.comp.skink.ir.{Trace}
 import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
 trait AddBackEdges extends Core with Resources {
 
     import au.edu.mq.comp.automat.edge.Implicits._
-    import au.edu.mq.comp.skink.ir.Trace
     import au.edu.mq.comp.smtlib.solvers._
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
@@ -22,9 +22,6 @@ trait AddBackEdges extends Core with Resources {
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
 
-    /**
-     *
-     */
     private def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] = xl match {
         case l if (l.size < 2) => Nil
         case a :: xa           => xa.map((a, _)) :: generatePairs(xa)
@@ -33,7 +30,7 @@ trait AddBackEdges extends Core with Resources {
     /**
      * Provide a list of new edges that preserve infeasibility.
      *
-     * @param   function    The function to analyse
+     * @param   function     The function to analyse
      * @param   choices     An infeasible path of size n in `function` given by a sequence
      *                      of choices
      * @param   preds       Am inductive interpolants of size n - 2 (initial predicate is True and
@@ -58,7 +55,7 @@ trait AddBackEdges extends Core with Resources {
         val candidatePairs =
             indexPartition.filter(_.size > 1).map(_.toList).map(generatePairs(_)).flatten.flatten
 
-        //  (xl => (xl.min, xl.max))
+        itpLogger.info(s"candidate pairs $candidatePairs")
 
         /**
          * Check if backedges can be added to the linear automaton
@@ -71,8 +68,6 @@ trait AddBackEdges extends Core with Resources {
         val newBackEdges =
             for (
                 (i, j) <- candidatePairs;
-                // tgtItp = completeItp(i + 1);
-                // srcItp = completeItp(j);
                 x1 = completeItp(j).unIndexed;
                 x2 = completeItp(i + 1).unIndexed;
                 u = {
@@ -189,7 +184,7 @@ object InterpolantAuto extends AddBackEdges {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
+        NFA(Set(0), transitions.toSet, Set(choices.length), Set(choices.length))
     }
 
     /**
@@ -199,13 +194,14 @@ object InterpolantAuto extends AddBackEdges {
     def buildInterpolantAuto(
         function : IRFunction,
         choices : Seq[Int],
+        iteration : Int,
         fromEnd : Boolean = false
     ) : NFA[Int, Int] = {
 
         import scala.util.{Failure, Success, Try}
 
         //  first build a linear automaton for the trace
-        val linearAuto : NFA[Int, Int] = buildAutoForTrace(choices)
+        val linearAuto = buildAutoForTrace(choices)
         itpLogger.info(s"Linear Interpolant automaton built")
 
         //  try to compute predicates for the infeasible trace
@@ -223,44 +219,23 @@ object InterpolantAuto extends AddBackEdges {
                 val itpAuto = NFA(
                     linearAuto.getInit,
                     linearAuto.transitions ++ newBackEdges,
+                    linearAuto.accepting,
                     linearAuto.accepting
                 )
                 //  dump the automaton if logger is enabled
                 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-                itpAutoLogger.info(
-                    toDot(
-                        itpAuto,
-                        "itp[" + fromEnd + "]"
-                    // nodeProp = {
-                    //     x : String ⇒
-                    //         if (!nfa2.accepting.contains(x))
-                    //             List(Attribute("label", StringLit("node" + x)))
-                    //         else
-                    //             List(
-                    //                 Attribute("shape", Ident("doublecircle")),
-                    //                 Attribute("label", StringLit("node" + x))
-                    //             )
-                    // },
-                    //  map for node identifiers
-                    //  this is the node ID e.g. edges will be output
-                    //  as nodeIDsrc -> nodeIDtgt [some edge attributes]
-                    // labelDotName = {
-                    //     x : String ⇒ "Node_" + x
-                    // },
-                    // graphDirective = {
-                    //     () ⇒ List("rank = sink ; 0 ", "rank = source ; 2")
-                    // }
-                    //  how to print nodes
-                    //  how to print edges
-                    //  property of graph
-                    )
-                )
+                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
                 itpAuto
 
             //  computation of predicates failed
             case Failure(f) =>
                 itpLogger.warn(s"Solver could note compute interpolants $f")
-                linearAuto
+                NFA(
+                    linearAuto.getInit,
+                    linearAuto.transitions,
+                    linearAuto.accepting,
+                    linearAuto.accepting
+                )
         }
     }
 }
