@@ -491,6 +491,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
             case Success(UnKnown()) =>
                 checkPostLogger.error(s"Solver returned UnKnown for check-sat")
                 sys.error(s"Solver returned UnKnown for check-sat")
+
             case Failure(f) =>
                 checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")

@@ -20,7 +20,6 @@ class TraceRefinement(config : SkinkConfig) {
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
-    // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
     import au.edu.mq.comp.smtlib.parser.Analysis
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
@@ -29,7 +28,6 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-    // import smtlib.util.Implicits._
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
     import au.edu.mq.comp.smtlib.solvers._
@@ -188,7 +186,7 @@ class TraceRefinement(config : SkinkConfig) {
                                 refineRec(
                                     toDetNFA(r +
                                     (
-                                        buildInterpolantAuto(function, choices)
+                                        buildInterpolantAuto(function, choices, iteration)
                                     //  +
                                     // buildInterpolantAuto(function, choices, fromEnd = true)
                                     ))._1,
@@ -207,17 +205,4 @@ class TraceRefinement(config : SkinkConfig) {
         // Start the refinement algorithm with no "ruled out" traces.
         refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
     }
-
-    /**
-     * Make an interpolant automaton for the given trace choices. For now, we just
-     * generate a simple linear automaton so the refinement process will remove
-     * just this one trace. Later revisions will be cleverer.
-     */
-    def interpolantAuto(choices : Seq[Int]) : NFA[Int, Int] = {
-        val transitions =
-            for (i <- 0 until choices.length)
-                yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
-    }
-
 }
