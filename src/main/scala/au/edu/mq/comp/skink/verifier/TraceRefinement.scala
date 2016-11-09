@@ -139,6 +139,8 @@ class TraceRefinement(config : SkinkConfig) {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
+                    cfgLogger.debug(toDot(toDetNFA(toDetNFA(program.dca)._1 - r)._1, s"${program.name} iteration $iteration"))
+
                     logger.info(s"${program.name} has no failure traces")
                     Success(None)
 
