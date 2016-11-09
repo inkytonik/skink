@@ -64,6 +64,10 @@ class LLVMReductionTests extends FunSuiteLike {
         assert(!ir.independent(trace)(4, 5))
     }
 
+    test("Reduce sync-threads") {
+        reduceAndLogProgram("programs/concurrency/sync-threads_false-unreach-call.c")
+    }
+
     test("Reduce simple_threads") {
         reduceAndLogProgram("src/test/resources/llvm/simple_threads.c")
     }

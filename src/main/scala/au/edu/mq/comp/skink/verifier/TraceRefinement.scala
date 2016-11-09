@@ -9,6 +9,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 class TraceRefinement(config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
+    import au.edu.mq.comp.automat.dpor.DPOR
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
@@ -92,7 +93,9 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(program : IR) : Try[Option[FailureTrace]] = {
 
-        val programLang = Lang(toDetNFA(program.dca)._1)
+        val reducer = DPOR(program.dca, {x : Choice => x.threadId}, program.independent _)
+        reducer.getTrace()
+        val programLang = Lang(toDetNFA(reducer.getExploredGraph)._1)
 
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
@@ -125,8 +128,8 @@ class TraceRefinement(config : SkinkConfig) {
         import au.edu.mq.comp.skink.ir.llvm.LLVMState
         import au.edu.mq.comp.automat.auto.DetAuto
         //val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => x.threadLocs.map(l => "(" + l._1 + "," + l._2 + ")").mkString(",")})
-        val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => "" })
-        cfgLogger.debug(toDot(progNFA._1, s"${program.name} initial", progNFA._2))
+        //val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => "" })
+        //cfgLogger.debug(toDot(progNFA._1, s"${program.name} initial", progNFA._2))
 
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {

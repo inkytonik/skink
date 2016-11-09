@@ -31,8 +31,8 @@
 
 <node id="N1">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">0</data>
-  <data key="sourcecode">f1(void* arg)</data>
+  <data key="block">__threading.2.nolabel</data>
+  <data key="sourcecode">pthread_create(&amp;t2, NULL, f2, NULL);</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
@@ -41,8 +41,8 @@
 
 <node id="N2">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.2.nolabel</data>
-  <data key="sourcecode">pthread_create(&amp;t2, NULL, f2, NULL);</data>
+  <data key="block">0</data>
+  <data key="sourcecode">f2(void* arg)</data>
 </node>
 
 <edge id="E2" source="N2" target="N3">
@@ -51,8 +51,8 @@
 
 <node id="N3">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">0</data>
-  <data key="sourcecode">f2(void* arg)</data>
+  <data key="block">__threading.1.nolabel</data>
+  <data key="sourcecode">if (i + j != 5) {</data>
 </node>
 
 <edge id="E3" source="N3" target="N4">
@@ -61,8 +61,8 @@
 
 <node id="N4">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.1.nolabel</data>
-  <data key="sourcecode">i += j;</data>
+  <data key="block">__threading.0.nolabel</data>
+  <data key="sourcecode">if (i + j != 5) {</data>
 </node>
 
 <edge id="E4" source="N4" target="N5">
@@ -71,81 +71,31 @@
 
 <node id="N5">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.1.nolabel</data>
+  <data key="block">__threading.nolabel</data>
   <data key="sourcecode">if (i + j != 5) {</data>
 </node>
 
 <edge id="E5" source="N5" target="N6">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-</edge>
-
-<node id="N6">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.0.nolabel</data>
-  <data key="sourcecode">if (i + j != 5) {</data>
-</node>
-
-<edge id="E6" source="N6" target="N7">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-</edge>
-
-<node id="N7">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.nolabel</data>
-  <data key="sourcecode">if (i + j != 5) {</data>
-</node>
-
-<edge id="E7" source="N7" target="N8">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
   <data key="sourcecode">if (i + j != 5) {</data>
   <data key="startline">31</data>
   <data key="endline">31</data>
 </edge>
 
-<node id="N8">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.1.nolabel</data>
-  <data key="sourcecode">j += i;</data>
-</node>
-
-<edge id="E8" source="N8" target="N9">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-</edge>
-
-<node id="N9">
+<node id="N6">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
   <data key="block">10</data>
   <data key="sourcecode">if (i + j != 5) {</data>
 </node>
 
-<edge id="E9" source="N9" target="N10">
+<edge id="E6" source="N6" target="N7">
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
   <data key="sourcecode">if (i + j != 5) {</data>
   <data key="startline">31</data>
   <data key="endline">31</data>
 </edge>
 
-<node id="N10">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.0.nolabel</data>
-  <data key="sourcecode">i += j;</data>
-</node>
-
-<edge id="E10" source="N10" target="N11">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-</edge>
-
-<node id="N11">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-  <data key="block">__threading.0.nolabel</data>
-  <data key="sourcecode">j += i;</data>
-</node>
-
-<edge id="E11" source="N11" target="N12">
-  <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
-</edge>
-
-<node id="N12">
+<node id="N7">
   <data key="violation">true</data>
   <data key="file">/home/matt/Dropbox/Thesis/skink/programs/concurrency/fib-threads_false-unreach-call.c</data>
   <data key="block">11</data>

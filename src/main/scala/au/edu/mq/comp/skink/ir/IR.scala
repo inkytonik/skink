@@ -90,4 +90,9 @@ trait IR {
         implicit
         solver : ExtendedSMTLIB2Interpreter
     ) : Try[Boolean]
+
+    /**
+     * Check if the effects of two choices in a trace are dependent
+     */
+    def independent(choices : Seq[Choice])(i : Int, j : Int) : Boolean
 }

@@ -10,8 +10,11 @@
 
   <rundefinition name="skink17"/>
 
+  <tasks name="SkinkSimple">
+    <includesfile>programs/Simple.set</includesfile>
+  </tasks>
 
-  <tasks name="Skink Concurrency">
+  <tasks name="SkinkConcurrency">
     <includesfile>programs/Concurrency.set</includesfile>
   </tasks>
 

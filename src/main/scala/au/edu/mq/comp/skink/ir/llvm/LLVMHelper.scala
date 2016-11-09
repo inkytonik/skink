@@ -124,9 +124,10 @@ object LLVMHelper {
     def areDependent(a : Block, b : Block) : Boolean = {
         def globalAccessNames(block : Block) : (Set[String], Set[String]) =
             block.optMetaInstructions.map(_.instruction).foldLeft((Set[String](), Set[String]())) {
-                case ((l, s), Load(_, _, _, _, Named(Global(n)), _))  => (l + n, s)
-                case ((l, s), Store(_, _, _, _, Named(Global(n)), _)) => (l, s + n)
-                case ((l, s), _)                                      => (l, s)
+                case ((l, s), GlobalFunctionCall("pthread_mutex_lock")) => (l, s + "mutex")
+                case ((l, s), Load(_, _, _, _, Named(Global(n)), _))    => (l + n, s)
+                case ((l, s), Store(_, _, _, _, Named(Global(n)), _))   => (l, s + n)
+                case ((l, s), _)                                        => (l, s)
             }
 
         val (aLoads, aStores) = globalAccessNames(a)
