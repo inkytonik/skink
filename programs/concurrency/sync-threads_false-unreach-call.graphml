@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
+
+<key id="sourcecodelang" for="graph"/>
+
+<key id="block" for="node"/>
+<key id="entry" for="node"><default>false</default></key>
+<key id="file" for="node"/>
+<key id="sourcecode" for="node"/>
+<key id="violation" for="node"><default>false</default></key>
+
+<key id="endline" for="edge"/>
+<key id="file" for="edge"/>
+<key id="sourcecode" for="edge"/>
+<key id="startline" for="edge"/>
+
+<graph edgedefault="directed">
+
+<data key="sourcecodelang">C</data>
+
+<node id="N0">
+  <data key="entry">true</data>
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">0</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_BARRIERATTR_T 4</data>
+</node>
+
+<edge id="E0" source="N0" target="N1">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N1">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.4.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_CONDATTR_T 4</data>
+</node>
+
+<edge id="E1" source="N1" target="N2">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N2">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.3.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_RWLOCK_T 44</data>
+</node>
+
+<edge id="E2" source="N2" target="N3">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N3">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">0</data>
+  <data key="sourcecode">#ifdef __x86_64__</data>
+</node>
+
+<edge id="E3" source="N3" target="N4">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N4">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.1.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_MUTEXATTR_T 4</data>
+</node>
+
+<edge id="E4" source="N4" target="N5">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N5">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.0.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_CONDATTR_T 4</data>
+</node>
+
+<edge id="E5" source="N5" target="N6">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N6">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">0</data>
+  <data key="sourcecode">but WITHOUT ANY WARRANTY; without even the implied warranty of</data>
+</node>
+
+<edge id="E6" source="N6" target="N7">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N7">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.1.nolabel</data>
+  <data key="sourcecode">You should have received a copy of the GNU Lesser General Public</data>
+</node>
+
+<edge id="E7" source="N7" target="N8">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N8">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.0.nolabel</data>
+  <data key="sourcecode">&lt;http://www.gnu.org/licenses/&gt;.  */</data>
+</node>
+
+<edge id="E8" source="N8" target="N9">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N9">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.2.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_BARRIER_T 20</data>
+</node>
+
+<edge id="E9" source="N9" target="N10">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N10">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.1.nolabel</data>
+  <data key="sourcecode">#  define __SIZEOF_PTHREAD_BARRIERATTR_T 4</data>
+</node>
+
+<edge id="E10" source="N10" target="N11">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N11">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.0.nolabel</data>
+  <data key="sourcecode">#else</data>
+</node>
+
+<edge id="E11" source="N11" target="N12">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+</edge>
+
+<node id="N12">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">__threading.nolabel</data>
+  <data key="sourcecode">#else</data>
+</node>
+
+<edge id="E12" source="N12" target="N13">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="sourcecode">#else</data>
+  <data key="startline">45</data>
+  <data key="endline">45</data>
+</edge>
+
+<node id="N13">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">13</data>
+  <data key="sourcecode">#else</data>
+</node>
+
+<edge id="E13" source="N13" target="N14">
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="sourcecode">#else</data>
+  <data key="startline">45</data>
+  <data key="endline">45</data>
+</edge>
+
+<node id="N14">
+  <data key="violation">true</data>
+  <data key="file">/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h</data>
+  <data key="block">14</data>
+  <data key="sourcecode"># define __SIZEOF_PTHREAD_ATTR_T 36</data>
+</node>
+
+</graph>
+
+</graphml>
