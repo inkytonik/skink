@@ -57,7 +57,7 @@
     <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false"><appender-ref ref="CFILE"/></logger>
     <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
     </logger>
