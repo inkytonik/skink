@@ -14,19 +14,18 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
     //  create and init the config
     val config = createAndInitConfig(
         Seq(
+            "-f", "C", // C frontend
             "-v", // verify target
             "-m10", //  max iteration
             "-eZ3" //  solver
         )
     )
 
-    val frontend = new LLVMFrontend(config)
-
-    val srcFileName = "programs/simple/simple-loop_true-unreach-call.ll"
+    val srcFileName = "src/test/resources/citests/simple-loop_true-unreach-call.c"
 
     test(s"Trying to prove correctness of program $srcFileName") {
 
-        frontend.buildIR(FileSource(srcFileName), positions) match {
+        config.frontend().buildIR(FileSource(srcFileName), positions) match {
 
             case Left(prog) =>
                 import au.edu.mq.comp.skink.verifier.Verifier
