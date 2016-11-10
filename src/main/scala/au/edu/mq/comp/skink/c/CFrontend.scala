@@ -57,7 +57,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         logger.info(s"buildIRFromFile: opt version is $optv")
 
         // Run clang and opt
-        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -o $llfile").!
+        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -inline-threshold=100000 -o $llfile").!
         if (res == 0) {
             logger.info("buildIRFromFile: LLVM program build succeeded")
         } else {
