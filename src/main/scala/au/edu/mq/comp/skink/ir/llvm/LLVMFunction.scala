@@ -42,6 +42,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
+    val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
     // An analyser for this function and its associated tree
 
@@ -59,6 +60,23 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
+
+    /**
+     * Combine terms via conjunction, dealing with teh case where there are no
+     * terms so effect is "true". THe namer is used to access the underlying
+     * term operations.
+     */
+    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
+        import namer._
+        import au.edu.mq.comp.smtlib.theories.Core
+        object BoolOps extends Core
+        import BoolOps._
+
+        if (terms.isEmpty)
+            True()
+        else
+            terms.reduceLeft(_ & _)
+    }
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
@@ -290,6 +308,60 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
     }
 
+    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
+
+        val blocks = blockTrace(trace).blocks
+
+        // Build the steps between optional previous block and next block, but
+        // only include a previous block if the current block has phi insns
+        // (and hence the previous block can affect the behaviour of the current
+        // block). We do this with block name strings since the full block data
+        // is not needed and it's easier for debugging
+        val steps =
+            trace.choices.init.zipWithIndex.map {
+                case (choice, count) =>
+                    val block = blocks(count)
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            Some(blockName(blocks(count - 1)))
+                    if (block.optMetaPhiInstructions.isEmpty)
+                        (None, blockName(block))
+                    else
+                        (optPrevBlock, blockName(block))
+            }
+
+        // Combine steps with their indices, accumulate indices for same step,
+        // throw away steps, turn into Seq
+        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
+            case (m, (k, i)) =>
+                val s = m.getOrElse(k, Vector())
+                m.updated(k, s :+ i)
+        }.values.toIndexedSeq
+
+    }
+
+    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+
+        // Get a tree for the relevant block
+        val blocks = blockTrace(trace).blocks
+        if ((index < 0) || (index >= blocks.length))
+            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
+        val blockTree = new Tree[Product, Block](blocks(index))
+        val block = blockTree.root
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
+        val termBuilder = new LLVMTermBuilder(namer, config)
+
+        // Make a single term for this block and choice
+        val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
+
+        // Return the term and the name mapping that applies after the block
+        (term, namer.stores(block))
+
+    }
     /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
@@ -305,6 +377,26 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
             }
         BlockTrace(blocks, trace)
     }
+
+    /**
+     * Follow the choices given by a trace to construct the trace of blocks
+     * that are executed by the trace. It's useful for this to be an attribute
+     * since we may need it more than once if we are doing different things
+     * with the trace which mostly required the actual blocks.
+     */
+    lazy val blockTrace : Trace => BlockTrace =
+        attr {
+            case trace =>
+                val entryBlock = function.functionBody.blocks(0)
+                val (finalBlock, blocks) =
+                    trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
+                        case ((Some(block), blocks), choice) =>
+                            (nextBlock(block, choice), blocks :+ block)
+                        case ((None, blocks), choice) =>
+                            (None, blocks)
+                    }
+                BlockTrace(blocks, trace)
+        }
 
     /**
      * Get the block that follows `block` when we make a given choice.
@@ -336,6 +428,73 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
                 }
             case None =>
                 None
+        }
+    }
+
+    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import scala.util.{Try, Success, Failure}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+
+    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import scala.util.{Try, Success, Failure}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+
+    /**
+     *  Check that the image of a precondition is included in a postcondition
+     *
+     * @param     pre         the precondition over a set of prgram variables `V`
+     * @param     blockTerm   an SSA term that encodes the semantics of a
+     *                        sequence of instructions
+     * @param     post        the postcondition over a set of program variables `v`
+     */
+    def checkPost(
+        pre : TypedTerm[BoolTerm, Term],
+        trace : Trace,
+        index : Int,
+        choice : Int,
+        post : TypedTerm[BoolTerm, Term]
+    )(
+        implicit
+        solver : ExtendedSMTLIB2Interpreter
+    ) : Try[Boolean] = {
+
+        import au.edu.mq.comp.smtlib.theories.Core
+        import au.edu.mq.comp.smtlib.typedterms.{Commands}
+
+        object BoolOps extends Core with Commands
+        import BoolOps._
+
+        object Comm extends Commands
+        import Comm.isSat
+
+        programLogger.info(s"pre-condition is")
+
+        //  Index the variables in pre with index 0
+        val indexedPre = pre indexedBy { case _ => 0 }
+        programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
+
+        //  index the variables in post with index
+        val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
+        //  this renaming should be OK if we do not have quantified
+        //  variables and all the vars in the term are free vars
+        val indexedPost = post indexedBy {
+            case SSymbol(x) => lastIndex.getOrElse(x, 0)
+        }
+        //  instantiate a solver and check SAT
+        isSat(indexedPre & blockEffect & !indexedPost) match {
+            //  if Sat, checkPost is false
+            case Success(Sat())   => Success(false)
+
+            //  if unSat checkPost is true
+            case Success(UnSat()) => Success(true)
+
+            case Success(UnKnown()) =>
+                checkPostLogger.error(s"Solver returned UnKnown for check-sat")
+                sys.error(s"Solver returned UnKnown for check-sat")
+
+            case Failure(f) =>
+                checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
+                sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
     }
 
