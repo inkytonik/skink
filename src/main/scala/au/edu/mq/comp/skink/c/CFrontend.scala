@@ -36,11 +36,11 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         import sys.process._
 
         // Setup args and filenames
-        val clangwargs = "-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
+        val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
         val llfile = dotc2dotll(filename)
-        logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
+        val optargs = s"-S -inline -inline-threshold=100000 -o $llfile"
 
         // Check for clang and opt on PATH
         val devnull = new java.io.ByteArrayOutputStream
@@ -57,7 +57,8 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         logger.info(s"buildIRFromFile: opt version is $optv")
 
         // Run clang and opt
-        val res = (s"clang $clangargs $filename" #| s"opt -S -inline -inline-threshold=100000 -o $llfile").!
+        logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
+        val res = (s"clang $clangargs" #| s"opt $optargs").!
         if (res == 0) {
             logger.info("buildIRFromFile: LLVM program build succeeded")
         } else {
