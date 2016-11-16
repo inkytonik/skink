@@ -40,7 +40,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
         val llfile = dotc2dotll(filename)
-        val optargs = s"-S -inline -inline-threshold=100000 -o $llfile"
+        val optargs = s"-S -inline -inline-threshold=100000 -mem2reg -simplifycfg -loops -lcssa -loop-simplify -loop-rotate -loop-unroll -unroll-count=10 -o $llfile"
 
         // Check for clang and opt on PATH
         val devnull = new java.io.ByteArrayOutputStream
