@@ -47,16 +47,21 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      */
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
-            case InitGlobalVar(name, IntT(_), constantValue) =>
+            case InitGlobalVar(name, tipe, constantValue) =>
                 val id = show(name)
-                varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
-            case InitGlobalVar(name, ArrayT(_, IntT(_)), ZeroC()) =>
-                val id = show(name)
-                val i = Ints("i")
-                forall(SSymbol("i")) {
-                    arrayTermI(id, namer.defaultIndexOf(id)).at(i) === 0
+                (tipe, constantValue) match {
+                    case (IntT(_), _) =>
+                        varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
+                    case (ArrayT(_, IntT(_)), ZeroC()) =>
+                        val i = Ints("i")
+                        forall(SSymbol("i")) {
+                            arrayTermI(id, namer.defaultIndexOf(id)).at(i) === 0
+                        }
+                    case _ =>
+                        sys.error(s"itemTerm: no support for global ${show(tipe)} variable initialisation to ${show(constantValue)}")
                 }
             case _ =>
+                // Other items don't contribute to the program semantics
                 True()
         }
         if (term != True())
