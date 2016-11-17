@@ -24,7 +24,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.smtlib.solvers._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
-        descr = "Execute the target code",
+        descr = "Execute the target code (default: false)",
         default = Some(false))
 
     val frontendConverter =
@@ -84,19 +84,19 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some(32))
 
     lazy val lli = opt[String]("lli", noshort = true,
-        descr = "Program to use to execute target code (default; lli)",
+        descr = "Program to use to execute target code (default: lli)",
         default = Some("lli"))
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
-        descr = "Maximum number of refinement iterations",
+        descr = "Maximum number of refinement iterations (default: 10)",
         default = Some(10))
 
     lazy val onlyFilenames = opt[Boolean]("onlyfilenames", noshort = true,
-        descr = "Don't include paths in witnesses, just use names",
+        descr = "Don't include paths in witnesses, just use names (default: false)",
         default = Some(false))
 
     lazy val parse = opt[Boolean]("parse", short = 'p',
-        descr = "Only parse the program in the front-end",
+        descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
 
     val solverModeConverter =
@@ -127,15 +127,15 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some(Z3SolverMode()))(solverModeConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers (seconds)",
-        default = Some(10))
+        descr = "Timeout for SMT solvers in seconds (default : 40)",
+        default = Some(40))
 
     lazy val trackValues = opt[Boolean]("track", short = 'k',
-        descr = "Track values",
+        descr = "Track values (default: false)",
         default = Some(false))
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
-        descr = "Verify the target code",
+        descr = "Verify the target code (default: false)",
         default = Some(false))
 
 }
