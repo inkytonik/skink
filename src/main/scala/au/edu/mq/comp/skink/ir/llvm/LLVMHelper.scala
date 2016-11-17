@@ -36,6 +36,12 @@ object LLVMHelper {
         name.startsWith("__VERIFIER")
 
     /**
+     * Return whether or not the named function is an output function.
+     */
+    def isOutputFunction(name : String) : Boolean =
+        List("fprintf", "printf") contains name
+
+    /**
      * Return whether or not the named function is an LLVM intrinsic.
      */
     def isLLVMIntrinsic(name : String) : Boolean =
