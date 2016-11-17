@@ -650,8 +650,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      */
     def vtermBV(value : Value, bits : Int) : TypedTerm[BVTerm, Term] =
         value match {
-            case Const(IntC(i)) =>
-                BVs.fromString(i.toString, bits)
+            case Const(c) =>
+                ctermBV(c, bits)
             case Named(name) =>
                 ntermBV(name, bits)
             case value =>
@@ -682,6 +682,19 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 ntermR(name)
             case value =>
                 sys.error(s"vtermR: unexpected value $value")
+        }
+
+    /**
+     * Return a bit vector term that exprinsesses an LLVM integer constant value.
+     */
+    def ctermBV(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
+        constantValue match {
+            case IntC(i) =>
+                BVs.fromString(i.toString, bits)
+            case NullC() | ZeroC() =>
+                BVs("#b0", bits)
+            case value =>
+                sys.error(s"ctermBV: unexpected constant value $constantValue")
         }
 
     /**
