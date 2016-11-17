@@ -50,8 +50,14 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
             case InitGlobalVar(name, tipe, constantValue) =>
                 val id = show(name)
                 (tipe, constantValue) match {
-                    case (IntT(_), _) =>
-                        varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
+                    case (IntT(size), _) =>
+                        config.integerMode() match {
+                            case BitIntegerMode() =>
+                                val bits = size.toInt
+                                varTermBV(id, namer.defaultIndexOf(id), bits) === ctermBV(constantValue, bits)
+                            case MathIntegerMode() =>
+                                varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
+                        }
                     case (ArrayT(_, IntT(_)), ZeroC()) =>
                         val i = Ints("i")
                         forall(SSymbol("i")) {
