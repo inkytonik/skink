@@ -62,7 +62,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val llfile = dotc2dotll(filename)
         val opt1args = s"-S -inline -inline-threshold=150000 -o -"
         val grepargs = "-v -e @llvm.lifetime"
-        val opt2args = s"-S -mem2reg -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
+        val opt2args = s"-S -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
 
         def run() : Either[IR, Messages] = {
             logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
