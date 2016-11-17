@@ -82,7 +82,7 @@ class Witnesses(config : SkinkConfig) {
 
         val witness =
             s"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-               |<graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               |<graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                |         xmlns="http://graphml.graphdrawing.org/xmlns"
                |>
                |
