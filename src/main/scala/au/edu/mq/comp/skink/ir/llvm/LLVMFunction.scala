@@ -356,12 +356,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         val termBuilder = new LLVMTermBuilder(namer, config)
 
         // Make a single term for this block and choice
-        val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
+        val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
+        val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
 
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))
 
     }
+
     /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
