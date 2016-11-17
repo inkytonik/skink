@@ -89,6 +89,10 @@ trait AddBackEdges extends Core with Resources {
                 };
                 uu = {
                     itpLogger.info(s"Result of checkPost $res")
+                    res match {
+                        case Success(_) =>
+                        case Failure(_) => sys.error(s"Result of checkPost $res")
+                    }
                 };
                 if (res == Success(true))
             ) yield {
