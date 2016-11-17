@@ -207,6 +207,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : SDiv => lterm / rterm
                                     case _ : SRem => lterm % rterm
                                     case _ : Sub  => lterm - rterm
+                                    case _ : UDiv => lterm / rterm
+                                    case _ : URem => lterm % rterm
                                     case _ =>
                                         sys.error(s"binary integer op ${show(op)} not handled")
                                 }
@@ -516,13 +518,13 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         }
 
     /**
-     * Return an integer term that expresses an LLVM integer constant value.
+     * Return an integer term that exprinsesses an LLVM integer constant value.
      */
     def ctermI(constantValue : ConstantValue) : TypedTerm[IntTerm, Term] =
         constantValue match {
             case IntC(i) =>
                 i.toInt
-            case ZeroC() =>
+            case NullC() | ZeroC() =>
                 0
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")

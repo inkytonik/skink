@@ -93,8 +93,7 @@ object LLVMHelper {
         def unapply(fn : Function) : Boolean =
             fn match {
                 case Function(Named(Global(s))) =>
-                    isLLVMIntrinsic(s) || isVerifierFunction(s)
-                // || isMemoryAllocFunction(s)
+                    isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s)
                 case _ =>
                     false
             }

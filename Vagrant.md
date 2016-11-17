@@ -59,14 +59,7 @@ The sv-benchmarks repo will be checked out at /home/vagrant/sv-benchmarks
 
 Edit benchmark.xml at the top level of the Skink repo. Most of it
 should be fine as is, but you may want to configure which benchmark
-sets are run. This one selects the simple programs from the Skink
-repo:
-
-    <tasks name="Skink simple">
-      <includesfile>/vagrant/programs/Simple.set</includesfile>
-    </tasks>
-
-One like this selects a set from the sv-benchmarks:
+sets are run. One like this selects a set from the sv-benchmarks:
 
     <tasks name="Loops">
       <includesfile>/home/vagrant/sv-benchmarks/c/Loops.set</includesfile>
