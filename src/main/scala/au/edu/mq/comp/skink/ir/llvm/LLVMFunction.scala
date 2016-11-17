@@ -415,10 +415,15 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
                     Some(label2)
                 case IndirectBr(_, _, labels) if (choice >= 0) && (choice < labels.length) =>
                     Some(labels(choice))
+                case Switch(IntT(_), _, dfltLabel, cases) if (choice >= 0) && (choice <= cases.length) =>
+                    if (choice == cases.length)
+                        Some(dfltLabel)
+                    else
+                        Some(cases(choice).label)
                 case Unreachable() =>
                     None
                 case insn =>
-                    sys.error(s"nextBlock: unexpected terminator insn $insn")
+                    sys.error(s"nextBlock: unexpected terminator insn $insn with choice $choice")
             }
         optNextBlockLabel match {
             case Some(Label(name)) =>
