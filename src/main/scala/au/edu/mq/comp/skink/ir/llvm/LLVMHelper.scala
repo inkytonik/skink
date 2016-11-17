@@ -77,15 +77,16 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for types that we support comparisons between.
+     * Matcher for types that we support comparisons between. Returns the bit size
+     * of the compared type.
      */
     object ComparisonType {
-        def unapply(tipe : Type) : Boolean =
+        def unapply(tipe : Type) : Option[Int] =
             tipe match {
-                case _ : IntT | _ : PointerT =>
-                    true
-                case _ =>
-                    false
+                case IntT(size)   => Some(size.toInt)
+                case _ : PointerT => Some(32)
+                case RealT(bits)  => Some(bits)
+                case _            => None
             }
     }
 
@@ -153,12 +154,34 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for LLVM real (floating-point) types. Just standard float and double for now.
+     * Returns the bit size of the type.
+     */
+    object RealT {
+        def unapply(tipe : Type) : Option[Int] =
+            tipe match {
+                case FloatT()  => Some(32)
+                case DoubleT() => Some(64)
+                case _         => None
+            }
+    }
+
+    /**
      * Matcher for names of unsigned types X that might occur with __VERIFIER_nondet_X()
-     * functions.
+     * functions. Returns the bit size of the type.
      */
     object UnsignedType {
-        def unapply(typeName : String) : Boolean =
-            List("u32", "uchar", "uint", "ulong", "unsigned", "ushort").contains(typeName)
+        def unapply(typeName : String) : Option[Int] =
+            typeName match {
+                case "u32"      => Some(32)
+                case "uchar"    => Some(8)
+                case "uint"     => Some(32)
+                case "ulong"    => Some(64)
+                case "unsigned" => Some(32)
+                case "ushort"   => Some(16)
+                case _          => None
+            }
+
     }
 
     /*
