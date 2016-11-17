@@ -88,8 +88,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some("lli"))
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
-        descr = "Maximum number of refinement iterations (default: 10)",
-        default = Some(10))
+        descr = "Maximum number of refinement iterations (default: 40)",
+        default = Some(40))
 
     lazy val onlyFilenames = opt[Boolean]("onlyfilenames", noshort = true,
         descr = "Don't include paths in witnesses, just use names (default: false)",
@@ -127,8 +127,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         default = Some(Z3SolverMode()))(solverModeConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers in seconds (default : 40)",
-        default = Some(40))
+        descr = "Timeout for SMT solvers in seconds (default : 200)",
+        default = Some(200))
 
     lazy val trackValues = opt[Boolean]("track", short = 'k',
         descr = "Track values (default: false)",
