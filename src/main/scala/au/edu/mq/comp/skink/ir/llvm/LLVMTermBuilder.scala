@@ -56,7 +56,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                         config.integerMode() match {
                             case BitIntegerMode() =>
                                 val bits = size.toInt
-                                varTermBV(id, namer.defaultIndexOf(id), bits) === ctermBV(constantValue, bits)
+                                varTermBV(id, bits, namer.defaultIndexOf(id)) === ctermBV(constantValue, bits)
                             case MathIntegerMode() =>
                                 varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
                         }
