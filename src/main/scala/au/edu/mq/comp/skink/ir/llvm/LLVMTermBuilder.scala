@@ -619,10 +619,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      */
     def vtermB(value : Value) : TypedTerm[BoolTerm, Term] =
         value match {
-            case Const(FalseC()) =>
-                False()
-            case Const(TrueC()) =>
-                True()
+            case Const(c) =>
+                ctermB(c)
             case Named(name) =>
                 ntermB(name)
             case value =>
@@ -688,6 +686,19 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 ntermR(name)
             case value =>
                 sys.error(s"vtermR: unexpected value $value")
+        }
+
+    /**
+     * Return a Boolean term that exprinsesses an LLVM Boolean constant value.
+     */
+    def ctermB(constantValue : ConstantValue) : TypedTerm[BoolTerm, Term] =
+        constantValue match {
+            case FalseC() =>
+                False()
+            case TrueC() =>
+                True()
+            case value =>
+                sys.error(s"ctermB: unexpected constant value $constantValue")
         }
 
     /**
