@@ -60,6 +60,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case MathIntegerMode() =>
                                 varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
                         }
+                    case (RealT(_), _) =>
+                        varTermR(id, namer.defaultIndexOf(id)) === ctermR(constantValue)
                     case (ArrayT(_, IntT(_)), ZeroC()) =>
                         val i = Ints("i")
                         forall(SSymbol("i")) {
