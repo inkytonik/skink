@@ -50,7 +50,9 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
             case InitGlobalVar(name, tipe, constantValue) =>
                 val id = show(name)
                 (tipe, constantValue) match {
-                    case (IntT(size), _) =>
+                    // A case for BoolT() is not here since there is no source type for
+                    // Boolean, so we don't expect a global var of that type.
+                    case (IntegerT(size), _) =>
                         config.integerMode() match {
                             case BitIntegerMode() =>
                                 val bits = size.toInt
