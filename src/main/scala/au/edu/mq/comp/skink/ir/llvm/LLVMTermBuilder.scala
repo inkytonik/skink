@@ -49,6 +49,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
                 val id = show(name)
+                val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
                     // A case for BoolT() is not here since there is no source type for
                     // Boolean, so we don't expect a global var of that type.
@@ -56,17 +57,22 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                         config.integerMode() match {
                             case BitIntegerMode() =>
                                 val bits = size.toInt
-                                varTermBV(id, bits, namer.defaultIndexOf(id)) === ctermBV(constantValue, bits)
+                                varTermBV(id, bits, index) === ctermBV(constantValue, bits)
                             case MathIntegerMode() =>
-                                varTermI(id, namer.defaultIndexOf(id)) === ctermI(constantValue)
+                                varTermI(id, index) === ctermI(constantValue)
                         }
                     case (RealT(_), _) =>
-                        varTermR(id, namer.defaultIndexOf(id)) === ctermR(constantValue)
+                        varTermR(id, index) === ctermR(constantValue)
                     case (ArrayT(_, IntT(_)), ZeroC()) =>
                         val i = Ints("i")
                         forall(SSymbol("i")) {
-                            arrayTermI(id, namer.defaultIndexOf(id)).at(i) === 0
+                            arrayTermI(id, index).at(i) === 0
                         }
+                    case (ArrayT(_, IntT(_)), ArrayC(elems)) =>
+                        combineTerms(elems.zipWithIndex.map {
+                            case (Element(_, constantValue), i) =>
+                                arrayTermI(id, index).at(i) === ctermI(constantValue)
+                        })
                     case _ =>
                         sys.error(s"itemTerm: no support for global ${show(tipe)} variable initialisation to ${show(constantValue)}")
                 }
