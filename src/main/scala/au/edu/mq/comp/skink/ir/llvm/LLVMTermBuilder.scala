@@ -315,7 +315,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(UnsignedType(bits))), Vector(), _) =>
                     integerMode match {
                         case BitIntegerMode() =>
-                            ntermBV(to, bits) sge 0.withBits(bits)
+                            ntermBV(to, bits) uge 0.withBits(bits)
                         case MathIntegerMode() =>
                             ntermI(to) >= 0
                     }
