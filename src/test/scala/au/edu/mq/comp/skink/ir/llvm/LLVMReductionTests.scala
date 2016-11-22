@@ -60,19 +60,73 @@ class LLVMReductionTests extends FunSuiteLike {
         assert(ir.independent(trace)(2, 4))
         // A load and a store on @j are dependent
         assert(!ir.independent(trace)(3, 5))
-        // Two blocks on the same thread are dependent 
+        // Two blocks on the same thread are dependent
         assert(!ir.independent(trace)(4, 5))
     }
 
     test("Reduce sync-threads") {
-        reduceAndLogProgram("programs/concurrency/sync-threads_false-unreach-call.c")
+        reduceAndLogProgram("programs/concurrency/fib-threads_true-unreach-call.c")
     }
 
     test("Reduce simple_threads") {
-        reduceAndLogProgram("src/test/resources/llvm/simple_threads.c")
+        reduceAndLogProgram("programs/concurrency/concurrent-loop_true-unreach-call.c")
     }
 
-    test("Reduce ") {
-        reduceAndLogProgram("src/test/resources/llvm/loop.c")
+    test("Reduce concurrent loop") {
+        reduceAndLogProgram("programs/concurrency/fib-threads_true-unreach-call.c")
+    }
+
+    test("Dump a pretty graph of both reduced and unreduced machines") {
+        import au.edu.mq.comp.skink.Skink.{getLogger, toDotSpec}
+        import au.edu.mq.comp.automat.dpor.DPOR
+
+        val (ir, main) = parseProgram("programs/concurrency/fib-threads_true-unreach-call.c")
+        val dca = ir.dca
+        val reducedNFA = DPOR(dca, { x : Choice => x.threadId }, ir.independent _)
+        reducedNFA.getTrace()
+
+        val detUnreduced = toDetNFA(dca)._1
+        val detReduced = toDetNFA(reducedNFA.getExploredGraph)._1
+        var redToUnred = Map[Int, Int]()
+        var seenReduced = Seq[Set[Int]]()
+
+        def syncDFS(redState : Set[Int], unredState : Set[Int]) : Unit = {
+            if (seenReduced.contains(redState))
+                return
+            seenReduced = seenReduced :+ redState
+            redToUnred = redToUnred + (unredState.head -> redState.head)
+            detReduced.enabledIn(redState).map(c => syncDFS(detReduced.succ(redState, c), detUnreduced.succ(unredState, c)))
+        }
+
+        syncDFS(detReduced.getInit, detUnreduced.getInit)
+
+        val cfgLogger = getLogger(this.getClass, ".cfg")
+        val spec = toDotSpec(detUnreduced, "name")
+
+        import au.edu.mq.comp.dot.DOTSyntax.DotSpec
+        import au.edu.mq.comp.dot.DOTPrettyPrinter.format
+        import scala.language.postfixOps
+        import au.edu.mq.comp.dot.DOTSyntax._
+        import au.edu.mq.comp.automat.edge.{DiEdge, LabDiEdge}
+        import au.edu.mq.comp.dot.DOTPrettyPrinter
+
+        //  collect edges and make a [[List[EdgeDecl]]]
+        lazy val dotEdges = detUnreduced.transitions map {
+            case LabDiEdge(e, l) ⇒
+                val inReduced = detReduced.transitions.contains(LabDiEdge(DiEdge(redToUnred.get(e.src).get, redToUnred.get(e.tgt).get), l))
+                SingleTgtEdge(
+                    Node(e.src.toString),
+                    Node(e.tgt.toString),
+                    Some(ListAttributes(List(
+                        Attribute("label", StringLit("")),
+                        Attribute("color", if (inReduced) Ident("green") else Ident("red"))
+                    )))
+                )
+        }
+
+        val filteredSpec = spec.automatonBody.optBlocks.filter { case _ : SingleTgtEdge => false case _ => true }
+        val patchedSpec = filteredSpec ++ dotEdges.toList
+        val patchedDot = DotSpec(AutomatonName(""), AutomatonBody(patchedSpec))
+        cfgLogger.info(DOTPrettyPrinter.show(patchedDot))
     }
 }

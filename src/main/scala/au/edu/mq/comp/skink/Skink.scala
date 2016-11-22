@@ -23,7 +23,7 @@ object Skink {
     /**
      * Utility method to convert an automta into DOT format.
      */
-    def toDot[S, L](nfa : NFA[S, L], name : String, stateMap : Map[S, String] = Map[S, String]()) : String =
+    def toDot[S](nfa : NFA[S, Choice], name : String, stateMap : Map[S, String] = Map[S, String]()) : String =
         DOTPrettyPrinter.show(
             DotConverter.toDot(
                 nfa.copy(name = name),
@@ -39,8 +39,29 @@ object Skink {
                     List(label, style)
                 },
                 (b : S) => '"' + b.toString + '"',
-                (i : L) => { val c = i.asInstanceOf[Choice]; c.threadId + "," + c.branchId }
+                (i : Choice) => { i.threadId + "," + i.branchId }
             )
         )
 
+    import au.edu.mq.comp.skink.ir.Choice
+    /**
+     * Utility method to convert an automta into DOT format.
+     */
+    def toDotSpec[S](nfa : NFA[S, Choice], name : String, stateMap : Map[S, String] = Map[S, String]()) : DotSpec =
+        DotConverter.toDot(
+            nfa.copy(name = name),
+            (b : S) => {
+                val label = Attribute("label", StringLit(stateMap.get(b).getOrElse(b.toString)))
+                val style =
+                    Attribute("shape", if (nfa.getInit.contains(b))
+                        Ident("circle")
+                    else if (nfa.accepting.contains(b))
+                        Ident("doublecircle")
+                    else
+                        Ident("oval"))
+                List(label, style)
+            },
+            (b : S) => '"' + b.toString + '"',
+            (i : Choice) => { i.threadId + "," + i.branchId }
+        )
 }

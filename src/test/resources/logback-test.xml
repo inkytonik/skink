@@ -78,7 +78,7 @@
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="INFO"/>
+    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>

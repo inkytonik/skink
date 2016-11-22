@@ -93,7 +93,7 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(program : IR) : Try[Option[FailureTrace]] = {
 
-        val reducer = DPOR(program.dca, {x : Choice => x.threadId}, program.independent _)
+        val reducer = DPOR(program.dca, { x : Choice => x.threadId }, program.independent _)
         reducer.getTrace()
         val programLang = Lang(toDetNFA(reducer.getExploredGraph)._1)
 
