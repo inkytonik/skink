@@ -187,8 +187,8 @@ class TraceRefinement(config : SkinkConfig) {
                                     toDetNFA(r +
                                     (
                                         buildInterpolantAuto(function, choices, iteration)
-                                        +
-                                        buildInterpolantAuto(function, choices, iteration, fromEnd = true)
+                                    // +
+                                    // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
                                     ))._1,
                                     iteration + 1
                                 )
