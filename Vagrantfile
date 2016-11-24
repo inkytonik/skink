@@ -23,6 +23,8 @@ Vagrant.configure(2) do |config|
     # clang 3.7 install
     apt-get install -y --allow-unauthenticated llvm-3.7-dev
     apt-get install -y --allow-unauthenticated clang-3.7
+    ln -s /usr/bin/clang-3.7 /usr/bin/clang
+    ln -s /usr/bin/opt-3.7 /usr/bin/opt
 
     # z3 install (on the 7th Nov 2016 this is installing 4.4.1)
     apt-get install -y --allow-unauthenticated z3
