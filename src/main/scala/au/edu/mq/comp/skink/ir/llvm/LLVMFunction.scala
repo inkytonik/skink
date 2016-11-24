@@ -356,12 +356,14 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         val termBuilder = new LLVMTermBuilder(namer, config)
 
         // Make a single term for this block and choice
-        val term = combineTerms(namer, termBuilder.blockTerms(block, None, choice))
+        val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
+        val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
 
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))
 
     }
+
     /**
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
@@ -413,10 +415,15 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
                     Some(label2)
                 case IndirectBr(_, _, labels) if (choice >= 0) && (choice < labels.length) =>
                     Some(labels(choice))
+                case Switch(IntT(_), _, dfltLabel, cases) if (choice >= 0) && (choice <= cases.length) =>
+                    if (choice == cases.length)
+                        Some(dfltLabel)
+                    else
+                        Some(cases(choice).label)
                 case Unreachable() =>
                     None
                 case insn =>
-                    sys.error(s"nextBlock: unexpected terminator insn $insn")
+                    sys.error(s"nextBlock: unexpected terminator insn $insn with choice $choice")
             }
         optNextBlockLabel match {
             case Some(Label(name)) =>

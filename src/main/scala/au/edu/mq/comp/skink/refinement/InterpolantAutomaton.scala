@@ -77,7 +77,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new Z3 with QF_AUFLIA) {
+                res = using(new Z3) {
                     implicit solver =>
                         function.checkPost(
                             x1,
@@ -89,6 +89,10 @@ trait AddBackEdges extends Core with Resources {
                 };
                 uu = {
                     itpLogger.info(s"Result of checkPost $res")
+                    res match {
+                        case Success(_) =>
+                        case Failure(_) => sys.error(s"Result of checkPost $res")
+                    }
                 };
                 if (res == Success(true))
             ) yield {
@@ -135,7 +139,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new Z3 with QF_AUFLIA with Interpolants) {
+        using(new Z3 with Interpolants) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 

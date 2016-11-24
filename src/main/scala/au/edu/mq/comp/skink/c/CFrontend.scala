@@ -19,6 +19,8 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
     val name = "C"
 
+    val devnull = new java.io.ByteArrayOutputStream
+
     def buildIR(source : Source, positions : Positions) : Either[IR, Messages] = {
         programLogger.debug("* Program from source\n")
         programLogger.debug(source.content)
@@ -35,47 +37,65 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
         import sys.process._
 
+        def checkFor(program : String) : Option[Messages] =
+            if ((s"which $program" #> devnull).! == 0) {
+                val progv = s"$program --version".!!
+                logger.info(s"buildIRFromFile: $program version is $progv")
+                None
+            } else {
+                val msg = s"buildIRFromFile: $program not present on path"
+                logger.info(msg)
+                Some(Vector(Message(msg, msg)))
+            }
+
+        def dotc2dotll(filename : String) : String = {
+            (if (filename.lastIndexOf(".") >= 0)
+                filename.substring(0, filename.lastIndexOf('.'))
+            else
+                filename) + ".ll"
+        }
+
         // Setup args and filenames
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
         val llfile = dotc2dotll(filename)
-        val optargs = s"-S -inline -inline-threshold=100000 -o $llfile"
+        val opt1args = s"-S -inline -inline-threshold=150000 -o -"
+        val grepargs = "-v -e @llvm.lifetime"
+        val opt2args = s"-S -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
 
-        // Check for clang and opt on PATH
-        val devnull = new java.io.ByteArrayOutputStream
-        val clangq = ("which clang" #> devnull).! == 0
-        val optq = ("which opt" #> devnull).! == 0
-        if (!clangq || !optq) {
-            val msg = "buildIRFromFile: clang or opt not present on path"
-            logger.info(msg)
-            return Right(Vector(Message(msg, msg)))
-        }
-        val clangv = "clang --version".!!
-        val optv = "opt --version".!!
-        logger.info(s"buildIRFromFile: clang version is $clangv")
-        logger.info(s"buildIRFromFile: opt version is $optv")
+        def run() : Either[IR, Messages] = {
+            logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
+            val res = (s"clang $clangargs" #| s"opt $opt1args" #| s"grep $grepargs" #| s"opt $opt2args").!
+            if (res == 0) {
+                logger.info("buildIRFromFile: LLVM program build succeeded")
 
-        // Run clang and opt
-        logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
-        val res = (s"clang $clangargs" #| s"opt $optargs").!
-        if (res == 0) {
-            logger.info("buildIRFromFile: LLVM program build succeeded")
-        } else {
-            val msg = s"buildIRFromFile: conversion to LLVM failed with code $res"
-            logger.info(msg)
-            return Right(Vector(Message(msg, msg)))
+                // Use LLVM frontend from here
+                (new LLVMFrontend(config)).buildIR(FileSource(llfile), positions)
+            } else {
+                val msg = s"buildIRFromFile: conversion to LLVM failed with code $res"
+                logger.info(msg)
+                Right(Vector(Message(msg, msg)))
+            }
         }
 
-        // Use LLVM frontend from here
-        (new LLVMFrontend(config)).buildIR(FileSource(llfile), positions)
-    }
-
-    def dotc2dotll(filename : String) : String = {
-        (if (filename.lastIndexOf(".") >= 0)
-            filename.substring(0, filename.lastIndexOf('.'))
-        else
-            filename) + ".ll"
+        // Check for required programs on PATH and if ok, run them
+        checkFor("clang") match {
+            case Some(msgs) =>
+                Right(msgs)
+            case None =>
+                checkFor("opt") match {
+                    case Some(msgs) =>
+                        Right(msgs)
+                    case None =>
+                        checkFor("grep") match {
+                            case Some(msgs) =>
+                                Right(msgs)
+                            case None =>
+                                run()
+                        }
+                }
+        }
     }
 
 }

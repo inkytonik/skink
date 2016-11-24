@@ -1,108 +1,95 @@
 FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
+<graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://graphml.graphdrawing.org/xmlns"
+>
 
-<key id="sourcecodelang" for="graph"/>
-
-<key id="block" for="node"/>
-<key id="entry" for="node"><default>false</default></key>
-<key id="file" for="node"/>
-<key id="sourcecode" for="node"/>
-<key id="violation" for="node"><default>false</default></key>
-
-<key id="endline" for="edge"/>
-<key id="file" for="edge"/>
-<key id="sourcecode" for="edge"/>
-<key id="startline" for="edge"/>
+<key id="entry"         for="node"  attr.name="entry"           attr.type="boolean"><default>false</default></key>
+<key id="block"         for="node"  attr.name="block"           attr.type="int"   />
+<key id="node.src"      for="edge"  attr.name="sourcecode"      attr.type="string"/>
+<key id="edge.src"      for="node"  attr.name="sourcecode"      attr.type="string"/>
+<key id="startline"     for="edge"  attr.name="startline"       attr.type="int"   />
+<key id="endline"       for="edge"  attr.name="endline"         attr.type="int"   />
+<key id="violation"     for="node"  attr.name="isViolationNode" attr.type="boolean"><default>false</default></key>
+<key id="specification" for="graph" attr.name="specification"   attr.type="string"/>
+<key id="producer"      for="graph" attr.name="producer"        attr.type="string"/>
+<key id="programfile"   for="graph" attr.name="programFile"     attr.type="string"/>
 
 <graph edgedefault="directed">
-
-<data key="sourcecodelang">C</data>
+  <data key="producer">skink</data>
+  <data key="specification">CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="file">simple-loop_false-unreach-call.c</data>
   <data key="block">0</data>
-  <data key="sourcecode">int r;</data>
+  <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
   <data key="startline">12</data>
   <data key="endline">12</data>
 </edge>
 
 <node id="N1">
-  <data key="file">simple-loop_false-unreach-call.c</data>
   <data key="block">4</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
   <data key="startline">12</data>
   <data key="endline">12</data>
 </edge>
 
 <node id="N2">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="block">7</data>
-  <data key="sourcecode">__VERIFIER_assert(r &gt; 0);</data>
+  <data key="block">10</data>
+  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
 </node>
 
 <edge id="E2" source="N2" target="N3">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">if (!(cond)) {</data>
+  <data key="edge.src">if (!(cond)) {</data>
   <data key="startline">4</data>
   <data key="endline">4</data>
 </edge>
 
 <node id="N3">
-  <data key="file">simple-loop_false-unreach-call.c</data>
   <data key="block">__VERIFIER_assert.exit</data>
-  <data key="sourcecode">return;</data>
+  <data key="node.src">r = r - 1;</data>
 </node>
 
 <edge id="E3" source="N3" target="N4">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
   <data key="startline">12</data>
   <data key="endline">12</data>
 </edge>
 
 <node id="N4">
-  <data key="file">simple-loop_false-unreach-call.c</data>
   <data key="block">4</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E4" source="N4" target="N5">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">while (r &gt; 0) {</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
   <data key="startline">12</data>
   <data key="endline">12</data>
 </edge>
 
 <node id="N5">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="block">18</data>
-  <data key="sourcecode">__VERIFIER_assert(r &gt; 0);</data>
+  <data key="block">16</data>
+  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
 </node>
 
 <edge id="E5" source="N5" target="N6">
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="sourcecode">if (!(cond)) {</data>
+  <data key="edge.src">if (!(cond)) {</data>
   <data key="startline">4</data>
   <data key="endline">4</data>
 </edge>
 
 <node id="N6">
   <data key="violation">true</data>
-  <data key="file">simple-loop_false-unreach-call.c</data>
-  <data key="block">25</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="block">19</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
 </graph>
