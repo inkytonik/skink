@@ -66,14 +66,16 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
         def run() : Either[IR, Messages] = {
             logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
-            val res = (s"clang $clangargs" #| s"opt $opt1args" #| s"grep $grepargs" #| s"opt $opt2args").!
+            val os = new java.io.ByteArrayOutputStream
+            val res = (s"clang $clangargs" #| s"opt $opt1args" #| s"grep $grepargs" #| s"opt $opt2args" #> os).!
+            val output = os.toString("utf8")
             if (res == 0) {
-                logger.info("buildIRFromFile: LLVM program build succeeded")
+                logger.info(s"buildIRFromFile: LLVM program build succeeded with output '$output'")
 
                 // Use LLVM frontend from here
                 (new LLVMFrontend(config)).buildIR(FileSource(llfile), positions)
             } else {
-                val msg = s"buildIRFromFile: conversion to LLVM failed with code $res"
+                val msg = s"buildIRFromFile: conversion to LLVM failed with code $res and output '$output'"
                 logger.info(msg)
                 Right(Vector(Message(msg, msg)))
             }
