@@ -21,7 +21,6 @@ class TraceRefinement(config : SkinkConfig) {
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
-    // import smtlib.interpreters.Configurations.QFAUFLIAFullConfig
     import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
     import au.edu.mq.comp.smtlib.parser.Analysis
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
@@ -29,7 +28,6 @@ class TraceRefinement(config : SkinkConfig) {
     import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
     import au.edu.mq.comp.smtlib.configurations.Configurations._
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-    // import smtlib.util.Implicits._
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
@@ -107,14 +105,14 @@ class TraceRefinement(config : SkinkConfig) {
                         case MathIntegerMode() =>
                             new Z3 with AUFNIRA with Interpolants with Models
                         case BitIntegerMode() =>
-                            new Z3 with AUFNIRA with Interpolants with Models
+                            new Z3 with QF_ABV with Interpolants with Models
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
                             new CVC4 with AUFNIRA with Models
                         case BitIntegerMode() =>
-                            new CVC4 with AUFNIRA with Models
+                            new CVC4 with QF_ABV with Models
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
@@ -195,8 +193,9 @@ class TraceRefinement(config : SkinkConfig) {
                                 refineRec(
                                     toDetNFA(r +
                                     (
-                                        buildInterpolantAuto(program, choices) +
-                                        buildInterpolantAuto(program, choices, fromEnd = true)
+                                        buildInterpolantAuto(program, choices, iteration)
+                                        +
+                                        buildInterpolantAuto(program, choices, iteration, fromEnd = true)
                                     ))._1,
                                     iteration + 1
                                 )
@@ -213,5 +212,4 @@ class TraceRefinement(config : SkinkConfig) {
         // Start the refinement algorithm with no "ruled out" traces.
         refineRec(NFA[Int, Choice](Set(), Set(), Set()), 0)
     }
-
 }

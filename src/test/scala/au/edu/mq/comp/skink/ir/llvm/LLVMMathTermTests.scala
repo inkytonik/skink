@@ -47,7 +47,10 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         (SDiv(Exact()), iz === (ix / iy)),
         (SDiv(NotExact()), iz === (ix / iy)),
         (SRem(), iz === (ix % iy)),
-        (Sub(Vector()), iz === (ix - iy))
+        (Sub(Vector()), iz === (ix - iy)),
+        (UDiv(Exact()), iz === (ix / iy)),
+        (UDiv(NotExact()), iz === (ix / iy)),
+        (URem(), iz === (ix % iy))
     )
 
     for ((op, term) <- integerBinaryOps) {
@@ -72,9 +75,6 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         (LShR(NotExact()), IntT(32), "binary integer op lshr not handled"),
         (Or(), IntT(32), "binary integer op or not handled"),
         (ShL(Vector()), IntT(32), "binary integer op shl not handled"),
-        (UDiv(Exact()), IntT(32), "binary integer op udiv exact not handled"),
-        (UDiv(NotExact()), IntT(32), "binary integer op udiv not handled"),
-        (URem(), IntT(32), "binary integer op urem not handled"),
         (XOr(), IntT(32), "binary integer op xor not handled")
     )
 

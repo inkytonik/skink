@@ -52,15 +52,10 @@ trait AddBackEdges extends Core with Resources {
 
         //  Compute candidate backEdges from the indexPartition
         //  for each partition with more than 2 elements, build the candidate min, max
-        // val candidatePairs = indexPartition.filter(_.size > 1) map (xl => (xl.min, xl.max))
-
-        //  Compute candidate backEdges from the indexPartition
-        //  for each partition with more than 2 elements, build the candidate min, max
         val candidatePairs =
             indexPartition.filter(_.size > 1).map(_.toList).map(generatePairs(_)).flatten.flatten
 
         itpLogger.info(s"candidate pairs $candidatePairs")
-        //  (xl => (xl.min, xl.max))
 
         /**
          * Check if backedges can be added to the linear automaton
@@ -73,8 +68,6 @@ trait AddBackEdges extends Core with Resources {
         val newBackEdges =
             for (
                 (i, j) <- candidatePairs;
-                // tgtItp = completeItp(i + 1);
-                // srcItp = completeItp(j);
                 x1 = completeItp(j).unIndexed;
                 x2 = completeItp(i + 1).unIndexed;
                 u = {
@@ -84,7 +77,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new Z3 with QF_AUFLIA) {
+                res = using(new Z3) {
                     implicit solver =>
                         program.checkPost(
                             x1,
@@ -96,6 +89,10 @@ trait AddBackEdges extends Core with Resources {
                 };
                 uu = {
                     itpLogger.info(s"Result of checkPost $res")
+                    res match {
+                        case Success(_) =>
+                        case Failure(_) => sys.error(s"Result of checkPost $res")
+                    }
                 };
                 if (res == Success(true))
             ) yield {
@@ -142,7 +139,7 @@ case class Interpolant(program : IR, choices : Seq[Choice], fromEnd : Boolean) e
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new Z3 with QF_AUFLIA with Interpolants) {
+        using(new Z3 with Interpolants) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 
@@ -191,7 +188,7 @@ object InterpolantAuto extends AddBackEdges {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
-        NFA(Set(0), transitions.toSet, Set(choices.length))
+        NFA(Set(0), transitions.toSet, Set(choices.length), Set(choices.length))
     }
 
     /**
@@ -201,6 +198,7 @@ object InterpolantAuto extends AddBackEdges {
     def buildInterpolantAuto(
         program : IR,
         choices : Seq[Choice],
+        iteration : Int,
         fromEnd : Boolean = false
     ) : NFA[Int, Choice] = {
 
@@ -225,17 +223,23 @@ object InterpolantAuto extends AddBackEdges {
                 val itpAuto = NFA(
                     linearAuto.getInit,
                     linearAuto.transitions ++ newBackEdges,
+                    linearAuto.accepting,
                     linearAuto.accepting
                 )
                 //  dump the automaton if logger is enabled
                 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
-                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, "itp[" + fromEnd + "]"))
+                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
                 itpAuto
 
             //  computation of predicates failed
             case Failure(f) =>
                 itpLogger.warn(s"Solver could note compute interpolants $f")
-                linearAuto
+                NFA(
+                    linearAuto.getInit,
+                    linearAuto.transitions,
+                    linearAuto.accepting,
+                    linearAuto.accepting
+                )
         }
     }
 }

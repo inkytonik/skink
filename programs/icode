@@ -11,8 +11,9 @@ do
   clangwargs="-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
   clangdefs="-Dassert=__VERIFIER_assert"
   clangargs="-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
+  optargs="-S -inline -inline-threshold=100000 -mem2reg -simplifycfg -loops -lcssa -loop-simplify -loop-rotate -loop-unroll -unroll-count=10 -o -"
 
   clang $clangargs $file |
-     opt -S -inline -o - |
+     opt $optargs |
      sed -e 's/directory: "[^"]*"/directory: "."/' >$llfile
 done

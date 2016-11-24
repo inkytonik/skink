@@ -22,51 +22,73 @@ FALSE
 <node id="N0">
   <data key="entry">true</data>
   <data key="block">0</data>
-  <data key="node.src">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
+  <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">while(1) {</data>
-  <data key="startline">20</data>
-  <data key="endline">20</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
+  <data key="startline">12</data>
+  <data key="endline">12</data>
 </edge>
 
 <node id="N1">
-  <data key="block">3</data>
-  <data key="node.src">cond = __VERIFIER_nondet_int();</data>
+  <data key="block">4</data>
+  <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
-  <data key="edge.src">if (cond == 0) {</data>
-  <data key="startline">22</data>
-  <data key="endline">22</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
+  <data key="startline">12</data>
+  <data key="endline">12</data>
 </edge>
 
 <node id="N2">
-  <data key="block">7</data>
-  <data key="node.src">lk1 = 0; // initially lock is open</data>
+  <data key="block">10</data>
+  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
 </node>
 
 <edge id="E2" source="N2" target="N3">
-  <data key="edge.src">if (p1 != 0) {</data>
-  <data key="startline">28</data>
-  <data key="endline">28</data>
+  <data key="edge.src">if (!(cond)) {</data>
+  <data key="startline">4</data>
+  <data key="endline">4</data>
 </edge>
 
 <node id="N3">
-  <data key="block">10</data>
-  <data key="node.src">if (lk1 != 1) goto ERROR; // assertion failure</data>
+  <data key="block">__VERIFIER_assert.exit</data>
+  <data key="node.src">r = r - 1;</data>
 </node>
 
 <edge id="E3" source="N3" target="N4">
-  <data key="edge.src">if (lk1 != 1) goto ERROR; // assertion failure</data>
-  <data key="startline">29</data>
-  <data key="endline">29</data>
+  <data key="edge.src">while (r &gt; 0) {</data>
+  <data key="startline">12</data>
+  <data key="endline">12</data>
 </edge>
 
 <node id="N4">
+  <data key="block">4</data>
+  <data key="node.src">while (r &gt; 0) {</data>
+</node>
+
+<edge id="E4" source="N4" target="N5">
+  <data key="edge.src">while (r &gt; 0) {</data>
+  <data key="startline">12</data>
+  <data key="endline">12</data>
+</edge>
+
+<node id="N5">
+  <data key="block">16</data>
+  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
+</node>
+
+<edge id="E5" source="N5" target="N6">
+  <data key="edge.src">if (!(cond)) {</data>
+  <data key="startline">4</data>
+  <data key="endline">4</data>
+</edge>
+
+<node id="N6">
   <data key="violation">true</data>
-  <data key="block">15</data>
+  <data key="block">19</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 

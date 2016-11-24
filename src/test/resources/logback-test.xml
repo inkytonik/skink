@@ -115,13 +115,16 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkpost" level="OFF" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="OFF" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="OFF" additivity="false">
+        <appender-ref ref="ITPFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="OFF" additivity="false">
         <appender-ref ref="ITPAUTOFILE"/>
     </logger>
 
