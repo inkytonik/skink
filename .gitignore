@@ -12,4 +12,5 @@ witness_checks
 .tag*
 *.dot
 *.ll
+*.graphml
 .ctags

@@ -1,56 +1,62 @@
 FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
+<graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xmlns="http://graphml.graphdrawing.org/xmlns"
+>
 
-<key id="sourcecodelang" for="graph"/>
-
-<key id="block" for="node"/>
-<key id="entry" for="node"><default>false</default></key>
-<key id="file" for="node"/>
-<key id="sourcecode" for="node"/>
-<key id="violation" for="node"><default>false</default></key>
-
-<key id="endline" for="edge"/>
-<key id="file" for="edge"/>
-<key id="sourcecode" for="edge"/>
-<key id="startline" for="edge"/>
+<key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
+<key id="block"          for="node"  attr.name="block"            attr.type="int"   />
+<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
+<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
+<key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
+<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
+<key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
+<key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
+<key id="specification"  for="graph" attr.name="specification"    attr.type="string"/>
+<key id="programfile"    for="graph" attr.name="programFile"      attr.type="string"/>
+<key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
+<key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
+<key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
 
 <graph edgedefault="directed">
-
-<data key="sourcecodelang">C</data>
+  <data key="witness-type"  >violation_witness</data>
+  <data key="sourcecodelang">C</data>
+  <data key="producer"      >skink</data>
+  <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
+  <data key="programfile"   >src/test/resources/citests/simple-if_false-unreach-call.c</data>
+  <data key="programhash"   >a60093b378064b30851185f46a0dd94351b48bc6</data>
+  <data key="memorymodel"   >simple</data>
+  <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="file">simple-if_false-unreach-call.c</data>
   <data key="block">0</data>
-  <data key="sourcecode">int i, j;</data>
+  <data key="node.src">int i, j;</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="file">simple-if_false-unreach-call.c</data>
-  <data key="sourcecode">if (i &gt; j)</data>
+  <data key="edge.src">if (i &gt; j)</data>
   <data key="startline">13</data>
   <data key="endline">13</data>
 </edge>
 
 <node id="N1">
-  <data key="file">simple-if_false-unreach-call.c</data>
   <data key="block">6</data>
-  <data key="sourcecode">__VERIFIER_assert (i &lt;= j);</data>
+  <data key="node.src">__VERIFIER_assert (i &lt;= j);</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
-  <data key="file">simple-if_false-unreach-call.c</data>
-  <data key="sourcecode">if (!(cond)) {</data>
+  <data key="edge.src">if (!(cond)) {</data>
   <data key="startline">4</data>
   <data key="endline">4</data>
 </edge>
 
 <node id="N2">
   <data key="violation">true</data>
-  <data key="file">simple-if_false-unreach-call.c</data>
   <data key="block">14</data>
-  <data key="sourcecode">ERROR: __VERIFIER_error();</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
 </graph>
