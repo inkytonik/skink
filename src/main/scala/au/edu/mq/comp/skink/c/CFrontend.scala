@@ -37,15 +37,15 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
         import sys.process._
 
-        def checkFor(program : String) : Option[Messages] =
+        def checkFor(program : String) : Messages =
             if ((s"which $program" #> devnull).! == 0) {
                 val progv = s"$program --version".!!
                 logger.info(s"buildIRFromFile: $program version is $progv")
-                None
+                Vector()
             } else {
                 val msg = s"buildIRFromFile: $program not present on path"
                 logger.info(msg)
-                Some(Vector(Message(msg, msg)))
+                Vector(Message(msg, msg))
             }
 
         def dotc2dotext(filename : String, ext : String) : String = {
@@ -57,6 +57,11 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
         // Setup filenames
         val llfile = dotc2dotext(filename, ".ll")
+
+        // Programs we may run
+        val clang = "clang"
+        val opt = "opt"
+        val programs = List(clang, opt)
 
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
@@ -80,7 +85,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         def run() : Either[IR, Messages] = {
-            val (res, output) = runPipeline(s"clang $clangargs", s"opt $optargs")
+            val (res, output) = runPipeline(s"$clang $clangargs", s"$opt $optargs")
             if (res == 0) {
                 logger.info(s"buildIRFromFile: compile and optimize succeeded with output '$output'")
                 logger.info(s"buildIRFromFile: running LLVM frontend on $llfile")
@@ -90,23 +95,14 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             }
         }
 
-        // Check for required programs on PATH and if ok, run them
-        checkFor("clang") match {
-            case Some(msgs) =>
-                Right(msgs)
-            case None =>
-                checkFor("opt") match {
-                    case Some(msgs) =>
-                        Right(msgs)
-                    case None =>
-                        checkFor("grep") match {
-                            case Some(msgs) =>
-                                Right(msgs)
-                            case None =>
-                                run()
-                        }
-                }
+        // Check for required programs on PATH, report errors or if ok, run them
+        programs.flatMap(checkFor) match {
+            case Nil =>
+                run()
+            case msgs =>
+                Right(msgs.toVector)
         }
+
     }
 
 }
