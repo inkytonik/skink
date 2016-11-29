@@ -19,8 +19,6 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
     val name = "C"
 
-    val devnull = new java.io.ByteArrayOutputStream
-
     def buildIR(source : Source, positions : Positions) : Either[IR, Messages] = {
         programLogger.debug("* Program from source\n")
         programLogger.debug(source.content)
@@ -37,16 +35,20 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
         import sys.process._
 
-        def checkFor(program : String) : Messages =
-            if ((s"which $program" #> devnull).! == 0) {
-                val progv = s"$program --version".!!
-                logger.info(s"buildIRFromFile: $program version is $progv")
+        def checkFor(program : String) : Messages = {
+            val which = new java.io.ByteArrayOutputStream
+            if ((s"which $program" #> which).! == 0) {
+                logger.info(s"buildIRFromFile: $program is $which")
+                val version = new java.io.ByteArrayOutputStream
+                if ((s"$program --version" #> version).! == 0)
+                    logger.info(s"buildIRFromFile: $program version is $version")
                 Vector()
             } else {
-                val msg = s"buildIRFromFile: $program not present on path"
+                val msg = s"buildIRFromFile: $program not present on PATH"
                 logger.info(msg)
                 Vector(Message(msg, msg))
             }
+        }
 
         def dotc2dotext(filename : String, ext : String) : String = {
             (if (filename.lastIndexOf(".") >= 0)
@@ -55,8 +57,33 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 filename) + ext
         }
 
+        // Run a pipeline of commands, return status and output
+        def runPipeline(command : String, rest : String*) : (Int, String) = {
+            for (stage <- command +: rest) {
+                logger.info(s"buildIRFromFile: $stage")
+            }
+            val process = rest.foldLeft(Process(command))(_ #&& _)
+            val os = new java.io.ByteArrayOutputStream
+            val res = (process #> os).!
+            (res, os.toString)
+        }
+
+        def fail(msg : String) : Either[IR, Messages] = {
+            logger.info(msg)
+            Right(Vector(Message(msg, msg)))
+        }
+
+        def logfile(title : String, filename : String) {
+            programLogger.debug(s"\n* $title\n\n")
+            programLogger.debug(FileSource(filename).content)
+        }
+
+        def deleteFile(filename : String) {
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filename))
+        }
         // Setup filenames
-        val llfile = dotc2dotext(filename, ".ll")
+        val clangllfile = dotc2dotext(filename, ".clang.ll")
+        val optllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
         val clang = "clang"
@@ -66,33 +93,24 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
-        val optargs = s"-S -inline -inline-threshold=150000 -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
-
-        // Run a pipeline of commands, return status and output
-        def runPipeline(command : String, rest : String*) : (Int, String) = {
-            logger.info(s"buildIRFromFile: ${rest.foldLeft(command)(_ ++ " | " ++ _)}")
-            val process = rest.foldLeft(Process(command))(_ #| _)
-            val os = new java.io.ByteArrayOutputStream
-            val res = (process #> os).!
-            (res, os.toString("utf8"))
-        }
-
-        // Fail the run with a given message
-        def fail(msg : String) : Either[IR, Messages] = {
-            logger.info(msg)
-            Right(Vector(Message(msg, msg)))
-        }
+        val clangargs = s"-c -S -emit-llvm -g -o $clangllfile -x c $clangdefs $clangwargs"
+        val optargs = s"-S -inline -inline-threshold=150000 -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare $clangllfile -o $optllfile"
 
         def run() : Either[IR, Messages] = {
-            val (res, output) = runPipeline(s"$clang $clangargs", s"$opt $optargs")
+            deleteFile(clangllfile)
+            deleteFile(optllfile)
+            val (res, output) = runPipeline(
+                s"$clang $clangargs",
+                s"$opt $optargs"
+            )
+            logfile("Clang output", clangllfile)
+            logfile("Opt output", optllfile)
             if (res == 0) {
-                logger.info(s"buildIRFromFile: compile and optimize succeeded with output '$output'")
-                logger.info(s"buildIRFromFile: running LLVM frontend on $llfile")
-                (new LLVMFrontend(config)).buildIR(FileSource(llfile), positions)
-            } else {
-                fail(s"buildIRFromFile: compile and optimize failed with code $res and output '$output'")
-            }
+                logger.info(s"buildIRFromFile: preparing LLVM code succeeded with output '$output'")
+                logger.info(s"buildIRFromFile: running LLVM frontend on $optllfile")
+                (new LLVMFrontend(config)).buildIR(FileSource(optllfile), positions)
+            } else
+                fail(s"buildIRFromFile: preparing LLVM code failed with code $res and output '$output'")
         }
 
         // Check for required programs on PATH, report errors or if ok, run them
