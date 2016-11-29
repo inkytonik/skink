@@ -44,7 +44,7 @@ FALSE
 
 <node id="N1">
   <data key="violation">true</data>
-  <data key="block">8</data>
+  <data key="block">10</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
