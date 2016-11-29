@@ -48,22 +48,20 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 Some(Vector(Message(msg, msg)))
             }
 
-        def dotc2dotll(filename : String) : String = {
+        def dotc2dotext(filename : String, ext : String) : String = {
             (if (filename.lastIndexOf(".") >= 0)
                 filename.substring(0, filename.lastIndexOf('.'))
             else
-                filename) + ".ll"
+                filename) + ext
         }
 
         // Setup filenames
-        val llfile = dotc2dotll(filename)
+        val llfile = dotc2dotext(filename, ".ll")
 
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
-        val grepargs = "-v -e @llvm.lifetime"
-        val opt2args = s"-S -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
         val optargs = s"-S -inline -inline-threshold=150000 -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
 
         // Run a pipeline of commands, return status and output
@@ -82,7 +80,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         def run() : Either[IR, Messages] = {
-            val (res, output) = runPipeline(s"clang $clangargs", s"grep $grepargs", s"opt $optargs")
+            val (res, output) = runPipeline(s"clang $clangargs", s"opt $optargs")
             if (res == 0) {
                 logger.info(s"buildIRFromFile: compile and optimize succeeded with output '$output'")
                 logger.info(s"buildIRFromFile: running LLVM frontend on $llfile")
