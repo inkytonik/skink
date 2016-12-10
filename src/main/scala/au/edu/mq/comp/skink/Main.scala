@@ -138,6 +138,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Verify the target code (default: false)",
         default = Some(false))
 
+    lazy val witnessFile = opt[String]("witness-file", short = 'w',
+        descr = "File into which witness is written (- means standard output, default: witness.graphml)",
+        default = Some("witness.graphml"))
+
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {

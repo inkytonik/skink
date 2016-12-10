@@ -9,6 +9,7 @@ class Witnesses(config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
+    import org.bitbucket.inkytonik.kiama.util.FileEmitter
     import java.io.File
 
     val logger = getLogger(this.getClass)
@@ -134,7 +135,15 @@ class Witnesses(config : SkinkConfig) {
                |</graphml>
                |""".stripMargin
 
-        config.output().emit(witness)
+        if (config.witnessFile() == "-") {
+            logger.info("printWitness: writing witness to standard output")
+            config.output().emit(witness)
+        } else {
+            logger.info(s"printWitness: writing witness to ${config.witnessFile()}")
+            val emitter = new FileEmitter(config.witnessFile())
+            emitter.emit(witness)
+            emitter.close()
+        }
 
     }
 
