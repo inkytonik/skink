@@ -53,31 +53,27 @@ just compile Skink into class files.
 
 * Find the sv-benchmarks
 
-The sv-benchmarks repo will be checked out at /home/vagrant/sv-benchmarks
-
-* Configure your benchmark run
-
-Edit benchmark.xml at the top level of the Skink repo. Most of it
-should be fine as is, but you may want to configure which benchmark
-sets are run. One like this selects a set from the sv-benchmarks:
-
-    <tasks name="Loops">
-      <includesfile>/home/vagrant/sv-benchmarks/c/Loops.set</includesfile>
-    </tasks>
+The sv-benchmarks repo will be checked out at /home/vagrant/sv-benchmarks and
+also linked to /sv-benchmarks so processes running in /vagrant can reference
+the benchmarks via ../sv-benchmarks. This extra link helps us reuse some
+SV-COMP files which use this .. convention.
 
 * Run the benchmarks
+
+The bench script will perform the following steps:
+
+- run benchexec using Skink to verify the chosen benchmarks
+- run benchexec using CPAchecker to verify the witnesses produced by Skink
+- merge the verification and validation results into a single HTML table
+- print the name of the file containing the table
 
 Run the command
 
     ./bench
 
-at the top-level of the Skink repo to execute BenchExec with your selected
-benchmarks. You should see progress messages and a summary table at the end.
-Here's an example:
+You should see progress messages and a summary table at the end. Here's an example:
 
-    vagrant@vagrant-ubuntu-trusty-64:/vagrant$ ./bench
-
-    executing run set 'skink17.Skink simple'     (14 files)
+    executing run set 'sv-comp17.Foo'     (14 files)
     03:04:10   count-up-down_false-unreach-call.c             false(reach)              6.36    7.80
     03:04:18   eca-like_false-unreach-call.c                  false(reach)              5.76    6.10
     03:04:24   multiple-error-calls_false-unreach-call.c      false(reach)              5.95    6.28
@@ -103,21 +99,39 @@ Here's an example:
       unknown:               6
       Score:                11 (max: 22)
 
-    In order to get HTML and CSV tables, run
-    table-generator 'results/benchmark.2016-10-14_0304.results.skink17.Skink simple.xml.bz2'
-
 The BenchExec results, log files etc can be found in the results sub-directory.
 
-You can also use the program table-generator to produce a HTML table report from
-the results files. BenchExec will print out the command to use at the end of the
-run (see the last line of the example above).
+The script will continue with another benchexec run to validate the witnesses. The output
+will be similar to that above. The witness validation results will be placed in the
+results-witness sub-direction and output from CPAchecker will be in the output sub-directory.
+
+bench also uses the program table-generator and a merging Python script to produce a
+single HTML table report from the verification and validation results files. The script
+will print out the name of this HTML file at the end of its run.
 
 * Run BenchExec on specific tasks
 
 You can supply an argument to the bench script to just run on particular benchmark
 tasks, as in
 
-    ./bench --tasks Loops
+    ./bench -t Loops
+
+to just run on the SV-COMP Loops category.
+
+* Setting up test tasks
+
+The repository contains a task set file `Test.set` which you can use to easily set
+up runs that don't involve all of a real SV-COMP task set. E.g., by making the
+contents of `Test.set` the following two lines:
+
+    ../sv-benchmarks/c/loops/array_false-unreach-call_true-termination.i
+    ../sv-benchmarks/c/loops/array_true-unreach-call_true-termination.i
+
+you can run
+
+    ./bench -t Test
+
+to just run a test on those two benchmark files.    
 
 * Run Skink on a single benchmark file
 

@@ -4,7 +4,9 @@ project/project/target
 *.log
 .vagrant/**
 sv-benchmarks/**
-results/**
+results-verified/**
+results-witness/**
+output/**
 smtinterpol.jar
 .DS_Store
 skink.jar

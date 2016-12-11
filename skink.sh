@@ -2,7 +2,7 @@
 
 if test $# -eq 0
 then
-  echo "usage: skink.sh option... file.c"
+  echo "usage: skink.sh file.c"
   exit 1
 fi
 
@@ -11,7 +11,8 @@ base=${file%.*}
 wtnfile=$file.graphml
 veriffile=$base.verif
 
-skinkdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export PATH=./bin/:$PATH
+export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
 
 java -Xmx1400m -Xss5m \
   -cp ./:target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar \
@@ -20,3 +21,6 @@ java -Xmx1400m -Xss5m \
   --witness-file $wtnfile \
   $* | \
   tee $veriffile
+
+[ -f $veriffile ] && echo "${veriffile} found" 1>&2 || echo "verification output file (${verffile}) not found" 1>&2
+[ -f $wtnfile ] && echo "${wtnfile} found" 1>&2 || echo "witness output file (${wtnfile}) not found" 1>&2

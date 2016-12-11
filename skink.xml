@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
+<benchmark tool="skink" timelimit="900 s" memlimit="2 GB" cpuCores="1">
+<!-- <benchmark tool="skink" timelimit="900 s" memlimit="15 GB" cpuCores="2"> -->
+
+<require cpuModel="Intel Core i7-6700" cpuCores="2"/>
+
+  <resultfiles>**.graphml</resultfiles>
+
+  <rundefinition name="sv-comp17"></rundefinition>
+
+  <tasks name="Test">
+    <includesfile>/vagrant/Test.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Loops.prp</propertyfile>
+  </tasks>
+
+  <tasks name="BitVectorsReach">
+    <includesfile>../sv-benchmarks/c/BitVectorsReach.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/BitVectorsReach.prp</propertyfile>
+    <option name="-i">bit</option>
+  </tasks>
+  <tasks name="ControlFlow">
+    <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ControlFlow.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <includesfile>../sv-benchmarks/c/ECA.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ECA.prp</propertyfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Loops.prp</propertyfile>
+  </tasks>
+  <tasks name="Recursive">
+    <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Recursive.prp</propertyfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../sv-benchmarks/c/ProductLines.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ProductLines.prp</propertyfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <includesfile>../sv-benchmarks/c/Sequentialized.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Sequentialized.prp</propertyfile>
+  </tasks>
+
+</benchmark>
