@@ -4,6 +4,8 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+
     // Property helpers
 
     /**
@@ -16,6 +18,12 @@ object LLVMHelper {
             case ImplicitLabel(i) => i.toString
             case NoLabel()        => "0"
         }
+
+    /**
+     * Version of LLVM PP show that avoids line-wrapping.
+     */
+    def longshow(n : ASTNode) : String =
+        show(n, 1000)
 
     /**
      * Convert an LLVM name into its string representation.

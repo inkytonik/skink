@@ -62,6 +62,35 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         buildNFA(makeVerifiable)
 
     /**
+     * An LLVM function is verifiable if inliining has been successfully applied.
+     * I.e, the function code doesn't call any non-ignored functions.
+     */
+    override def isVerifiable() : Boolean = {
+
+        def badCall(metaInsn : MetaInstruction) : Boolean = {
+            val insn = metaInsn.instruction
+            insn match {
+                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                    false
+                case _ : Call =>
+                    logger.info(s"isVerifiable: $name contains bad ${longshow(insn)}")
+                    true
+                case _ =>
+                    false
+            }
+        }
+
+        function.functionBody.blocks.foldLeft(true) {
+            case (sofar, block) =>
+                if (sofar)
+                    !block.optMetaInstructions.exists(badCall)
+                else
+                    false
+        }
+
+    }
+
+    /**
      * Combine terms via conjunction, dealing with teh case where there are no
      * terms so effect is "true". THe namer is used to access the underlying
      * term operations.

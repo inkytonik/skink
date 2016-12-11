@@ -57,6 +57,13 @@ class Verifier(config : SkinkConfig) {
         }
 
         try {
+            // Detect if the function is not in a form for verification and abort
+            if (!function.isVerifiable()) {
+                logger.info(s"verify: ${function.name} is not verifiable, aborting")
+                sys.error(s"verification not possible since ${function.name} is not verifiable")
+            }
+
+            // Function is ok, go for verification
             runVerification()
         } catch {
             case e : java.lang.Exception =>
