@@ -148,12 +148,6 @@ class Witnesses(config : SkinkConfig) {
             logger.info(s"""printWitness: step $i = block ${field(step.optBlockName)}: ${field(step.optBlockCode)} -> ${field(step.optTermCode)}""")
         }
 
-        def trimFileName(filename : String) : String =
-            if (config.onlyFilenames())
-                new File(filename).getName()
-            else
-                filename
-
         val nodesAndEdges =
             steps.zipWithIndex.map {
                 case (step, index) =>
@@ -164,7 +158,6 @@ class Witnesses(config : SkinkConfig) {
                             mkData(Some("true"), "violation")
                         else
                             ""
-                    val optFileName = step.optFileName.map(trimFileName)
                     val node =
                         mkNode(
                             index,

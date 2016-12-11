@@ -91,10 +91,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
-    lazy val onlyFilenames = opt[Boolean]("onlyfilenames", noshort = true,
-        descr = "Don't include paths in witnesses, just use names (default: false)",
-        default = Some(false))
-
     lazy val parse = opt[Boolean]("parse", short = 'p',
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
