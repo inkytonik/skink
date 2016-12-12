@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="2 GB" cpuCores="1">
+<!-- <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="7 GB" cpuCores="2"> -->
+
+<require cpuModel="Intel Core i7-6700" cpuCores="2"/>
+
+  <resultfiles>**.graphml</resultfiles>
+
+  <!-- <rundefinition name="sv-comp17-correctness-witness">
+    <requiredfiles>../results-verified/LOGDIR/sv-comp17.${inputfile_name}.files/witness.graphml</requiredfiles>
+  </rundefinition> -->
+
+  <rundefinition name="sv-comp17-correctness-witness">
+      <requiredfiles>../sv-benchmarks/c/loops/${inputfile_name}.graphml</requiredfiles>
+  </rundefinition>
+
+  <option name="-witnessValidation"/>
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">10000m</option>
+  <!-- <option name="-witness">../../results-verified/LOGDIR/sv-comp17.${inputfile_name}.files/witness.graphml</option> -->
+  <option name="-witness">../sv-benchmarks/c/loops/${inputfile_name}.graphml</option>
+
+  <tasks name="Test">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>/vagrant/Test.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Loops.prp</propertyfile>
+  </tasks>
+
+  <tasks name="BitVectorsReach">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/BitVectorsReach.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/BitVectorsReach.prp</propertyfile>
+  </tasks>
+  <tasks name="BitVectorsOverflows">
+    <exclude>../sv-benchmarks/c/*/*_false-no-overflow*</exclude>
+    <includesfile>../sv-benchmarks/c/BitVectorsOverflows.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/BitVectorsOverflows.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="HeapReach">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/HeapReach.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/HeapReach.prp</propertyfile>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <exclude>../sv-benchmarks/c/*/*_false-valid-deref*</exclude>
+    <exclude>../sv-benchmarks/c/*/*_false-valid-free*</exclude>
+    <exclude>../sv-benchmarks/c/*/*_false-valid-memtrack*</exclude>
+    <includesfile>../sv-benchmarks/c/HeapMemSafety.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/HeapMemSafety.prp</propertyfile>
+  </tasks>
+  <tasks name="Floats">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/Floats.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Floats.prp</propertyfile>
+  </tasks>
+  <tasks name="ControlFlow">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ControlFlow.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/ECA.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ECA.prp</propertyfile>
+  </tasks>
+  <tasks name="Loops">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Loops.prp</propertyfile>
+  </tasks>
+  <tasks name="Recursive">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Recursive.prp</propertyfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/ProductLines.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/ProductLines.prp</propertyfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/Sequentialized.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/Sequentialized.prp</propertyfile>
+  </tasks>
+  <tasks name="DeviceDriversLinux64">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/DeviceDriversLinux64.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="BusyBox">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
+    <includesfile>../sv-benchmarks/c/BusyBox.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/BusyBox.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+
+</benchmark>
