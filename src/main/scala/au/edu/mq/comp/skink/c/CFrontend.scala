@@ -48,36 +48,45 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 Some(Vector(Message(msg, msg)))
             }
 
-        def dotc2dotll(filename : String) : String = {
+        def dotc2dotext(filename : String, ext : String) : String = {
             (if (filename.lastIndexOf(".") >= 0)
                 filename.substring(0, filename.lastIndexOf('.'))
             else
-                filename) + ".ll"
+                filename) + ext
         }
 
-        // Setup args and filenames
+        // Setup filenames
+        val llfile = dotc2dotext(filename, ".ll")
+
+        // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -emit-llvm -g -o - -S -x c $clangdefs $clangwargs"
-        val llfile = dotc2dotll(filename)
-        val opt1args = s"-S -inline -inline-threshold=150000 -o -"
-        val grepargs = "-v -e @llvm.lifetime"
-        val opt2args = s"-S -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
+        val optargs = s"-S -inline -inline-threshold=150000 -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare -o $llfile"
+
+        // Run a pipeline of commands, return status and output
+        def runPipeline(command : String, rest : String*) : (Int, String) = {
+            logger.info(s"buildIRFromFile: ${rest.foldLeft(command)(_ ++ " | " ++ _)}")
+            val process = rest.foldLeft(Process(command))(_ #| _)
+            val os = new java.io.ByteArrayOutputStream
+            val res = (process #> os).!
+            (res, os.toString("utf8"))
+        }
+
+        // Fail the run with a given message
+        def fail(msg : String) : Either[IR, Messages] = {
+            logger.info(msg)
+            Right(Vector(Message(msg, msg)))
+        }
 
         def run() : Either[IR, Messages] = {
-            logger.info(s"buildIRFromFile: generate temp ll file: $filename > $llfile")
-            val os = new java.io.ByteArrayOutputStream
-            val res = (s"clang $clangargs" #| s"opt $opt1args" #| s"grep $grepargs" #| s"opt $opt2args" #> os).!
-            val output = os.toString("utf8")
+            val (res, output) = runPipeline(s"clang $clangargs", s"opt $optargs")
             if (res == 0) {
-                logger.info(s"buildIRFromFile: LLVM program build succeeded with output '$output'")
-
-                // Use LLVM frontend from here
+                logger.info(s"buildIRFromFile: compile and optimize succeeded with output '$output'")
+                logger.info(s"buildIRFromFile: running LLVM frontend on $llfile")
                 (new LLVMFrontend(config)).buildIR(FileSource(llfile), positions)
             } else {
-                val msg = s"buildIRFromFile: conversion to LLVM failed with code $res and output '$output'"
-                logger.info(msg)
-                Right(Vector(Message(msg, msg)))
+                fail(s"buildIRFromFile: compile and optimize failed with code $res and output '$output'")
             }
         }
 
