@@ -7,9 +7,11 @@ void __VERIFIER_assert(int cond) {
   return;
 }
 
+int __VERIFIER_nondet_int();
+
 int main ()
 {
-   int i, j;
+   int i = __VERIFIER_nondet_int(), j = __VERIFIER_nondet_int();
    if (i > j)
      __VERIFIER_assert (i > j);
    if (i > j)
