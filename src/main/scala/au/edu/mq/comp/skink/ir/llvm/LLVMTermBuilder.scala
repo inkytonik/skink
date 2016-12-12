@@ -754,9 +754,6 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 sys.error(s"ctermR: unexpected constant value $constantValue")
         }
 
-    implicit def BVsSize(i : Int) : TypedTerm[BVTerm, Term] =
-        BVs(i, integerSize)
-
     /**
      * Make an equality term between an LLVM name and an LLVM value. The
      * kind of equality depends on the type of the name. We mostly handle
