@@ -56,6 +56,14 @@ class Verifier(config : SkinkConfig) {
         }
 
         try {
+            val mainFun = ir.functions(0)
+            // Detect if the function is not in a form for verification and abort
+            if (!mainFun.isVerifiable()) {
+                logger.info(s"verify: ${mainFun.name} is not verifiable, aborting")
+                sys.error(s"verification not possible since ${mainFun.name} is not verifiable")
+            }
+
+            // Function is ok, go for verification
             runVerification()
         } catch {
             case e : java.lang.Exception =>

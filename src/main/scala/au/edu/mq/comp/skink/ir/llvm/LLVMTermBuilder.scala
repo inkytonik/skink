@@ -23,10 +23,6 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
 
     val logger = getLogger(this.getClass)
 
-    // Version of LLVM PP show that avoids line-wrapping
-    def longshow(n : ASTNode) : String =
-        show(n, 1000)
-
     // Cached integer mode and size
     val integerMode = config.integerMode()
     val integerSize = config.integerSize()

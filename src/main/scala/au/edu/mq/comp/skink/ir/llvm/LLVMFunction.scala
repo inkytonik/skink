@@ -53,6 +53,35 @@ class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution wit
     // Gather properties of the function
     val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
+    /**
+     * An LLVM function is verifiable if inliining has been successfully applied.
+     * I.e, the function code doesn't call any non-ignored functions.
+     */
+    override def isVerifiable() : Boolean = {
+
+        def badCall(metaInsn : MetaInstruction) : Boolean = {
+            val insn = metaInsn.instruction
+            insn match {
+                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                    false
+                case _ : Call =>
+                    logger.info(s"isVerifiable: $name contains bad ${longshow(insn)}")
+                    true
+                case _ =>
+                    false
+            }
+        }
+
+        function.functionBody.blocks.foldLeft(true) {
+            case (sofar, block) =>
+                if (sofar)
+                    !block.optMetaInstructions.exists(badCall)
+                else
+                    false
+        }
+
+    }
+
     // Helper methods
 
     def makeVerifiable : FunctionDefinition = {
