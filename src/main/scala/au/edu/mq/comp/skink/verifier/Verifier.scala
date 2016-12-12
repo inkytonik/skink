@@ -21,9 +21,12 @@ class Verifier(config : SkinkConfig) {
     def verify(ir : IR) {
         logger.info(s"verify: ${ir.name}")
 
+        val witnesses = new Witnesses(config)
+
         def reportCorrect() {
             logger.info(s"verify: ${ir.name} is correct")
             config.output().emitln("TRUE")
+            witnesses.printCorrectnessWitness(ir)
         }
 
         def reportException(e : Exception) {
@@ -34,7 +37,8 @@ class Verifier(config : SkinkConfig) {
         def reportIncorrect(failureTrace : FailureTrace) {
             logger.info(s"verify: ${ir.name} is incorrect")
             config.output().emitln("FALSE")
-            new Witnesses(config).printWitness(ir, failureTrace)
+
+            witnesses.printViolationWitness(ir, failureTrace)
         }
 
         def reportUnknown(message : String) {
