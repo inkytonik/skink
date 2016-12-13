@@ -26,7 +26,7 @@ TRUE
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
   <data key="programfile"   >src/test/resources/citests/simple-if_true-unreach-call.c</data>
-  <data key="programhash"   >75355196dc4b631fbe52615c2dc5a317b164d19b</data>
+  <data key="programhash"   >71c3c5b2db251677e4359c32c817d63fe5283754</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 

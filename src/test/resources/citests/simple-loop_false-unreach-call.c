@@ -7,8 +7,10 @@ void __VERIFIER_assert(int cond) {
   return;
 }
 
+int __VERIFIER_nondet_int();
+
 int main () {
-  int r;
+  int r = __VERIFIER_nondet_int();
   while (r > 0) {
       __VERIFIER_assert(r > 0);
       r = r - 1;
