@@ -1,26 +1,39 @@
 #!/bin/bash
 
-if test $# -eq 0
+if test $# -lt 2
 then
-  echo "usage: skink.sh file.c"
+  echo "usage: skink.sh cmd file.c"
+  echo "where cmd is cmp, dev or exp"
   exit 1
 fi
+
+cmd=$1; shift
 
 file=${@: -1}
 base=${file%.*}
 wtnfile=$file.graphml
-veriffile=$base.verif
 
 export PATH=./bin/:$PATH
 export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
 
+ARGS=""
+case $cmd in
+    cmp) JAR=skink.jar
+         ARGS="-m 300 $ARGS"
+         ;;
+    dev) JAR=target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar
+         ;;
+    exp) JAR=skink_exp.jar
+         ARGS="-m 300 $ARGS"
+         ;;
+    *) echo "skink.sh: unexpected command $cmd"
+       exit 1
+esac
+
 java -Xmx1400m -Xss5m \
-  -cp ./:target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar \
+  -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \
   --verify \
   --witness-file $wtnfile \
-  $* | \
-  tee $veriffile
-
-[ -f $veriffile ] && echo "${veriffile} found" 1>&2 || echo "verification output file (${verffile}) not found" 1>&2
-[ -f $wtnfile ] && echo "${wtnfile} found" 1>&2 || echo "witness output file (${wtnfile}) not found" 1>&2
+  $ARGS \
+  $*
