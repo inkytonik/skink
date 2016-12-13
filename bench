@@ -6,10 +6,12 @@
 # E.g., use "-t Loops" to just run Loops task.
 
 BENCHMARK_SPEC=/vagrant/skink.xml
-WITNESS_SPEC=/vagrant/cpa-seq-validate-correctness-witnesses.xml
+VIOLATION_WITNESS_SPEC=/vagrant/cpa-seq-validate-violation-witnesses.xml
+CORRECTNESS_WITNESS_SPEC=/vagrant/cpa-seq-validate-correctness-witnesses.xml
 
 VERIFIER_OUTPUT_PATH=/vagrant/results-verified
-CPACHECKER_OUTPUT_PATH=/vagrant/results-witness
+VIOLATION_OUTPUT_PATH=/vagrant/results-violation
+CORRECTNESS_OUTPUT_PATH=/vagrant/results-correctness
 PATH_TO_CPACHECKER=/home/vagrant/cpachecker
 
 BENCHEXEC=/usr/local/bin/benchexec
@@ -18,20 +20,25 @@ MERGEBENCHMARKSETS=/home/vagrant/benchexec/contrib/mergeBenchmarkSets.py
 TABLEGENERATOR=/usr/local/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
 
-rm -rf $VERIFIER_OUTPUT_PATH $CPACHECKER_OUTPUT_PATH
-mkdir $VERIFIER_OUTPUT_PATH $CPACHECKER_OUTPUT_PATH
+rm -rf $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
+mkdir $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
 
 # Run verifier on benchmarks
 $BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC
 result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
 
-# Run CPAchecker to validate the witnesses
+# Run CPAchecker to validate the violation witnesses
 cd $PATH_TO_CPACHECKER
-$BENCHEXEC $BENCHEXEC_ARGS -o $CPACHECKER_OUTPUT_PATH $WITNESS_SPEC $*
-witness_xml=`echo $CPACHECKER_OUTPUT_PATH/*.xml.bz2`
+$BENCHEXEC $BENCHEXEC_ARGS -o $VIOLATION_OUTPUT_PATH $VIOLATION_WITNESS_SPEC $*
+violation_xml=`echo $VIOLATION_OUTPUT_PATH/*.xml.bz2`
+
+# Run CPAchecker to validate the correctness witnesses
+cd $PATH_TO_CPACHECKER
+$BENCHEXEC $BENCHEXEC_ARGS -o $CORRECTNESS_OUTPUT_PATH $CORRECTNESS_WITNESS_SPEC $*
+correctness_xml=`echo $CORRECTNESS_OUTPUT_PATH/*.xml.bz2`
 
 # Merge verifier results and witness validation results
-python3 $MERGEBENCHMARKSETS $result_xml $witness_xml
+python3 $MERGEBENCHMARKSETS $result_xml $violation_xml $correctness_xml
 
 # Format merged results
 merged=`echo $VERIFIER_OUTPUT_PATH/*.merged.xml.bz2`

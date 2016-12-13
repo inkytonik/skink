@@ -22,6 +22,7 @@
   <option name="-witness">../sv-benchmarks/c/loops/${inputfile_name}.graphml</option>
 
   <tasks name="Test">
+    <exclude>../sv-benchmarks/c/*/*_false-unreach-call*</exclude>
     <includesfile>/vagrant/Test.set</includesfile>
     <propertyfile>../sv-benchmarks/c/Loops.prp</propertyfile>
   </tasks>
