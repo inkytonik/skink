@@ -45,7 +45,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
-                val id = show(name)
+                val id = nameOf(name)
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
                     // A case for BoolT() is not here since there is no source type for
