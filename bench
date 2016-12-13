@@ -1,2 +1,41 @@
 #! /bin/bash
-benchexec --no-container benchmark.xml $*
+# Run BenchExec on SV-COMP benchmark, validate witnesses and
+# summarise results as HTML table
+# Usage: ./bench args
+# Args are passed to benchexec, if empty run all tasks etc.
+# E.g., use "-t Loops" to just run Loops task.
+
+BENCHMARK_SPEC=/vagrant/skink.xml
+WITNESS_SPEC=/vagrant/cpa-seq-validate-correctness-witnesses.xml
+
+VERIFIER_OUTPUT_PATH=/vagrant/results-verified
+CPACHECKER_OUTPUT_PATH=/vagrant/results-witness
+PATH_TO_CPACHECKER=/home/vagrant/cpachecker
+
+BENCHEXEC=/usr/local/bin/benchexec
+BENCHEXEC_ARGS="--no-container $*"
+MERGEBENCHMARKSETS=/home/vagrant/benchexec/contrib/mergeBenchmarkSets.py
+TABLEGENERATOR=/usr/local/bin/table-generator
+TABLEGENERATOR_ARGS='-q'
+
+rm -rf $VERIFIER_OUTPUT_PATH $CPACHECKER_OUTPUT_PATH
+mkdir $VERIFIER_OUTPUT_PATH $CPACHECKER_OUTPUT_PATH
+
+# Run verifier on benchmarks
+$BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC
+result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
+
+# Run CPAchecker to validate the witnesses
+cd $PATH_TO_CPACHECKER
+$BENCHEXEC $BENCHEXEC_ARGS -o $CPACHECKER_OUTPUT_PATH $WITNESS_SPEC $*
+witness_xml=`echo $CPACHECKER_OUTPUT_PATH/*.xml.bz2`
+
+# Merge verifier results and witness validation results
+python3 $MERGEBENCHMARKSETS $result_xml $witness_xml
+
+# Format merged results
+merged=`echo $VERIFIER_OUTPUT_PATH/*.merged.xml.bz2`
+$TABLEGENERATOR $TABLEGENERATOR_ARGS $merged
+merged_html=`echo $VERIFIER_OUTPUT_PATH/*.merged.html`
+echo ''
+echo $merged_html
