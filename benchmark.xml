@@ -1,11 +1,7 @@
 <?xml version="1.0"?> <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark
 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 
-<<<<<<< HEAD
-<benchmark tool="skink" timelimit="500" hardtimelimit="500" memlimit="2000MB" cpuCores="1">
-=======
 <benchmark tool="skink" timelimit="200" hardtimelimit="250" memlimit="1500MB" cpuCores="1">
->>>>>>> 54e15aa6f6b94e4ea114e9d7f1543661a8bfafd5
   <!-- competition settings:
       <benchmark tool="true" timelimit="900" hardtimelimit="930" memlimit="15000" cpuCores="8">
   -->
@@ -14,20 +10,6 @@
 
   <rundefinition name="skink17"/>
 
-<<<<<<< HEAD
-  <!--<tasks name="SkinkSimple">-->
-    <!--<includesfile>programs/Simple.set</includesfile>-->
-  <!--</tasks>-->
-
-  <tasks name="SkinkConcurrency">
-    <includesfile>programs/Concurrency.set</includesfile>
-  </tasks>
-
-  <!--<tasks name="Concurrency">-->
-    <!--<includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>-->
-  <!--</tasks>-->
-
-=======
   <!-- Skink testing categories -->
 
   <!--
@@ -88,7 +70,6 @@
       <includesfile>/home/vagrant/sv-benchmarks/c/Float.set</includesfile>
   </tasks>
   -->
->>>>>>> 54e15aa6f6b94e4ea114e9d7f1543661a8bfafd5
 
 </benchmark>
 
