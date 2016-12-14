@@ -63,18 +63,18 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     val badBinaryOps = Vector(
         (Add(Vector()), IntT(1), "binary Boolean op add not handled"),
-        (And(), IntT(32), "binary integer op and not handled"),
-        (AShR(Exact()), IntT(32), "binary integer op ashr exact not handled"),
-        (AShR(NotExact()), IntT(32), "binary integer op ashr not handled"),
+        (And(), IntT(32), "binary integer and with %y not handled"),
+        (AShR(Exact()), IntT(32), "binary integer ashr exact with %y not handled"),
+        (AShR(NotExact()), IntT(32), "binary integer ashr with %y not handled"),
         (FAdd(Vector()), IntT(32), "binary integer op fadd not handled"),
         (FDiv(Vector()), IntT(32), "binary integer op fdiv not handled"),
         (FMul(Vector()), IntT(32), "binary integer op fmul not handled"),
         (FRem(Vector()), IntT(32), "binary integer op frem not handled"),
         (FSub(Vector()), IntT(32), "binary integer op fsub not handled"),
-        (LShR(Exact()), IntT(32), "binary integer op lshr exact not handled"),
-        (LShR(NotExact()), IntT(32), "binary integer op lshr not handled"),
+        (LShR(Exact()), IntT(32), "binary integer lshr exact with %y not handled"),
+        (LShR(NotExact()), IntT(32), "binary integer lshr with %y not handled"),
         (Or(), IntT(32), "binary integer op or not handled"),
-        (ShL(Vector()), IntT(32), "binary integer op shl not handled"),
+        (ShL(Vector()), IntT(32), "binary integer shl with %y not handled"),
         (XOr(), IntT(32), "binary integer op xor not handled")
     )
 

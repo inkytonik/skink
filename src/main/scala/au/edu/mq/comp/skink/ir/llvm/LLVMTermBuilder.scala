@@ -48,9 +48,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 val id = nameOf(name)
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
-                    // A case for BoolT() is not here since there is no source type for
-                    // Boolean, so we don't expect a global var of that type.
-                    case (IntegerT(size), _) =>
+                    case (IntT(size), _) =>
                         config.integerMode() match {
                             case BitIntegerMode() =>
                                 val bits = size.toInt
@@ -248,7 +246,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm % 2
                                             case _ =>
-                                                sys.error(s"binary integer and with ${show(right)} not handled")
+                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
                                         }
                                     case _ : AShR | _ : LShR =>
                                         // FIXME: LShrR version is not right for negative numbers
@@ -256,7 +254,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm / 2
                                             case _ =>
-                                                sys.error(s"binary integer and with ${show(right)} not handled")
+                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
                                         }
                                     case _ : Mul => lterm * rterm
                                     case _ : ShL =>
@@ -264,7 +262,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm * 2
                                             case _ =>
-                                                sys.error(s"binary integer shl with ${show(right)} not handled")
+                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
                                         }
                                     case _ : SDiv => lterm / rterm
                                     case _ : SRem => lterm % rterm
@@ -420,23 +418,39 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                         case BitIntegerMode() =>
                             val toBits = toSize.toInt
                             val fromBits = fromSize.toInt
-                            val toTerm = ntermBV(to, toBits)
+                            val toTerm =
+                                if (toBits == 1)
+                                    ntermB(to).ite(1.withBits(toBits), 0.withBits(toBits))
+                                else
+                                    ntermBV(to, toBits)
                             val bitsDiff = toBits - fromBits
                             val fromTerm =
                                 if (fromBits == 1)
                                     vtermB(from).ite(1.withBits(fromBits), 0.withBits(fromBits))
                                 else
                                     vtermBV(from, fromBits)
-                            op match {
-                                case SExt() =>
-                                    toTerm === (fromTerm sext bitsDiff)
-                                case Trunc() =>
-                                    toTerm === fromTerm.extract(toBits - 1, 0)
-                                case ZExt() =>
-                                    toTerm === (fromTerm zext bitsDiff)
-                                case _ =>
-                                    sys.error(s"bit vector conversion ${show(op)} not handled")
-                            }
+                            if (bitsDiff == 0)
+                                equality(to, toType, from, fromType)
+                            else
+                                op match {
+                                    case SExt() =>
+                                        if (bitsDiff > 0)
+                                            toTerm === (fromTerm sext bitsDiff)
+                                        else
+                                            sys.error(s"insnTerm: shrinking sext insn ${longshow(insn)}")
+                                    case Trunc() =>
+                                        if (bitsDiff > 0)
+                                            sys.error(s"insnTerm: growing trunc insn ${longshow(insn)}")
+                                        else
+                                            toTerm === fromTerm.extract(toBits - 1, 0)
+                                    case ZExt() =>
+                                        if (bitsDiff > 0)
+                                            toTerm === (fromTerm zext bitsDiff)
+                                        else
+                                            sys.error(s"insnTerm: shrinking zext insn ${longshow(insn)}")
+                                    case _ =>
+                                        equality(to, toType, from, fromType)
+                                }
                         case MathIntegerMode() =>
                             equality(to, toType, from, fromType)
                     }

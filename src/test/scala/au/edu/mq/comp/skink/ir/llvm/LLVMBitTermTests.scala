@@ -33,14 +33,16 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     val integerBinaryOps = Vector(
         (Add(Vector()), iz === (ix + iy)),
         (And(), iz === (ix and iy)),
+        (AShR(Exact()), iz === (ix ashr iy)),
+        (AShR(NotExact()), iz === (ix ashr iy)),
         (LShR(Exact()), iz === (ix >> iy)),
         (LShR(NotExact()), iz === (ix >> iy)),
         (Mul(Vector()), iz === (ix * iy)),
         (Or(), iz === (ix or iy)),
-        (SDiv(Exact()), iz === (ix / iy)),
-        (SDiv(NotExact()), iz === (ix / iy)),
+        (SDiv(Exact()), iz === (ix sdiv iy)),
+        (SDiv(NotExact()), iz === (ix sdiv iy)),
         (ShL(Vector()), iz === (ix << iy)),
-        (SRem(), iz === (ix % iy)),
+        (SRem(), iz === (ix srem iy)),
         (Sub(Vector()), iz === (ix - iy)),
         (UDiv(Exact()), iz === (ix / iy)),
         (UDiv(NotExact()), iz === (ix / iy)),
@@ -58,8 +60,6 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
 
     val badBinaryOps = Vector(
         (Add(Vector()), IntT(1), "binary Boolean op add not handled"),
-        (AShR(Exact()), IntT(32), "binary integer op ashr exact not handled"),
-        (AShR(NotExact()), IntT(32), "binary integer op ashr not handled"),
         (FAdd(Vector()), IntT(32), "binary integer op fadd not handled"),
         (FDiv(Vector()), IntT(32), "binary integer op fdiv not handled"),
         (FMul(Vector()), IntT(32), "binary integer op fmul not handled"),
@@ -144,7 +144,7 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
 
     val convOps = Vector(
         AddrSpaceCast(), Bitcast(), FPExt(), FPToSI(), FPToUI(), FPTrunc(), IntToPTR(),
-        PTRToInt(), SExt(), SIToFP(), Trunc(), UIToFP(), ZExt()
+        PTRToInt(), SIToFP(), UIToFP()
     )
 
     for (convOp <- convOps) {
@@ -153,6 +153,72 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
                 hasEffect(Convert(Binding(x), convOp, fromType, yexp, toType), term)
             }
         }
+    }
+
+    test(s"sext Int(1) to Int(1) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), SExt(), IntT(1), yexp, IntT(1)), bx === by)
+    }
+
+    test(s"trunc Int(1) to Int(1) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), ZExt(), IntT(1), yexp, IntT(1)), bx === by)
+    }
+
+    test(s"zext Int(1) to Int(1) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), ZExt(), IntT(1), yexp, IntT(1)), bx === by)
+    }
+
+    test(s"sext Int(1) to Int(32) insn is encoded correctly") {
+        hasEffect(
+            Convert(Binding(x), SExt(), IntT(1), yexp, IntT(32)),
+            ix === ((by.ite(1.withBits(1), 0.withBits(1))) sext 31)
+        )
+    }
+
+    test(s"trunc Int(1) to Int(32) insn should not be handled") {
+        isNotHandled(
+            Convert(Binding(x), Trunc(), IntT(1), yexp, IntT(32)),
+            "insnTerm: growing trunc insn %x = trunc i1 %y to i32"
+        )
+    }
+
+    test(s"zext Int(1) to Int(32) insn is encoded correctly") {
+        hasEffect(
+            Convert(Binding(x), ZExt(), IntT(1), yexp, IntT(32)),
+            ix === ((by.ite(1.withBits(1), 0.withBits(1))) zext 31)
+        )
+    }
+
+    test(s"sext Int(32) to Int(1) insn should not be handled") {
+        isNotHandled(
+            Convert(Binding(x), SExt(), IntT(32), yexp, IntT(1)),
+            "insnTerm: shrinking sext insn %x = sext i32 %y to i1"
+        )
+    }
+
+    test(s"trunc Int(32) to Int(1) insn is encoded correctly") {
+        hasEffect(
+            Convert(Binding(x), Trunc(), IntT(32), yexp, IntT(1)),
+            (bx.ite(1.withBits(1), 0.withBits(1))) === iy.extract(0, 0)
+        )
+    }
+
+    test(s"zext Int(32) to Int(1) insn should not be handled") {
+        isNotHandled(
+            Convert(Binding(x), ZExt(), IntT(32), yexp, IntT(1)),
+            "insnTerm: shrinking zext insn %x = zext i32 %y to i1"
+        )
+    }
+
+    test(s"sext Int(32) to Int(32) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), SExt(), IntT(32), yexp, IntT(32)), ix === iy)
+    }
+
+    test(s"trunc Int(32) to Int(32) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), Trunc(), IntT(32), yexp, IntT(32)), ix === iy)
+    }
+
+    test(s"zext Int(32) to Int(32) insn is encoded correctly") {
+        hasEffect(Convert(Binding(x), ZExt(), IntT(32), yexp, IntT(32)), ix === iy)
     }
 
     // Loads
