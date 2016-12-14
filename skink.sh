@@ -11,15 +11,17 @@ cmd=$1; shift
 
 file=${@: -1}
 base=${file%.*}
-wtnfile=$file.graphml
+WTNFILE=$file.graphml
 
 export PATH=./bin/:$PATH
 export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
+export C_INCLUDE_PATH=./include/:$C_INCLUDE_PATH
 
 ARGS=""
 case $cmd in
     cmp) JAR=skink.jar
          ARGS="-m 300 $ARGS"
+         WTNFILE=witness.graphml
          ;;
     dev) JAR=target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar
          ;;
@@ -34,6 +36,6 @@ java -Xmx1400m -Xss5m \
   -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \
   --verify \
-  --witness-file $wtnfile \
+  --witness-file $WTNFILE \
   $ARGS \
   $*
