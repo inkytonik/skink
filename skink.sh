@@ -27,6 +27,12 @@ case $cmd in
          ;;
     exp) JAR=skink_exp.jar
          ARGS="-m 300 $ARGS"
+         WTNFILE=witness.graphml
+         GREPRES=`egrep "while[ ]*\([ ]*1[ ]*\)|pthread_[^\[;]*\[" $file`
+         if [[ ! -z $GREPRES ]]; then
+           echo "UNKNOWN"
+           exit 0
+         fi
          ;;
     *) echo "skink.sh: unexpected command $cmd"
        exit 1
