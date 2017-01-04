@@ -112,7 +112,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, ensureTree = true)
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
