@@ -1,4 +1,4 @@
-FALSE
+TRUE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -21,64 +21,25 @@ FALSE
 <key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >violation_witness</data>
+  <data key="witness-type"  >correctness_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/eca-like_false-unreach-call.c</data>
-  <data key="programhash"   >cc16bdbbc38d0353532a2598dc6e227c0e6b2841</data>
+  <data key="programfile"   >src/test/resources/citests/math/global_init_true-unreach-call.c</data>
+  <data key="programhash"   >b7d7be0d399ae625d53579f0760349d1a8e05128</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="block">0</data>
-  <data key="node.src">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">while(1) {</data>
-  <data key="startline">20</data>
-  <data key="endline">20</data>
 </edge>
 
 <node id="N1">
-  <data key="block">3</data>
-  <data key="node.src">cond = __VERIFIER_nondet_int();</data>
-</node>
-
-<edge id="E1" source="N1" target="N2">
-  <data key="edge.src">if (cond == 0) {</data>
-  <data key="startline">22</data>
-  <data key="endline">22</data>
-</edge>
-
-<node id="N2">
-  <data key="block">7</data>
-  <data key="node.src">lk1 = 0; // initially lock is open</data>
-</node>
-
-<edge id="E2" source="N2" target="N3">
-  <data key="edge.src">if (p1 != 0) {</data>
-  <data key="startline">28</data>
-  <data key="endline">28</data>
-</edge>
-
-<node id="N3">
-  <data key="block">10</data>
-  <data key="node.src">if (lk1 != 1) goto ERROR; // assertion failure</data>
-</node>
-
-<edge id="E3" source="N3" target="N4">
-  <data key="edge.src">if (lk1 != 1) goto ERROR; // assertion failure</data>
-  <data key="startline">29</data>
-  <data key="endline">29</data>
-</edge>
-
-<node id="N4">
-  <data key="violation">true</data>
-  <data key="block">15</data>
-  <data key="node.src">ERROR: __VERIFIER_error();</data>
+  <data key="invariant">1</data>
+  <data key="invariant.scope">main</data>
 </node>
 
 </graph>

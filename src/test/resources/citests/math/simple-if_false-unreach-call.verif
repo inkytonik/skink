@@ -25,27 +25,38 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/multiple-error-calls_false-unreach-call.c</data>
-  <data key="programhash"   >02904cf5125895d6a6b0fa6d866a1be41c59c897</data>
+  <data key="programfile"   >src/test/resources/citests/math/simple-if_false-unreach-call.c</data>
+  <data key="programhash"   >c04e3563dc0882fd6737b426d3b9226252879395</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
   <data key="block">0</data>
-  <data key="node.src">int i = 0, j = 0;</data>
+  <data key="node.src">int i = __VERIFIER_nondet_int(), j = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
   <data key="edge.src">if (i &gt; j)</data>
-  <data key="startline">13</data>
-  <data key="endline">13</data>
+  <data key="startline">15</data>
+  <data key="endline">15</data>
 </edge>
 
 <node id="N1">
+  <data key="block">8</data>
+  <data key="node.src">__VERIFIER_assert (i &lt;= j);</data>
+</node>
+
+<edge id="E1" source="N1" target="N2">
+  <data key="edge.src">if (!(cond)) {</data>
+  <data key="startline">4</data>
+  <data key="endline">4</data>
+</edge>
+
+<node id="N2">
   <data key="violation">true</data>
   <data key="block">16</data>
-  <data key="node.src">__VERIFIER_error();</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
 </graph>

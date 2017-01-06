@@ -1,4 +1,4 @@
-FALSE
+TRUE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -21,42 +21,25 @@ FALSE
 <key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >violation_witness</data>
+  <data key="witness-type"  >correctness_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/simple-if_false-unreach-call.c</data>
-  <data key="programhash"   >c04e3563dc0882fd6737b426d3b9226252879395</data>
+  <data key="programfile"   >src/test/resources/citests/math/simple-loop_true-unreach-call.c</data>
+  <data key="programhash"   >adff217ca9d7995ef9a31f9980aab01fa91a191c</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="block">0</data>
-  <data key="node.src">int i = __VERIFIER_nondet_int(), j = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">if (i &gt; j)</data>
-  <data key="startline">15</data>
-  <data key="endline">15</data>
 </edge>
 
 <node id="N1">
-  <data key="block">8</data>
-  <data key="node.src">__VERIFIER_assert (i &lt;= j);</data>
-</node>
-
-<edge id="E1" source="N1" target="N2">
-  <data key="edge.src">if (!(cond)) {</data>
-  <data key="startline">4</data>
-  <data key="endline">4</data>
-</edge>
-
-<node id="N2">
-  <data key="violation">true</data>
-  <data key="block">16</data>
-  <data key="node.src">ERROR: __VERIFIER_error();</data>
+  <data key="invariant">1</data>
+  <data key="invariant.scope">main</data>
 </node>
 
 </graph>
