@@ -95,6 +95,13 @@ test in assembly := {}
 
 mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
 
+mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
+  {
+    case "logback-test.xml" => MergeStrategy.discard
+    case x                  => old(x)
+  }
+}
+
 // ScalariForm
 
 import scalariform.formatter.preferences._
