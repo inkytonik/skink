@@ -415,8 +415,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
                     DefaultDLLStorageClass(), DefaultCC(), Vector(), rettype, global,
                     args, NamedAddr(), Vector(), DefaultSection(), NoComdat(),
                     DefaultAlignFunc(), NoGCName(), NoPrefix(), NoPrologue(),
-                    body)
-
+                    NoPersonality(), Vector(), body)
         }
 
     }
