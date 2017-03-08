@@ -12,6 +12,8 @@ trait LLVMTermTests extends Tests with Core {
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
+    import org.scalallvm.assembly.Assembly
     import org.scalallvm.assembly.AssemblySyntax._
 
     val namer = new DummyNamer
@@ -22,6 +24,8 @@ trait LLVMTermTests extends Tests with Core {
         config.verify()
         config
     }
+
+    val config : SkinkConfig
 
     val termBuilder : LLVMTermBuilder
 
@@ -95,6 +99,30 @@ trait LLVMTermTests extends Tests with Core {
             termBuilder.insnTerm(MetaInstruction(insn, noMetadata))
         }
         e.getMessage shouldBe msg
+    }
+
+    // Support for processing functions 
+
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, pretty}
+
+    /**
+     * Parses `prog` as a program and returns a vector of LLVMFunctions
+     * that represent the functions in the program.
+     */
+    def parseProgram(prog : String) : Vector[LLVMFunction] = {
+        val positions = new Positions
+        val source = new StringSource(prog)
+        val p = new Assembly(source, positions)
+        val pr = p.pProgram(0)
+        if (pr.hasValue) {
+            val prog = p.value(pr).asInstanceOf[Program]
+            println(pretty(any(prog)).layout)
+            prog.items.collect {
+                case func : FunctionDefinition =>
+                    new LLVMFunction(prog, func, config)
+            }
+        } else
+            fail(s"parse error: ${pr.parseError.msg}")
     }
 
 }
