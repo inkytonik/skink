@@ -20,12 +20,18 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     val config = createAndInitConfig(Seq())
     val termBuilder = new LLVMTermBuilder(namer, config)
 
-    def makeVarTermI(id : String) : VarTerm[IntTerm] =
-        new VarTerm(id, IntSort(), Some(0))
+    def makeVarTermI(id : String, index : Int = 0) : VarTerm[IntTerm] =
+        new VarTerm(id, IntSort(), Some(index))
 
     val ix = makeVarTermI("%x")
     val iy = makeVarTermI("%y")
     val iz = makeVarTermI("%z")
+
+    val ix1 = makeVarTermI("%x", 1)
+    val ix2 = makeVarTermI("%x", 2)
+
+    val iy1 = makeVarTermI("%y", 1)
+    val iy2 = makeVarTermI("%y", 2)
 
     // Binary operations
 
@@ -273,6 +279,38 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
         }
         e.getMessage shouldBe "phiInsnTerm: can't find %ble in %x = phi i32 [ 1, %foo ], [ 2, %bar ]"
+    }
+
+    test("multiple phi insns are correctly encoded in parallel") {
+
+        import au.edu.mq.comp.skink.ir.Trace
+
+        // In %1 coming from %1, %y should refer to the incoming %x not the 
+        // %x set by the first phi insn, since the phis are supposed to run
+        // simultaneously.
+
+        val prog =
+            """
+            |define void @func() {
+            |   0:
+            |     br label %1
+            |    
+            |   1:
+            |     %x = phi i32 [ 0, %0 ], [ %y, %1 ]
+            |     %y = phi i32 [ 1, %0 ], [ %x, %1 ]
+            |     br label %1
+            |}
+            """.stripMargin
+
+        val Vector(func) = parseProgram(prog)
+
+        func.traceToTerms(Trace(Seq(0, 0, 0, 0))) shouldBe
+            Seq(
+                True(),
+                (ix1 === 0) & (iy1 === 1),
+                (ix2 === iy1) & (iy2 === ix1) // Note: ix1 not ix2!
+            )
+
     }
 
     // Terminator instructions
