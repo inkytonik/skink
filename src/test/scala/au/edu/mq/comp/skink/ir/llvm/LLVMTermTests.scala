@@ -116,7 +116,6 @@ trait LLVMTermTests extends Tests with Core {
         val pr = p.pProgram(0)
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
-            println(pretty(any(prog)).layout)
             prog.items.collect {
                 case func : FunctionDefinition =>
                     new LLVMFunction(prog, func, config)
