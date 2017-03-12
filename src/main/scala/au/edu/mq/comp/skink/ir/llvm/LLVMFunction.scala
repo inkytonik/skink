@@ -26,7 +26,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
-    import org.bitbucket.inkytonik.kiama.relation.Tree
+    import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
@@ -112,7 +112,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, ensureTree = true)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
