@@ -43,7 +43,7 @@ FALSE
 </edge>
 
 <node id="N1">
-  <data key="block">5</data>
+  <data key="block">8</data>
   <data key="node.src">while(x&gt;0)</data>
 </node>
 
@@ -54,7 +54,7 @@ FALSE
 </edge>
 
 <node id="N2">
-  <data key="block">13</data>
+  <data key="block">16</data>
   <data key="node.src">__VERIFIER_assert(y!=n);</data>
 </node>
 
@@ -66,7 +66,7 @@ FALSE
 
 <node id="N3">
   <data key="violation">true</data>
-  <data key="block">21</data>
+  <data key="block">24</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 

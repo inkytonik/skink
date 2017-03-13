@@ -43,7 +43,7 @@ FALSE
 </edge>
 
 <node id="N1">
-  <data key="block">3</data>
+  <data key="block">8</data>
   <data key="node.src">cond = __VERIFIER_nondet_int();</data>
 </node>
 
@@ -54,7 +54,7 @@ FALSE
 </edge>
 
 <node id="N2">
-  <data key="block">7</data>
+  <data key="block">12</data>
   <data key="node.src">lk1 = 0; // initially lock is open</data>
 </node>
 
@@ -65,7 +65,7 @@ FALSE
 </edge>
 
 <node id="N3">
-  <data key="block">10</data>
+  <data key="block">13</data>
   <data key="node.src">if (lk1 != 1) goto ERROR; // assertion failure</data>
 </node>
 
@@ -77,7 +77,7 @@ FALSE
 
 <node id="N4">
   <data key="violation">true</data>
-  <data key="block">15</data>
+  <data key="block">18</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 

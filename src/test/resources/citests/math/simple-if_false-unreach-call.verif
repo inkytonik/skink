@@ -43,7 +43,7 @@ FALSE
 </edge>
 
 <node id="N1">
-  <data key="block">8</data>
+  <data key="block">10</data>
   <data key="node.src">__VERIFIER_assert (i &lt;= j);</data>
 </node>
 
@@ -55,7 +55,7 @@ FALSE
 
 <node id="N2">
   <data key="violation">true</data>
-  <data key="block">16</data>
+  <data key="block">18</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 

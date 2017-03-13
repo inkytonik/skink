@@ -43,7 +43,7 @@ FALSE
 </edge>
 
 <node id="N1">
-  <data key="block">7</data>
+  <data key="block">8</data>
   <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
@@ -54,7 +54,7 @@ FALSE
 </edge>
 
 <node id="N2">
-  <data key="block">13</data>
+  <data key="block">14</data>
   <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
 </node>
 
@@ -76,7 +76,7 @@ FALSE
 </edge>
 
 <node id="N4">
-  <data key="block">7</data>
+  <data key="block">8</data>
   <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
@@ -87,7 +87,7 @@ FALSE
 </edge>
 
 <node id="N5">
-  <data key="block">19</data>
+  <data key="block">20</data>
   <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
 </node>
 
@@ -99,7 +99,7 @@ FALSE
 
 <node id="N6">
   <data key="violation">true</data>
-  <data key="block">23</data>
+  <data key="block">24</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 

@@ -10,7 +10,7 @@
 * better support for pthread programs (MR)
 * bitvector arrays (required smtlib fix, FC, TS)
 * floating-point (add theory of Fixed FloatingPoint BV, FC)
-* Termination (FC) 
+* Termination (FC)
 * slicing (DG thing seems to work, testing it/integrate?, TS)
 * string operations ??
 * move to latest Clang (MR, TS)
@@ -22,8 +22,8 @@
 
 #### Scala LLVM
 
-* LLVM 4.x?, (MR, TS)
-* fix for multiple dependency issue?
+* LLVM 4.x?, (MR, TS), should be out in March but probably not worth to move even then
+* fix for multiple dependency issue? (TS)
 
 #### SMTlib
 
