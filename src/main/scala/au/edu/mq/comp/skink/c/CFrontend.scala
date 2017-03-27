@@ -60,12 +60,15 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         // Run a pipeline of commands, return status and output
         def runPipeline(command : String, rest : String*) : (Int, String) = {
             for (stage <- command +: rest) {
-                logger.info(s"buildIRFromFile: $stage")
+                logger.info(s"buildIRFromFile: $stage\n")
             }
             val process = rest.foldLeft(Process(command))(_ #&& _)
-            val os = new java.io.ByteArrayOutputStream
-            val res = (process #> os).!
-            (res, os.toString)
+            val processLoggger = ProcessLogger(
+                line => logger.info(s"$line\n"),
+                line => logger.info(s"$line\n")
+            )
+            val res = process ! processLoggger
+            (res, "")
         }
 
         def fail(msg : String) : Either[IR, Messages] = {
@@ -99,18 +102,18 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)
             deleteFile(optllfile)
-            val (res, output) = runPipeline(
+            val res = runPipeline(
                 s"$clang $clangargs",
                 s"$opt $optargs"
             )
             logfile("Clang output", clangllfile)
             logfile("Opt output", optllfile)
             if (res == 0) {
-                logger.info(s"buildIRFromFile: preparing LLVM code succeeded with output '$output'")
-                logger.info(s"buildIRFromFile: running LLVM frontend on $optllfile")
+                logger.info(s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
+                logger.info(s"buildIRFromFile: running LLVM frontend on ${optllfile}\n")
                 (new LLVMFrontend(config)).buildIR(FileSource(optllfile), positions)
             } else
-                fail(s"buildIRFromFile: preparing LLVM code failed with code $res and output '$output'")
+                fail(s"buildIRFromFile: preparing LLVM code failed with code $res")
         }
 
         // Check for required programs on PATH, report errors or if ok, run them
