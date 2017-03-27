@@ -58,7 +58,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Run a pipeline of commands, return status and output
-        def runPipeline(command : String, rest : String*) : (Int, String) = {
+        def runPipeline(command : String, rest : String*) : Int = {
             for (stage <- command +: rest) {
                 logger.info(s"buildIRFromFile: $stage\n")
             }
@@ -67,8 +67,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 line => logger.info(s"$line\n"),
                 line => logger.info(s"$line\n")
             )
-            val res = process ! processLoggger
-            (res, "")
+            process ! processLoggger
         }
 
         def fail(msg : String) : Either[IR, Messages] = {
