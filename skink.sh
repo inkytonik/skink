@@ -23,7 +23,7 @@ case $cmd in
          ARGS="-m 300 $ARGS"
          WTNFILE=witness.graphml
          ;;
-    dev) JAR=target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar
+    dev) JAR=target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
          ;;
     exp) JAR=skink_exp.jar
          ARGS="-m 300 $ARGS"

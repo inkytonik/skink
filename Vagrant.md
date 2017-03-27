@@ -30,8 +30,8 @@ Run the command
 
     vagrant ssh
 
-to get a shell session on the VM. You will be the user "vagrant" with
-/home/vagrant as its home directory.
+to get a shell session on the VM. You will be the user "ubuntu" with
+/home/ubuntu as its home directory.
 
 * Find the Skink repo
 
@@ -53,7 +53,7 @@ just compile Skink into class files.
 
 * Find the sv-benchmarks
 
-The sv-benchmarks repo will be checked out at /home/vagrant/sv-benchmarks and
+The sv-benchmarks repo will be checked out at /home/ubuntu/sv-benchmarks and
 also linked to /sv-benchmarks so processes running in /vagrant can reference
 the benchmarks via ../sv-benchmarks. This extra link helps us reuse some
 SV-COMP files which use this .. convention.
@@ -101,7 +101,7 @@ You should see progress messages and a summary table at the end. Here's an examp
 
 The BenchExec results, log files etc can be found in the results sub-directory.
 
-The script will continue with another benchexec run to validate the witnesses. The output
+The script will continue with other benchexec runs to validate the witnesses. The output
 will be similar to that above. The witness validation results will be placed in the
 results-witness sub-direction and output from CPAchecker will be in the output sub-directory.
 

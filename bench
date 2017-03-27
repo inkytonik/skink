@@ -12,11 +12,11 @@ CORRECTNESS_WITNESS_SPEC=/vagrant/cpa-seq-validate-correctness-witnesses.xml
 VERIFIER_OUTPUT_PATH=/vagrant/results-verified
 VIOLATION_OUTPUT_PATH=/vagrant/results-violation
 CORRECTNESS_OUTPUT_PATH=/vagrant/results-correctness
-PATH_TO_CPACHECKER=/home/vagrant/cpachecker
+PATH_TO_CPACHECKER=/home/ubuntu/cpachecker
 
 BENCHEXEC=/usr/local/bin/benchexec
 BENCHEXEC_ARGS="--no-container $*"
-MERGEBENCHMARKSETS=/home/vagrant/benchexec/contrib/mergeBenchmarkSets.py
+MERGEBENCHMARKSETS=/home/ubuntu/benchexec/contrib/mergeBenchmarkSets.py
 TABLEGENERATOR=/usr/local/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
 
