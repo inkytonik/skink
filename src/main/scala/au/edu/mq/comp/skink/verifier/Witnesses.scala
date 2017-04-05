@@ -151,17 +151,21 @@ class Witnesses(config : SkinkConfig) {
         val nodesAndEdges =
             steps.zipWithIndex.map {
                 case (step, index) =>
-                    val key =
+                    val entry =
                         if (index == 0)
                             mkData(Some("true"), "entry")
-                        else if (index == numsteps - 1)
+                        else
+                            ""
+                    val violation =
+                        if (index == numsteps - 1)
                             mkData(Some("true"), "violation")
                         else
                             ""
                     val node =
                         mkNode(
                             index,
-                            key +
+                            entry +
+                                violation +
                                 mkData(step.optBlockName, "block") +
                                 mkData(step.optBlockCode, "node.src")
                         )
