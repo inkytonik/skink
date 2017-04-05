@@ -143,7 +143,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 case BranchCond(value, _, _) if choice == 1 =>
                     !vtermB(value)
 
-                case Switch(IntegerT(size), value, _, cases) if choice == 0 =>
+                case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
@@ -152,13 +152,13 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
                     }
 
-                case Switch(IntegerT(size), value, _, cases) if choice <= cases.length =>
+                case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            vtermBV(value, bits) === vtermBV(cases(choice - 1).value, bits)
+                            vtermBV(value, bits) === vtermBV(cases(choice).value, bits)
                         case MathIntegerMode() =>
-                            vtermI(value) === vtermI(cases(choice - 1).value)
+                            vtermI(value) === vtermI(cases(choice).value)
                     }
 
                 case insn =>
