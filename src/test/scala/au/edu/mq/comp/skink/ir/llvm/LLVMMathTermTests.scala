@@ -285,7 +285,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
         import au.edu.mq.comp.skink.ir.Trace
 
-        // In %1 coming from %1, %y should refer to the incoming %x not the 
+        // In %1 coming from %1, %y should refer to the incoming %x not the
         // %x set by the first phi insn, since the phis are supposed to run
         // simultaneously.
 
@@ -294,7 +294,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |define void @func() {
             |   0:
             |     br label %1
-            |    
+            |
             |   1:
             |     %x = phi i32 [ 0, %0 ], [ %y, %1 ]
             |     %y = phi i32 [ 1, %0 ], [ %x, %1 ]
