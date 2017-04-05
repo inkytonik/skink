@@ -481,7 +481,8 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             GlobalBinding(Global(id)), Common(), DefaultVisibility(),
             DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
             DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
-            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4)
+            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4),
+            Metadata(Vector())
         )
 
     val gix = makeVarTermI("@x")

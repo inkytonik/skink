@@ -124,7 +124,7 @@ object LLVMHelper {
             item match {
                 case GlobalVariableDefinition(
                     GlobalBinding(name), _, _, _, _, _, _, _, _,
-                    tipe, Init(constantValue), _, _, _) =>
+                    tipe, Init(constantValue), _, _, _, _) =>
                     Some((name, tipe, constantValue))
                 case _ =>
                     None
