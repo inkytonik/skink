@@ -67,6 +67,9 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case (Element(_, constantValue), i) =>
                                 arrayTermI(id, index).at(i) === ctermI(constantValue)
                         })
+                    case (ArrayT(_, IntT(_)), StringC(_)) =>
+                        // Ignore for now, so printfs don't get in the way
+                        True()
                     case _ =>
                         sys.error(s"itemTerm: no support for global ${show(tipe)} variable initialisation to ${show(constantValue)}")
                 }
