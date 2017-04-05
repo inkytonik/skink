@@ -32,7 +32,6 @@
 
 #### Infrastructure
 
-* repo cleanup (merge Matt's branch) (MR)
 * CI testing server for SV-COMP (MR)
 * pipelines on bitbucket (??)
 
