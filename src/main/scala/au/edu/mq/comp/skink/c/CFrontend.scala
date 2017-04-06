@@ -58,16 +58,20 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Run a pipeline of commands, return status and output
-        def runPipeline(command : String, rest : String*) : Int = {
+        def runPipeline(command : String, rest : String*) : (Int, String) = {
+            val outputBuilder = new StringBuilder
             for (stage <- command +: rest) {
                 logger.info(s"buildIRFromFile: $stage\n")
             }
             val process = rest.foldLeft(Process(command))(_ #&& _)
             val processLoggger = ProcessLogger(
-                line => logger.info(s"$line\n"),
-                line => logger.info(s"$line\n")
+                line => outputBuilder.append(s"$line\n"),
+                line => outputBuilder.append(s"$line\n")
             )
-            process ! processLoggger
+            val status = process ! processLoggger
+            val output = outputBuilder.result()
+            logger.info(output)
+            (status, output)
         }
 
         def fail(msg : String) : Either[IR, Messages] = {
@@ -98,16 +102,18 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)
-            val res = runPipeline(
+            val (res, output) = runPipeline(
                 s"$clang $clangargs"
             )
-            logfile("Clang output", clangllfile)
             if (res == 0) {
+                logfile("Clang output", clangllfile)
                 logger.info(s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
                 logger.info(s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
                 (new LLVMFrontend(config)).buildIR(FileSource(clangllfile), positions)
-            } else
+            } else {
+                println(output)
                 fail(s"buildIRFromFile: preparing LLVM code failed with code $res")
+            }
         }
 
         // Check for required programs on PATH, report errors or if ok, run them
