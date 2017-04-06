@@ -197,7 +197,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case _ : Or  => lterm | rterm
                             case _ : XOr => lterm xor rterm
                             case _ =>
-                                sys.error(s"binary Boolean op ${show(op)} not handled")
+                                sys.error(s"Boolean op ${show(op)} ${show(left)} ${show(right)} not handled")
                         }
                     ntermB(to) === exp
 
@@ -232,7 +232,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : URem => lterm % rterm
                                     case _ : XOr  => lterm xor rterm
                                     case _ =>
-                                        sys.error(s"binary integer op ${show(op)} not handled")
+                                        sys.error(s"bitvector integer op ${show(op)} ${show(left)} ${show(right)} not handled")
                                 }
                             ntermBV(to, bits) === exp
                         case MathIntegerMode() =>
@@ -246,7 +246,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm % 2
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
                                         }
                                     case _ : AShR | _ : LShR =>
                                         // FIXME: LShrR version is not right for negative numbers
@@ -254,7 +254,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm / 2
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
                                         }
                                     case _ : Mul => lterm * rterm
                                     case _ : ShL =>
@@ -262,7 +262,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm * 2
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
                                         }
                                     case _ : SDiv => lterm / rterm
                                     case _ : SRem => lterm % rterm
@@ -270,7 +270,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : UDiv => lterm / rterm
                                     case _ : URem => lterm % rterm
                                     case _ =>
-                                        sys.error(s"binary integer op ${show(op)} not handled")
+                                        sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
                                 }
                             ntermI(to) === exp
                     }
@@ -288,7 +288,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case _ : FMul => lterm * rterm
                             case _ : FSub => lterm - rterm
                             case _ =>
-                                sys.error(s"binary floating-point op ${show(op)} not handled")
+                                sys.error(s"real op ${show(op)} ${show(left)} ${show(right)} not handled")
                         }
                     ntermR(to) === exp
 
@@ -340,7 +340,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case EQ() => lterm === rterm
                             case NE() => !(lterm === rterm)
                             case _ =>
-                                sys.error(s"Boolean comparison ${show(icond)} not handled")
+                                sys.error(s"Boolean comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
                         }
                     ntermB(to) === exp
 
@@ -364,7 +364,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case SLT() => lterm slt rterm
                                     case SLE() => lterm sle rterm
                                     case _ =>
-                                        sys.error(s"bit vector comparison ${show(icond)} not handled")
+                                        sys.error(s"bitvector integer comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
                                 }
                             ntermB(to) === exp
                         case MathIntegerMode() =>
@@ -383,7 +383,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case SLT() => lterm < rterm
                                     case SLE() => lterm <= rterm
                                     case _ =>
-                                        sys.error(s"integer comparison ${show(icond)} not handled")
+                                        sys.error(s"math integer comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
                                 }
                             ntermB(to) === exp
                     }
@@ -404,7 +404,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case FONE()   => !(lterm === rterm)
                             case FTrue()  => True()
                             case _ =>
-                                sys.error(s"floating-point comparison ${show(fcond)} not handled")
+                                sys.error(s"real comparison ${show(fcond)} ${show(left)} ${show(right)} not handled")
                         }
                     ntermB(to) === exp
 
