@@ -3,8 +3,9 @@ package au.edu.mq.comp.skink.ir.llvm
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
 import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
+import org.scalallvm.assembly.Analyser
 
-class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
+class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
         extends ArrayExInt with ArrayExOperators with BitVectors with Core
         with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
@@ -88,7 +89,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * (if there is one), and exit from this block using a particular choice.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(s"blockTerms: block ${blockName(block)}")
+        logger.info(s"blockTerms: block ${funAnalyser.blockName(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
@@ -105,7 +106,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         val term : TypedTerm[BoolTerm, Term] =
             optPrevBlock match {
                 case Some(prevBlock) =>
-                    val prevLabel = Label(Local(blockName(prevBlock)))
+                    val prevLabel = Label(Local(funAnalyser.blockName(prevBlock)))
                     insn match {
                         case insn @ Phi(Binding(to), tipe, preds) =>
                             // Bound phi result, find value

@@ -9,17 +9,6 @@ object LLVMHelper {
     // Property helpers
 
     /**
-     * Get the name of a block. Currently assumes that a block with no label
-     * must be the anonymous entry block (0).
-     */
-    def blockName(block : Block) : String =
-        block.optBlockLabel match {
-            case BlockLabel(s)    => s
-            case ImplicitLabel(i) => i.toString
-            case NoLabel()        => "0"
-        }
-
-    /**
      * Version of LLVM PP show that avoids line-wrapping.
      */
     def longshow(n : ASTNode) : String =

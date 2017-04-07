@@ -12,8 +12,9 @@ trait LLVMTermTests extends Tests with Core {
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
-    import org.scalallvm.assembly.Assembly
+    import org.scalallvm.assembly.{Analyser, Assembly}
     import org.scalallvm.assembly.AssemblySyntax._
 
     val namer = new DummyNamer
@@ -30,6 +31,12 @@ trait LLVMTermTests extends Tests with Core {
     val termBuilder : LLVMTermBuilder
 
     val noMetadata = Metadata(Vector())
+
+    // Dummy function and analyser for standalone tests
+
+    val Vector(func) = parseProgram("define i32 @main() { ret i32 0 }")
+    val funTree = new Tree[ASTNode, FunctionDefinition](func.function)
+    val funAnalyser = new Analyser(funTree)
 
     // Helpers to build useful instructions and terms
 
@@ -101,7 +108,7 @@ trait LLVMTermTests extends Tests with Core {
         e.getMessage shouldBe msg
     }
 
-    // Support for processing functions 
+    // Support for processing functions
 
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, pretty}
 

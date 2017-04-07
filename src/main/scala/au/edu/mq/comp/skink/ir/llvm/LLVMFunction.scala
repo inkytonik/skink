@@ -13,7 +13,8 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, function : FunctionDefinition, config : SkinkConfig) extends Attribution with IRFunction {
+class LLVMFunction(program : Program, val function : FunctionDefinition,
+        config : SkinkConfig) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
@@ -48,6 +49,9 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
     val funTree = new Tree[ASTNode, FunctionDefinition](function)
     val funAnalyser = new Analyser(funTree)
+
+    def blockName(block : Block) =
+        funAnalyser.blockName(block)
 
     // Gather properties of the function
 
@@ -116,7 +120,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(namer, config)
+        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
         import namer._
 
@@ -382,7 +386,7 @@ class LLVMFunction(program : Program, function : FunctionDefinition, config : Sk
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(namer, config)
+        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
