@@ -39,6 +39,9 @@ Vagrant.configure(2) do |config|
     # z3 install (on the 7th Nov 2016 this is installing 4.4.1)
     apt-get install -y --allow-unauthenticated z3
 
+    # Make local bin for any custom installs
+    mkdir -p /home/ubuntu/bin
+
     # java install
     wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
 
@@ -61,10 +64,16 @@ Vagrant.configure(2) do |config|
     # Link benchmarks to / so ../sv-benchmarks paths used in SV-COMP work from /vagrant
     ln -s /home/ubuntu/sv-benchmarks/ /
 
-    # install CPAchecker sources, benchexec builds it on first run
-    svn checkout https://svn.sosy-lab.org/software/cpachecker/trunk cpachecker
+    # Make Test.set available in benchmarks folder so its paths are relative to there
+    ln -s /vagrant/Test.set /sv-benchmarks/c/Test.set
 
-    # Make everything accessible
+    # Download binary CPAchecker distribution and link to known path
+    wget --no-check-certificate \
+      https://cpachecker.sosy-lab.org/CPAchecker-1.6.12-svcomp17-unix.tar.bz2
+    tar xvjf CPAchecker-1.6.12-svcomp17-unix.tar.bz2
+    ln -s CPAchecker-1.6.12-svcomp17-unix CPAchecker
+
+    # Make everything in ~ubuntu accessible
     chown -R ubuntu:ubuntu .
 
   SHELL

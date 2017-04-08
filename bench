@@ -3,7 +3,7 @@
 # summarise results as HTML table
 # Usage: ./bench args
 # Args are passed to benchexec, if empty run all tasks etc.
-# E.g., use "-t Loops" to just run Loops task.
+# E.g., use "-t ReachSafety-Loops" to just run Loops task.
 
 BENCHMARK_SPEC=/vagrant/skink.xml
 VIOLATION_WITNESS_SPEC=/vagrant/cpa-seq-validate-violation-witnesses.xml
@@ -12,10 +12,10 @@ CORRECTNESS_WITNESS_SPEC=/vagrant/cpa-seq-validate-correctness-witnesses.xml
 VERIFIER_OUTPUT_PATH=/vagrant/results-verified
 VIOLATION_OUTPUT_PATH=/vagrant/results-violation
 CORRECTNESS_OUTPUT_PATH=/vagrant/results-correctness
-PATH_TO_CPACHECKER=/home/ubuntu/cpachecker
+PATH_TO_CPACHECKER=/home/ubuntu/CPAchecker
 
 BENCHEXEC=/usr/local/bin/benchexec
-BENCHEXEC_ARGS="--no-container $*"
+BENCHEXEC_ARGS="--no-container"
 MERGEBENCHMARKSETS=/home/ubuntu/benchexec/contrib/mergeBenchmarkSets.py
 TABLEGENERATOR=/usr/local/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
@@ -24,7 +24,7 @@ rm -rf $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
 mkdir $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
 
 # Run verifier on benchmarks
-$BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC
+$BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC $*
 result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
 
 # Run CPAchecker to validate the violation witnesses

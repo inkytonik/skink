@@ -114,7 +114,7 @@ will print out the name of this HTML file at the end of its run.
 You can supply an argument to the bench script to just run on particular benchmark
 tasks, as in
 
-    ./bench -t Loops
+    ./bench -t ReachSafety-Loops
 
 to just run on the SV-COMP Loops category.
 
@@ -124,8 +124,8 @@ The repository contains a task set file `Test.set` which you can use to easily s
 up runs that don't involve all of a real SV-COMP task set. E.g., by making the
 contents of `Test.set` the following two lines:
 
-    ../sv-benchmarks/c/loops/array_false-unreach-call_true-termination.i
-    ../sv-benchmarks/c/loops/array_true-unreach-call_true-termination.i
+    loops/array_false-unreach-call_true-termination.i
+    loops/array_true-unreach-call_true-termination.i
 
 you can run
 

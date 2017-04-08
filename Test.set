@@ -1,6 +1,6 @@
-../sv-benchmarks/c/loops/array_false-unreach-call_true-termination.i
-../sv-benchmarks/c/loops/array_true-unreach-call_true-termination.i
-../sv-benchmarks/c/loops/sum03_false-unreach-call_true-termination.i
-../sv-benchmarks/c/loops/bubble_sort_true-unreach-call.i
-#../sv-benchmarks/c/loops/*_false-unreach-call*.i
-#../sv-benchmarks/c/loops/*_true-unreach-call*.i
+loops/array_false-unreach-call_true-termination.i
+loops/array_true-unreach-call_true-termination.i
+loops/sum03_false-unreach-call_true-termination.i
+loops/bubble_sort_true-unreach-call.i
+#loops/*_false-unreach-call*.i
+#loops/*_true-unreach-call*.i
