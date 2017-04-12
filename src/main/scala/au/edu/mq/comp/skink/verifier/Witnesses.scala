@@ -58,11 +58,11 @@ class Witnesses(config : SkinkConfig) {
            |
            |<key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
            |<key id="block"          for="node"  attr.name="block"            attr.type="int"   />
-           |<key id="node.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
-           |<key id="edge.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
+           |<key id="node.src"       for="node"  attr.name="node.src"         attr.type="string"/>
+           |<key id="edge.src"       for="edge"  attr.name="edge.src"         attr.type="string"/>
            |<key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
            |<key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
-           |<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+           |<key id="violation"      for="node"  attr.name="violation"        attr.type="boolean"><default>false</default></key>
            |<key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
            |<key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
            |<key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
