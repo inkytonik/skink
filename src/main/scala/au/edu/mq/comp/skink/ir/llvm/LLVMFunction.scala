@@ -37,6 +37,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         Property,
         TypeProperty
     }
+    import org.scalallvm.assembly.Analyser.defaultBlockName
     import scala.annotation.tailrec
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success}
@@ -45,9 +46,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     val programLogger = getLogger(this.getClass, ".program")
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
-    // An analyser for this function and its associated tree
+    // An analyser for the verifiable version of this function and its associated tree
 
-    val funTree = new Tree[ASTNode, FunctionDefinition](function)
+    val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable)
     val funAnalyser = new Analyser(funTree)
 
     def blockName(block : Block) =
@@ -55,7 +56,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     // Gather properties of the function
 
-    val blockMap = Map(function.functionBody.blocks.map(b => (blockName(b), b)) : _*)
+    val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
 
@@ -158,6 +159,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
         def getSourceLine(source : Source, line : Int) : String =
             source.optLineContents(line).getOrElse("").trim
+
+        def blockName(block : Block) : String =
+            defaultBlockName(block, funAnalyser.anonArgCount.toString)
 
         traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
@@ -275,7 +279,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    def makeVerifiable : FunctionDefinition = {
+    lazy val makeVerifiable : FunctionDefinition = {
 
         logger.info(s"makeVerifiable: $name")
 
