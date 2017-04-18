@@ -48,15 +48,15 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     // An analyser for the verifiable version of this function and its associated tree
 
-    val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable)
-    val funAnalyser = new Analyser(funTree)
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable)
+    lazy val funAnalyser = new Analyser(funTree)
 
     def blockName(block : Block) =
         funAnalyser.blockName(block)
 
     // Gather properties of the function
 
-    val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
+    lazy val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
 
