@@ -22,7 +22,6 @@
 
 #### Scala LLVM
 
-* LLVM 4.x?, (MR, TS), should be out in March but probably not worth to move even then
 * fix for multiple dependency issue? (TS)
 
 #### SMTlib
