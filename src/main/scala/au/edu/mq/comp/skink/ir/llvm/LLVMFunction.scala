@@ -67,30 +67,37 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         buildNFA(makeVerifiable)
 
     /**
-     * An LLVM function is verifiable if inliining has been successfully applied.
-     * I.e, the function code doesn't call any non-ignored functions.
+     * Return `None` if this function is verifiable. Otherwise, return a
+     * reason that can be displayed to the user for why it is not
+     * verifiable. Currently, the only reason is that some function
+     * calls have not been inlined.
      */
-    override def isVerifiable() : Boolean = {
+    override def isVerifiable() : Option[String] = {
 
-        def badCall(metaInsn : MetaInstruction) : Boolean = {
+        def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
             insn match {
                 case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
-                    false
-                case _ : Call =>
-                    logger.info(s"isVerifiable: $name contains bad ${longshow(insn)}")
-                    true
+                    None
+                case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
+                    logger.info(s"isVerifiable: non-inlined call ${longshow(insn)}")
+                    Some(s)
                 case _ =>
-                    false
+                    None
             }
         }
 
-        function.functionBody.blocks.foldLeft(true) {
-            case (sofar, block) =>
-                if (sofar)
-                    !block.optMetaInstructions.exists(badCall)
-                else
-                    false
+        def nonInlinedCalls(block : Block) : Vector[String] =
+            block.optMetaInstructions.flatMap(nonInlinedCall)
+
+        def nonInlinedCallNames : Vector[String] =
+            function.functionBody.blocks.map(nonInlinedCalls).flatten
+
+        nonInlinedCallNames match {
+            case Vector() =>
+                None
+            case names =>
+                Some(s"""calls to the following functions were not inlined: ${names.mkString(", ")}""")
         }
 
     }
