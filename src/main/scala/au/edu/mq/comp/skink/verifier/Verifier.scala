@@ -1,12 +1,13 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.ir.IR
 
 /**
  * The main verifier which wraps the trace refinement process with
  * output that is suitable for the SV-COMP.
  */
-class Verifier(config : SkinkConfig) {
+class Verifier(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
@@ -48,7 +49,7 @@ class Verifier(config : SkinkConfig) {
         }
 
         def runVerification() {
-            val refiner = new TraceRefinement(config)
+            val refiner = new TraceRefinement(ir, config)
             refiner.traceRefinement(function) match {
                 case Success(None) =>
                     reportCorrect()

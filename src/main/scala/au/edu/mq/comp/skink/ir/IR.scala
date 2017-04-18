@@ -5,7 +5,7 @@ package au.edu.mq.comp.skink.ir
  */
 trait IR {
 
-    import au.edu.mq.comp.skink.SkinkConfig
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
 
     /**
      * Execute this IR instance, returning the output produced and the exit
@@ -22,5 +22,10 @@ trait IR {
      * Return a pretty-printed version of this IR instance.
      */
     def show : String
+
+    /**
+     * Sort IR ids into a useful order of display to the user.
+     */
+    def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
 
 }

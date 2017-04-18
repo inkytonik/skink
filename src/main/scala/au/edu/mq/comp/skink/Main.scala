@@ -198,7 +198,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
             if (config.verifyTarget()) {
                 if (function.name == "main") {
                     logger.info(s"processIR: processing ${function.name}")
-                    val verifier = new Verifier(config)
+                    val verifier = new Verifier(ir, config)
                     verifier.verify(function)
                 } else {
                     logger.info(s"processIR: skipping ${function.name}")

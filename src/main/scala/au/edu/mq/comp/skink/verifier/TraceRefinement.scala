@@ -1,12 +1,12 @@
 package au.edu.mq.comp.skink.verifier
 
-import au.edu.mq.comp.skink.ir.Trace
+import au.edu.mq.comp.skink.ir.{IR, Trace}
 import au.edu.mq.comp.skink.SkinkConfig
 
 /**
  * Implementation of the trace refinement process.
  */
-class TraceRefinement(config : SkinkConfig) {
+class TraceRefinement(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.edge.Implicits._
@@ -47,11 +47,6 @@ class TraceRefinement(config : SkinkConfig) {
 
     val logger = getLogger(this.getClass)
     val cfgLogger = getLogger(this.getClass, ".cfg")
-
-    implicit object SortedQIdeOrdering extends Ordering[SortedQId] {
-        def compare(a : SortedQId, b : SortedQId) =
-            showTerm(a) compare showTerm(b)
-    }
 
     /**
      * Run the given solver to see if the given terms are satisifiable. If so,
@@ -169,7 +164,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- values.keys.toSeq.sorted) {
+                            for (x <- ir.sortIds(values.keys.toVector)) {
                                 logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
                             }
                             val failTrace = FailureTrace(trace, values)
