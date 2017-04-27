@@ -771,8 +771,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         constantValue match {
             case IntC(i) =>
                 i.toInt
-            case NullC() | ZeroC() =>
+            case FalseC() | NullC() | ZeroC() =>
                 0
+            case TrueC() =>
+                1
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }
