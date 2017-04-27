@@ -251,24 +251,37 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ : Add => lterm + rterm
                                     case _ : And =>
                                         right match {
-                                            case Const(IntC(i)) if i == 1 =>
-                                                lterm % 2
+                                            case Const(IntC(i)) =>
+                                                powerOfTwo((i + 1).toInt) match {
+                                                    case -1 =>
+                                                        opError[IntTerm]("math integer", left, op, right)
+                                                    case _ =>
+                                                        lterm % (i + 1).toInt
+                                                }
                                             case _ =>
                                                 opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : AShR | _ : LShR =>
-                                        // FIXME: LShrR version is not right for negative numbers
+                                        // FIXME: LShrR version is not right for negative numbers?
                                         right match {
-                                            case Const(IntC(i)) if i == 1 =>
-                                                lterm / 2
+                                            case Const(IntC(i)) =>
+                                                lterm / Math.pow(2, i.toDouble).toInt
                                             case _ =>
                                                 opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : Mul => lterm * rterm
-                                    case _ : ShL =>
+                                    case _ : Or =>
+                                        // FIXME: correct for negative lterm?
                                         right match {
                                             case Const(IntC(i)) if i == 1 =>
-                                                lterm * 2
+                                                (lterm % 2 === 0).ite(lterm + 1, lterm)
+                                            case _ =>
+                                                opError[IntTerm]("math integer", left, op, right)
+                                        }
+                                    case _ : ShL =>
+                                        right match {
+                                            case Const(IntC(i)) =>
+                                                lterm * Math.pow(2, i.toDouble).toInt
                                             case _ =>
                                                 opError[IntTerm]("math integer", left, op, right)
                                         }

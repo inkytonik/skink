@@ -261,4 +261,21 @@ object LLVMHelper {
             }
     }
 
+    // Useful math functions
+
+    /**
+     * Return the logarithm of `x` base 2.
+     */
+    def log2(x : Double) : Double =
+        Math.log(x) / Math.log(2)
+
+    /**
+     * If the given integer is power of two, return that power,
+     * otherwise return -1.
+     */
+    def powerOfTwo(x : Int) : Int = {
+        val pd = log2(x.toDouble)
+        if (pd == Math.round(pd)) pd.toInt else -1
+    }
+
 }
