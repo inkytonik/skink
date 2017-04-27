@@ -173,6 +173,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     }
 
     /*
+     * Throw an error that `op` applied to `left` and `right` cannot be handled.
+     * Prefix is prepended to the message.
+     */
+    def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
+        sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
+
+    /*
      * Return a term that expresses the effect of a regular LLVM instruction.
      */
     def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
@@ -198,7 +205,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             case _ : Or  => lterm | rterm
                             case _ : XOr => lterm xor rterm
                             case _ =>
-                                sys.error(s"Boolean op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                opError[BoolTerm]("Boolean", left, op, right)
                         }
                     ntermB(to) === exp
 
@@ -233,7 +240,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ : URem => lterm % rterm
                                     case _ : XOr  => lterm xor rterm
                                     case _ =>
-                                        sys.error(s"bitvector integer op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                        opError[BVTerm]("bitvector integer", left, op, right)
                                 }
                             ntermBV(to, bits) === exp
                         case MathIntegerMode() =>
@@ -247,7 +254,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm % 2
                                             case _ =>
-                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : AShR | _ : LShR =>
                                         // FIXME: LShrR version is not right for negative numbers
@@ -255,7 +262,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm / 2
                                             case _ =>
-                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : Mul => lterm * rterm
                                     case _ : ShL =>
@@ -263,7 +270,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                             case Const(IntC(i)) if i == 1 =>
                                                 lterm * 2
                                             case _ =>
-                                                sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : SDiv => lterm / rterm
                                     case _ : SRem => lterm % rterm
@@ -271,7 +278,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ : UDiv => lterm / rterm
                                     case _ : URem => lterm % rterm
                                     case _ =>
-                                        sys.error(s"math integer op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                        opError[IntTerm]("math integer", left, op, right)
                                 }
                             ntermI(to) === exp
                     }
@@ -289,7 +296,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             case _ : FMul => lterm * rterm
                             case _ : FSub => lterm - rterm
                             case _ =>
-                                sys.error(s"real op ${show(op)} ${show(left)} ${show(right)} not handled")
+                                opError[RealTerm]("real", left, op, right)
                         }
                     ntermR(to) === exp
 
@@ -341,7 +348,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             case EQ() => lterm === rterm
                             case NE() => !(lterm === rterm)
                             case _ =>
-                                sys.error(s"Boolean comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
+                                opError[BoolTerm]("Boolean comparison", left, icond, right)
                         }
                     ntermB(to) === exp
 
@@ -365,7 +372,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case SLT() => lterm slt rterm
                                     case SLE() => lterm sle rterm
                                     case _ =>
-                                        sys.error(s"bitvector integer comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
+                                        opError[BoolTerm]("bitvector integer comparison", left, icond, right)
                                 }
                             ntermB(to) === exp
                         case MathIntegerMode() =>
@@ -384,7 +391,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case SLT() => lterm < rterm
                                     case SLE() => lterm <= rterm
                                     case _ =>
-                                        sys.error(s"math integer comparison ${show(icond)} ${show(left)} ${show(right)} not handled")
+                                        opError[BoolTerm]("math integer comparison", left, icond, right)
                                 }
                             ntermB(to) === exp
                     }
@@ -405,7 +412,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             case FONE()   => !(lterm === rterm)
                             case FTrue()  => True()
                             case _ =>
-                                sys.error(s"real comparison ${show(fcond)} ${show(left)} ${show(right)} not handled")
+                                opError[BoolTerm]("real comparison", left, fcond, right)
                         }
                     ntermB(to) === exp
 
