@@ -393,7 +393,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ =>
                                         opError[BoolTerm]("math integer comparison", left, icond, right)
                                 }
-                            ntermB(to) === exp
+                            val cmp = ntermB(to) === exp
+                            icond match {
+                                case UGT() | UGE() | ULT() | ULE() =>
+                                    (lterm >= 0) & (rterm >= 0) & cmp
+                                case _ =>
+                                    cmp
+                            }
                     }
 
                 // Compare two floating-point values
