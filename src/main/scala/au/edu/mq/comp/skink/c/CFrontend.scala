@@ -98,7 +98,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -S -emit-llvm -gline-tables-only -O2 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
+        val clangargs = s"-c -S -emit-llvm -gline-tables-only -O2 -mllvm -inline-threshold=15000 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
 
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)
