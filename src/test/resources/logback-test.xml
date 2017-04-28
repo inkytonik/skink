@@ -66,6 +66,14 @@
         </encoder>
     </appender>
 
+    <appender name="EXPECTFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/expect.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
     <root level="OFF">
         <appender-ref ref="SKINKFILE"/>
     </root>
@@ -119,8 +127,8 @@
         <appender-ref ref="ITPAUTOFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
-        <appender-ref ref="SKINKFILE"/>
+    <logger name="org.bitbucket.franck44.expect" level="INHERITED" additivity="false">
+        <appender-ref ref="EXPECTFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">
