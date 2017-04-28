@@ -1,12 +1,12 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
+import au.edu.mq.comp.smtlib.theories.{ArrayExBV, ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
 import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 import org.scalallvm.assembly.Analyser
 
 class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
-        extends ArrayExInt with ArrayExOperators with BitVectors with Core
+        extends ArrayExBV with ArrayExInt with ArrayExOperators with BitVectors with Core
         with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
@@ -512,21 +512,25 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
                 // Array loads and stores, just non-Boolean, integer elements for now
 
-                case insn @ Load(Binding(to), _, IntegerT(_), _, ArrayElement(array, index), _) =>
-                    // integerMode match {
-                    //     case BitIntegerMode() =>
-                    //         ntermBV(to) === arrayTermAtBV(insn, array).at(vtermAtBV(insn, index))
-                    //     case MathIntegerMode() =>
-                    ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
-                // }
+                // FIXME: handle the bit size of the indexes, currently assumed to be 32...
 
-                case insn @ Store(_, IntegerT(_), from, _, ArrayElement(array, index), _) =>
-                    // integerMode match {
-                    //     case BitIntegerMode() =>
-                    //         arrayTermAtBV(insn, array) === prevArrayTermAtBV(insn, array).store(vtermAtBV(insn, index), vtermBV(from))
-                    //     case MathIntegerMode() =>
-                    arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
-                // }
+                case insn @ Load(Binding(to), _, IntegerT(size), _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            val bits = size.toInt
+                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, 64, index))
+                        case MathIntegerMode() =>
+                            ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
+                    }
+
+                case insn @ Store(_, IntegerT(size), from, _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            val bits = size.toInt
+                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, 64, index), vtermBV(from, bits))
+                        case MathIntegerMode() =>
+                            arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
+                    }
 
                 // Non-array loads and stores
 
@@ -548,21 +552,21 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Make an integer ArrayTerm for the named variable where `id` is the base name
      * identifier and include an optional index.
      */
-    def arrayTermBV(id : String, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayEx1[BVTerm](termid(id)).indexed(index)
+    def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        ArrayBV1(termid(id), 64, bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name
      * identifier and include an optional index.
      */
     def arrayTermI(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        ArrayEx1[IntTerm](termid(id)).indexed(index)
+        ArrayInt1(termid(id)).indexed(index)
 
     /**
      * Return a bit vector array term that expresses a name when referenced from node.
      */
-    def arrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), indexOf(node, show(name)))
+    def arrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        arrayTermBV(show(name), bits, indexOf(node, show(name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
@@ -574,8 +578,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
-    def prevArrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+    def prevArrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        arrayTermBV(show(name), bits, scala.math.max(indexOf(node, show(name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
