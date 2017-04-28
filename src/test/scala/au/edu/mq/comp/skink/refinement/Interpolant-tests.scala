@@ -34,7 +34,7 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
                 fun match {
                     case Some(main) =>
                         logger.info(s"verifying ${main.name}")
-                        val refiner = new TraceRefinement(config)
+                        val refiner = new TraceRefinement(prog, config)
                         refiner.traceRefinement(main) shouldBe Success(None)
                     case None =>
                         logger.error(s"no main found")
