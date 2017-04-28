@@ -252,7 +252,7 @@ object InterpolantAuto extends AddBackEdges {
 
             //  computation of predicates failed
             case Failure(f) =>
-                itpLogger.warn(s"Solver could note compute interpolants $f")
+                itpLogger.warn(s"Solver could not compute interpolants $f")
                 NFA(
                     linearAuto.getInit,
                     linearAuto.transitions,
