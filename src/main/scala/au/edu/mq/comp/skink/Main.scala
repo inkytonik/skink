@@ -21,7 +21,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
-    import au.edu.mq.comp.smtlib.solvers._
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",

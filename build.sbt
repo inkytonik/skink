@@ -49,10 +49,10 @@ libraryDependencies ++=
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
-        "au.edu.mq.comp" %% "mq-scala-smtlib" % "1.0-SNAPSHOT",
+        "au.edu.mq.comp" %% "scalasmtlib" % "2.0-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.0" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-        "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
         "ch.qos.logback" % "logback-classic" % "1.1.7"
     )
 

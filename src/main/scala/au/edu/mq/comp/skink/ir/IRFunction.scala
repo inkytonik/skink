@@ -69,7 +69,7 @@ trait IRFunction {
      */
     def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
-    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import scala.util.{Try, Success, Failure}
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -87,7 +87,7 @@ trait IRFunction {
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : ExtendedSMTLIB2Interpreter
+        solver : SMTLIBInterpreter
     ) : Try[Boolean]
 
 }

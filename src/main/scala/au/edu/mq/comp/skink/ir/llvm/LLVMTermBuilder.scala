@@ -12,7 +12,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}

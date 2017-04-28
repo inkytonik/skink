@@ -20,7 +20,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
@@ -482,11 +482,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         }
     }
 
-    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
-    import scala.util.{Try, Success, Failure}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
-
-    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import scala.util.{Try, Success, Failure}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
 
@@ -506,7 +502,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : ExtendedSMTLIB2Interpreter
+        solver : SMTLIBInterpreter
     ) : Try[Boolean] = {
 
         import au.edu.mq.comp.smtlib.theories.Core
