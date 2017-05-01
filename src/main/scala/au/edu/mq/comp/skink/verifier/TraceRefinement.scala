@@ -99,7 +99,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
         // type we want to use
-        val selectedSolver =
+        def selectedSolver =
             config.solverMode() match {
                 case Z3SolverMode() =>
                     config.integerMode() match {
