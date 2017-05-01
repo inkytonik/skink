@@ -3,20 +3,27 @@ Vagrant.configure(2) do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 2048
   end
-  config.vm.box = "ubuntu/xenial64"
+  config.vm.box = "ubuntu/yakkety64"
   config.vm.provision "shell", inline: <<-SHELL
+
+    export LANGUAGE=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    locale-gen en_US.UTF-8
+    dpkg-reconfigure locales
+
     # Add launchpad package sources (for things like git)
-    echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu xenial main' >> /etc/apt/sources.list
-    echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu xenial main' >> /etc/apt/sources.list
+    echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu yakkety main' >> /etc/apt/sources.list
+    echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu yakkety main' >> /etc/apt/sources.list
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 1E9377A2BA9EF27F
 
     # Add sbt package sources
     echo 'deb https://dl.bintray.com/sbt/debian /' >> /etc/apt/sources.list
-    # echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 99E82A75642AC823
 
     # Add LLVM package sources
-    echo 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main' >> /etc/apt/sources.list
+    echo 'deb http://apt.llvm.org/yakkety/ llvm-toolchain-yakkety-4.0 main' >> /etc/apt/sources.list
+    echo 'deb-src http://apt.llvm.org/yakkety/ llvm-toolchain-yakkety-4.0 main' >> /etc/apt/sources.list
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
     # Make sure we have the most recent package list
