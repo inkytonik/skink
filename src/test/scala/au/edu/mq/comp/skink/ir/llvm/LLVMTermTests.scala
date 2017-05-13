@@ -12,6 +12,9 @@ trait LLVMTermTests extends Tests with Core {
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.inkytonik.kiama.relation.Tree
+    import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
+    import org.scalallvm.assembly.{Analyser, Assembly}
     import org.scalallvm.assembly.AssemblySyntax._
 
     val namer = new DummyNamer
@@ -23,9 +26,17 @@ trait LLVMTermTests extends Tests with Core {
         config
     }
 
+    val config : SkinkConfig
+
     val termBuilder : LLVMTermBuilder
 
     val noMetadata = Metadata(Vector())
+
+    // Dummy function and analyser for standalone tests
+
+    val Vector(func) = parseProgram("define i32 @main() { ret i32 0 }")
+    val funTree = new Tree[ASTNode, FunctionDefinition](func.function)
+    val funAnalyser = new Analyser(funTree)
 
     // Helpers to build useful instructions and terms
 
@@ -95,6 +106,29 @@ trait LLVMTermTests extends Tests with Core {
             termBuilder.insnTerm(MetaInstruction(insn, noMetadata))
         }
         e.getMessage shouldBe msg
+    }
+
+    // Support for processing functions
+
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, pretty}
+
+    /**
+     * Parses `prog` as a program and returns a vector of LLVMFunctions
+     * that represent the functions in the program.
+     */
+    def parseProgram(prog : String) : Vector[LLVMFunction] = {
+        val positions = new Positions
+        val source = new StringSource(prog)
+        val p = new Assembly(source, positions)
+        val pr = p.pProgram(0)
+        if (pr.hasValue) {
+            val prog = p.value(pr).asInstanceOf[Program]
+            prog.items.collect {
+                case func : FunctionDefinition =>
+                    new LLVMFunction(prog, func, config)
+            }
+        } else
+            fail(s"parse error: ${pr.parseError.msg}")
     }
 
 }

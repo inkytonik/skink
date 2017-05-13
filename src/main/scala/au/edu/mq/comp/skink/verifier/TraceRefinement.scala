@@ -1,12 +1,12 @@
 package au.edu.mq.comp.skink.verifier
 
-import au.edu.mq.comp.skink.ir.Trace
+import au.edu.mq.comp.skink.ir.{IR, Trace}
 import au.edu.mq.comp.skink.SkinkConfig
 
 /**
  * Implementation of the trace refinement process.
  */
-class TraceRefinement(config : SkinkConfig) {
+class TraceRefinement(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.dpor.DPOR
@@ -21,18 +21,17 @@ class TraceRefinement(config : SkinkConfig) {
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
-    import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import au.edu.mq.comp.smtlib.parser.Analysis
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
     import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
-    import au.edu.mq.comp.smtlib.configurations.Configurations._
+    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
+    import au.edu.mq.comp.smtlib.configurations.SMTOptions._
+    import au.edu.mq.comp.smtlib.configurations.{SMTInit, SolverConfig}
     import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.typedterms.Commands
     import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
-    import au.edu.mq.comp.smtlib.solvers._
-    import au.edu.mq.comp.smtlib.interpreters.SMTSolver
     import au.edu.mq.comp.smtlib.interpreters.Resources
 
     case class ValMap(m : Map[QualifiedId, Value])
@@ -49,18 +48,13 @@ class TraceRefinement(config : SkinkConfig) {
     val logger = getLogger(this.getClass)
     val cfgLogger = getLogger(this.getClass, ".cfg")
 
-    implicit object SortedQIdeOrdering extends Ordering[SortedQId] {
-        def compare(a : SortedQId, b : SortedQId) =
-            showTerm(a) compare showTerm(b)
-    }
-
     /**
      * Run the given solver to see if the given terms are satisifiable. If so,
      * return `Sat()` and a map that relates ids from the terms to their values.
      * If the term is not satisfiable, return `UnSat()` and an empty map.
      */
     def runSolver(
-        selectedSolver : Solver,
+        selectedSolver : SMTLIBInterpreter,
         terms : Seq[TypedTerm[BoolTerm, Term]]
     ) : Try[(SatResponses, Map[SortedQId, Value])] =
         using(selectedSolver) {
@@ -95,29 +89,39 @@ class TraceRefinement(config : SkinkConfig) {
         reducer.getTrace()
         val programLang = Lang(toDetNFA(reducer.getExploredGraph)._1)
 
+        // FIXME: remove
+        def solverFromName(name : String) : SolverConfig = {
+            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+                case Some(sc) =>
+                    sc
+                case None =>
+                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
+            }
+        }
+
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
         // type we want to use
-        val selectedSolver =
+        def selectedSolver =
             config.solverMode() match {
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new Z3 with AUFNIRA with Interpolants with Models
+                            new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
-                            new Z3 with QF_ABV with Interpolants with Models
+                            new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new CVC4 with AUFNIRA with Models
+                            new SMTLIBInterpreter(solverFromName("CVC4"), new SMTInit(AUFNIRA, List(MODELS)))
                         case BitIntegerMode() =>
-                            new CVC4 with QF_ABV with Models
+                            new SMTLIBInterpreter(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTInterpol with QF_AUFLIA with Interpolants with Models
+                            new SMTLIBInterpreter(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
                     }
@@ -176,7 +180,7 @@ class TraceRefinement(config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- values.keys.toSeq.sorted) {
+                            for (x <- ir.sortIds(values.keys.toVector)) {
                                 logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
                             }
                             val failTrace = FailureTrace(trace, values)

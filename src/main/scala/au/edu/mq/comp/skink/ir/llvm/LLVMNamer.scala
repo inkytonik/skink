@@ -155,20 +155,54 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 
     def defaultIndexOf(s : String) : Int = 0
 
+    /**
+     * Normally we just access the chain at `use` but nodes that appear
+     * in the predecessor specifications of `Phi` nodes are special
+     * because they need to use incoming values from the block, not
+     * from previous `Phi` nodes (if any). If we are in such a
+     * position, we find the block that encloses the `Phi` and use
+     * its incoming map.
+     */
     def indexOf(use : Product, s : String) : Int = {
         logger.debug(s"indexOf: use $use")
-        if (isLocalName(use)) {
-            stores(use).get(s).getOrElse(0)
+        if (!isLocalName(use)) {
+          globalNamer.indexOf(use, s)
         } else {
-            globalNamer.indexOf(use, s)
+          val map =
+              enclosingPhi(use) match {
+                  case Some(phi) =>
+                      stores.in(enclosingBlock(phi))
+                  case _ =>
+                      stores(use)
+              }
+          map.get(s).getOrElse(defaultIndexOf(s))
         }
     }
 
     def nameOf(name : Name) : String = {
-        name match {
-            case Global(_) => globalNamer.nameOf(name)
-            case Local(_)  => s"thread$threadId${show(name)}"
-        }
+      name match {
+        case Global(_) => globalNamer.nameOf(name)
+        case Local(_)  => s"thread$threadId${show(name)}"
+      }
     }
+
+    /**
+     * The enclosing phi instruction of a node in a block, if there is one
+     * and the node is in a phi predecessor specification.
+     */
+    val enclosingPhi : Product => Option[Phi] =
+        downOpt {
+            case nametree.parent.pair(_ : PhiPredecessor, phi : Phi) =>
+                phi
+        }
+
+    /**
+     * The enclosing block of a node in a block.
+     */
+    val enclosingBlock : Product => Block =
+        downErr {
+            case block : Block =>
+                block
+        }
 }
 

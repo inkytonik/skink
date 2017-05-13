@@ -14,9 +14,9 @@ import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 trait AddBackEdges extends Core with Resources {
 
     import au.edu.mq.comp.automat.edge.Implicits._
-    import au.edu.mq.comp.smtlib.solvers._
-    import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
-    import au.edu.mq.comp.smtlib.configurations.Configurations._
+    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
+    import au.edu.mq.comp.smtlib.configurations.SolverConfig
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import scala.util.{Failure, Success, Try}
     import au.edu.mq.comp.smtlib.typedterms.TypedTerm
     import au.edu.mq.comp.smtlib.theories.BoolTerm
@@ -57,6 +57,16 @@ trait AddBackEdges extends Core with Resources {
 
         itpLogger.info(s"candidate pairs $candidatePairs")
 
+        // FIXME: remove
+        def solverFromName(name : String) : SolverConfig = {
+            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+                case Some(sc) =>
+                    sc
+                case None =>
+                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
+            }
+        }
+
         /**
          * Check if backedges can be added to the linear automaton
          * If there is a repetition of a block at index i and j, we
@@ -77,7 +87,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new Z3) {
+                res = using(new SMTLIBInterpreter(solverFromName("Z3"))) {
                     implicit solver =>
                         program.checkPost(
                             x1,
@@ -109,12 +119,11 @@ case class Interpolant(program : IR, choices : Seq[Choice], fromEnd : Boolean) e
     require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
 
     import au.edu.mq.comp.skink.ir.Trace
-    import au.edu.mq.comp.smtlib.interpreters.{SMTLIB2Interpreter}
-    import au.edu.mq.comp.smtlib.solvers._
-    import au.edu.mq.comp.smtlib.interpreters.SMTSolver
+    import au.edu.mq.comp.smtlib.configurations.{SMTInit, SolverConfig}
+    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
+    import au.edu.mq.comp.smtlib.configurations.SMTOptions._
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import au.edu.mq.comp.smtlib.interpreters.Resources
-    import au.edu.mq.comp.smtlib.theories.PredefinedLogics._
-    import au.edu.mq.comp.smtlib.configurations.Configurations._
     import scala.util.{Failure, Success, Try}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
 
@@ -135,11 +144,21 @@ case class Interpolant(program : IR, choices : Seq[Choice], fromEnd : Boolean) e
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
         itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
+        // FIXME: remove
+        def solverFromName(name : String) : SolverConfig = {
+            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+                case Some(sc) =>
+                    sc
+                case None =>
+                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
+            }
+        }
+
         /**
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new Z3 with Interpolants) {
+        using(new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(List(INTERPOLANTS)))) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 
@@ -233,7 +252,7 @@ object InterpolantAuto extends AddBackEdges {
 
             //  computation of predicates failed
             case Failure(f) =>
-                itpLogger.warn(s"Solver could note compute interpolants $f")
+                itpLogger.warn(s"Solver could not compute interpolants $f")
                 NFA(
                     linearAuto.getInit,
                     linearAuto.transitions,

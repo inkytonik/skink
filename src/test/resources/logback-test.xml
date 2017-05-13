@@ -66,8 +66,8 @@
         </encoder>
     </appender>
 
-    <appender name="AUTOMATFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/automat.log</file>
+    <appender name="EXPECTFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/expect.log</file>
         <append>false</append>
         <encoder>
             <pattern>${DEFAULT_PATTERN}</pattern>
@@ -81,7 +81,9 @@
     <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
+        <appender-ref ref="CFILE"/>
+    </logger>
     <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
     </logger>
@@ -132,8 +134,8 @@
         <appender-ref ref="CFGFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.expect" level="INHERITED" additivity="false">
-        <appender-ref ref="SKINKFILE"/>
+    <logger name="org.bitbucket.franck44.expect" level="INHERITED" additivity="false">
+        <appender-ref ref="EXPECTFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">

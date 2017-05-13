@@ -7,7 +7,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
 
 scalacOptions := {
 
@@ -51,10 +51,10 @@ libraryDependencies ++=
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
-        "au.edu.mq.comp" %% "scala-smtlib2-mq" % "1.0-SNAPSHOT",
+        "au.edu.mq.comp" %% "scalasmtlib" % "2.0-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.0" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-        "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+        "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
         "ch.qos.logback" % "logback-classic" % "1.1.7"
     )
 
@@ -97,6 +97,13 @@ ratsUseKiama := 2
 test in assembly := {}
 
 mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
+
+mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
+  {
+    case "logback-test.xml" => MergeStrategy.discard
+    case x                  => old(x)
+  }
+}
 
 // ScalariForm
 

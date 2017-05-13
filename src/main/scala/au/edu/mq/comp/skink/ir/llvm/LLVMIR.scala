@@ -25,6 +25,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         MetaTerminatorInstruction
     }
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show => showAsm}
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.Executor
     import org.scalallvm.assembly.Analyser.{metadata, filepath}
     import org.scalallvm.assembly.{
@@ -349,4 +352,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
         }
     }
+
+    def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
+        ids.sorted
 }

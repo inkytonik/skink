@@ -1,0 +1,53 @@
+FALSE
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://graphml.graphdrawing.org/xmlns"
+>
+
+<key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
+<key id="block"          for="node"  attr.name="block"            attr.type="int"   />
+<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
+<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
+<key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
+<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
+<key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
+<key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
+<key id="specification"  for="graph" attr.name="specification"    attr.type="string"/>
+<key id="programfile"    for="graph" attr.name="programFile"      attr.type="string"/>
+<key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
+<key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
+<key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
+
+<graph edgedefault="directed">
+  <data key="witness-type"  >violation_witness</data>
+  <data key="sourcecodelang">C</data>
+  <data key="producer"      >skink</data>
+  <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
+  <data key="programfile"   >src/test/resources/citests/math/simple-function_false-unreach-call.c</data>
+  <data key="programhash"   >b2dd17f32cb0c8f331f86e8f6a725858a1cbd310</data>
+  <data key="memorymodel"   >simple</data>
+  <data key="architecture"  >32bit</data>
+
+<node id="N0">
+  <data key="entry">true</data>
+  <data key="block">0</data>
+  <data key="node.src">j = func (42);</data>
+</node>
+
+<edge id="E0" source="N0" target="N1">
+  <data key="edge.src">if (!(cond)) {</data>
+  <data key="startline">4</data>
+  <data key="endline">4</data>
+</edge>
+
+<node id="N1">
+  <data key="violation">true</data>
+  <data key="block">11</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
+</node>
+
+</graph>
+
+</graphml>

@@ -9,9 +9,13 @@ fi
 
 cmd=$1; shift
 
+# Witness file for competititon, benchexec etc
+WTNFILE=witness.graphml
+
+# Witness file alongside input file, will be a copy of competition one
 file=${@: -1}
 base=${file%.*}
-WTNFILE=$file.graphml
+IWTNFILE=$file.graphml
 
 export PATH=./bin/:$PATH
 export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
@@ -21,12 +25,16 @@ ARGS=""
 case $cmd in
     cmp) JAR=skink.jar
          ARGS="-m 300 $ARGS"
-         WTNFILE=witness.graphml
          ;;
-    dev) JAR=target/scala-2.11/skink-assembly-2.0-SNAPSHOT.jar
+    dev) JAR=/vagrant/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
          ;;
     exp) JAR=skink_exp.jar
          ARGS="-m 300 $ARGS"
+         GREPRES=`egrep "while[ ]*\([ ]*1[ ]*\)|pthread_[^\[;]*\[" $file`
+         if [[ ! -z $GREPRES ]]; then
+           echo "UNKNOWN"
+           exit 0
+         fi
          ;;
     *) echo "skink.sh: unexpected command $cmd"
        exit 1
@@ -39,3 +47,8 @@ java -Xmx1400m -Xss5m \
   --witness-file $WTNFILE \
   $ARGS \
   $*
+
+if test -e $WTNFILE
+then
+  cp $WTNFILE $IWTNFILE
+fi

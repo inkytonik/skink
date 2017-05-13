@@ -4,6 +4,8 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     // Property helpers
@@ -211,7 +213,7 @@ object LLVMHelper {
             item match {
                 case GlobalVariableDefinition(
                     GlobalBinding(name), _, _, _, _, _, _, _, _,
-                    tipe, Init(constantValue), _, _, _) =>
+                    tipe, Init(constantValue), _, _, _, _) =>
                     Some((name, tipe, constantValue))
                 case _ =>
                     None
@@ -283,20 +285,56 @@ object LLVMHelper {
      * Extractor for variable names that matches if the variable is a
      * user-level variable (i.e., one defined in the source code) as
      * opposed to a compiler-defined temporary. If a match is found,
-     * the basename of the variable is returned and the index attached
-     * is ignored (e.g., `%i@1` returns `i`).
+     * the basename of the variable and the index are returned (e.g.,
+     * `%i@1` returns `i` and 1).
      */
     object UserLevelVarName {
-        def unapply(name : Name) : Option[String] = {
-            val BaseName = "[@%](.+)@[0-9]+".r
+        def unapply(name : String) : Option[(String, Int)] = {
+            val BaseName = "[@%](.+)@([0-9]+)".r
             val TempName = "[@%][0-9]+@[0-9]+".r
-            nameToString(name) match {
-                case TempName() =>
-                    None
-                case BaseName(base) =>
-                    Some(base)
+            name match {
+                case BaseName(base, index) =>
+                    Some((base, index.toInt))
                 case _ =>
                     None
+            }
+        }
+    }
+    /*
+     * Extractor for base variable names that identifies numeric names,
+     * i.e., LLVM temporaries.
+     */
+    object TempVarBaseName {
+        def unapply(name : String) : Option[Int] = {
+            val TempBaseName = "([0-9]+)".r
+            name match {
+                case TempBaseName(temp) =>
+                    Some(temp.toInt)
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
+     * Ordering for qualified Ids that keeps ids like %1@1 ahead of
+     * things ids like %1@2 and %11@1.
+     */
+    implicit object SortedQIdOrdering extends math.Ordering[SortedQId] {
+        def compare(a : SortedQId, b : SortedQId) : Int = {
+            (showTerm(a.id), showTerm(b.id)) match {
+                case (UserLevelVarName(x, i), UserLevelVarName(y, j)) =>
+                    if (x == y)
+                        i - j
+                    else
+                        (x, y) match {
+                            case (TempVarBaseName(xn), TempVarBaseName(yn)) =>
+                                xn - yn
+                            case _ =>
+                                x compare y
+                        }
+                case (aStr, bStr) =>
+                    aStr compare bStr
             }
         }
     }
@@ -321,6 +359,7 @@ object LLVMHelper {
             }
     }
 
+<<<<<<< HEAD
     object PThreadType {
         def unapply(tipe : Type) : Option[Type] =
             tipe match {
@@ -398,4 +437,21 @@ object LLVMHelper {
             }
 
     }
+    // Useful math functions
+
+    /**
+     * Return the logarithm of `x` base 2.
+     */
+    def log2(x : Double) : Double =
+        Math.log(x) / Math.log(2)
+
+    /**
+     * If the given integer is power of two, return that power,
+     * otherwise return -1.
+     */
+    def powerOfTwo(x : Int) : Int = {
+        val pd = log2(x.toDouble)
+        if (pd == Math.round(pd)) pd.toInt else -1
+    }
+
 }

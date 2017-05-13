@@ -81,7 +81,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
             DefaultVisibility(), DefaultDLLStorageClass(), NoThreadLocalSpec(),
             UnnamedAddr(), DefaultAddrSpace(), NotExternallyInitialized(), Constant(),
             stringType(value.length), Init(stringToConstant(value)),
-            DefaultSection(), NoComdat(), Align(1))
+            DefaultSection(), NoComdat(), Align(1), Metadata(Vector()))
 
     def bytePtrType() = PointerT(IntT(8), DefaultAddrSpace())
 
@@ -415,8 +415,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
                     DefaultDLLStorageClass(), DefaultCC(), Vector(), rettype, global,
                     args, NamedAddr(), Vector(), DefaultSection(), NoComdat(),
                     DefaultAlignFunc(), NoGCName(), NoPrefix(), NoPrologue(),
-                    body)
-
+                    NoPersonality(), Vector(), body)
         }
 
     }

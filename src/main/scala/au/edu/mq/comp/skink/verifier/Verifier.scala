@@ -1,12 +1,13 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.ir.IR
 
 /**
  * The main verifier which wraps the trace refinement process with
  * output that is suitable for the SV-COMP.
  */
-class Verifier(config : SkinkConfig) {
+class Verifier(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.skink.ir.{FailureTrace, IR, IRFunction}
@@ -62,13 +63,14 @@ class Verifier(config : SkinkConfig) {
         try {
             val mainFun = ir.functions(0)
             // Detect if the function is not in a form for verification and abort
-            if (!mainFun.isVerifiable()) {
-                logger.info(s"verify: ${mainFun.name} is not verifiable, aborting")
-                sys.error(s"verification not possible since ${mainFun.name} is not verifiable")
+            mainFun.isVerifiable() match {
+                case Some(reason) =>
+                    logger.info(s"verify: ${function.name} is not verifiable, aborting")
+                    sys.error(s"${function.name} is not verifiable, $reason")
+                case _ =>
+                    // Function is ok, go for verification
+                    runVerification()
             }
-
-            // Function is ok, go for verification
-            runVerification()
         } catch {
             case e : java.lang.Exception =>
                 reportException(e)

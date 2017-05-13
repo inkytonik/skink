@@ -59,13 +59,19 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
         // Run a pipeline of commands, return status and output
         def runPipeline(command : String, rest : String*) : (Int, String) = {
+            val outputBuilder = new StringBuilder
             for (stage <- command +: rest) {
-                logger.info(s"buildIRFromFile: $stage")
+                logger.info(s"buildIRFromFile: $stage\n")
             }
             val process = rest.foldLeft(Process(command))(_ #&& _)
-            val os = new java.io.ByteArrayOutputStream
-            val res = (process #> os).!
-            (res, os.toString)
+            val processLoggger = ProcessLogger(
+                line => outputBuilder.append(s"$line\n"),
+                line => outputBuilder.append(s"$line\n")
+            )
+            val status = process ! processLoggger
+            val output = outputBuilder.result()
+            logger.info(output)
+            (status, output)
         }
 
         def fail(msg : String) : Either[IR, Messages] = {
@@ -81,36 +87,33 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         def deleteFile(filename : String) {
             java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filename))
         }
+
         // Setup filenames
-        val clangllfile = dotc2dotext(filename, ".clang.ll")
-        val optllfile = dotc2dotext(filename, ".ll")
+        val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
         val clang = "clang"
-        val opt = "opt"
-        val programs = List(clang, opt)
+        val programs = List(clang)
 
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -S -emit-llvm -g -o $clangllfile -x c $clangdefs $clangwargs"
-        val optargs = s"-S -inline -inline-threshold=150000 -indvars -loops -lcssa -licm -loop-simplify -loop-unroll -unroll-count=10 -simplifycfg -adce -strip-debug-declare $clangllfile -o $optllfile"
+        val clangargs = s"-c -S -emit-llvm -gline-tables-only -O2 -mllvm -inline-threshold=15000 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
 
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)
-            deleteFile(optllfile)
             val (res, output) = runPipeline(
-                s"$clang $clangargs",
-                s"$opt $optargs"
+                s"$clang $clangargs"
             )
-            logfile("Clang output", clangllfile)
-            logfile("Opt output", optllfile)
             if (res == 0) {
-                logger.info(s"buildIRFromFile: preparing LLVM code succeeded with output '$output'")
-                logger.info(s"buildIRFromFile: running LLVM frontend on $optllfile")
-                (new LLVMFrontend(config)).buildIR(FileSource(optllfile), positions)
-            } else
-                fail(s"buildIRFromFile: preparing LLVM code failed with code $res and output '$output'")
+                logfile("Clang output", clangllfile)
+                logger.info(s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
+                logger.info(s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
+                (new LLVMFrontend(config)).buildIR(FileSource(clangllfile), positions)
+            } else {
+                println(output)
+                fail(s"buildIRFromFile: preparing LLVM code failed with code $res")
+            }
         }
 
         // Check for required programs on PATH, report errors or if ok, run them

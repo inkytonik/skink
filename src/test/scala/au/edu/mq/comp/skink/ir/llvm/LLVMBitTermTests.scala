@@ -16,7 +16,7 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     import scala.language.implicitConversions
 
     val config = createAndInitConfig(Seq("-i", "bit"))
-    val termBuilder = new LLVMTermBuilder(namer, config)
+    val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
     def makeVarTermI(id : String) : VarTerm[BVTerm] =
         new VarTerm(id, BitVectorSort("32"), Some(0))

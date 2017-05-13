@@ -95,4 +95,9 @@ trait IR {
      * Check if the effects of two choices in a trace are dependent
      */
     def independent(choices : Seq[Choice])(i : Int, j : Int) : Boolean
+    /**
+     * Sort IR ids into a useful order of display to the user.
+     */
+    def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
+
 }

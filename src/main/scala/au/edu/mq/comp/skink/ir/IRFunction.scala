@@ -11,11 +11,12 @@ trait IRFunction {
     def name : String
 
     /**
-     * Return true if this function actually is amenable to verification.
+     * Return `None` if this function actually is amenable to verification.
      * A function might not be amenable to verification if some pre-processing
-     * is necessary but it didn't work. By default this method always returns
-     * true.
+     * is necessary but it didn't work. If verification is not possible, a
+     * message is returned that can be displayed to the user. By default
+     * this method always returns `None`.
      */
-    def isVerifiable() : Boolean =
-        true
+    def isVerifiable() : Option[String] =
+        None
 }

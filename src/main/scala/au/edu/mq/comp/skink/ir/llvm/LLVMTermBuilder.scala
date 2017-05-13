@@ -1,18 +1,19 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
+import au.edu.mq.comp.smtlib.theories.{ArrayExBV, ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
 import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
+import org.scalallvm.assembly.Analyser
 
-class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
-        extends ArrayExInt with ArrayExOperators with BitVectors with Core
+class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
+        extends ArrayExBV with ArrayExInt with ArrayExOperators with BitVectors with Core
         with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder.combineTerms
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1, Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
@@ -70,6 +71,9 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                         })
                     case (PThreadType(_), _) =>
                         True()
+                    case (ArrayT(_, IntT(_)), StringC(_)) =>
+                        // Ignore for now, so printfs don't get in the way
+                        True()
                     case _ =>
                         sys.error(s"itemTerm: no support for global ${tipe} variable initialisation to ${show(constantValue)}")
                 }
@@ -105,7 +109,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         val term : TypedTerm[BoolTerm, Term] =
             optPrevBlock match {
                 case Some(prevBlock) =>
-                    val prevLabel = Label(Local(blockName(prevBlock)))
+                    val prevLabel = Label(Local(funAnalyser.blockName(prevBlock)))
                     insn match {
                         case insn @ Phi(Binding(to), tipe, preds) =>
                             // Bound phi result, find value
@@ -146,7 +150,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                 case BranchCond(value, _, _) if branch == 1 =>
                     !vtermB(value)
 
-                case Switch(IntegerT(size), value, _, cases) if branch == 0 =>
+                case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
@@ -155,13 +159,13 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
                     }
 
-                case Switch(IntegerT(size), value, _, cases) if branch <= cases.length =>
+                case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            vtermBV(value, bits) === vtermBV(cases(branch - 1).value, bits)
+                            vtermBV(value, bits) === vtermBV(cases(choice).value, bits)
                         case MathIntegerMode() =>
-                            vtermI(value) === vtermI(cases(branch - 1).value)
+                            vtermI(value) === vtermI(cases(choice).value)
                     }
 
                 case Unreachable() => True()
@@ -172,6 +176,13 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         logger.debug(s"exitTerm: branch $branch of ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
+
+    /*
+     * Throw an error that `op` applied to `left` and `right` cannot be handled.
+     * Prefix is prepended to the message.
+     */
+    def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
+        sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
     /*
      * Return a term that expresses the effect of a regular LLVM instruction.
@@ -199,7 +210,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case _ : Or  => lterm | rterm
                             case _ : XOr => lterm xor rterm
                             case _ =>
-                                sys.error(s"binary Boolean op ${show(op)} not handled")
+                                opError[BoolTerm]("Boolean", left, op, right)
                         }
                     ntermB(to) === exp
 
@@ -234,7 +245,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : URem => lterm % rterm
                                     case _ : XOr  => lterm xor rterm
                                     case _ =>
-                                        sys.error(s"binary integer op ${show(op)} not handled")
+                                        opError[BVTerm]("bitvector integer", left, op, right)
                                 }
                             ntermBV(to, bits) === exp
                         case MathIntegerMode() =>
@@ -245,26 +256,39 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : Add => lterm + rterm
                                     case _ : And =>
                                         right match {
-                                            case Const(IntC(i)) if i == 1 =>
-                                                lterm % 2
+                                            case Const(IntC(i)) =>
+                                                powerOfTwo((i + 1).toInt) match {
+                                                    case -1 =>
+                                                        opError[IntTerm]("math integer", left, op, right)
+                                                    case _ =>
+                                                        lterm % (i + 1).toInt
+                                                }
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : AShR | _ : LShR =>
-                                        // FIXME: LShrR version is not right for negative numbers
+                                        // FIXME: LShrR version is not right for negative numbers?
                                         right match {
-                                            case Const(IntC(i)) if i == 1 =>
-                                                lterm / 2
+                                            case Const(IntC(i)) =>
+                                                lterm / Math.pow(2, i.toDouble).toInt
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : Mul => lterm * rterm
-                                    case _ : ShL =>
+                                    case _ : Or =>
+                                        // FIXME: correct for negative lterm?
                                         right match {
                                             case Const(IntC(i)) if i == 1 =>
-                                                lterm * 2
+                                                (lterm % 2 === 0).ite(lterm + 1, lterm)
                                             case _ =>
-                                                sys.error(s"binary integer ${show(op)} with ${show(right)} not handled")
+                                                opError[IntTerm]("math integer", left, op, right)
+                                        }
+                                    case _ : ShL =>
+                                        right match {
+                                            case Const(IntC(i)) =>
+                                                lterm * Math.pow(2, i.toDouble).toInt
+                                            case _ =>
+                                                opError[IntTerm]("math integer", left, op, right)
                                         }
                                     case _ : SDiv => lterm / rterm
                                     case _ : SRem => lterm % rterm
@@ -272,7 +296,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case _ : UDiv => lterm / rterm
                                     case _ : URem => lterm % rterm
                                     case _ =>
-                                        sys.error(s"binary integer op ${show(op)} not handled")
+                                        opError[IntTerm]("math integer", left, op, right)
                                 }
                             ntermI(to) === exp
                     }
@@ -290,7 +314,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case _ : FMul => lterm * rterm
                             case _ : FSub => lterm - rterm
                             case _ =>
-                                sys.error(s"binary floating-point op ${show(op)} not handled")
+                                opError[RealTerm]("real", left, op, right)
                         }
                     ntermR(to) === exp
 
@@ -342,7 +366,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case EQ() => lterm === rterm
                             case NE() => !(lterm === rterm)
                             case _ =>
-                                sys.error(s"Boolean comparison ${show(icond)} not handled")
+                                opError[BoolTerm]("Boolean comparison", left, icond, right)
                         }
                     ntermB(to) === exp
 
@@ -366,7 +390,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case SLT() => lterm slt rterm
                                     case SLE() => lterm sle rterm
                                     case _ =>
-                                        sys.error(s"bit vector comparison ${show(icond)} not handled")
+                                        opError[BoolTerm]("bitvector integer comparison", left, icond, right)
                                 }
                             ntermB(to) === exp
                         case MathIntegerMode() =>
@@ -385,9 +409,15 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                                     case SLT() => lterm < rterm
                                     case SLE() => lterm <= rterm
                                     case _ =>
-                                        sys.error(s"integer comparison ${show(icond)} not handled")
+                                        opError[BoolTerm]("math integer comparison", left, icond, right)
                                 }
-                            ntermB(to) === exp
+                            val cmp = ntermB(to) === exp
+                            icond match {
+                                case UGT() | UGE() | ULT() | ULE() =>
+                                    (lterm >= 0) & (rterm >= 0) & cmp
+                                case _ =>
+                                    cmp
+                            }
                     }
 
                 // Compare two floating-point values
@@ -406,7 +436,7 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
                             case FONE()   => !(lterm === rterm)
                             case FTrue()  => True()
                             case _ =>
-                                sys.error(s"floating-point comparison ${show(fcond)} not handled")
+                                opError[BoolTerm]("real comparison", left, fcond, right)
                         }
                     ntermB(to) === exp
 
@@ -487,21 +517,25 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
 
                 // Array loads and stores, just non-Boolean, integer elements for now
 
-                case insn @ Load(Binding(to), _, IntegerT(_), _, ArrayElement(array, index), _) =>
-                    // integerMode match {
-                    //     case BitIntegerMode() =>
-                    //         ntermBV(to) === arrayTermAtBV(insn, array).at(vtermAtBV(insn, index))
-                    //     case MathIntegerMode() =>
-                    ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
-                // }
+                // FIXME: handle the bit size of the indexes, currently assumed to be 32...
 
-                case insn @ Store(_, IntegerT(_), from, _, ArrayElement(array, index), _) =>
-                    // integerMode match {
-                    //     case BitIntegerMode() =>
-                    //         arrayTermAtBV(insn, array) === prevArrayTermAtBV(insn, array).store(vtermAtBV(insn, index), vtermBV(from))
-                    //     case MathIntegerMode() =>
-                    arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
-                // }
+                case insn @ Load(Binding(to), _, IntegerT(size), _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            val bits = size.toInt
+                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, 64, index))
+                        case MathIntegerMode() =>
+                            ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
+                    }
+
+                case insn @ Store(_, IntegerT(size), from, _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            val bits = size.toInt
+                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, 64, index), vtermBV(from, bits))
+                        case MathIntegerMode() =>
+                            arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
+                    }
 
                 // Non-array loads and stores
 
@@ -523,21 +557,21 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Make an integer ArrayTerm for the named variable where `id` is the base name
      * identifier and include an optional index.
      */
-    def arrayTermBV(id : String, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayEx1[BVTerm](termid(id)).indexed(index)
+    def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        ArrayBV1(termid(id), 64, bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name
      * identifier and include an optional index.
      */
     def arrayTermI(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        ArrayEx1[IntTerm](termid(id)).indexed(index)
+        ArrayInt1(termid(id)).indexed(index)
 
     /**
      * Return a bit vector array term that expresses a name when referenced from node.
      */
-    def arrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), indexOf(node, nameOf(name)))
+    def arrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        arrayTermBV(show(name), bits, indexOf(node, show(name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
@@ -549,8 +583,8 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
-    def prevArrayTermAtBV(node : Product, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
+    def prevArrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        arrayTermBV(show(name), bits, scala.math.max(indexOf(node, show(name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
@@ -746,8 +780,10 @@ class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         constantValue match {
             case IntC(i) =>
                 i.toInt
-            case NullC() | ZeroC() =>
+            case FalseC() | NullC() | ZeroC() =>
                 0
+            case TrueC() =>
+                1
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }

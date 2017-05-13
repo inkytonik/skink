@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
-<benchmark tool="skink" timelimit="900 s" memlimit="2 GB" cpuCores="1">
+<benchmark tool="skink" timelimit="60 s" memlimit="2 GB" cpuCores="1">
+<!-- <benchmark tool="skink" timelimit="900 s" memlimit="2 GB" cpuCores="1"> -->
 <!-- <benchmark tool="skink" timelimit="900 s" memlimit="15 GB" cpuCores="2"> -->
 
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" cpuCores="2"/>
@@ -10,7 +11,7 @@
   <rundefinition name="sv-comp17"></rundefinition>
 
   <tasks name="Test">
-    <includesfile>/vagrant/Test.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Test.set</includesfile>
     <propertyfile>../sv-benchmarks/c/ReachSafety.prp</propertyfile>
     <option name="dev"></option>
   </tasks>
