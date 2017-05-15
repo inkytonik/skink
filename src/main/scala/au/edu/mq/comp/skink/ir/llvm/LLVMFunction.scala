@@ -77,7 +77,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
             insn match {
-                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                case Call(_, _, _, _, _, IgnoredFunction(s), _, _) if !isAssertFunction(s) =>
                     None
                 case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
                     logger.info(s"isVerifiable: non-inlined call ${longshow(insn)}")

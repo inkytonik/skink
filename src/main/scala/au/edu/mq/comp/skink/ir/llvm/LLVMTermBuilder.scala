@@ -342,7 +342,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
                     True()
 
-                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
                     True()
 
                 // Compare two Boolean values
