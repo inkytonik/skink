@@ -124,6 +124,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
     // Properties of function tree
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
+    import decorators._
 
     /**
      * Extractor to match stores to array elements. Currently only looks for
@@ -166,24 +167,24 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
     def indexOf(use : Product, s : String) : Int = {
         logger.debug(s"indexOf: use $use")
         if (!isLocalName(use)) {
-          globalNamer.indexOf(use, s)
+            globalNamer.indexOf(use, s)
         } else {
-          val map =
-              enclosingPhi(use) match {
-                  case Some(phi) =>
-                      stores.in(enclosingBlock(phi))
-                  case _ =>
-                      stores(use)
-              }
-          map.get(s).getOrElse(defaultIndexOf(s))
+            val map =
+                enclosingPhi(use) match {
+                    case Some(phi) =>
+                        stores.in(enclosingBlock(phi))
+                    case _ =>
+                        stores(use)
+                }
+            map.get(s).getOrElse(defaultIndexOf(s))
         }
     }
 
     def nameOf(name : Name) : String = {
-      name match {
-        case Global(_) => globalNamer.nameOf(name)
-        case Local(_)  => s"thread$threadId${show(name)}"
-      }
+        name match {
+            case Global(_) => globalNamer.nameOf(name)
+            case Local(_)  => s"thread$threadId${show(name)}"
+        }
     }
 
     /**

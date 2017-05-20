@@ -359,7 +359,6 @@ object LLVMHelper {
             }
     }
 
-<<<<<<< HEAD
     object PThreadType {
         def unapply(tipe : Type) : Option[Type] =
             tipe match {

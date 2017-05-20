@@ -18,7 +18,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     val config = createAndInitConfig(Seq())
-    val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+    val termBuilder = new LLVMTermBuilder(namer, config)
 
     def makeVarTermI(id : String, index : Int = 0) : VarTerm[IntTerm] =
         new VarTerm(id, IntSort(), Some(index))
@@ -283,7 +283,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     test("multiple phi insns are correctly encoded in parallel") {
 
-        import au.edu.mq.comp.skink.ir.Trace
+        import au.edu.mq.comp.skink.ir.{Trace, Choice}
 
         // In %1 coming from %1, %y should refer to the incoming %x not the
         // %x set by the first phi insn, since the phis are supposed to run
@@ -302,9 +302,10 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |}
             """.stripMargin
 
-        val Vector(func) = parseProgram(prog)
+        val (_, ir, _, _) = parseProgram(prog)
 
-        func.traceToTerms(Trace(Seq(0, 0, 0, 0))) shouldBe
+        val c = Choice(0, 0)
+        ir.traceToTerms(Trace(Seq(c, c, c, c))) shouldBe
             Seq(
                 True(),
                 (ix1 === 0) & (iy1 === 1),

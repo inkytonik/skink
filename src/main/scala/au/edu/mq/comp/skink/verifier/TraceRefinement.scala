@@ -6,7 +6,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 /**
  * Implementation of the trace refinement process.
  */
-class TraceRefinement(ir : IR, config : SkinkConfig) {
+class TraceRefinement(config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.dpor.DPOR
@@ -129,10 +129,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.ir.llvm.LLVMState
         import au.edu.mq.comp.automat.auto.DetAuto
-        //val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => x.threadLocs.map(l => "(" + l._1 + "," + l._2 + ")").mkString(",")})
-        //val progNFA = toDetNFA(program.dca.asInstanceOf[DetAuto[LLVMState, Choice]], { x : LLVMState => "" })
-        //cfgLogger.debug(toDot(progNFA._1, s"${program.name} initial", progNFA._2))
-
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
@@ -180,7 +176,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- ir.sortIds(values.keys.toVector)) {
+                            for (x <- program.sortIds(values.keys.toVector)) {
                                 logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
                             }
                             val failTrace = FailureTrace(trace, values)

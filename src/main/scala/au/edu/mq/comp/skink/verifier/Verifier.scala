@@ -7,7 +7,7 @@ import au.edu.mq.comp.skink.ir.IR
  * The main verifier which wraps the trace refinement process with
  * output that is suitable for the SV-COMP.
  */
-class Verifier(ir : IR, config : SkinkConfig) {
+class Verifier(config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.skink.ir.{FailureTrace, IR, IRFunction}
@@ -65,8 +65,8 @@ class Verifier(ir : IR, config : SkinkConfig) {
             // Detect if the function is not in a form for verification and abort
             mainFun.isVerifiable() match {
                 case Some(reason) =>
-                    logger.info(s"verify: ${function.name} is not verifiable, aborting")
-                    sys.error(s"${function.name} is not verifiable, $reason")
+                    logger.info(s"verify: ${mainFun.name} is not verifiable, aborting")
+                    sys.error(s"${mainFun.name} is not verifiable, $reason")
                 case _ =>
                     // Function is ok, go for verification
                     runVerification()

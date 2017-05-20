@@ -5,7 +5,7 @@ import au.edu.mq.comp.smtlib.theories.{ArrayExBV, ArrayExInt, ArrayExOperators, 
 import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 import org.scalallvm.assembly.Analyser
 
-class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
+class LLVMTermBuilder(namer : LLVMNamer, config : SkinkConfig)
         extends ArrayExBV with ArrayExInt with ArrayExOperators with BitVectors with Core
         with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
@@ -109,7 +109,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         val term : TypedTerm[BoolTerm, Term] =
             optPrevBlock match {
                 case Some(prevBlock) =>
-                    val prevLabel = Label(Local(funAnalyser.blockName(prevBlock)))
+                    val prevLabel = Label(Local(blockName(prevBlock)))
                     insn match {
                         case insn @ Phi(Binding(to), tipe, preds) =>
                             // Bound phi result, find value
@@ -150,7 +150,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case BranchCond(value, _, _) if branch == 1 =>
                     !vtermB(value)
 
-                case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
+                case Switch(IntegerT(size), value, _, cases) if branch == cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
@@ -159,13 +159,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
                     }
 
-                case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
+                case Switch(IntegerT(size), value, _, cases) if branch < cases.length =>
                     config.integerMode() match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            vtermBV(value, bits) === vtermBV(cases(choice).value, bits)
+                            vtermBV(value, bits) === vtermBV(cases(branch).value, bits)
                         case MathIntegerMode() =>
-                            vtermI(value) === vtermI(cases(choice).value)
+                            vtermI(value) === vtermI(cases(branch).value)
                     }
 
                 case Unreachable() => True()

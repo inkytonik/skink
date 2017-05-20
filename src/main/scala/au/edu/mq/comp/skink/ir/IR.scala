@@ -12,6 +12,7 @@ trait IR {
     import scala.collection.immutable.Map
     import au.edu.mq.comp.smtlib.theories.BoolTerm
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
 
     /**
      * Execute this IR instance, returning the output produced and the exit
@@ -70,7 +71,7 @@ trait IR {
      */
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int])
 
-    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import scala.util.{Try, Success, Failure}
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -88,7 +89,7 @@ trait IR {
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : ExtendedSMTLIB2Interpreter
+        solver : SMTLIBInterpreter
     ) : Try[Boolean]
 
     /**

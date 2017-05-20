@@ -34,9 +34,9 @@ trait LLVMTermTests extends Tests with Core {
 
     // Dummy function and analyser for standalone tests
 
-    val Vector(func) = parseProgram("define i32 @main() { ret i32 0 }")
-    val funTree = new Tree[ASTNode, FunctionDefinition](func.function)
-    val funAnalyser = new Analyser(funTree)
+    // val (_, _, _, func) = parseProgram("define i32 @main() { ret i32 0 }")
+    // val funTree = new Tree[ASTNode, FunctionDefinition](func.function)
+    // val funAnalyser = new Analyser(funTree)
 
     // Helpers to build useful instructions and terms
 
@@ -113,20 +113,20 @@ trait LLVMTermTests extends Tests with Core {
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, pretty}
 
     /**
-     * Parses `prog` as a program and returns a vector of LLVMFunctions
-     * that represent the functions in the program.
+     * Parse a piece of LLVM IR that is a program and return the AST nodes
+     * for the whole program, LLVM IR, its first function and an LLVM function.
      */
-    def parseProgram(prog : String) : Vector[LLVMFunction] = {
+    def parseProgram(defns : String) : (Program, LLVMIR, FunctionDefinition, LLVMFunction) = {
         val positions = new Positions
-        val source = new StringSource(prog)
+        val source = new StringSource(defns)
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
-            prog.items.collect {
-                case func : FunctionDefinition =>
-                    new LLVMFunction(prog, func, config)
-            }
+            val ir = new LLVMIR(prog, config)
+            val func = prog.items(0).asInstanceOf[FunctionDefinition]
+            val wrappedFun = new LLVMFunction(func)
+            (prog, ir, func, wrappedFun)
         } else
             fail(s"parse error: ${pr.parseError.msg}")
     }

@@ -246,7 +246,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     }
 
-    import au.edu.mq.comp.smtlib.interpreters.ExtendedSMTLIB2Interpreter
+    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
     import scala.util.{Try, Success, Failure}
     import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
 
@@ -266,7 +266,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : ExtendedSMTLIB2Interpreter
+        solver : SMTLIBInterpreter
     ) : Try[Boolean] = {
 
         import au.edu.mq.comp.smtlib.theories.Core
