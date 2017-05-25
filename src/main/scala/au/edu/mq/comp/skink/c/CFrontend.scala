@@ -92,13 +92,22 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
-        val clang = "clang"
+        val clang = config.clang.toOption match {
+            case Some(clangName) => clangName
+            case _               => "clang-4.0"
+        }
+
+        val O2 = config.noO2.toOption match {
+            case Some(b) => if (b) "" else "-O2"
+            case _       => ""
+        }
+
         val programs = List(clang)
 
         // Setup command arguments
         val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
         val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -S -emit-llvm -gline-tables-only -O2 -mllvm -inline-threshold=15000 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
+        val clangargs = s"-c -S -emit-llvm -gline-tables-only $O2 -mllvm -inline-threshold=15000 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
 
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)

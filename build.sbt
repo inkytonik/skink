@@ -103,7 +103,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 // ScalariForm
-
+/*
 import scalariform.formatter.preferences._
 import SbtScalariform.ScalariformKeys
 
@@ -114,3 +114,4 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
     .setPreference (SpacesAroundMultiImports, false)
+*/

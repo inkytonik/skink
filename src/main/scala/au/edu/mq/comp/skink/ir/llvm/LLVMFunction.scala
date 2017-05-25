@@ -346,6 +346,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         val ret = function.copy(functionBody = functionBodyWithErrorBlock)
         programLogger.debug(s"* Function $name for verification:\n")
         programLogger.debug(show(ret))
+        /*
+          ///////  psksvp add to isolate this prinln to console
+         */
+        println(show(ret))
+        ///////////
         programLogger.debug(s"\n* AST of function $name for verification:\n\n")
         programLogger.debug(layout(any(ret)))
         ret

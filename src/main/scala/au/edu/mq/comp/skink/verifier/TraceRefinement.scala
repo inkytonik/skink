@@ -186,13 +186,28 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case Success((UnSat(), _)) =>
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
-                                import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
                                     toDetNFA(r +
                                     (
-                                        buildInterpolantAuto(function, choices, iteration)
-                                    // +
-                                    // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
+                                       config.usePredicateAbstraction.toOption match
+                                       {
+                                           case Some(b) =>
+                                               if(b)
+                                               {
+                                                   println("using predicates abs")
+                                                   psksvp.PredicatesAbstraction(function, choices, iteration)
+                                               }
+                                               else
+                                               {
+                                                   println("using interpolant")
+                                                   import interpolant.InterpolantAuto.buildInterpolantAuto
+                                                   buildInterpolantAuto(function, choices, iteration)
+                                               }
+                                           case _ =>
+                                               println("using interpolant")
+                                               import interpolant.InterpolantAuto.buildInterpolantAuto
+                                               buildInterpolantAuto(function, choices, iteration)
+                                       }
                                     ))._1,
                                     iteration + 1
                                 )
