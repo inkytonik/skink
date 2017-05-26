@@ -27,7 +27,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
   lazy val tracePredicates:Seq[BooleanTerm] =
   {
     @tailrec
-    def fixedPoint(current:Seq[BooleanTerm], next:Seq[BooleanTerm]): Boolean =
+    def equalTest(current:Seq[BooleanTerm], next:Seq[BooleanTerm]): Boolean =
     {
       require(0 != current.length && 0 != next.length, "psksvp.PredicatesAbstraction.fixedPoint cannot check zero length")
       require(current.length == next.length, "psksvp.PredicatesAbstraction.fixedPoint current.length != next.Length")
@@ -37,23 +37,17 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
       else if(!equivalence(current.head, next.head))
         false
       else
-        true && fixedPoint(current.tail, next.tail)
+        true && equalTest(current.tail, next.tail)
     }
 
-    ///////////
-    @tailrec
-    def runFixedPoint(currentPredicates:Seq[BooleanTerm]):Seq[BooleanTerm] =
-    {
-      val nextPredicates = generateLocationsPredicates(currentPredicates)
-      if(fixedPoint(currentPredicates, nextPredicates))
-        currentPredicates
-      else
-        runFixedPoint(nextPredicates)
-    }
+
+    lazy val fixedPoint = psksvp.ADT.FixedPoint[Seq[BooleanTerm]](equalTest)(generateLocationsPredicates)
 
     ////////////-----------
     println("I am doing the trace" + traceAnalyzer.choices)
-    val result = runFixedPoint(True() :: List.fill[BooleanTerm](traceAnalyzer.choices.length - 1)(False()))
+
+    val result = fixedPoint(True() :: List.fill[BooleanTerm](traceAnalyzer.choices.length - 1)(False()))
+
     println("\nFixed point reached with Predicates ===============" )
     result.foreach { t => println(termAsInfix(t))}
     println("------------")

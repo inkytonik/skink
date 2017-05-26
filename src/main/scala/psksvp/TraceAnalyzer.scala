@@ -5,9 +5,10 @@ import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.LabDiEdge
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-
 import scala.util.Success
 import au.edu.mq.comp.smtlib.typedterms.Commands
+
+
 /**
   * Created by psksvp on 23/5/17.
   */
@@ -112,4 +113,7 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
       case _          => sys.error("at PredicateAbstraction.checkPost solver fail at PredicateABstraction.checkPost")
     }
   }
+
+  /////////////////////////////////////////
+
 }
