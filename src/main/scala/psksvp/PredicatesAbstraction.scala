@@ -79,7 +79,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
     {
       val newTermOfThisLoc = nextPredicateAtLocation(i, currentPredicates)
       if(equivalence(newTermOfThisLoc, currentPredicates(i)))
-        nextPredicate(i) = newTermOfThisLoc
+        nextPredicate(i) = currentPredicates(i)
       else
         nextPredicate(i) = newTermOfThisLoc | currentPredicates(i)
     }
@@ -163,12 +163,13 @@ object PredicatesAbstraction
   {
     val traceAnalyzer = TraceAnalyzer(function, choices)
 
-//    println("blockVariables")
-//    println(traceAnalyzer.blockVariables)
-//    println("-------------\ncommon variables\n")
-//    println(traceAnalyzer.commonVariables)
-//    println("-------------\ninstruction terms\n")
-//    println(traceAnalyzer.blockInstructionTerms)
+
+//    for(i <- traceAnalyzer.transitionMap.keySet)
+//    {
+//      for(t <- traceAnalyzer.transitionMap(i))
+//        println(traceAnalyzer.inferPredicates(t))
+//    }
+
 
     if (traceAnalyzer.repetitionsPairs.isEmpty)
     {
@@ -178,7 +179,7 @@ object PredicatesAbstraction
     }
     else
     {
-      println("running with predicates: ")
+      println("running with input predicates: ")
       usePredicates.foreach{p => print(termAsInfix(p) + ",")}
       println()
       val start = System.currentTimeMillis()

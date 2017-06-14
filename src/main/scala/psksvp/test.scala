@@ -3,9 +3,13 @@ package psksvp
 // this file is a scratch pad
 
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SSymbol
+import au.edu.mq.comp.smtlib.parser.{SMTLIB2Parser, SMTLIB2PrettyPrinter}
+import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
 import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 import logics._
+import org.bitbucket.inkytonik.kiama.util.StringSource
+
+import scala.util.Success
 
 
 object runSkink
@@ -43,8 +47,9 @@ object test
 {
   def main(args:Array[String]):Unit=
   {
-    test11()
+    testQE()
   }
+
 
 
   def testDNF():Unit=
@@ -71,16 +76,53 @@ object test
     object qt extends QuantifiedTerm
     import qt._
 
-    val a = Ints("a")
+    val a = Ints("a").indexed(1)
     val cmp = Bools("cmp")
     val five = Ints("five")
-    val ex = exists(five.symbol, cmp.symbol.asInstanceOf[SSymbol])
+    val ex = exists(five.symbol, cmp.symbol)
              {
-               five === a & cmp === (five < 1000) & False() === cmp
+               five === a & cmp === (five < 1000) & True() === cmp
              }
 
-    val r = psksvp.SMTLIB.QuantifierElimination(ex)
-    println(r)
+    val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+    psksvp.SMTLIB.Z3QE(ex)(solver) match
+    {
+      case Success(r) => for(t <- r) println(termAsInfix(t))
+      case _          => println("not good")
+    }
+    solver.destroy()
+  }
+
+
+
+  def testParser():Unit=
+  {
+    import au.edu.mq.comp.smtlib.parser.Analysis
+    val parser = SMTLIB2Parser[ GetInterpolantResponses ]
+    parser(StringSource(" (<= 1000 a) (not b)")) match
+    {
+      //case Success(AndTerm(a, ls)) => println(a)
+      //                                println(ls)
+      case Success(a)              => println(a)
+      case _          => println("parse failure")
+    }
+
+    //val l = parser(StringSource("(<= a 1000)"))
+
+
+  }
+
+  def testA():Unit=
+  {
+    val i = Ints("i").indexed(1)
+    val j = Ints("j")
+    val k = i >= 10 & j <= 20
+
+    for(f <- k.typeDefs)
+    {
+      println(SMTLIB2PrettyPrinter.show(f))
+      println(f)
+    }
   }
 
   def test1(): Unit =
@@ -381,7 +423,7 @@ object test
     val y = Ints("%y")
 
     // interpolant: max iter reach
-    // predicate abstraction works 399 sec
+    // predicate abstraction works 399 sec, now down to 196
     val code =  """
                   |// Source: Sumit Gulwani, Nebosja Jojic: "Program Verification as
                   |// Probabilistic Inference", POPL 2007.
@@ -455,7 +497,8 @@ object test
     def implies(a:BooleanTerm, b:BooleanTerm):BooleanTerm = !a | b
 
     runSkink(toFile(code),
-              List(call1 === 0, m === x, x < n, n < 0, n > 0, n === 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
+              List(call1 === 0, m === x, x < n, n < 0, n === 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
+              //List(call1 === 0, x === 0, m === 0, x >= -1, m < n, m >= 0, x >= 0, n <= 0),
               useO2 = false,
               usePredicateAbstraction = true,
               maxIteration = 30,

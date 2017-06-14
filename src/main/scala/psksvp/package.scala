@@ -192,14 +192,14 @@ package object psksvp
   {
     case Nil       => sys.error("psksvp.CNF, Nil list was passed")
     case l :: Nil  => l.reduce(_ | _)
-    case l :: rest => l.reduce(_ | _) & toCNF(rest)  // conjunt them
+    case l :: rest => l.reduce(_ | _) & toCNF(rest)  // conjunct them
   }
 
   def toDNF(s:List[List[BooleanTerm]]):BooleanTerm = s match
   {
     case Nil       => sys.error("psksvp.CNF, Nil list was passed")
     case l :: Nil  => l.reduce(_ & _)
-    case l :: rest => l.reduce(_ & _) | toDNF(rest)  // conjunt them
+    case l :: rest => l.reduce(_ & _) | toDNF(rest)  // disjunct them
   }
 
 
