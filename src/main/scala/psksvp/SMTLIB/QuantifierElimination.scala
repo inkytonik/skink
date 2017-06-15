@@ -60,8 +60,7 @@ object Z3QE extends QuantifierElimination
 
       ///////////////////////////////////////////////////////////
       // catch a ride with GetInterpolantResponses parser for now.
-      val parsePredicates = SMTLIB2Parser[GetInterpolantResponses]
-      parsePredicates(StringSource(s)) match
+      SMTLIB2Parser[GetInterpolantResponses].apply(StringSource(s)) match
       {
         case Success(GetInterpolantResponsesSuccess(InterpolantResponse(ls))) => toTypedTerm(ls)
         case _                                                                => sys.error("fail to parse response")

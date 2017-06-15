@@ -25,6 +25,7 @@ import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm, TypedTerm}
   * @param choices
   */
 case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
+                                                                   with QuantifiedTerm
 {
   import psksvp.TraceAnalyzer._
 
@@ -144,7 +145,6 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
   /// variables in each block
   lazy val blockVariables:Seq[Set[SortedQId]] = blockTerms.map(_.typeDefs)
 
-
   /// variables used across block
   lazy val commonVariables:Set[SortedQId] =
   {
@@ -153,32 +153,41 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
     s.reduce(_ union _)
   }
 
-  lazy val blockInstructionTerms:Seq[Seq[Term]] = for(term <- blockTerms) yield term.aTerm match
-                                                  {
-                                                    case AndTerm(t, ts) => t :: ts
-                                                    case _              => Nil
-                                                  }
-
-  def inferPredicates(t:Transition):String =
+  ///
+  def inferPredicates(t:Transition):Seq[TypedTerm[BoolTerm, Term]] =
   {
-    ""
-//    val qeVariables = (blockVariables(t.source) diff commonVariables).toSeq
-//    if(qeVariables.nonEmpty)
-//    {
-//      val s = for(v <- qeVariables) yield
-//      {
-//        v.id match
-//        {
-//          case SymbolId(SSymbol(name))    => s"($name ${SMTLIB2PrettyPrinter.show(v.sort)})"
-//          case SymbolId(ISymbol(name, i)) => s"($name@$i ${SMTLIB2PrettyPrinter.show(v.sort)})"
-//          case _                    => sys.error("djsdksdkjskd")
-//        }
-//      }
-//      val r = psksvp.SMTLIB.QuantifierElimination(s, t.effect.term)
-//      r
-//    }
-//    else
-//      ""
+    println(t)
+    val qeVariables = (blockVariables(t.source) diff commonVariables).toList
+    if(qeVariables.nonEmpty)
+    {
+      val s = for(v <- qeVariables) yield
+              {
+                v.id match
+                {
+                  case SymbolId(symbol) => symbol
+                  case IndexedId(_, _)  => sys.error("array (IndexedId) is not yet supported")
+                  case _                => sys.error("unsupported symbol")
+                }
+              }
+      println(s"blockVariables: ${blockVariables(t.source)}")
+      println(s"commonVariables: ${commonVariables}")
+      println(s"quantified over variables: $s}")
+      val e = exists(s.head, s.tail:_*){t.effect.term}
+      //println(s"exists term:${termAsInfix(e)}")
+      val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+      psksvp.SMTLIB.Z3QE(e)(solver) match
+      {
+        case Success(ls) => solver.destroy()
+                            ls
+        case _           => solver.destroy()
+                            sys.error(s"psksvp.SMTLIB.Z3QE($e) fail")
+      }
+    }
+    else
+    {
+      println("list of variables to quantified over is empty")
+      Nil
+    }
   }
 }
 
@@ -196,5 +205,10 @@ object TraceAnalyzer
   {
     val preconditionIndex:Int = source //precondition index of this transition
     val locationIndex:Int = sink //location index  where this transition contributes its post
+
+    override def toString:String =
+    {
+      s"/*----------------*/\nsource:$source\nexitChoice:$choice\nsink:$sink\neffect:${termAsInfix(effect.term)}\n/*----------------*/"
+    }
   }
 }

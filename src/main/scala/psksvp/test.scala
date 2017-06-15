@@ -9,7 +9,7 @@ import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 import logics._
 import org.bitbucket.inkytonik.kiama.util.StringSource
 
-import scala.util.Success
+import scala.util.{Success, Failure}
 
 
 object runSkink
@@ -33,9 +33,9 @@ object runSkink
      Main.main(args.filter(_.length > 0).toArray)
 
     println("---------------------------------------------------")
-    println("equivalence checking satHitCounter:" + psksvp.satHitCounter)
-    println("time used in checking combination:" + psksvp.PredicatesAbstraction.timeUsedCheckComb)
-    println("whole time used by predAbs:" + psksvp.PredicatesAbstraction.timeUsedWhole)
+    //println("equivalence checking satHitCounter:" + psksvp.satHitCounter)
+    //println("time used in checking combination:" + psksvp.PredicatesAbstraction.timeUsedCheckComb)
+    //println("whole time used by predAbs:" + psksvp.PredicatesAbstraction.timeUsedWhole)
   }
 }
 
@@ -45,14 +45,13 @@ object runSkink
   */
 object test
 {
-  def main(args:Array[String]):Unit=
+  def main(args: Array[String]): Unit =
   {
-    testQE()
+    test11()
   }
 
 
-
-  def testDNF():Unit=
+  def testDNF(): Unit =
   {
     import scala.util.{Try, Success}
     import au.edu.mq.comp.smtlib.interpreters.Resources
@@ -63,15 +62,16 @@ object test
     val dnf = (!p0 & !p1) | (!p0 & p1) | (p0 & !p1) | (p0 & p1)
     val cnf = (!p0 | !p1) & (!p0 | p1) & (p0 | !p1) & (p0 | p1)
     val r = using[Boolean](new SMTLIBInterpreter(solverFromName("Z3")))
-    {
-      implicit solver => println(equivalence(True(), dnf))
-                         println(equivalence(False(), cnf))
+      {
+        implicit solver =>
+          println(equivalence(True(), dnf))
+          println(equivalence(False(), cnf))
 
-                         Success(true)
-    }
+          Success(true)
+      }
   }
 
-  def testQE():Unit=
+  def testQE(): Unit =
   {
     object qt extends QuantifiedTerm
     import qt._
@@ -80,50 +80,78 @@ object test
     val cmp = Bools("cmp")
     val five = Ints("five")
     val ex = exists(five.symbol, cmp.symbol)
-             {
-               five === a & cmp === (five < 1000) & True() === cmp
-             }
+    {
+      five === a & cmp === (five < 1000) & True() === cmp
+    }
+
 
     val solver = new SMTLIBInterpreter(solverFromName("Z3"))
     psksvp.SMTLIB.Z3QE(ex)(solver) match
     {
-      case Success(r) => for(t <- r) println(termAsInfix(t))
-      case _          => println("not good")
+      case Success(r) => for (t <- r) println(termAsInfix(t))
+      case _ => println("not good")
     }
     solver.destroy()
   }
 
 
 
-  def testParser():Unit=
+  def testRunQE2(): Unit =
   {
-    import au.edu.mq.comp.smtlib.parser.Analysis
-    val parser = SMTLIB2Parser[ GetInterpolantResponses ]
-    parser(StringSource(" (<= 1000 a) (not b)")) match
+    def testQE2(solver: SMTLIBInterpreter): List[BooleanTerm] =
     {
-      //case Success(AndTerm(a, ls)) => println(a)
-      //                                println(ls)
-      case Success(a)              => println(a)
-      case _          => println("parse failure")
+      object qt extends QuantifiedTerm
+      import qt._
+
+      val a = Ints("a").indexed(1)
+      val cmp = Bools("cmp")
+      val five = Ints("five")
+      val ex = exists(five.symbol, cmp.symbol)
+      {
+        five === a & cmp === (five < 1000) & True() === cmp
+      }
+
+      psksvp.SMTLIB.Z3QE(ex)(solver) match
+      {
+        case Success(r) => Thread.sleep(10000)
+          r.toList
+        case _          => sys.error("not good")
+      }
     }
 
-    //val l = parser(StringSource("(<= a 1000)"))
+    import scala.concurrent.{Future, Await}
+    import scala.concurrent.duration.DurationInt
+    import scala.concurrent.ExecutionContext.Implicits.global
 
+    val solverArray = Array.ofDim[SMTLIBInterpreter](10)
+    for(i <- solverArray.indices)
+      solverArray(i) = new SMTLIBInterpreter(solverFromName("Z3"))
 
-  }
-
-  def testA():Unit=
-  {
-    val i = Ints("i").indexed(1)
-    val j = Ints("j")
-    val k = i >= 10 & j <= 20
-
-    for(f <- k.typeDefs)
+    def run(i:Int):Future[List[BooleanTerm]] = Future
     {
-      println(SMTLIB2PrettyPrinter.show(f))
-      println(f)
+      testQE2(solverArray(i))
     }
+
+    val ls = solverArray.indices.map(run(_))
+    val futures = Future.sequence(ls)
+    var done = false
+    futures.onComplete
+    {
+      case Success(r) => for(t <- r) println(t)
+                         done = true
+      case Failure(_) => sys.error("eeeeeeee")
+    }
+
+    println("going to Await")
+    Await.ready(futures, 60.minutes)
+    while(!done)
+      Thread.sleep(100)
+
+    for(s <- solverArray)
+      s.destroy()
+    println("done")
   }
+
 
   def test1(): Unit =
   {
@@ -503,6 +531,44 @@ object test
               usePredicateAbstraction = true,
               maxIteration = 30,
               useClang = "clang-3.7")
+  }
+
+  def testWahhh():Unit=
+  {
+    import scala.concurrent.Future
+    import scala.concurrent.Await
+    import scala.concurrent.duration.DurationInt
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.util.{Failure, Success}
+    import scala.util.Random
+
+    object Cloud
+    {
+      def run(i: Int): Future[Int] = Future
+      {
+        //println(s"going to do cloud $i")
+        Thread.sleep(Random.nextInt(500))
+        val result = i + 10
+        println(s"returning result from cloud: $result")
+        result
+      }
+    }
+
+
+    println("starting futures")
+
+    println("before for-comprehension")
+    val f = Future.sequence(List.range(0, 60).map(Cloud.run(_)))
+
+    f.onComplete
+    {
+      case Success(result) => println(s"result is $result")
+      case Failure(ex) => println(s"Failure: $ex")
+    }
+
+    Await.ready(f, 60.minutes)
+    Thread.sleep(1000)
+    println("done")
   }
 }
 
