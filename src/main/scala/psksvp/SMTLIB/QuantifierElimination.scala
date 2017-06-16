@@ -87,19 +87,21 @@ object Z3QE extends QuantifierElimination
     }
 
     val freeVarDeclCmd:Seq[Command] = for(v <- existsTerm.typeDefs.toSeq) yield
-      {
-        v.id match
-        {
-          case SymbolId(s) => DeclareFunCmd(FunDecl(s, List(), v.sort))
-          case _           => sys.error(s"Z3QE, unsupported var type:${v.id}")
-        }
-      }
+                                      {
+                                        v.id match
+                                        {
+                                          case SymbolId(s) => DeclareFunCmd(FunDecl(s, List(), v.sort))
+                                          case _           => sys.error(s"Z3QE, unsupported var type:${v.id}")
+                                        }
+                                      }
 
     val boundedVarDeclCmd:Seq[Command] = for(v <- boundedVars) yield DeclareFunCmd(FunDecl(v.sMTLIB2Symbol,
                                                                                             List(),
                                                                                             v.sort))
-    val cmds = freeVarDeclCmd ++ boundedVarDeclCmd :+
-      AssertCmd(existsTerm.termDef) :+ Raw("(apply (using-params qe :qe-nonlinear true))")
+    val cmds = freeVarDeclCmd ++
+               boundedVarDeclCmd :+
+               AssertCmd(existsTerm.termDef) :+
+               Raw("(apply (using-params qe :qe-nonlinear true))")
 
     val m = eval(cmds.toList) match
     {

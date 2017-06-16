@@ -1,3 +1,5 @@
+import java.io.File
+
 import au.edu.mq.comp.smtlib.configurations.SolverConfig
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
 
@@ -241,7 +243,7 @@ package object psksvp
     import java.io.PrintWriter
     val tmpDir = System.getProperty("java.io.tmpdir")
     val file = scala.util.Random.alphanumeric.take(10).mkString
-    val fileName =  tmpDir + file + fileExt
+    val fileName = tmpDir + file + fileExt
     new PrintWriter(fileName)
     {
       write(code)

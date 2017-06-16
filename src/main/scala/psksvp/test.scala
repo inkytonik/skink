@@ -33,9 +33,6 @@ object runSkink
      Main.main(args.filter(_.length > 0).toArray)
 
     println("---------------------------------------------------")
-    //println("equivalence checking satHitCounter:" + psksvp.satHitCounter)
-    //println("time used in checking combination:" + psksvp.PredicatesAbstraction.timeUsedCheckComb)
-    //println("whole time used by predAbs:" + psksvp.PredicatesAbstraction.timeUsedWhole)
   }
 }
 
@@ -76,6 +73,10 @@ object test
     object qt extends QuantifiedTerm
     import qt._
 
+    val b = Ints("b")
+    val c = b.indexed(1) == b.indexed(2)
+    println(s"-------> $c")
+
     val a = Ints("a").indexed(1)
     val cmp = Bools("cmp")
     val five = Ints("five")
@@ -92,64 +93,6 @@ object test
       case _ => println("not good")
     }
     solver.destroy()
-  }
-
-
-
-  def testRunQE2(): Unit =
-  {
-    def testQE2(solver: SMTLIBInterpreter): List[BooleanTerm] =
-    {
-      object qt extends QuantifiedTerm
-      import qt._
-
-      val a = Ints("a").indexed(1)
-      val cmp = Bools("cmp")
-      val five = Ints("five")
-      val ex = exists(five.symbol, cmp.symbol)
-      {
-        five === a & cmp === (five < 1000) & True() === cmp
-      }
-
-      psksvp.SMTLIB.Z3QE(ex)(solver) match
-      {
-        case Success(r) => Thread.sleep(10000)
-          r.toList
-        case _          => sys.error("not good")
-      }
-    }
-
-    import scala.concurrent.{Future, Await}
-    import scala.concurrent.duration.DurationInt
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    val solverArray = Array.ofDim[SMTLIBInterpreter](10)
-    for(i <- solverArray.indices)
-      solverArray(i) = new SMTLIBInterpreter(solverFromName("Z3"))
-
-    def run(i:Int):Future[List[BooleanTerm]] = Future
-    {
-      testQE2(solverArray(i))
-    }
-
-    val ls = solverArray.indices.map(run(_))
-    val futures = Future.sequence(ls)
-    var done = false
-    futures.onComplete
-    {
-      case Success(r) => for(t <- r) println(t)
-                         done = true
-      case Failure(_) => sys.error("eeeeeeee")
-    }
-
-    println("going to Await")
-    Await.ready(futures, 60.minutes)
-    while(!done)
-      Thread.sleep(100)
-
-    for(s <- solverArray)
-      s.destroy()
-    println("done")
   }
 
 
@@ -525,50 +468,13 @@ object test
     def implies(a:BooleanTerm, b:BooleanTerm):BooleanTerm = !a | b
 
     runSkink(toFile(code),
-              List(call1 === 0, m === x, x < n, n < 0, n === 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
-              //List(call1 === 0, x === 0, m === 0, x >= -1, m < n, m >= 0, x >= 0, n <= 0),
+              List(call1 === 0, m === x, x < n, n <= 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
+              //List(call1 === 0, m === x, x < n, n < 0, n === 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
+              //List(call1 === 0, x === 0, m === 0, x < n, x >= -1, m < n, m >= 0, x >= 0, n <= 0),
               useO2 = false,
               usePredicateAbstraction = true,
               maxIteration = 30,
               useClang = "clang-3.7")
-  }
-
-  def testWahhh():Unit=
-  {
-    import scala.concurrent.Future
-    import scala.concurrent.Await
-    import scala.concurrent.duration.DurationInt
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.util.{Failure, Success}
-    import scala.util.Random
-
-    object Cloud
-    {
-      def run(i: Int): Future[Int] = Future
-      {
-        //println(s"going to do cloud $i")
-        Thread.sleep(Random.nextInt(500))
-        val result = i + 10
-        println(s"returning result from cloud: $result")
-        result
-      }
-    }
-
-
-    println("starting futures")
-
-    println("before for-comprehension")
-    val f = Future.sequence(List.range(0, 60).map(Cloud.run(_)))
-
-    f.onComplete
-    {
-      case Success(result) => println(s"result is $result")
-      case Failure(ex) => println(s"Failure: $ex")
-    }
-
-    Await.ready(f, 60.minutes)
-    Thread.sleep(1000)
-    println("done")
   }
 }
 
