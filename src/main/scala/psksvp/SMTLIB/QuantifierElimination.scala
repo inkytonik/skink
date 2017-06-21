@@ -58,12 +58,17 @@ object Z3QE extends QuantifierElimination
 
       }
 
-      ///////////////////////////////////////////////////////////
-      // catch a ride with GetInterpolantResponses parser for now.
-      SMTLIB2Parser[GetInterpolantResponses].apply(StringSource(s)) match
+      if(s.trim.isEmpty)
+        Success(Nil)
+      else
       {
-        case Success(GetInterpolantResponsesSuccess(InterpolantResponse(ls))) => toTypedTerm(ls)
-        case _                                                                => sys.error("fail to parse response")
+        ///////////////////////////////////////////////////////////
+        // catch a ride with GetInterpolantResponses parser for now.
+        SMTLIB2Parser[GetInterpolantResponses].apply(StringSource(s)) match
+        {
+          case Success(GetInterpolantResponsesSuccess(InterpolantResponse(ls))) => toTypedTerm(ls)
+          case _                                                                => sys.error("fail to parse response")
+        }
       }
     }
 

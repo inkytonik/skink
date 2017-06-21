@@ -80,14 +80,22 @@ package object psksvp
     case UnSat() => true
     case _       => false
   }
+
+  def termAsInfix[A](terms:Seq[TypedTerm[A, Term]]):String =
+  {
+    if(terms.nonEmpty)
+    {
+      val ls = for (t <- terms) yield termAsInfix(t)
+      ls.reduceLeft(_ + "," + _)
+    }
+    else
+      "termAsInfix arg is an empty list"
+  }
   /**
     *
     */
   def termAsInfix[A](term: TypedTerm[A, Term]):String=
   {
-    /**
-      *
-      */
     object InfixSMTLibTermPrettyPrinter extends au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter
     {
       import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
@@ -222,6 +230,7 @@ package object psksvp
     */
   def binaryString(n:Int, bits:Int):String=
   {
+    require(bits > 0, "psksvp.binaryString arg bit must be > 0")
     require(n >= 0, s"psksvp.binaryString($n, $bits) n (1st args) must be >= 0")
     require(n <= Integer.parseInt("1" * bits, 2), s"psksvp.binaryString($n, $bits) $bits bits is too small for $n ")
     val format = "%" + bits + "s"

@@ -122,7 +122,33 @@ object test
                useClang = "clang-3.7")
   }
 
-  def test2(): Unit = test7()
+  def test2(): Unit =
+  {
+    val i = Ints("%i")
+    val a = Ints("%a")
+
+    // predicate abs ok
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |
+                  |int main(int argc, char** arg)
+                  |{
+                  |  int i;
+                  |  int a = 0;
+                  |  for(i = 1; i <= 1000; i++);
+                  |
+                  |  if(i != 1001) __VERIFIER_error();
+                  |  if(a != 0) __VERIFIER_error();
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    runSkink(toFile(code),
+              List(i >= 1, i <= 1000, !(i === 1001), a === 0),
+              useO2 = false,
+              usePredicateAbstraction = true,
+              useClang = "clang-3.7")
+  }
 
   def test3(): Unit =
   {
@@ -264,7 +290,7 @@ object test
     val code =  """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
-                  |int main(int argc, char** arg)
+                  |int main()
                   |{
                   |  int x = 1;
                   |  int a = 0;
@@ -282,9 +308,9 @@ object test
 
     runSkink(toFile(code),
               List( x >= 0, x <= 1000, a === 1000, a === x, a === x - 1, x === 1001),
-              useO2 = false,
+              useO2 = true,
               usePredicateAbstraction = true,
-              useClang = "clang-3.7")
+              useClang = "clang-4.0")
   }
 
   def test8(): Unit =
@@ -315,7 +341,7 @@ object test
     runSkink(toFile(code),
               List( x >= 0, x <= 10, a === 55, a === x * 5, x === 11),
               useO2 = false,
-              usePredicateAbstraction = false,
+              usePredicateAbstraction = true,
               useClang = "clang-3.7")
   }
 
@@ -356,6 +382,9 @@ object test
     val i = Ints("%i")
     val j = Ints("%j")
 
+    //val i = Ints("%2")
+    //val j = Ints("%3")
+
     // interpolant works
     // predicate abstraction works
     // cggmp2005_true-unreach-call.c
@@ -380,6 +409,7 @@ object test
                   |    return 0;
                   |}
                 """.stripMargin
+
 
     runSkink(toFile(code),
               List( i === 1, j === 10, j === 6, j >= i, i === Ints(21) - (j * 2) ),
@@ -433,6 +463,7 @@ object test
     val x = Ints("%x")
     val call1 = Ints("%call1")
 
+
     // interpolant: max iter reach
     // predicate abstraction     --- untest
     // gj2007b_true-unreach-call.c
@@ -468,12 +499,51 @@ object test
     def implies(a:BooleanTerm, b:BooleanTerm):BooleanTerm = !a | b
 
     runSkink(toFile(code),
-              List(call1 === 0, m === x, x < n, n <= 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
-              //List(call1 === 0, m === x, x < n, n < 0, n === 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
-              //List(call1 === 0, x === 0, m === 0, x < n, x >= -1, m < n, m >= 0, x >= 0, n <= 0),
-              useO2 = false,
+              List(call1 === 0, m === x, x < n, n === 0, n > 0, n < 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
+              useO2 = true,
               usePredicateAbstraction = true,
               maxIteration = 30,
+              useClang = "clang-4.0")
+  }
+
+  def test13(): Unit =
+  {
+    val r = Ints("%r")
+
+    //val i = Ints("%2")
+    //val j = Ints("%3")
+
+
+    /// this is false
+    val code =
+          """
+            |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+            |
+            |void __VERIFIER_assert(int cond) {
+            |  if (!(cond)) {
+            |    ERROR: __VERIFIER_error();
+            |  }
+            |  return;
+            |}
+            |
+            |int __VERIFIER_nondet_int();
+            |
+            |int main ()
+            |{
+            |  int r = __VERIFIER_nondet_int();
+            |  while (r > 0)
+            |  {
+            |      if(!(r > 0)) __VERIFIER_error();
+            |      r = r - 1;
+            |  }
+            |  if(!(r > 0)) __VERIFIER_error();
+            |}
+          """.stripMargin
+
+    runSkink(toFile(code),
+              List( r > 0 ),
+              useO2 = false,
+              usePredicateAbstraction = true,
               useClang = "clang-3.7")
   }
 }

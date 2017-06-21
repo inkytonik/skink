@@ -6,15 +6,13 @@ import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Term}
 import au.edu.mq.comp.smtlib.theories.BoolTerm
 import au.edu.mq.comp.smtlib.typedterms.TypedTerm
 import au.edu.mq.comp.automat.auto.NFA
-
-import scala.util.{Failure, Success}
 import logics._
-import psksvp.resources.using
 import au.edu.mq.comp.smtlib.typedterms.Commands
 import au.edu.mq.comp.smtlib.interpreters.Resources
-import psksvp.PredicatesAbstraction.timeUsedCheckComb
+import psksvp.ADT.{AutoDispose, Disposable}
+import psksvp.TraceAnalyzer.Transition
 
-import scala.annotation.tailrec
+import scala.collection.parallel.immutable.ParVector
 
 
 /**
@@ -38,6 +36,8 @@ object PredicatesAbstraction
   def setToUsePredicates(pl: Seq[BooleanTerm]): Unit = {usePredicates = pl}
   // -----------
 
+
+
   /**
     *
     * @param function
@@ -49,18 +49,7 @@ object PredicatesAbstraction
             iteration: Int): NFA[Int, Int] =
   {
     val traceAnalyzer = TraceAnalyzer(function, choices)
-//      for (i <- traceAnalyzer.transitionMap.keySet)
-//      {
-//        for (transition <- traceAnalyzer.transitionMap(i))
-//        {
-//          println(s"block: $i")
-//          for (term <- traceAnalyzer.inferPredicates(transition))
-//          {
-//            print("predicates: " + termAsInfix(term))
-//          }
-//          println()
-//        }
-//      }
+
     if (traceAnalyzer.repetitionsPairs.isEmpty)
     {
       println(choices)
@@ -69,16 +58,26 @@ object PredicatesAbstraction
     }
     else
     {
+      //usePredicates = (for(i <- 0 until traceAnalyzer.length - 1) yield traceAnalyzer.inferPredicates(i, True())).flatten
+//      var pre:BooleanTerm = True()
+//      for(i <- 0 until traceAnalyzer.length - 1)
+//      {
+//        println(s"predicates inferred from block $i")
+//        val ls = traceAnalyzer.inferPredicates(i, pre)
+//        pre = ls.reduceLeft(_ & _)
+//        print(ls.map(termAsInfix(_)))
+//        println()
+//      }
+
       println("running with input predicates: ")
       usePredicates.foreach{p => print(termAsInfix(p) + ",")}
       println()
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, new CNFComposer)
-      val r = p.automaton
-      p.destroySolvers()
-      r
+      val result = p.automaton
+      p.dispose()
+      result
     }
   }
-
 
   /**
     * combine boolean vectors (disjunct clauses) to a conjunct
@@ -98,8 +97,12 @@ object PredicatesAbstraction
     {
       if (!simplify)
       {
-        val exprLs = for (i <- absDomain.indices) yield combinationToDisjunctTerm(absDomain(i), predicates)
-        exprLs.reduce(_ & _)
+        val exprLs = ParVector.range(0, absDomain.length).map
+        {
+          i => combinationToDisjunctTerm(absDomain(i), predicates)
+        }
+        //val exprLs = for (i <- absDomain.indices) yield combinationToDisjunctTerm(absDomain(i), predicates)
+        exprLs.par.reduce(_ & _)
       }
       else
       {
@@ -206,9 +209,9 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                                   inputPredicates:Seq[TypedTerm[BoolTerm, Term]],
                                   termComposer:PredicatesAbstraction.TermComposer) extends Commands
                                                                                       with Resources
+                                                                                      with Disposable
 {
   import scala.collection.parallel.immutable.ParVector
-  val combinationSize:Int = Math.pow(2, inputPredicates.length).toInt
   val solverArray = Array.fill[SMTLIBInterpreter](traceAnalyzer.length)(new SMTLIBInterpreter(solverFromName("Z3")))
 
   ///////////////////////////////////////////////
@@ -251,7 +254,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
   }
 
 
-  def destroySolvers():Unit=
+  def dispose():Unit=
   {
     for(solver <- solverArray)
       solver.destroy()
@@ -264,15 +267,49 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
     */
   def computePredicates(currentPredicates:Seq[BooleanTerm]):Seq[BooleanTerm] =
   {
+    /**
+      *
+      * @param t
+      * @return
+      */
+    def predicatesForTransition(t:Transition):Seq[BooleanTerm] =
+    {
+      /**
+        *
+        * @param predicate
+        * @return
+        */
+      def included(predicate:BooleanTerm):Boolean =
+      {
+        val indexedPredicate = predicate.indexedBy{ case SSymbol(x) => t.effect.lastIndexMap.getOrElse(x, 0)}
+
+        val insideEffect = (indexedPredicate.typeDefs intersect t.effect.term.typeDefs).nonEmpty
+        //pre has no index, so we don't need to index predicate term
+        val insidePre = (predicate.typeDefs intersect currentPredicates(t.preconditionIndex).typeDefs).nonEmpty
+        //if it is in effect Or pre term, we need to inclue the predicate for abstraction.
+        insideEffect || insidePre
+      }
+
+      val lsp = for(p <- inputPredicates if included(p)) yield p
+      if(lsp.nonEmpty) lsp else inputPredicates
+    }
+
+    /**
+      *
+      * @param loc
+      * @return
+      */
     def nextPredicateAtLocation(loc:Int):BooleanTerm =
     {
       ////////////////////////////////////////////
-      def checkCombination(c:Int, transition:TraceAnalyzer.Transition):Int =
+      def checkCombination(c:Int,
+                           transition:TraceAnalyzer.Transition,
+                           usePredicates:Seq[BooleanTerm]):Int =
       {
         val pre = currentPredicates(transition.preconditionIndex)
         val indexedPre = pre.indexedBy { case _ => 0}
 
-        val post = termComposer.combinationToTerm(c, inputPredicates)
+        val post = termComposer.combinationToTerm(c, usePredicates)
         val indexedPost = post.indexedBy { case SSymbol(x) => transition.effect.lastIndexMap.getOrElse(x, 0)}
         if(psksvp.checkPost(indexedPre, transition.effect.term, indexedPost)(solverArray(loc)))
           c
@@ -281,20 +318,24 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
       }
 
       /////////////////////////////////////////////
-      val absDomains = for(t <- traceAnalyzer.transitionMap(loc)) yield
-                       {
-                         val combinations = List.range(0, combinationSize)
-                         val absDom = combinations.map(checkCombination(_, t))
-                         absDom.filter( _ >= 0)
-                       }
-      val result = absDomains.map(termComposer.gamma(_, inputPredicates, simplify = true)).reduce(_ | _)
-      result
+      val result = for(t <- traceAnalyzer.transitionMap(loc)) yield
+                   {
+                     val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
+                     val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
+                     val combinations = List.range(0, combinationSize)
+                     val absDom = combinations.map(checkCombination(_, t, usePredicates))
+                     termComposer.gamma(absDom.filter( _ >= 0), usePredicates, simplify = true)
+                   }
+      // in each locations, there can be more than one Transitions that need to be abstracted.
+      // one is from the direct edge from previous location.
+      // another may be from incomming edges from repeat location (back edges).
+      result.reduce(_ | _)
     }
 
     /////////////////////////////////////
     val rls = ParVector.range(1, currentPredicates.length).map
               {
-                i => (i, nextPredicateAtLocation(i))
+                loc => (loc, nextPredicateAtLocation(loc))
               }
     val nextPredicate = Array.fill[BooleanTerm](currentPredicates.length)(True())
     for((loc, term) <- rls)

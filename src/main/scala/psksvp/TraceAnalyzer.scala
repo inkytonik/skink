@@ -5,12 +5,10 @@ import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.LabDiEdge
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter
 import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-import au.edu.mq.comp.smtlib.theories.BoolTerm
 
-import scala.util.Success
-import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm, TypedTerm}
+
+import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm}
 
 
 /**
@@ -31,6 +29,7 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
 
   lazy val length:Int = choices.length
   lazy val trace:Trace = Trace(choices)
+  lazy val traceTerms:Seq[BooleanTerm] = function.traceToTerms(trace)
   //////////////////////////////////////////////////
   lazy val repetitionsPairs:Seq[(Int, Int)] =
   {
@@ -44,6 +43,10 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
     // start from 1 because, l0 is always true
     val linear = for (l <- 1 until choices.length) yield
                  {
+                   // pre compute the effect here is ok, because I use the effect to do checkPost only.
+                   // looking at the LLVMFunction.checkPost, everytime the function checkPost is called using
+                   // the same block number an exit choice, the effect would be exactly the same for the
+                   // same trace.
                    val (e, m) = function.traceBlockEffect(trace, l - 1, choices(l - 1))
                    l -> Transition(source = l - 1,
                                     sink = l,
@@ -139,56 +142,7 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
 
 
   /////////////////////////////////////////
-  /// combined term in each block
-  lazy val blockTerms:Seq[TypedTerm[BoolTerm, Term]] = function.traceToTerms(trace)
-
-  /// variables in each block
-  lazy val blockVariables:Seq[Set[SortedQId]] = blockTerms.map(_.typeDefs)
-
-  /// variables used across block
-  lazy val commonVariables:Set[SortedQId] =
-  {
-    val s = for(i <- blockVariables.indices;
-                j <- blockVariables.indices if i != j) yield blockVariables(i) intersect blockVariables(j)
-    s.reduce(_ union _)
-  }
-
-  ///
-  def inferPredicates(t:Transition):Seq[TypedTerm[BoolTerm, Term]] =
-  {
-    println(t)
-    val qeVariables = (blockVariables(t.source) diff commonVariables).toList
-    if(qeVariables.nonEmpty)
-    {
-      val s = for(v <- qeVariables) yield
-              {
-                v.id match
-                {
-                  case SymbolId(symbol) => symbol
-                  case IndexedId(_, _)  => sys.error("array (IndexedId) is not yet supported")
-                  case _                => sys.error("unsupported symbol")
-                }
-              }
-      println(s"blockVariables: ${blockVariables(t.source)}")
-      println(s"commonVariables: ${commonVariables}")
-      println(s"quantified over variables: $s}")
-      val e = exists(s.head, s.tail:_*){t.effect.term}
-      //println(s"exists term:${termAsInfix(e)}")
-      val solver = new SMTLIBInterpreter(solverFromName("Z3"))
-      psksvp.SMTLIB.Z3QE(e)(solver) match
-      {
-        case Success(ls) => solver.destroy()
-                            ls
-        case _           => solver.destroy()
-                            sys.error(s"psksvp.SMTLIB.Z3QE($e) fail")
-      }
-    }
-    else
-    {
-      println("list of variables to quantified over is empty")
-      Nil
-    }
-  }
+  lazy val blockVariables:Seq[Set[SortedQId]] = for(term <- traceTerms) yield term.typeDefs
 }
 
 object TraceAnalyzer
@@ -208,7 +162,7 @@ object TraceAnalyzer
 
     override def toString:String =
     {
-      s"/*----------------*/\nsource:$source\nexitChoice:$choice\nsink:$sink\neffect:${termAsInfix(effect.term)}\n/*----------------*/"
+      s"\n/*----------------*/\nsource:$source\nexitChoice:$choice\nsink:$sink\neffect:${termAsInfix(effect.term)}\n"
     }
   }
 }
