@@ -286,7 +286,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
         val insideEffect = (indexedPredicate.typeDefs intersect t.effect.term.typeDefs).nonEmpty
         //pre has no index, so we don't need to index predicate term
         val insidePre = (predicate.typeDefs intersect currentPredicates(t.preconditionIndex).typeDefs).nonEmpty
-        //if it is in effect Or pre term, we need to inclue the predicate for abstraction.
+        //if it is in effect Or pre term, we need to include the predicate for abstraction.
         insideEffect || insidePre
       }
 
@@ -295,9 +295,9 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
     }
 
     /**
-      *
-      * @param loc
-      * @return
+      * computes POSTs at location loc.
+      * @param loc is location
+      * @return union of posts at location loc
       */
     def nextPredicateAtLocation(loc:Int):BooleanTerm =
     {
@@ -318,25 +318,30 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
       }
 
       /////////////////////////////////////////////
-      val result = for(t <- traceAnalyzer.transitionMap(loc)) yield
-                   {
-                     val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
-                     val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
-                     val combinations = List.range(0, combinationSize)
-                     val absDom = combinations.map(checkCombination(_, t, usePredicates))
-                     termComposer.gamma(absDom.filter( _ >= 0), usePredicates, simplify = true)
-                   }
+      val absPosts = for(t <- traceAnalyzer.transitionMap(loc)) yield
+                     {
+                       val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
+                       val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
+                       val combinations = List.range(0, combinationSize)
+                       val absDom = combinations.map(checkCombination(_, t, usePredicates))
+                       termComposer.gamma(absDom.filter( _ >= 0), usePredicates, simplify = true)
+                     }
       // in each locations, there can be more than one Transitions that need to be abstracted.
       // one is from the direct edge from previous location.
       // another may be from incomming edges from repeat location (back edges).
-      result.reduce(_ | _)
+      // absPost of these transition of the same location are combined (union) together.
+      absPosts.reduce(_ | _) // union all post at this location (loc)
     }
 
     /////////////////////////////////////
+    /// compute abstraction at each location
     val rls = ParVector.range(1, currentPredicates.length).map
               {
                 loc => (loc, nextPredicateAtLocation(loc))
               }
+
+
+    //updating the each location with new post of changes
     val nextPredicate = Array.fill[BooleanTerm](currentPredicates.length)(True())
     for((loc, term) <- rls)
     {
