@@ -250,7 +250,8 @@ package object psksvp
   def toFile(code:String, fileExt:String = ".c"):String=
   {
     import java.io.PrintWriter
-    val tmpDir = System.getProperty("java.io.tmpdir")
+    var tmpDir = System.getProperty("java.io.tmpdir")
+    if(tmpDir.last != '/') tmpDir = tmpDir + "/"
     val file = scala.util.Random.alphanumeric.take(10).mkString
     val fileName = tmpDir + file + fileExt
     new PrintWriter(fileName)

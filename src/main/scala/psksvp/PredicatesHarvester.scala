@@ -60,7 +60,7 @@ case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer) extends Predicate
   }
 
   ///
-  def inferPredicates(blockNo:Int):Seq[TypedTerm[BoolTerm, Term]] =
+  def inferPredicates(blockNo:Int, solver:SMTLIBInterpreter):Seq[TypedTerm[BoolTerm, Term]] =
   {
     val (blockEffect, _) = traceAnalyzer.function.traceBlockEffect(traceAnalyzer.trace,
                                                                     blockNo,
@@ -74,13 +74,11 @@ case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer) extends Predicate
       //val indexedPre = pre.indexedBy {case _ => 0}
       val e = exists(s.head, s.tail:_*)(blockEffect) //( indexedPre & blockEffect)
       println(s"exists term:${psksvp.termAsInfix(e)}")
-      val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+
       psksvp.SMTLIB.Z3QE(e)(solver) match
       {
-        case Success(ls) => solver.destroy()
-          ls.map { t => t.unIndexed }
-        case _           => solver.destroy()
-          sys.error(s"psksvp.SMTLIB.Z3QE($e) fail")
+        case Success(ls) => ls.map { t => t.unIndexed }
+        case _           => sys.error(s"psksvp.SMTLIB.Z3QE($e) fail")
       }
     }
     else
@@ -91,6 +89,8 @@ case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer) extends Predicate
   }
   override lazy val inferredPredicates: Seq[BooleanTerm] =
   {
-    (for(block <- 0 until traceAnalyzer.length - 1) yield inferredPredicates(block)).flatten
+    val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+    val r = for(block <- 0 until traceAnalyzer.length - 1) yield inferPredicates(block, solver)
+    r.flatten
   }
 }

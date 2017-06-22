@@ -201,10 +201,12 @@ object PredicatesAbstraction
   }
 } // object PredicateAbstraction
 
-
-
-
-/////////////experiment
+/**
+  *
+  * @param traceAnalyzer
+  * @param inputPredicates
+  * @param termComposer
+  */
 case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                                   inputPredicates:Seq[TypedTerm[BoolTerm, Term]],
                                   termComposer:PredicatesAbstraction.TermComposer) extends Commands
@@ -302,19 +304,24 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
     def nextPredicateAtLocation(loc:Int):BooleanTerm =
     {
       ////////////////////////////////////////////
+      /**
+        * check to see if combination c is included in the post of the effect of
+        * transition transition.
+        * @param c
+        * @param transition
+        * @param usePredicates : list of predicates to be used for computing abstraction
+        * @return true if combination c is included, false otherwise.
+        */
       def checkCombination(c:Int,
                            transition:TraceAnalyzer.Transition,
-                           usePredicates:Seq[BooleanTerm]):Int =
+                           usePredicates:Seq[BooleanTerm]):Boolean =
       {
         val pre = currentPredicates(transition.preconditionIndex)
         val indexedPre = pre.indexedBy { case _ => 0}
 
         val post = termComposer.combinationToTerm(c, usePredicates)
         val indexedPost = post.indexedBy { case SSymbol(x) => transition.effect.lastIndexMap.getOrElse(x, 0)}
-        if(psksvp.checkPost(indexedPre, transition.effect.term, indexedPost)(solverArray(loc)))
-          c
-        else
-          -1
+        psksvp.checkPost(indexedPre, transition.effect.term, indexedPost)(solverArray(loc))
       }
 
       /////////////////////////////////////////////
@@ -322,9 +329,9 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                      {
                        val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
                        val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
-                       val combinations = List.range(0, combinationSize)
-                       val absDom = combinations.map(checkCombination(_, t, usePredicates))
-                       termComposer.gamma(absDom.filter( _ >= 0), usePredicates, simplify = true)
+                       val absDom = for(c <- List.range(0, combinationSize)
+                                        if checkCombination(c, t, usePredicates)) yield c
+                       termComposer.gamma(absDom, usePredicates, simplify = true)
                      }
       // in each locations, there can be more than one Transitions that need to be abstracted.
       // one is from the direct edge from previous location.
@@ -335,13 +342,14 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
 
     /////////////////////////////////////
     /// compute abstraction at each location
+    /// NOTE: we start from loc 1, because loc 0 is always True.
     val rls = ParVector.range(1, currentPredicates.length).map
               {
                 loc => (loc, nextPredicateAtLocation(loc))
               }
 
 
-    //updating the each location with new post of changes
+    //updating the each location with new abstracted post if changes from last run
     val nextPredicate = Array.fill[BooleanTerm](currentPredicates.length)(True())
     for((loc, term) <- rls)
     {
