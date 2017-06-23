@@ -37,7 +37,6 @@ object PredicatesAbstraction
   // -----------
 
 
-
   /**
     *
     * @param function
@@ -48,7 +47,10 @@ object PredicatesAbstraction
             choices: Seq[Int],
             iteration: Int): NFA[Int, Int] =
   {
+    import au.edu.mq.comp.skink.ir.llvm.LLVMFunction
     val traceAnalyzer = TraceAnalyzer(function, choices)
+    val functionInformation = FunctionInformation(function.asInstanceOf[LLVMFunction])
+
 
     if (traceAnalyzer.repetitionsPairs.isEmpty)
     {
@@ -58,16 +60,10 @@ object PredicatesAbstraction
     }
     else
     {
-      //usePredicates = (for(i <- 0 until traceAnalyzer.length - 1) yield traceAnalyzer.inferPredicates(i, True())).flatten
-//      var pre:BooleanTerm = True()
-//      for(i <- 0 until traceAnalyzer.length - 1)
-//      {
-//        println(s"predicates inferred from block $i")
-//        val ls = traceAnalyzer.inferPredicates(i, pre)
-//        pre = ls.reduceLeft(_ & _)
-//        print(ls.map(termAsInfix(_)))
-//        println()
-//      }
+      val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+      val ph = EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
+      usePredicates = ph.inferredPredicates.toList
+
 
       println("running with input predicates: ")
       usePredicates.foreach{p => print(termAsInfix(p) + ",")}
@@ -75,6 +71,7 @@ object PredicatesAbstraction
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, new CNFComposer)
       val result = p.automaton
       p.dispose()
+      solver.destroy()
       result
     }
   }

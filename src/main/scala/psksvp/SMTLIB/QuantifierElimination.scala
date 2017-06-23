@@ -106,7 +106,7 @@ object Z3QE extends QuantifierElimination
     val cmds = freeVarDeclCmd ++
                boundedVarDeclCmd :+
                AssertCmd(existsTerm.termDef) :+
-               Raw("(apply (using-params qe :qe-nonlinear true))")
+               Raw("(apply (using-params qe :qe-nonlinear false))")
 
     val m = eval(cmds.toList) match
     {

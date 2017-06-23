@@ -44,7 +44,7 @@ object test
 {
   def main(args: Array[String]): Unit =
   {
-    test6()
+    test2()
   }
 
 
@@ -343,9 +343,9 @@ object test
 
     runSkink(toFile(code),
               List( x >= 0, x <= n, a === n, a === x, a === x - 1, x === n + 1),
-              useO2 = false,
+              useO2 = true,
               usePredicateAbstraction = true,
-              useClang = "clang-3.7")
+              useClang = "clang-4.0")
   }
 
   def test8(): Unit =
@@ -375,7 +375,7 @@ object test
                 """.stripMargin
 
     runSkink(toFile(code),
-              List( x >= 0, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
+              List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")
@@ -385,30 +385,33 @@ object test
   {
     val x = Ints("%x")
     val a = Ints("%a")
+    val n = Ints("%n")
+    val p = Ints("%p")
 
-    // predABS works 36 sec
-    // interpol does not work max iter reach
-    // non linear relation ship between a and x
     val code =  """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |unsigned int __VERIFIER_nondet_uint();
                   |
                   |int main(int argc, char** arg)
                   |{
+                  |  unsigned int p = __VERIFIER_nondet_uint();
+                  |  int n = p + 1;
                   |  int x = 1;
                   |  int a = 0;
-                  |  while(x <= 10)
+                  |  while(x <= n)
                   |  {
                   |    a = a + x;
+                  |    if(a < x) __VERIFIER_error();
                   |    x = x + 1;
                   |  }
-                  |  if(a < 55) __VERIFIER_error();
-                  |  if(x != 11) __VERIFIER_error();
+                  |  if(x != n + 1) __VERIFIER_error();
+                  |  if(0 == a) __VERIFIER_error();
                   |  return 0;
                   |}
                 """.stripMargin
 
     runSkink(toFile(code),
-              List( x >= 0, x <= 10, a >= 0, a >= x - 1, a >= 55),
+              List( p >= 0, n >= 1, x >= 1, x <= n, a >= 0, a >= x,  x === n + 1, a === 0),
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")
@@ -535,13 +538,13 @@ object test
 
 
     // interpolant: max iter reach
-    // predicate abstraction     --- untest
+    // predicate abstraction     no
     // gj2007b_true-unreach-call.c
     val code =  """
                   |// Source: Sumit Gulwani, Nebosja Jojic: "Program Verification as
                   |// Probabilistic Inference", POPL 2007.
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
-                  |unsigned int __VERIFIER_nondet_uint();
+                  |int __VERIFIER_nondet_int();
                   |
                   |
                   |int main()
@@ -558,10 +561,8 @@ object test
                   |	      x = x + 1;
                   |    }
                   |
-                  |    //if(!(m >= 0 || n <= 0) ) __VERIFIER_error(); //__VERIFIER_assert((m >= 0 || n <= 0));
+                  |    if(!(m >= 0 || n <= 0) ) __VERIFIER_error(); //__VERIFIER_assert((m >= 0 || n <= 0));
                   |    //if(!(m < n || n <= 0)  ) __VERIFIER_error(); //__VERIFIER_assert((m < n || n <= 0));
-                  |    if(!((m >= 0 || n <= 0) && (m < n || n <= 0)))
-                  |      __VERIFIER_error();
                   |    return 0;
                   |}
                 """.stripMargin
@@ -569,11 +570,11 @@ object test
     def implies(a:BooleanTerm, b:BooleanTerm):BooleanTerm = !a | b
 
     runSkink(toFile(code),
-              List(call1 === 0, m === x, x < n, n === 0, n > 0, n < 0, (m >= 0 | n <= 0) & (m < n | n <= 0 )),
-              useO2 = true,
+              List(m === x, x < n, n <= 0, m >= 0, m < n),
+              useO2 = false,
               usePredicateAbstraction = true,
               maxIteration = 30,
-              useClang = "clang-4.0")
+              useClang = "clang-3.7")
   }
 
   def test13(): Unit =
@@ -589,12 +590,6 @@ object test
           """
             |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
             |
-            |void __VERIFIER_assert(int cond) {
-            |  if (!(cond)) {
-            |    ERROR: __VERIFIER_error();
-            |  }
-            |  return;
-            |}
             |
             |int __VERIFIER_nondet_int();
             |

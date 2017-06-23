@@ -3,12 +3,12 @@ package psksvp
 import au.edu.mq.comp.automat.auto.NFA
 import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.LabDiEdge
+import au.edu.mq.comp.skink.ir.llvm.LLVMFunction
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
 import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-
-
 import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm}
+
 
 
 /**
@@ -142,7 +142,6 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
 
 
   /////////////////////////////////////////
-  lazy val blockVariables:Seq[Set[SortedQId]] = for(term <- traceTerms) yield term.typeDefs
 }
 
 object TraceAnalyzer
