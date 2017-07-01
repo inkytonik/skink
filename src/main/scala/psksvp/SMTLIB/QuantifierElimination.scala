@@ -5,7 +5,7 @@ import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
 import au.edu.mq.comp.smtlib.parser.{Analysis, PredefinedParsers, SMTLIB2Parser}
 import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
 import au.edu.mq.comp.smtlib.theories.BoolTerm
-import au.edu.mq.comp.smtlib.typedterms.{CoreCommands, TypedTerm}
+import au.edu.mq.comp.smtlib.typedterms.{Commands, TypedTerm}
 import au.edu.mq.comp.smtlib.eval
 import org.bitbucket.inkytonik.kiama.util.StringSource
 
@@ -22,7 +22,7 @@ trait QuantifierElimination
   * Created by psksvp on 9/6/17.
   */
 object Z3QE extends QuantifierElimination
-               with CoreCommands
+               with Commands
                with PredefinedParsers
 {
   def apply(existsTerm: TypedTerm[BoolTerm, Term])
@@ -88,7 +88,7 @@ object Z3QE extends QuantifierElimination
     val boundedVars = existsTerm.termDef match
     {
       case ExistsTerm(vars, _) => vars
-      case _                   => sys.error("term is no a ExistsTerm")
+      case _                   => sys.error("term is not a ExistsTerm")
     }
 
     val freeVarDeclCmd:Seq[Command] = for(v <- existsTerm.typeDefs.toSeq) yield
@@ -106,14 +106,14 @@ object Z3QE extends QuantifierElimination
     val cmds = freeVarDeclCmd ++
                boundedVarDeclCmd :+
                AssertCmd(existsTerm.termDef) :+
-               Raw("(apply (using-params qe :qe-nonlinear false))")
-
+               Raw("(apply (using-params qe :qe-nonlinear true))")
+    push()
     val m = eval(cmds.toList) match
     {
       case Success(respond)  => makeTerms(parseForTermsAsString(respond))
       case _                 => sys.error("eval Fail")
     }
-
+    pop()
     m
   }
 }

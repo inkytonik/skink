@@ -60,18 +60,20 @@ object PredicatesAbstraction
     }
     else
     {
-      val solver = new SMTLIBInterpreter(solverFromName("Z3"))
-      val ph = EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
-      usePredicates = ph.inferredPredicates.toList
+      if(Nil == usePredicates)
+      {
+        val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+        val ph = new EQEPredicatesHarvester2(traceAnalyzer, functionInformation, solver)
+        usePredicates = ph.inferredPredicates.toList
+        solver.destroy()
+      }
 
-
-      println("running with input predicates: ")
-      usePredicates.foreach{p => print(termAsInfix(p) + ",")}
-      println()
+      println(s"running with input predicates: ${usePredicates.length}")
+      println(termAsInfix(usePredicates))
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, new CNFComposer)
       val result = p.automaton
       p.dispose()
-      solver.destroy()
+
       result
     }
   }
@@ -94,11 +96,7 @@ object PredicatesAbstraction
     {
       if (!simplify)
       {
-        val exprLs = ParVector.range(0, absDomain.length).map
-        {
-          i => combinationToDisjunctTerm(absDomain(i), predicates)
-        }
-        //val exprLs = for (i <- absDomain.indices) yield combinationToDisjunctTerm(absDomain(i), predicates)
+        val exprLs = ParVector.range(0, absDomain.length).map {i => combinationToDisjunctTerm(absDomain(i), predicates)}
         exprLs.par.reduce(_ & _)
       }
       else
@@ -278,18 +276,19 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
         * @param predicate
         * @return
         */
-      def included(predicate:BooleanTerm):Boolean =
+      def inEffectOrPre(predicate:BooleanTerm):Boolean =
       {
         val indexedPredicate = predicate.indexedBy{ case SSymbol(x) => t.effect.lastIndexMap.getOrElse(x, 0)}
-
         val insideEffect = (indexedPredicate.typeDefs intersect t.effect.term.typeDefs).nonEmpty
+
         //pre has no index, so we don't need to index predicate term
         val insidePre = (predicate.typeDefs intersect currentPredicates(t.preconditionIndex).typeDefs).nonEmpty
         //if it is in effect Or pre term, we need to include the predicate for abstraction.
         insideEffect || insidePre
       }
 
-      val lsp = for(p <- inputPredicates if included(p)) yield p
+      ///////////////////////////////////////////////////////////////
+      val lsp = for(p <- inputPredicates if inEffectOrPre(p)) yield p
       if(lsp.nonEmpty) lsp else inputPredicates
     }
 
@@ -325,6 +324,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
       val absPosts = for(t <- traceAnalyzer.transitionMap(loc)) yield
                      {
                        val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
+                       //println(s"usePredicates:${usePredicates.length} <-> inputPredicates:${inputPredicates.length}")
                        val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
                        val absDom = for(c <- List.range(0, combinationSize)
                                         if checkCombination(c, t, usePredicates)) yield c
@@ -345,17 +345,17 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                 loc => (loc, nextPredicateAtLocation(loc))
               }
 
-
     //updating the each location with new abstracted post if changes from last run
-    val nextPredicate = Array.fill[BooleanTerm](currentPredicates.length)(True())
-    for((loc, term) <- rls)
-    {
-      if (equivalence(term, currentPredicates(loc))(solverArray(loc)))
-        nextPredicate(loc) = currentPredicates(loc)
-      else
-        nextPredicate(loc) = term | currentPredicates(loc)
-    }
-    nextPredicate
+    val newPredicates = for((loc, term) <- rls) yield
+                        {
+                          if (equivalence(term, currentPredicates(loc))(solverArray(loc)))
+                            currentPredicates(loc)
+                          else
+                            term | currentPredicates(loc)
+                        }
+
+    // the first loc is always true.
+    True() +: newPredicates.toIndexedSeq
   }
 }
 

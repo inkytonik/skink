@@ -38,18 +38,15 @@ case class FunctionInformation(function: LLVMFunction)
           }
         }
 
-      for (n <- v.reduceLeft(_ union _)) yield
-        {
-          n match
-          {
-            case Global(name) => s"%$name"
-            case Local(name)  => s"%$name"
-          }
-        }
+      for (n <- v.reduceLeft(_ union _)) yield n match
+                                               {
+                                                 case Global(name) => s"%$name"
+                                                 case Local(name)  => s"%$name"
+                                               }
     }
 
-    val m = for (b <- function.funTree.root.functionBody.blocks if b.optMetaInstructions.nonEmpty) yield
-    b.optBlockLabel.toString -> variablesOf(b)
+    val m = for (b <- function.funTree.root.functionBody.blocks
+                 if b.optMetaInstructions.nonEmpty) yield b.optBlockLabel.toString -> variablesOf(b)
     m.toMap
   }
 

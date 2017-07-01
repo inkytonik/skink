@@ -1,5 +1,3 @@
-import java.io.File
-
 import au.edu.mq.comp.smtlib.configurations.SolverConfig
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
 
@@ -8,9 +6,7 @@ import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
   */
 package object psksvp
 {
-  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnKnown}
-  import scala.util.Failure
-  import scala.util.Try
+  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Sat
   import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
   import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
   import au.edu.mq.comp.smtlib.theories.BoolTerm
@@ -41,7 +37,7 @@ package object psksvp
     val result = isSat(term) match
                  {
                    case Success(s) => s
-                   case _          => sys.error(s"psksvp.satisfiableCheck of terms $term solver returns fail")
+                   case _          => sys.error(s"psksvp.satisfiableCheck of terms ${psksvp.termAsInfix(term)} solver returns fail")
                  }
     pop()
     result
@@ -75,11 +71,11 @@ package object psksvp
     */
   def checkPost(p:BooleanTerm, e:BooleanTerm, q:BooleanTerm)
                (implicit solver:SMTLIBInterpreter):Boolean = satisfiableCheck(p & e & !q) match
-  {
-    case Sat()   => false
-    case UnSat() => true
-    case _       => false
-  }
+                                                             {
+                                                               case Sat()   => false
+                                                               case UnSat() => true
+                                                               case _       => false
+                                                             }
 
   def termAsInfix[A](terms:Seq[TypedTerm[A, Term]]):String =
   {
@@ -261,4 +257,5 @@ package object psksvp
     }
     fileName
   }
+
 }
