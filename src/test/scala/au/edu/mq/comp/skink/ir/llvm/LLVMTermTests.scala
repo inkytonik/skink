@@ -26,9 +26,9 @@ trait LLVMTermTests extends Tests with Core {
         config
     }
 
-    val config : SkinkConfig
+    def config : SkinkConfig
 
-    val termBuilder : LLVMTermBuilder
+    def termBuilder : LLVMTermBuilder
 
     val noMetadata = Metadata(Vector())
 

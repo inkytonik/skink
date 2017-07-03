@@ -17,7 +17,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
-    val config = createAndInitConfig(Seq())
+    def config = createAndInitConfig(Seq())
     val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
     def makeVarTermI(id : String, index : Int = 0) : VarTerm[IntTerm] =
@@ -68,20 +68,20 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "binary Boolean op add not handled"),
-        (And(), IntT(32), "binary integer and with %y not handled"),
-        (AShR(Exact()), IntT(32), "binary integer ashr exact with %y not handled"),
-        (AShR(NotExact()), IntT(32), "binary integer ashr with %y not handled"),
-        (FAdd(Vector()), IntT(32), "binary integer op fadd not handled"),
-        (FDiv(Vector()), IntT(32), "binary integer op fdiv not handled"),
-        (FMul(Vector()), IntT(32), "binary integer op fmul not handled"),
-        (FRem(Vector()), IntT(32), "binary integer op frem not handled"),
-        (FSub(Vector()), IntT(32), "binary integer op fsub not handled"),
-        (LShR(Exact()), IntT(32), "binary integer lshr exact with %y not handled"),
-        (LShR(NotExact()), IntT(32), "binary integer lshr with %y not handled"),
-        (Or(), IntT(32), "binary integer op or not handled"),
-        (ShL(Vector()), IntT(32), "binary integer shl with %y not handled"),
-        (XOr(), IntT(32), "binary integer op xor not handled")
+        (Add(Vector()), IntT(1), "Boolean op add %x %y not handled"),
+        (And(), IntT(32), "math integer op and %x %y not handled"),
+        (AShR(Exact()), IntT(32), "math integer op ashr exact %x %y not handled"),
+        (AShR(NotExact()), IntT(32), "math integer op ashr %x %y not handled"),
+        (FAdd(Vector()), IntT(32), "math integer op fadd %x %y not handled"),
+        (FDiv(Vector()), IntT(32), "math integer op fdiv %x %y not handled"),
+        (FMul(Vector()), IntT(32), "math integer op fmul %x %y not handled"),
+        (FRem(Vector()), IntT(32), "math integer op frem %x %y not handled"),
+        (FSub(Vector()), IntT(32), "math integer op fsub %x %y not handled"),
+        (LShR(Exact()), IntT(32), "math integer op lshr exact %x %y not handled"),
+        (LShR(NotExact()), IntT(32), "math integer op lshr %x %y not handled"),
+        (Or(), IntT(32), "math integer op or %x %y not handled"),
+        (ShL(Vector()), IntT(32), "math integer op shl %x %y not handled"),
+        (XOr(), IntT(32), "math integer op xor %x %y not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -122,10 +122,10 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     val integerCompares = Vector(
         (EQ(), bz === (ix === iy)),
         (NE(), bz === !(ix === iy)),
-        (UGT(), bz === (ix > iy)),
-        (UGE(), bz === (ix >= iy)),
-        (ULT(), bz === (ix < iy)),
-        (ULE(), bz === (ix <= iy)),
+        (UGT(), (ix >= 0) & (iy >= 0) & (bz === (ix > iy))),
+        (UGE(), (ix >= 0) & (iy >= 0) & (bz === (ix >= iy))),
+        (ULT(), (ix >= 0) & (iy >= 0) & (bz === (ix < iy))),
+        (ULE(), (ix >= 0) & (iy >= 0) & (bz === (ix <= iy))),
         (SGT(), bz === (ix > iy)),
         (SGE(), bz === (ix >= iy)),
         (SLT(), bz === (ix < iy)),
@@ -141,7 +141,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison ugt not handled")
+        (UGT(), IntT(1), "Boolean comparison op ugt %x %y not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {
@@ -440,20 +440,20 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
         )
 
-    test("the effect of a switch instruction with choice zero selects opposite of all cases") {
-        hasExitEffect(sw, 0, !(ix === 1) & !(ix === 2) & !(ix === 3))
+    test("the effect of a switch instruction with maximum choice selects opposite of all cases") {
+        hasExitEffect(sw, 3, !(ix === 1) & !(ix === 2) & !(ix === 3))
     }
 
-    test("the effect of a switch instruction with choice one selects first case") {
-        hasExitEffect(sw, 1, ix === 1)
+    test("the effect of a switch instruction with choice zero selects first case") {
+        hasExitEffect(sw, 0, ix === 1)
     }
 
-    test("the effect of a switch instruction with choice two selects second case") {
-        hasExitEffect(sw, 2, ix === 2)
+    test("the effect of a switch instruction with choice one selects second case") {
+        hasExitEffect(sw, 1, ix === 2)
     }
 
-    test("the effect of a switch instruction with choice three selects third case") {
-        hasExitEffect(sw, 3, ix === 3)
+    test("the effect of a switch instruction with choice two selects third case") {
+        hasExitEffect(sw, 2, ix === 3)
     }
 
     test("the effect of a switch instruction with choice out of range is an error") {
