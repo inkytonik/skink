@@ -17,32 +17,55 @@ case class FunctionInformation(function: LLVMFunction)
     def variablesOf(block:Block):Set[String] =
     {
       val v = for (metaInstr <- block.optMetaInstructions) yield
-        {
-          metaInstr.instruction match
-          {
-            case Alloca(Binding(n1),_,_,_,_)                      => Set(n1)
-            case Store(_, _, Named(n1), _, Named(n2), _)          => Set(n1, n2)
-            case Store(_, _, Const(_), _, Named(n1), _)           => Set(n1)
-            case Load(Binding(n1), _, _, _, Named(n2), _)         => Set(n1, n2)
-            case Load(Binding(n1), _, _, _, Const(_), _)          => Set(n1)
-            case Call(Binding(n1), _, _, _, _, _, _, _)           => Set(n1)
-            case Compare(Binding(n1), _, _, Named(n2), Named(n3)) => Set(n1, n2, n3)
-            case Compare(Binding(n1), _, _, Const(_), Named(n3))  => Set(n1, n3)
-            case Compare(Binding(n1), _, _, Named(n3), Const(_))  => Set(n1, n3)
-            case Compare(Binding(n1), _, _, Const(_), Const(_))   => Set(n1)
-            case Binary(Binding(n1), _, _, Named(n2), Named(n3))  => Set(n1, n2, n3)
-            case Binary(Binding(n1), _, _, Const(_), Named(n3))   => Set(n1, n3)
-            case Binary(Binding(n1), _, _, Named(n3), Const(_))   => Set(n1, n3)
-            case Binary(Binding(n1), _, _, Const(_), Const(_))    => Set(n1)
-            case _                                                => Set[Name]()
-          }
-        }
+              {
+                metaInstr.instruction match
+                {
+                  case Alloca(Binding(n1),_,_,_,_)                      => Set(n1)
+                  case Store(_, _, Named(n1), _, Named(n2), _)          => Set(n1, n2)
+                  case Store(_, _, Const(_), _, Named(n1), _)           => Set(n1)
+                  case Load(Binding(n1), _, _, _, Named(n2), _)         => Set(n1, n2)
+                  case Load(Binding(n1), _, _, _, Const(_), _)          => Set(n1)
+                  case Call(Binding(n1), _, _, _, _, _, _, _)           => Set(n1)
+                  case Compare(Binding(n1), _, _, Named(n2), Named(n3)) => Set(n1, n2, n3)
+                  case Compare(Binding(n1), _, _, Const(_), Named(n3))  => Set(n1, n3)
+                  case Compare(Binding(n1), _, _, Named(n3), Const(_))  => Set(n1, n3)
+                  case Compare(Binding(n1), _, _, Const(_), Const(_))   => Set(n1)
+                  case Binary(Binding(n1), _, _, Named(n2), Named(n3))  => Set(n1, n2, n3)
+                  case Binary(Binding(n1), _, _, Const(_), Named(n3))   => Set(n1, n3)
+                  case Binary(Binding(n1), _, _, Named(n3), Const(_))   => Set(n1, n3)
+                  case Binary(Binding(n1), _, _, Const(_), Const(_))    => Set(n1)
+                  case _                                                => Set[Name]()
+                }
+              }
 
-      for (n <- v.reduceLeft(_ union _)) yield n match
-                                               {
-                                                 case Global(name) => s"%$name"
-                                                 case Local(name)  => s"%$name"
-                                               }
+
+
+      val u = for(metaPhiInstr <- block.optMetaPhiInstructions) yield
+              {
+                def varInPredecessors(pds:Seq[PhiPredecessor]):Set[Name] =
+                {
+                  val pv = for(ppd <- pds) yield ppd.value match
+                           {
+                             case Named(n) => Set(n)
+                             case _        => Set[Name]()
+                           }
+                  pv.reduceLeft(_ union _)
+                }
+
+                metaPhiInstr.phiInstruction match
+                {
+                  case Phi(Binding(n1), _,  ppd:Vector[PhiPredecessor]) => varInPredecessors(ppd) + n1
+                  case _                                                => Set[Name]()
+                }
+
+              }
+
+
+      for (n <- (v ++ u).reduceLeft(_ union _)) yield n match
+      {
+        case Global(name) => s"%$name"
+        case Local(name)  => s"%$name"
+      }
     }
 
     val m = for (b <- function.funTree.root.functionBody.blocks

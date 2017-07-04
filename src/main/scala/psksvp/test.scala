@@ -44,7 +44,7 @@ object test
 {
   def main(args: Array[String]): Unit =
   {
-    testCheckPost()
+    test62()
   }
 
   def testCheckPost():Unit=
@@ -56,6 +56,17 @@ object test
     println(checkPost(i > 0 & j > 0, i === j + 1, i >= 1 & j > 0)(solver))
     solver.destroy()
   }
+
+
+//  def testAbstractPost():Unit=
+//  {
+//    val i = Ints("i")
+//    val j = Ints("j")
+//    val p = List(i >= 1, j > 0)
+//    val k = PredicatesAbstraction.computeAbstractPost(i === 0 & j === 1, i === j + 1, p)
+//    println(termAsInfix(k))
+//  }
+
 
   def runBunch(filePaths:Seq[String], useO2:Boolean, useClang:String):Unit =
   {
@@ -238,10 +249,10 @@ object test
                 """.stripMargin
 
     runSkink(toFile(code),
-              List(i >= 1, i <= 1000, !(i === 1001)),
+              Nil, //List(i >= 1, i <= 1000, !(i === 1001)),
               useO2 = false,
               usePredicateAbstraction = true,
-              useClang = "clang-3.7")
+              useClang = "clang-4.0")
   }
 
   def test2(): Unit =
@@ -363,10 +374,46 @@ object test
                 """.stripMargin
 
     runSkink(toFile(code),
-               List(x >= 0, y >= 0, x === 2000, x < 2000),
+               Nil, //List(x >= 0, y >= 0, x === 2000, x < 2000),
                useO2 = false,
                usePredicateAbstraction = true,
                useClang = "clang-3.7")
+  }
+
+  def test51(): Unit =
+  {
+    val x = Ints("%x")
+    val y = Ints("%y")
+
+    //
+    // both ok.
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |unsigned int __VERIFIER_nondet_uint();
+                  |extern void __VERIFIER_assume(int);
+                  |
+                  |int main(int argc, char** arg)
+                  |{
+                  |  int n = __VERIFIER_nondet_uint();
+                  |  int x = 0;
+                  |  int y = 0;
+                  |  __VERIFIER_assume(n > 0);
+                  |  while(x < n)
+                  |  {
+                  |      x++;
+                  |      y++;
+                  |  }
+                  |  if(x == -1) __VERIFIER_error();
+                  |  if(y == -1)   __VERIFIER_error();
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    runSkink(toFile(code),
+              Nil, //List(x >= 0, y >= 0, x === 2000, x < 2000),
+              useO2 = false,
+              usePredicateAbstraction = true,
+              useClang = "clang-3.7")
   }
 
   def test6(): Unit =
@@ -396,10 +443,82 @@ object test
                 """.stripMargin
 
     runSkink(toFile(code),
-              List( x === 0, x > 0, y === x, y < x),
+              Nil, //List( x === 0, x > 0, y === x, y < x),
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")
+  }
+
+  def test61(): Unit =
+  {
+    val x = Ints("%x")
+    val y = Ints("%y")
+
+    // pred abs works
+    // interpol require many iteration
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |unsigned int __VERIFIER_nondet_uint();
+                  |extern void __VERIFIER_assume(int);
+                  |
+                  |int main(int argc, char** arg)
+                  |{
+                  |  unsigned int x = __VERIFIER_nondet_uint();
+                  |  __VERIFIER_assume(x > 0);
+                  |  while(x > 0)
+                  |  {
+                  |      unsigned int y = 0;
+                  |      while(y < x) y++;
+                  |      if(y != x) __VERIFIER_error();
+                  |      x--;
+                  |  }
+                  |  if(x != 0) __VERIFIER_error();
+                  |
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    runSkink(toFile(code),
+              Nil, //List( x === 0, x > 0, y === x, y < x),
+              useO2 = false,
+              usePredicateAbstraction = true,
+              useClang = "clang-3.7")
+  }
+
+  def test62(): Unit =
+  {
+    val x = Ints("%x")
+    val y = Ints("%y")
+
+    // pred abs works
+    // interpol require many iteration
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |extern int __VERIFIER_nondet_int();
+                  |extern void __VERIFIER_assume(int);
+                  |
+                  |int main(int argc, char** arg)
+                  |{
+                  |  int x = __VERIFIER_nondet_int();
+                  |  __VERIFIER_assume(x > 0);
+                  |  while(x > 0)
+                  |  {
+                  |      int y = 0;
+                  |      while(y < x) y++;
+                  |      if(y != x) __VERIFIER_error();
+                  |      x--;
+                  |  }
+                  |  if(x != 0) __VERIFIER_error();
+                  |
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    runSkink(toFile(code),
+              Nil, //List( x === 0, x > 0, y === x, y < x),
+              useO2 = true,
+              usePredicateAbstraction = true,
+              useClang = "clang-4.0")
   }
 
   def test7(): Unit =
@@ -951,9 +1070,9 @@ object test
     val sum = Ints("%sum")
 
     runSkink(toFile(code),
-              List(n >= 1 & n <= 1000, i === 1 & i <= n, sum === 0, sum === ((i * i) / 2) - (i / 2), sum  === (n * (n + 1)) / 2), //, sum === ((i * i) / 2) - (i / 2)),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
+              Nil, //List(n >= 1 & n <= 1000, i === 1 & i < n, i === n, sum === 0, sum === ((i * i) / 2) - (i / 2)), //, sum === ((i * i) / 2) - (i / 2)),
+              useO2 = true,
+              usePredicateAbstraction = false,
+              useClang = "clang-4.0")
   }
 }

@@ -31,9 +31,11 @@ object PredicatesAbstraction
   // for testing purpose
   var timeUsedWhole: Long = 0
   var timeUsedCheckComb: Long = 0
-
+  var genPredicates = false
   private var usePredicates: Seq[BooleanTerm] = Nil
   def setToUsePredicates(pl: Seq[BooleanTerm]): Unit = {usePredicates = pl}
+
+ //val solverPool = new ADT.WorkerPool(Array.fill[Solver](10)(new Solver(solverFromName("Z3"))))
   // -----------
 
 
@@ -56,16 +58,21 @@ object PredicatesAbstraction
     {
       println(choices)
       println("no Repetitions, rtn linear automaton")
-      traceAnalyzer.linearAutomaton
+      val la = traceAnalyzer.linearAutomaton
+      println("linear auto created and about to return")
+      la
     }
     else
     {
-      if(Nil == usePredicates)
+      if(Nil == usePredicates || genPredicates)
       {
+        //val solver = solverPool.getWorker()
         val solver = new SMTLIBInterpreter(solverFromName("Z3"))
         val ph = new EQEPredicatesHarvester2(traceAnalyzer, functionInformation, solver)
         usePredicates = ph.inferredPredicates.toList
+        //solverPool.releaseWorker(solver)
         solver.destroy()
+        genPredicates = true
       }
 
       println(s"running with input predicates: ${usePredicates.length}")
@@ -73,7 +80,8 @@ object PredicatesAbstraction
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, new CNFComposer)
       val result = p.automaton
       p.dispose()
-
+      //solverPool.shutdown()
+      usePredicates = Nil
       result
     }
   }
@@ -96,7 +104,10 @@ object PredicatesAbstraction
     {
       if (!simplify)
       {
-        val exprLs = ParVector.range(0, absDomain.length).map {i => combinationToDisjunctTerm(absDomain(i), predicates)}
+        val exprLs = ParVector.range(0, absDomain.length).map
+                     {
+                       i => combinationToDisjunctTerm(absDomain(i), predicates)
+                     }
         exprLs.par.reduce(_ & _)
       }
       else
@@ -137,6 +148,30 @@ object PredicatesAbstraction
       }
     }
   }
+
+//  def alpha(pre:BooleanTerm, effect:BooleanTerm, inputPredicates:Seq[BooleanTerm]):AbstractDomain =
+//  {
+//    def checkCombination(c:Int):Boolean =
+//    {
+//      val solver = solverPool.getWorker()
+//      val term = combinationToDisjunctTerm(c, inputPredicates)
+//      val r = checkPost(pre, effect, term)(solver)
+//      solverPool.releaseWorker(solver)
+//      r
+//    }
+//
+//    val combinationSize = Math.pow(2, usePredicates.length).toInt
+//    val absDomain = for(c <- ParVector.range(0, combinationSize) if checkCombination(c)) yield c
+//    absDomain.toIndexedSeq
+//  }
+//
+//  def computeAbstractPost(pre:BooleanTerm,
+//                          effect:BooleanTerm,
+//                          inputPredicates:Seq[BooleanTerm]):BooleanTerm =
+//  {
+//    val absDom = alpha(pre, effect, inputPredicates)
+//    gammaCNF(absDom, inputPredicates, simplify = true)
+//  }
 
 
   /**
@@ -328,7 +363,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                        val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
                        val absDom = for(c <- List.range(0, combinationSize)
                                         if checkCombination(c, t, usePredicates)) yield c
-                       termComposer.gamma(absDom, usePredicates, simplify = true)
+                       termComposer.gamma(absDom, usePredicates, simplify = false)
                      }
       // in each locations, there can be more than one Transitions that need to be abstracted.
       // one is from the direct edge from previous location.

@@ -1,6 +1,8 @@
 import au.edu.mq.comp.smtlib.configurations.SolverConfig
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
 
+import scala.collection.parallel.immutable.ParVector
+
 /**
   * Created by psksvp on 14/2/17.
   */
@@ -82,7 +84,7 @@ package object psksvp
     if(terms.nonEmpty)
     {
       val ls = for (t <- terms) yield termAsInfix(t)
-      ls.reduceLeft(_ + "," + _)
+      ls.reduceLeft(_ + ",\n" + _)
     }
     else
       "termAsInfix arg is an empty list"
@@ -206,6 +208,15 @@ package object psksvp
     case l :: rest => l.reduce(_ & _) | toDNF(rest)  // disjunct them
   }
 
+  def toCNF2(s:List[List[BooleanTerm]]):BooleanTerm =
+  {
+    val disjunctTerms = ParVector.range(0, s.length).map
+                        {
+                          l => s(l).reduce(_ | _)
+                        }
+
+    disjunctTerms.reduce(_ & _)
+  }
 
   /**
     *

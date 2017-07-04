@@ -26,17 +26,6 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
 
   import scala.util.Success
 
-  case class WrapBooleanTerm(term:BooleanTerm)
-  {
-    override def equals(obj: scala.Any): Boolean = obj match
-    {
-      case another:WrapBooleanTerm => print("+")
-                                      equivalence(this.term, another.term)(solver)
-      case _                       => print("-")
-                                      false
-    }
-  }
-
   ///
   def inferPredicates(blockNo:Int):Seq[TypedTerm[BoolTerm, Term]] =
   {
