@@ -15,7 +15,7 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import scala.language.implicitConversions
 
-    val config = createAndInitConfig(Seq("-i", "bit"))
+    def config = createAndInitConfig(Seq("-i", "bit"))
     val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
     def makeVarTermI(id : String) : VarTerm[BVTerm] =
@@ -59,12 +59,12 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "binary Boolean op add not handled"),
-        (FAdd(Vector()), IntT(32), "binary integer op fadd not handled"),
-        (FDiv(Vector()), IntT(32), "binary integer op fdiv not handled"),
-        (FMul(Vector()), IntT(32), "binary integer op fmul not handled"),
-        (FRem(Vector()), IntT(32), "binary integer op frem not handled"),
-        (FSub(Vector()), IntT(32), "binary integer op fsub not handled")
+        (Add(Vector()), IntT(1), "Boolean op add %x %y not handled"),
+        (FAdd(Vector()), IntT(32), "bitvector integer op fadd %x %y not handled"),
+        (FDiv(Vector()), IntT(32), "bitvector integer op fdiv %x %y not handled"),
+        (FMul(Vector()), IntT(32), "bitvector integer op fmul %x %y not handled"),
+        (FRem(Vector()), IntT(32), "bitvector integer op frem %x %y not handled"),
+        (FSub(Vector()), IntT(32), "bitvector integer op fsub %x %y not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -124,7 +124,7 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison ugt not handled")
+        (UGT(), IntT(1), "Boolean comparison op ugt %x %y not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {
