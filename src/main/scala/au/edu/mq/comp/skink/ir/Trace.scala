@@ -1,8 +1,8 @@
 package au.edu.mq.comp.skink.ir
 
 import scala.util.Try
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
-import au.edu.mq.comp.smtlib.typedterms.Value
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
+import org.bitbucket.franck44.scalasmt.typedterms.Value
 
 /**
  * A trace is given by a sequence of choices. The blocks visited by a trace

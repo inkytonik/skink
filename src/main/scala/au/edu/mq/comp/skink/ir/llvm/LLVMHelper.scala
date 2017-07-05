@@ -4,8 +4,8 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     // Property helpers

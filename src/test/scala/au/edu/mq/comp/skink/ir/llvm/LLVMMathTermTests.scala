@@ -1,8 +1,8 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
-import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
+import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 
 /**
  * Tests of main term construction including mathematical integer
@@ -11,9 +11,9 @@ import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
 class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperators
         with Core with IntegerArithmetics with QuantifiedTerm {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, SSymbol}
-    import au.edu.mq.comp.smtlib.theories.IntTerm
-    import au.edu.mq.comp.smtlib.typedterms.VarTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, SSymbol}
+    import org.bitbucket.franck44.scalasmt.theories.IntTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.VarTerm
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 

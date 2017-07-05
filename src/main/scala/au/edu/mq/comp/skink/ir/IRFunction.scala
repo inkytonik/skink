@@ -7,9 +7,9 @@ trait IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.FailureTrace
-    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
 
     /**
      * The IR-level name of this function.
@@ -69,7 +69,7 @@ trait IRFunction {
      */
     def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Try, Success, Failure}
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -87,7 +87,7 @@ trait IRFunction {
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : SMTLIBInterpreter
+        solver : SMTSolver
     ) : Try[Boolean]
 
 }
