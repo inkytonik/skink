@@ -126,6 +126,7 @@ object ReduceToEqualTerms extends PredicatesFilter
 {
   override def apply(predicates:Set[BooleanTerm]):Set[BooleanTerm] =
   {
+    var rm:Set[BooleanTerm] = Set()
     val pairs = for(i <- predicates; j <- predicates if i != j) yield (i, j)
     val rt = for((t1, t2) <- pairs) yield
     {
@@ -134,14 +135,16 @@ object ReduceToEqualTerms extends PredicatesFilter
       (t1.termDef, t2.termDef) match
       {
         case (GreaterThanEqualTerm(a1, a2), LessThanEqualTerm(b1, b2))
-              if(a1 == b1 && a2 == b2) => Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
+              if(a1 == b1 && a2 == b2) => rm = rm ++ List(t1, t2)
+                                          Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
 
         case (LessThanEqualTerm(b1, b2), GreaterThanEqualTerm(a1, a2))
-              if(a1 == b1 && a2 == b2) => Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
+              if(a1 == b1 && a2 == b2) => rm = rm ++ List(t1, t2)
+                                          Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
 
         case  _                        => Set(t1, t2)
       }
     }
-    rt.reduceLeft(_ union _)
+    rt.reduceLeft(_ union _) -- rm
   }
 }
