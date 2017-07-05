@@ -3,24 +3,24 @@ package au.edu.mq.comp.skink.verifier
 
 package interpolant
 
-import au.edu.mq.comp.smtlib.interpreters.Resources
-import au.edu.mq.comp.smtlib.typedterms.{Commands}
-import au.edu.mq.comp.smtlib.theories.{Core}
+import org.bitbucket.franck44.scalasmt.interpreters.Resources
+import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
+import org.bitbucket.franck44.scalasmt.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
 import au.edu.mq.comp.skink.ir.IRFunction
 import au.edu.mq.comp.skink.ir.{Trace}
-import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
 trait AddBackEdges extends Core with Resources {
 
     import au.edu.mq.comp.automat.edge.Implicits._
-    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
-    import au.edu.mq.comp.smtlib.configurations.SolverConfig
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
+    import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success, Try}
-    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
 
     private def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] = xl match {
         case l if (l.size < 2) => Nil
@@ -59,7 +59,7 @@ trait AddBackEdges extends Core with Resources {
 
         // FIXME: remove
         def solverFromName(name : String) : SolverConfig = {
-            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
                 case Some(sc) =>
                     sc
                 case None =>
@@ -87,7 +87,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new SMTLIBInterpreter(solverFromName("Z3"))) {
+                res = using(new SMTSolver(solverFromName("Z3"))) {
                     implicit solver =>
                         function.checkPost(
                             x1,
@@ -119,13 +119,13 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
     require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
 
     import au.edu.mq.comp.skink.ir.Trace
-    import au.edu.mq.comp.smtlib.configurations.{SMTInit, SolverConfig}
-    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
-    import au.edu.mq.comp.smtlib.configurations.SMTOptions._
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-    import au.edu.mq.comp.smtlib.interpreters.Resources
+    import org.bitbucket.franck44.scalasmt.configurations.{SMTInit, SolverConfig}
+    import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
+    import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+    import org.bitbucket.franck44.scalasmt.interpreters.Resources
     import scala.util.{Failure, Success, Try}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
 
     val itpLogger = getLogger(this.getClass, ".itp")
 
@@ -146,7 +146,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
 
         // FIXME: remove
         def solverFromName(name : String) : SolverConfig = {
-            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
                 case Some(sc) =>
                     sc
                 case None =>
@@ -158,7 +158,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(List(INTERPOLANTS)))) {
+        using(new SMTSolver(solverFromName("Z3"), new SMTInit(List(INTERPOLANTS)))) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 

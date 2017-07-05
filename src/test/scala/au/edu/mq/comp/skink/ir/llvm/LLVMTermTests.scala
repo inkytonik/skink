@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
-import au.edu.mq.comp.smtlib.theories.Core
+import org.bitbucket.franck44.scalasmt.theories.Core
 
 /**
  * Helpers for all term tests.
@@ -9,9 +9,9 @@ import au.edu.mq.comp.smtlib.theories.Core
 trait LLVMTermTests extends Tests with Core {
 
     import au.edu.mq.comp.skink.SkinkConfig
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
     import org.scalallvm.assembly.{Analyser, Assembly}
@@ -26,9 +26,9 @@ trait LLVMTermTests extends Tests with Core {
         config
     }
 
-    val config : SkinkConfig
+    def config : SkinkConfig
 
-    val termBuilder : LLVMTermBuilder
+    def termBuilder : LLVMTermBuilder
 
     val noMetadata = Metadata(Vector())
 

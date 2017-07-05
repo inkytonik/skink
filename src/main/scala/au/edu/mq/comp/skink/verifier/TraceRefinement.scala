@@ -20,18 +20,18 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-    import au.edu.mq.comp.smtlib.parser.Analysis
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.configurations.SMTLogics._
-    import au.edu.mq.comp.smtlib.configurations.SMTOptions._
-    import au.edu.mq.comp.smtlib.configurations.{SMTInit, SolverConfig}
-    import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-    import au.edu.mq.comp.smtlib.typedterms.Commands
-    import au.edu.mq.comp.smtlib.typedterms.{Model, TypedTerm, Value}
-    import au.edu.mq.comp.smtlib.interpreters.Resources
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+    import org.bitbucket.franck44.scalasmt.parser.Analysis
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
+    import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
+    import org.bitbucket.franck44.scalasmt.configurations.{SMTInit, SolverConfig}
+    import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
+    import org.bitbucket.franck44.scalasmt.typedterms.Commands
+    import org.bitbucket.franck44.scalasmt.typedterms.{Model, TypedTerm, Value}
+    import org.bitbucket.franck44.scalasmt.interpreters.Resources
 
     case class ValMap(m : Map[QualifiedId, Value])
 
@@ -53,7 +53,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * If the term is not satisfiable, return `UnSat()` and an empty map.
      */
     def runSolver(
-        selectedSolver : SMTLIBInterpreter,
+        selectedSolver : SMTSolver,
         terms : Seq[TypedTerm[BoolTerm, Term]]
     ) : Try[(SatResponses, Map[SortedQId, Value])] =
         using(selectedSolver) {
@@ -88,7 +88,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         // FIXME: remove
         def solverFromName(name : String) : SolverConfig = {
-            au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match {
+            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
                 case Some(sc) =>
                     sc
                 case None =>
@@ -104,21 +104,21 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
-                            new SMTLIBInterpreter(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTLIBInterpreter(solverFromName("CVC4"), new SMTInit(AUFNIRA, List(MODELS)))
+                            new SMTSolver(solverFromName("CVC4"), new SMTInit(AUFNIRA, List(MODELS)))
                         case BitIntegerMode() =>
-                            new SMTLIBInterpreter(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTLIBInterpreter(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
                     }

@@ -20,11 +20,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, IntTerm}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.==>
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
@@ -77,7 +77,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
             insn match {
-                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                case Call(_, _, _, _, _, IgnoredFunction(s), _, _) if !isAssertFunction(s) =>
                     None
                 case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
                     logger.info(s"isVerifiable: non-inlined call ${longshow(insn)}")
@@ -109,7 +109,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      */
     def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
         import namer._
-        import au.edu.mq.comp.smtlib.theories.Core
+        import org.bitbucket.franck44.scalasmt.theories.Core
         object BoolOps extends Core
         import BoolOps._
 
@@ -487,9 +487,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         }
     }
 
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Try, Success, Failure}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
 
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -507,11 +507,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : SMTLIBInterpreter
+        solver : SMTSolver
     ) : Try[Boolean] = {
 
-        import au.edu.mq.comp.smtlib.theories.Core
-        import au.edu.mq.comp.smtlib.typedterms.{Commands}
+        import org.bitbucket.franck44.scalasmt.theories.Core
+        import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
 
         object BoolOps extends Core with Commands
         import BoolOps._

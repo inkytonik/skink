@@ -21,11 +21,11 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
-    //import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter._
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
-                                       descr = "Execute the target code (default: false)",
-                                       default = Some(false))
+        descr = "Execute the target code (default: false)",
+        default = Some(false))
 
     val frontendConverter =
         new ValueConverter[Frontend] {
@@ -51,8 +51,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val frontend = opt[Frontend]("frontend", short = 'f',
-                                         descr = "The frontend to use: C (default), IML, LLVM",
-                                         default = Some(new CFrontend(config)))(frontendConverter)
+        descr = "The frontend to use: C (default), IML, LLVM",
+        default = Some(new CFrontend(config)))(frontendConverter)
 
     val integerModeConverter =
         new ValueConverter[IntegerMode] {
@@ -76,24 +76,24 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val integerMode = opt[IntegerMode]("integer", short = 'i',
-                                               descr = "Integer representation: bit, math (default)",
-                                               default = Some(new MathIntegerMode))(integerModeConverter)
+        descr = "Integer representation: bit, math (default)",
+        default = Some(new MathIntegerMode))(integerModeConverter)
 
     lazy val integerSize = opt[Int]("intsize", short = 's',
-                                       descr = "Size of integers in bits when using bit representation (default: 32)",
-                                       default = Some(32))
+        descr = "Size of integers in bits when using bit representation (default: 32)",
+        default = Some(32))
 
     lazy val lli = opt[String]("lli", noshort = true,
-                                  descr = "Program to use to execute target code (default: lli)",
-                                  default = Some("lli"))
+        descr = "Program to use to execute target code (default: lli)",
+        default = Some("lli"))
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
-                                         descr = "Maximum number of refinement iterations (default: 40)",
-                                         default = Some(40))
+        descr = "Maximum number of refinement iterations (default: 40)",
+        default = Some(40))
 
     lazy val parse = opt[Boolean]("parse", short = 'p',
-                                     descr = "Only parse the program in the front-end (default: false)",
-                                     default = Some(false))
+        descr = "Only parse the program in the front-end (default: false)",
+        default = Some(false))
 
     val solverModeConverter =
         new ValueConverter[SolverMode] {
@@ -119,34 +119,24 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val solverMode = opt[SolverMode]("solver", short = 'e',
-                                             descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
-                                             default = Some(Z3SolverMode()))(solverModeConverter)
+        descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
+        default = Some(Z3SolverMode()))(solverModeConverter)
 
     lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
-                                         descr = "Timeout for SMT solvers in seconds (default : 200)",
-                                         default = Some(200))
+        descr = "Timeout for SMT solvers in seconds (default : 200)",
+        default = Some(200))
 
     lazy val trackValues = opt[Boolean]("track", short = 'k',
-                                           descr = "Track values (default: false)",
-                                           default = Some(false))
+        descr = "Track values (default: false)",
+        default = Some(false))
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
-                                            descr = "Verify the target code (default: false)",
-                                            default = Some(false))
+        descr = "Verify the target code (default: false)",
+        default = Some(false))
 
     lazy val witnessFile = opt[String]("witness-file", short = 'w',
-                                          descr = "File into which witness is written (- means standard output, default: witness.graphml)",
-                                          default = Some("witness.graphml"))
-
-    lazy val usePredicateAbstraction = opt[Boolean]("use-predicate-abstraction", short = 'a',
-                                                       descr = "use predicate abstraction to generate automaton",
-                                                       default = Some(false))
-
-    lazy val clang = opt[String]("use-clang", short = 'g',
-                                    descr = "specific clang executable to use",
-                                    default = Some("clang-4.0"))
-
-    lazy val noO2 = opt[Boolean]("no-O2", descr = "do not pass -O2 to clang", default = Some(false))
+        descr = "File into which witness is written (- means standard output, default: witness.graphml)",
+        default = Some("witness.graphml"))
 
 }
 
@@ -187,9 +177,9 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     }
 
     /**
-      * Build an IR representation for the given source using the current
-      * frontend.
-      */
+     * Build an IR representation for the given source using the current
+     * frontend.
+     */
     override def makeast(source : Source, config : SkinkConfig) : Either[IR, Messages] = {
         val frontend = config.frontend()
         logger.info(s"makeast: building IR using ${frontend.name} frontend")
@@ -197,8 +187,8 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     }
 
     /**
-      * Processing for IR.
-      */
+     * Processing for IR.
+     */
     def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier

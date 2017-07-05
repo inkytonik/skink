@@ -4,8 +4,8 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     // Property helpers
@@ -26,6 +26,13 @@ object LLVMHelper {
         }
 
     // Useful predicates
+
+    /**
+     * Return whether or not the named function is the special verifier
+     * assertion function.
+     */
+    def isAssertFunction(name : String) : Boolean =
+        name.startsWith("__VERIFIER_assert")
 
     /**
      * Return whether or not the named function is a special verifier
@@ -94,15 +101,16 @@ object LLVMHelper {
      * generating effect terms. Currently:
      *   - any LLVM intrinsic, such as llvm.stacksave
      *   - special verifier fns
+     * Returns the function name if it is to be ignored.
      */
     object IgnoredFunction {
-        def unapply(fn : Function) : Boolean =
+        def unapply(fn : Function) : Option[String] =
             fn match {
-                case Function(Named(Global(s))) =>
-                    isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
-                        isOutputFunction(s)
+                case Function(Named(Global(s))) if isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
+                    isOutputFunction(s) =>
+                    Some(s)
                 case _ =>
-                    false
+                    None
             }
     }
 

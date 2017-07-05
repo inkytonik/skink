@@ -1,8 +1,8 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.smtlib.theories.{ArrayExBV, ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
-import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
+import org.bitbucket.franck44.scalasmt.theories.{ArrayExBV, ArrayExInt, ArrayExOperators, BitVectors, Core, IntegerArithmetics, RealArithmetics}
+import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 import org.scalallvm.assembly.Analyser
 
 class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
@@ -12,10 +12,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import au.edu.mq.comp.smtlib.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import namer.{ArrayElement, indexOf, termid}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
@@ -342,7 +342,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
                     True()
 
-                case Call(_, _, _, _, _, IgnoredFunction(), _, _) =>
+                case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
                     True()
 
                 // Compare two Boolean values

@@ -5,7 +5,7 @@ package au.edu.mq.comp.skink.ir
  */
 trait IR {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
 
     /**
      * Execute this IR instance, returning the output produced and the exit

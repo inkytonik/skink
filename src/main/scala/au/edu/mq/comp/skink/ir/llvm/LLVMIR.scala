@@ -11,7 +11,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor
