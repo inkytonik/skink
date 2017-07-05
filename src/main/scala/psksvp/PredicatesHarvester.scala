@@ -1,17 +1,39 @@
 package psksvp
 
 import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{OrTerm, SortedQId}
-import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm}
+import au.edu.mq.comp.smtlib.parser.Analysis
+import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
+import au.edu.mq.comp.smtlib.theories.BoolTerm
+import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm, TypedTerm}
 
 
 /**
   * Created by psksvp on 19/5/17.
   */
+
+trait PredicatesFilter
+{
+  def apply(predicates:Set[BooleanTerm]):Set[BooleanTerm]
+}
+
+
 trait PredicatesHarvester
 {
   def inferredPredicates:Set[BooleanTerm]
+
+  def inferredWithFilters(filters:Seq[PredicatesFilter]):Set[BooleanTerm] =
+  {
+    var p = inferredPredicates
+    for(f <- filters)
+    {
+      p = f(p)
+    }
+    p
+  }
 }
+
+
+
 
 /// infer using existential quantifiers elimination
 class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
@@ -83,14 +105,12 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
 }
 
 
-class EQEPredicatesHarvester2(traceAnalyzer:TraceAnalyzer,
-                              functionInformation:FunctionInformation,
-                              solver:SMTLIBInterpreter) extends EQEPredicatesHarvester(traceAnalyzer,
-                                                                                       functionInformation, solver)
+
+object BreakOrTerms extends PredicatesFilter
 {
-  override def inferredPredicates: Set[BooleanTerm] =
+  override def apply(predicates:Set[BooleanTerm]):Set[BooleanTerm] =
   {
-    val r = for(t <- super.inferredPredicates) yield
+    val r = for(t <- predicates) yield
             {
               t.termDef match
               {
@@ -99,5 +119,29 @@ class EQEPredicatesHarvester2(traceAnalyzer:TraceAnalyzer,
               }
             }
     r.reduceLeft(_ union _)
+  }
+}
+
+object ReduceToEqualTerms extends PredicatesFilter
+{
+  override def apply(predicates:Set[BooleanTerm]):Set[BooleanTerm] =
+  {
+    val pairs = for(i <- predicates; j <- predicates if i != j) yield (i, j)
+    val rt = for((t1, t2) <- pairs) yield
+    {
+      val a = Analysis(t1.termDef).ids
+      val defs = for(SortedQId(x, s) <- t1.typeDefs if a.contains(SimpleQId(x))) yield SortedQId(x,s)
+      (t1.termDef, t2.termDef) match
+      {
+        case (GreaterThanEqualTerm(a1, a2), LessThanEqualTerm(b1, b2))
+              if(a1 == b1 && a2 == b2) => Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
+
+        case (LessThanEqualTerm(b1, b2), GreaterThanEqualTerm(a1, a2))
+              if(a1 == b1 && a2 == b2) => Set(TypedTerm[BoolTerm, Term](defs, EqualTerm(a1, a2)))
+
+        case  _                        => Set(t1, t2)
+      }
+    }
+    rt.reduceLeft(_ union _)
   }
 }

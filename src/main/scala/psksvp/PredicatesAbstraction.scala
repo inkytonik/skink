@@ -68,8 +68,8 @@ object PredicatesAbstraction
       {
         //val solver = solverPool.getWorker()
         val solver = new SMTLIBInterpreter(solverFromName("Z3"))
-        val ph = new EQEPredicatesHarvester2(traceAnalyzer, functionInformation, solver)
-        usePredicates = ph.inferredPredicates.toList
+        val ph = new EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
+        usePredicates = ph.inferredWithFilters(BreakOrTerms :: ReduceToEqualTerms :: Nil).toSeq
         //solverPool.releaseWorker(solver)
         solver.destroy()
         genPredicates = true
@@ -363,7 +363,10 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                        val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
                        val absDom = for(c <- List.range(0, combinationSize)
                                         if checkCombination(c, t, usePredicates)) yield c
-                       termComposer.gamma(absDom, usePredicates, simplify = false)
+                       if(usePredicates.length <= 7)
+                         termComposer.gamma(absDom, usePredicates, simplify = true)
+                       else
+                         termComposer.gamma(absDom, usePredicates, simplify = false)
                      }
       // in each locations, there can be more than one Transitions that need to be abstracted.
       // one is from the direct edge from previous location.

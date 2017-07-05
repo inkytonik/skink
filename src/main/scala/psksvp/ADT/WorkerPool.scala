@@ -19,7 +19,7 @@ class WorkerPool[W <: Worker](pool:Seq[W])
   def shutdown():Unit = pool.map(_.shutdown)
 
 
-  def getWorker(timeOut:Long = 1000):W =
+  def get(timeOut:Long = 1000):W =
   {
     var found = false
     var index = -1
@@ -40,9 +40,9 @@ class WorkerPool[W <: Worker](pool:Seq[W])
     pool(index)
   }
 
-  def releaseWorker(w:W):Unit = this.synchronized
+  def release(worker:W):Unit = this.synchronized
   {
-    val i = pool.indexOf(w)
+    val i = pool.indexOf(worker)
     if(i >= 0)
       busy(i) = false
   }
