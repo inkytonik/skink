@@ -98,7 +98,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         val O2 = config.noO2.toOption match {
-            case Some(b) => if (b) "" else "-O2"
+            case Some(b) => if (b == true) "" else "-O2"
             case _       => ""
         }
 

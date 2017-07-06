@@ -189,25 +189,21 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                                 refineRec(
                                     toDetNFA(r +
                                     (
-                                       config.usePredicateAbstraction.toOption match
-                                       {
-                                           case Some(b) =>
-                                               if(b)
-                                               {
-                                                   println("using predicates abs")
-                                                   psksvp.PredicatesAbstraction(function, choices, iteration)
-                                               }
-                                               else
-                                               {
-                                                   println("using interpolant")
-                                                   import interpolant.InterpolantAuto.buildInterpolantAuto
-                                                   buildInterpolantAuto(function, choices, iteration)
-                                               }
-                                           case _ =>
-                                               println("using interpolant")
-                                               import interpolant.InterpolantAuto.buildInterpolantAuto
-                                               buildInterpolantAuto(function, choices, iteration)
-                                       }
+                                        config.usePredicateAbstraction.toOption match {
+                                            case Some(b) =>
+                                                if (b) {
+                                                    println("using predicates abs")
+                                                    psksvp.PredicatesAbstraction(function, choices, iteration)
+                                                } else {
+                                                    println("using interpolant")
+                                                    import interpolant.InterpolantAuto.buildInterpolantAuto
+                                                    buildInterpolantAuto(function, choices, iteration)
+                                                }
+                                            case _ =>
+                                                println("using interpolant")
+                                                import interpolant.InterpolantAuto.buildInterpolantAuto
+                                                buildInterpolantAuto(function, choices, iteration)
+                                        }
                                     ))._1,
                                     iteration + 1
                                 )
