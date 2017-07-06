@@ -138,6 +138,16 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "File into which witness is written (- means standard output, default: witness.graphml)",
         default = Some("witness.graphml"))
 
+    lazy val usePredicateAbstraction = opt[Boolean]("use-predicate-abstraction", short = 'a',
+        descr = "use predicate abstraction to generate automaton",
+        default = Some(false))
+
+    lazy val clang = opt[String]("use-clang", short = 'g',
+        descr = "specific clang executable to use",
+        default = Some("clang-4.0"))
+
+    lazy val noO2 = opt[Boolean]("no-O2", descr = "do not pass -O2 to clang", default = Some(false))
+
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
