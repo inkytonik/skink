@@ -1,13 +1,14 @@
 package psksvp.ADT
 
-import psksvp.BooleanTerm
+import psksvp.PredicateTerm
 
 /**
- * Created by psksvp on 21/6/17.
- */
-trait AbstractInterpreter[CONCRETE, ABSTRACT] {
-    def alpha(c : CONCRETE) : Seq[ABSTRACT]
-    def gamma(a : Seq[ABSTRACT]) : CONCRETE
+  * Created by psksvp on 21/6/17.
+  */
+trait AbstractInterpreter[CONCRETE, ABSTRACT]
+{
+  def alpha(c:CONCRETE):Seq[ABSTRACT]
+  def gamma(a:Seq[ABSTRACT]):CONCRETE
 }
 
 //class PredicatesAbstraction(predicates:Seq[BooleanTerm]) extends AbstractInterpreter[BooleanTerm, Int]
