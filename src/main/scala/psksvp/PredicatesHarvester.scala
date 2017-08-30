@@ -1,7 +1,7 @@
 package psksvp
 
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm, TypedTerm}
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.typedterms.{Commands, QuantifiedTerm, TypedTerm}
 
 import scala.util.{Failure, Success}
 
@@ -26,13 +26,13 @@ trait PredicatesHarvester
   */
 class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
                              functionInformation:FunctionInformation,
-                             solver:SMTLIBInterpreter) extends PredicatesHarvester
+                             solver:SMTSolver) extends PredicatesHarvester
                                                           with Commands
                                                           with QuantifiedTerm
 {
-  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{ISymbol, SymbolId, Term}
-  import au.edu.mq.comp.smtlib.theories.BoolTerm
-  import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+  import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ISymbol, SymbolId, Term}
+  import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+  import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
 
   import scala.util.Success
 
@@ -103,7 +103,7 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
   */
 class InterpolantBasedHarvester(traceAnalyzer:TraceAnalyzer,
                              functionInformation:FunctionInformation,
-                             solver:SMTLIBInterpreter) extends PredicatesHarvester
+                             solver:SMTSolver) extends PredicatesHarvester
                                                           with Commands
                                                           with QuantifiedTerm
 {

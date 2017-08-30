@@ -10,9 +10,9 @@ import au.edu.mq.comp.automat.edge.Implicits._
 import au.edu.mq.comp.automat.edge.LabDiEdge
 import au.edu.mq.comp.skink.ir.llvm.LLVMFunction
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-import au.edu.mq.comp.smtlib.typedterms.{Commands, QuantifiedTerm}
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+import org.bitbucket.franck44.scalasmt.typedterms.{Commands, QuantifiedTerm}
 
 
 
@@ -98,7 +98,7 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
 
   //////////////////////////////////////////////////
   def automatonWithBackEdges(tracePredicates:Seq[PredicateTerm])
-                            (implicit solver:SMTLIBInterpreter):NFA[Int, Int] =
+                            (implicit solver:SMTSolver):NFA[Int, Int] =
   {
     //////////////////////////////////////////
     // check post specific to this trace only.

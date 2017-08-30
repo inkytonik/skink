@@ -2,10 +2,10 @@ package psksvp
 
 // this file is a scratch pad
 
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.{SMTLIB2Parser, SMTLIB2PrettyPrinter}
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-import au.edu.mq.comp.smtlib.typedterms.QuantifiedTerm
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.parser.{SMTLIB2Parser, SMTLIB2PrettyPrinter}
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 import logics._
 import org.bitbucket.inkytonik.kiama.util.StringSource
 

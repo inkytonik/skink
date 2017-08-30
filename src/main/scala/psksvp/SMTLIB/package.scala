@@ -1,11 +1,11 @@
 package psksvp
 
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.Analysis
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-import au.edu.mq.comp.smtlib.theories
-import au.edu.mq.comp.smtlib.theories.BoolTerm
-import au.edu.mq.comp.smtlib.typedterms.{QuantifiedTerm, TypedTerm}
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.parser.Analysis
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+import org.bitbucket.franck44.scalasmt.theories
+import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+import org.bitbucket.franck44.scalasmt.typedterms.{QuantifiedTerm, TypedTerm}
 
 import scala.util.Try
 /**
@@ -13,7 +13,7 @@ import scala.util.Try
   */
 package object SMTLIB
 {
-  def reset(solver:SMTLIBInterpreter):Unit =
+  def reset(solver:SMTSolver):Unit =
   {
     solver.eval(Raw("(reset)"))
   }

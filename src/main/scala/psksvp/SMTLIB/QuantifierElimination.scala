@@ -1,12 +1,12 @@
 package psksvp.SMTLIB
 
 
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.{Analysis, PredefinedParsers, SMTLIB2Parser}
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-import au.edu.mq.comp.smtlib.theories.BoolTerm
-import au.edu.mq.comp.smtlib.typedterms.{Commands, TypedTerm}
-import au.edu.mq.comp.smtlib.eval
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.parser.{Analysis, PredefinedParsers, SMTLIB2Parser}
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+import org.bitbucket.franck44.scalasmt.typedterms.{Commands, TypedTerm}
+import org.bitbucket.franck44.scalasmt.eval
 import org.bitbucket.inkytonik.kiama.util.StringSource
 
 import scala.util.{Failure, Success, Try}
@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
 trait QuantifierElimination
 {
   def apply(existsTerm: TypedTerm[BoolTerm, Term])
-           (implicit solver : SMTLIBInterpreter): Try[Seq[TypedTerm[BoolTerm, Term]]]
+           (implicit solver : SMTSolver): Try[Seq[TypedTerm[BoolTerm, Term]]]
 }
 
 /**
@@ -26,7 +26,7 @@ object Z3QE extends QuantifierElimination
                with PredefinedParsers
 {
   def apply(existsTerm: TypedTerm[BoolTerm, Term])
-           (implicit solver : SMTLIBInterpreter): Try[Seq[TypedTerm[BoolTerm, Term]]] =
+           (implicit solver : SMTSolver): Try[Seq[TypedTerm[BoolTerm, Term]]] =
   {
     require(solver.name == "Z3", "Z3QE requires Z3 solver")
 

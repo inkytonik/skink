@@ -1,15 +1,15 @@
 package psksvp.SMTLIB
 
-import au.edu.mq.comp.smtlib.configurations.SolverConfig
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.typedterms.Commands
+import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.typedterms.Commands
 import psksvp.ADT
 import psksvp.ADT.WorkerPool
 
 /**
   * Created by psksvp on 3/7/17.
   */
-class Solver(config:SolverConfig) extends SMTLIBInterpreter(config)
+class Solver(config:SolverConfig) extends SMTSolver(config)
                                      with ADT.Worker
 {
   override def run():Boolean = true

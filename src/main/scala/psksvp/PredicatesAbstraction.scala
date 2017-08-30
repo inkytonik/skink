@@ -1,16 +1,16 @@
 package psksvp
 
 import au.edu.mq.comp.skink.ir.IRFunction
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
-import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Term}
-import au.edu.mq.comp.smtlib.theories.BoolTerm
-import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SSymbol, Term}
+import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
 import au.edu.mq.comp.automat.auto.NFA
-import au.edu.mq.comp.smtlib.configurations.SMTInit
-import au.edu.mq.comp.smtlib.configurations.SMTOptions.INTERPOLANTS
+import org.bitbucket.franck44.scalasmt.configurations.SMTInit
+import org.bitbucket.franck44.scalasmt.configurations.SMTOptions.INTERPOLANTS
 import logics._
-import au.edu.mq.comp.smtlib.typedterms.Commands
-import au.edu.mq.comp.smtlib.interpreters.Resources
+import org.bitbucket.franck44.scalasmt.typedterms.Commands
+import org.bitbucket.franck44.scalasmt.interpreters.Resources
 import psksvp.ADT.{AutoDispose, Disposable}
 import psksvp.TraceAnalyzer.Transition
 
@@ -37,7 +37,7 @@ object PredicatesAbstraction
   private var usePredicates: Seq[PredicateTerm] = Nil
   def setToUsePredicates(pl: Seq[PredicateTerm]): Unit = {usePredicates = pl}
 
- //val solverPool = new ADT.WorkerPool(Array.fill[Solver](10)(new Solver(solverFromName("Z3"))))
+ //val solverPool = new ADT.WorkerPool(Array.fill[Solver](10)(new Solver("Z3")))
   // -----------
 
 
@@ -70,7 +70,7 @@ object PredicatesAbstraction
       {
         //val solver = solverPool.getWorker()
         println("generating predicates for abstraction")
-        val solver = new SMTLIBInterpreter(solverFromName("Z3"))//, new SMTInit(List(INTERPOLANTS)))
+        val solver = new SMTSolver("Z3")//, new SMTInit(List(INTERPOLANTS)))
         val ph = new EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
         //val ph = new InterpolantBasedHarvester(traceAnalyzer, functionInformation, solver)
         usePredicates = ph.inferredPredicates.toIndexedSeq//ph.inferredWithFilters(/*BreakOrTerms :: ReduceToEqualTerms ::*/ Nil).toSeq
@@ -103,7 +103,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                                                              with Disposable
 {
   import scala.collection.parallel.immutable.ParVector
-  val solverArray = Array.fill[SMTLIBInterpreter](traceAnalyzer.length)(new SMTLIBInterpreter(solverFromName("Z3")))
+  val solverArray = Array.fill[SMTSolver](traceAnalyzer.length)(new SMTSolver("Z3"))
 
   ///////////////////////////////////////////////
   lazy val tracePredicates:Seq[PredicateTerm] =

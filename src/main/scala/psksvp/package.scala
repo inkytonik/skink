@@ -1,5 +1,5 @@
-import au.edu.mq.comp.smtlib.configurations.SolverConfig
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 
 import scala.concurrent.duration.Duration
 import scala.util.Failure
@@ -9,15 +9,15 @@ import scala.util.Failure
   */
 package object psksvp
 {
-  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Sat
-  import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
-  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
-  import au.edu.mq.comp.smtlib.theories.BoolTerm
-  import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+  import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Sat
+  import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
+  import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+  import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+  import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
   import scala.util.Success
-  import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SatResponses, UnSat}
-  import au.edu.mq.comp.smtlib.typedterms.Commands
-  import au.edu.mq.comp.smtlib.interpreters.Resources
+  import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SatResponses, UnSat}
+  import org.bitbucket.franck44.scalasmt.typedterms.Commands
+  import org.bitbucket.franck44.scalasmt.interpreters.Resources
   object resources extends Resources
   object Cmds extends Commands
   import Cmds._
@@ -34,7 +34,7 @@ package object psksvp
     * @return
     */
   def satisfiableCheck(term : PredicateTerm)
-                      (implicit solver:SMTLIBInterpreter):SatResponses =
+                      (implicit solver:SMTSolver):SatResponses =
   {
     push()
     val result = isSat(term) match
@@ -53,7 +53,7 @@ package object psksvp
     * @return
     */
   def validityCheck(term : PredicateTerm)
-                   (implicit solver:SMTLIBInterpreter):Boolean = UnSat() == satisfiableCheck(!term)
+                   (implicit solver:SMTSolver):Boolean = UnSat() == satisfiableCheck(!term)
 
 
   /***
@@ -63,7 +63,7 @@ package object psksvp
     * @return
     */
   def equivalence(f1:PredicateTerm, f2:PredicateTerm)
-                 (implicit solver:SMTLIBInterpreter):Boolean = validityCheck(f1 === f2)
+                 (implicit solver:SMTSolver):Boolean = validityCheck(f1 === f2)
 
 
   /**
@@ -74,7 +74,7 @@ package object psksvp
     * @return
     */
   def subsetCheck(predicate:PredicateTerm, withSuperSet:PredicateTerm)
-                 (implicit solver:SMTLIBInterpreter):Boolean = satisfiableCheck(predicate & !withSuperSet) match
+                 (implicit solver:SMTSolver):Boolean = satisfiableCheck(predicate & !withSuperSet) match
                                                             {
                                                               case Sat()   => false
                                                               case UnSat() => true
@@ -89,7 +89,7 @@ package object psksvp
     * @return true if p is included in q
     */
   def checkPost(p:PredicateTerm, e:PredicateTerm, q:PredicateTerm)
-               (implicit solver:SMTLIBInterpreter):Boolean = satisfiableCheck(p & e & !q) match
+               (implicit solver:SMTSolver):Boolean = satisfiableCheck(p & e & !q) match
                                                              {
                                                                case Sat()   => false
                                                                case UnSat() => true
@@ -111,9 +111,9 @@ package object psksvp
     */
   def termAsInfix[A](term: TypedTerm[A, Term]):String=
   {
-    object InfixSMTLibTermPrettyPrinter extends au.edu.mq.comp.smtlib.parser.SMTLIB2PrettyPrinter
+    object InfixSMTLibTermPrettyPrinter extends org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter
     {
-      import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
+      import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
       override def toDoc( astNode : ASTNode ) : Doc = astNode match
       {
         case v @ LessThanEqualTerm( v1, v2 ) =>
@@ -209,14 +209,14 @@ package object psksvp
     String.format(format, Integer.toBinaryString(n)).replace(" ", "0")
   }
 
-  def solverFromName(name : String) : SolverConfig =
-  {
-    au.edu.mq.comp.smtlib.configurations.AppConfig.config.find(_.name == name) match
-    {
-      case Some(sc) => sc
-      case None     => sys.error(s"TraceRefinement: can't find solver called $name in config file")
-    }
-  }
+//  def solverFromName(name : String) : SolverConfig =
+//  {
+//    org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match
+//    {
+//      case Some(sc) => sc
+//      case None     => sys.error(s"TraceRefinement: can't find solver called $name in config file")
+//    }
+//  }
 
   def toFile(code:String, fileExt:String = ".c"):String=
   {

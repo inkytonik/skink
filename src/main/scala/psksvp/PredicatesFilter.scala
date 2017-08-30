@@ -9,15 +9,15 @@ object PredicatesFilter
     */
   def breakOrTerm(predicates:Set[PredicateTerm]):Set[PredicateTerm] =
   {
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.OrTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.OrTerm
     val r = for(t <- predicates) yield
-      {
-        t.termDef match
-        {
-          case r:OrTerm => psksvp.SMTLIB.breakOrTerm(t.typeDefs, r).toSet
-          case _        => Set(t)
-        }
-      }
+            {
+              t.termDef match
+              {
+                case r:OrTerm => psksvp.SMTLIB.breakOrTerm(t.typeDefs, r).toSet
+                case _        => Set(t)
+              }
+            }
     r.reduceLeft(_ union _)
   }
 
@@ -28,10 +28,10 @@ object PredicatesFilter
     */
   def reduceToEqualTerms(predicates:Set[PredicateTerm]):Set[PredicateTerm] =
   {
-    import au.edu.mq.comp.smtlib.parser.Analysis
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax._
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.parser.Analysis
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     var rm:Set[PredicateTerm] = Set()
     val pairs = for(i <- predicates; j <- predicates if i != j) yield (i, j)
     val rt = for((t1, t2) <- pairs) yield
@@ -61,9 +61,9 @@ object PredicatesFilter
     */
   def reduceToSuperSetTerms(predicates:Set[PredicateTerm]):Set[PredicateTerm] =
   {
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import psksvp.ADT.FixedPoint
-    implicit val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+    implicit val solver = new SMTSolver("Z3")
 
     def test(a:Set[PredicateTerm], b:Set[PredicateTerm]) = a == b
 
@@ -74,7 +74,7 @@ object PredicatesFilter
       else
       {
         def subsetOf(predicate:PredicateTerm, inSet:Set[PredicateTerm])
-                    (implicit solver:SMTLIBInterpreter):Set[PredicateTerm] =
+                    (implicit solver:SMTSolver):Set[PredicateTerm] =
         {
           for(p <- inSet if !(p eq predicate) && subsetCheck(p, withSuperSet = predicate)) yield p
         }

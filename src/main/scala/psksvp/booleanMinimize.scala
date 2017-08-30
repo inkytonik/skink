@@ -1,6 +1,6 @@
 package psksvp
 
-import au.edu.mq.comp.smtlib.theories.{Core, IntegerArithmetics}
+import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
 
 case class BooleanMinimize(termCombinerFunc:List[List[PredicateTerm]] => PredicateTerm) extends IntegerArithmetics with Core
 {

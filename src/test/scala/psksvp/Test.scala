@@ -1,6 +1,6 @@
 package psksvp
 
-import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 
@@ -10,7 +10,7 @@ class Test extends FunSuite with BeforeAndAfter
 
   test("subsetCheck Tests")
   {
-    implicit val solver = new SMTLIBInterpreter(solverFromName("Z3"))
+    implicit val solver = new SMTSolver("Z3")
     val i = Ints("i")
     val j = Ints("j")
     assert(subsetCheck(i > 10, withSuperSet = i > 0))
