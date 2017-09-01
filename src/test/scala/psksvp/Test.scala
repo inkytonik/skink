@@ -39,13 +39,14 @@ class Test extends FunSuite with BeforeAndAfter
     assert(Set(j > -50 & i > -50, i > 0, j > -10) == reduceToSuperSetTerms(c))
   }
 
-  test("runPredicateAbstraction test")
+  test("runPredicateAbstraction on code 1 (TRUE) (Predicates are auto inferred) test")
   {
     import psksvp.SkinkExecutor._
     val i = Ints("%i")
     val a = Ints("%a")
 
-    val code1 =  """
+    val code1 =
+      """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |
@@ -66,7 +67,13 @@ class Test extends FunSuite with BeforeAndAfter
                               usePredicateAbstraction = true,
                               useClang = "clang-4.0"))
 
-    val code2 =  """
+  }
+
+  test("runPredicateAbstraction on code 2 (TRUE) (Predicates are auto inferred) test")
+  {
+    import psksvp.SkinkExecutor._
+    val code2 =
+      """
                    |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                    |
                    |int main(int argc, char** arg)
@@ -86,7 +93,11 @@ class Test extends FunSuite with BeforeAndAfter
                              useO2 = false,
                              usePredicateAbstraction = true,
                              useClang = "clang-4.0"))
+  }
 
+  test("runPredicateAbstraction on code 3 (TRUE) (Predicates are auto inferred) test")
+  {
+    import psksvp.SkinkExecutor._
     val code3 =  """
                    |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                    |extern int __VERIFIER_nondet_int();
@@ -115,4 +126,38 @@ class Test extends FunSuite with BeforeAndAfter
                              usePredicateAbstraction = true,
                              useClang = "clang-4.0"))
   }
+
+
+  test("runPredicateAbstraction on code 4 (TRUE) (Predicates provided) test")
+  {
+    import psksvp.SkinkExecutor._
+    val x = Ints("%x")
+    val a = Ints("%a")
+
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |
+                  |int main(int argc, char** arg)
+                  |{
+                  |  int x = 1;
+                  |  int a = 0;
+                  |  while(x <= 10)
+                  |  {
+                  |    a = a + x;
+                  |    x = x + 1;
+                  |  }
+                  |  if(a != 55) __VERIFIER_error();
+                  |  if(x != 11) __VERIFIER_error();
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    PredicatesAbstraction.genPredicates = false
+    assert(RunTRUE() == SkinkExecutor.run(toFile(code),
+                                  List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
+                                  useO2 = false,
+                                  usePredicateAbstraction = true,
+                                  useClang = "clang-3.7"))
+  }
+
 }
