@@ -70,7 +70,7 @@ case class BooleanMinimize(termCombinerFunc:List[List[PredicateTerm]] => Predica
     */
   def espresso(minTerms:Seq[Int],
                numberOfBits:Int,
-               timeout:Int = 20,
+               timeout:Int = 2, // minutes
                exePath:String = "espresso"):String=
   {
     import scala.util.{Failure, Success}

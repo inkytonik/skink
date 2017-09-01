@@ -2,20 +2,14 @@ package psksvp
 
 // this file is a scratch pad
 
-import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-import org.bitbucket.franck44.scalasmt.parser.{SMTLIB2Parser, SMTLIB2PrettyPrinter}
-import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
-import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
-import logics._
-import org.bitbucket.inkytonik.kiama.util.StringSource
 
-import scala.util.{Success, Failure}
+import logics._
 
 
 /**
   * Created by psksvp on 9/5/17.
   */
-object StratchPad
+object ScratchPad
 {
   def main(args: Array[String]): Unit =
   {
@@ -23,6 +17,7 @@ object StratchPad
     //test61()
     //test19()
     //testWithReport()
+    test8()
   }
 
 
@@ -651,12 +646,7 @@ object StratchPad
                 """.stripMargin
 
     SkinkExecutor.consoleRun(toFile(code),
-              //List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
-              List((a  === 55 ) ,
-                    (a  === (((x  * x )  / 2 )  - (x  / 2 ) ) ) ,
-                      (x  >= 1 ) ,
-                      (x  <= 10 ) ,
-                      (a  === 0 ) ),
+              List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")
@@ -696,6 +686,38 @@ object StratchPad
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")
+  }
+
+  def test82(): Unit =
+  {
+    val x = Ints("%x")
+    val a = Ints("%a")
+    val n = Ints("%n")
+
+    val code =  """
+                  |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+                  |unsigned int __VERIFIER_nondet_uint();
+                  |int main(int argc, char** arg)
+                  |{
+                  |  int x = 1;
+                  |  int a = 0;
+                  |  unsigned int n = __VERIFIER_nondet_uint();
+                  |  while(x <= n)
+                  |  {
+                  |    a = a + x;
+                  |    x = x + 1;
+                  |  }
+                  |  if(a != ((n * n) + n)/2) __VERIFIER_error();
+                  |  if(x != n + 1) __VERIFIER_error();
+                  |  return 0;
+                  |}
+                """.stripMargin
+
+    SkinkExecutor.consoleRun(toFile(code),
+                              List(x === 1, a === 0, x <= n, n >= 0,/* a === ((n * n) + n) / 2,*/ a === ((x * x) / 2) - (x / 2), x === n + 1),
+                              useO2 = false,
+                              usePredicateAbstraction = true,
+                              useClang = "clang-3.7")
   }
 
 
@@ -914,97 +936,16 @@ object StratchPad
         |    y *= 2;
         |  }
         |
-        |  __VERIFIER_assert(x != 6);
+        |  if(x != 6) __VERIFIER_error();
         |}
       """.stripMargin
-    val code =
-      """
-        |extern void __VERIFIER_error(void);
-        |extern void __VERIFIER_assume(int);
-        |void __VERIFIER_assert(int cond) {
-        |  if (!(cond)) {
-        |    ERROR: __VERIFIER_error();
-        |  }
-        |  return;
-        |}
-        |int __VERIFIER_nondet_int();
-        |#define LARGE_INT 1000000
-        |int main()
-        |{
-        |    int scheme;
-        |    int urilen,tokenlen;
-        |    int cp,c;
-        |    urilen = __VERIFIER_nondet_int();
-        |    tokenlen = __VERIFIER_nondet_int();
-        |    scheme = __VERIFIER_nondet_int();
-        |    __VERIFIER_assume(urilen <= LARGE_INT && urilen >= -LARGE_INT);
-        |    __VERIFIER_assume(tokenlen <= LARGE_INT && tokenlen >= -LARGE_INT);
-        |    __VERIFIER_assume(scheme <= LARGE_INT && scheme >= -LARGE_INT);
-        |
-        |    if(urilen>0); else goto END;
-        |    if(tokenlen>0); else goto END;
-        |    if(scheme >= 0 );else goto END;
-        |    if (scheme == 0 || (urilen-1 < scheme)) {
-        |        goto END;
-        |    }
-        |
-        |    cp = scheme;
-        |
-        |    __VERIFIER_assert(cp-1 < urilen);
-        |    __VERIFIER_assert(0 <= cp-1);
-        |
-        |    if (__VERIFIER_nondet_int()) {
-        |        __VERIFIER_assert(cp < urilen);
-        |        __VERIFIER_assert(0 <= cp);
-        |        while ( cp != urilen-1) {
-        |            if(__VERIFIER_nondet_int()) break;
-        |            __VERIFIER_assert(cp < urilen);
-        |            __VERIFIER_assert(0 <= cp);
-        |            ++cp;
-        |        }
-        |        __VERIFIER_assert(cp < urilen);
-        |        __VERIFIER_assert( 0 <= cp );
-        |        if (cp == urilen-1) goto END;
-        |        __VERIFIER_assert(cp+1 < urilen);
-        |        __VERIFIER_assert( 0 <= cp+1 );
-        |        if (cp+1 == urilen-1) goto END;
-        |        ++cp;
-        |
-        |        scheme = cp;
-        |
-        |        if (__VERIFIER_nondet_int()) {
-        |            c = 0;
-        |            __VERIFIER_assert(cp < urilen);
-        |            __VERIFIER_assert(0<=cp);
-        |            while ( cp != urilen-1
-        |                    && c < tokenlen - 1) {
-        |                __VERIFIER_assert(cp < urilen);
-        |                __VERIFIER_assert(0<=cp);
-        |                if (__VERIFIER_nondet_int()) {
-        |                    ++c;
-        |                    __VERIFIER_assert(c < tokenlen);
-        |                    __VERIFIER_assert(0<=c);
-        |                    __VERIFIER_assert(cp < urilen);
-        |                    __VERIFIER_assert(0<=cp);
-        |                }
-        |                ++cp;
-        |            }
-        |            goto END;
-        |        }
-        |    }
-        |
-        |END:
-        |    return 0;
-        |}
-        |
-        |
-      """.stripMargin
+
 
     SkinkExecutor.consoleRun(toFile(code2),
               Nil,
-              useO2 = true,
+              useO2 = false,
               usePredicateAbstraction = true,
-              useClang = "clang-4.0")
+              useClang = "clang-3.7")
   }
 
 
@@ -1034,9 +975,9 @@ object StratchPad
 
     SkinkExecutor.consoleRun(toFile(codeNoO2),
               Nil,
-              useO2 = true,
+              useO2 = false,
               usePredicateAbstraction = true,
-              useClang = "clang-4.0")
+              useClang = "clang-3.7")
   }
 
   def test16():Unit=

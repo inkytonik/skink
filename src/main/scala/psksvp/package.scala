@@ -24,7 +24,6 @@ package object psksvp
   object logics extends IntegerArithmetics with Core
   import logics._
 
-  //type PredicateTerm = TypedTerm[BoolTerm, Term]
   type PredicateTerm = TypedTerm[BoolTerm, Term]
   type AbstractDomain = Seq[Int]
 
@@ -209,15 +208,12 @@ package object psksvp
     String.format(format, Integer.toBinaryString(n)).replace(" ", "0")
   }
 
-//  def solverFromName(name : String) : SolverConfig =
-//  {
-//    org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match
-//    {
-//      case Some(sc) => sc
-//      case None     => sys.error(s"TraceRefinement: can't find solver called $name in config file")
-//    }
-//  }
-
+  /**
+    *
+    * @param code
+    * @param fileExt
+    * @return
+    */
   def toFile(code:String, fileExt:String = ".c"):String=
   {
     import java.io.PrintWriter
@@ -243,7 +239,7 @@ package object psksvp
   def copyFile(path:String, toDir:String):Unit=
   {
     import sys.process._
-    Seq("cp", path, s"$toDir/.").!!
+    Seq("cp", path, s"$toDir/.").!
   }
 
   def fileExists(path:String):Boolean = new java.io.File(path).exists()

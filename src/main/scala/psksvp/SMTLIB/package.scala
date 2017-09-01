@@ -3,11 +3,9 @@ package psksvp
 import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 import org.bitbucket.franck44.scalasmt.parser.Analysis
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
-import org.bitbucket.franck44.scalasmt.theories
 import org.bitbucket.franck44.scalasmt.theories.BoolTerm
 import org.bitbucket.franck44.scalasmt.typedterms.{QuantifiedTerm, TypedTerm}
 
-import scala.util.Try
 /**
   * Created by psksvp on 18/6/17.
   */

@@ -2,7 +2,8 @@ package psksvp
 
 object SkinkExecutor
 {
-  import scala.concurrent.duration.Duration
+  import scala.concurrent.duration._
+
   /**
     *
     * @param filename
@@ -76,6 +77,22 @@ object SkinkExecutor
       RunFALSE()
     else
       RunUNKNOWN()
+  }
+
+  def playing():Unit=
+  {
+    import scala.util.{Failure, Success}
+    import org.bitbucket.franck44.expect.Expect
+
+    val process = Expect("/home/psksvp/workspace/a.out", Nil)
+    val result = process.expect("<EOC>".r, 1.minutes) match
+    {
+      case Success(r) => r
+      case Failure(e) => println(e.toString)
+      case _          => println("playing fail ")
+    }
+    process.destroy()
+    println(result)
   }
 
   /**

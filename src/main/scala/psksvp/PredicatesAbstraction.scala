@@ -6,16 +6,11 @@ import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SSymbol, Term}
 import org.bitbucket.franck44.scalasmt.theories.BoolTerm
 import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
 import au.edu.mq.comp.automat.auto.NFA
-import org.bitbucket.franck44.scalasmt.configurations.SMTInit
-import org.bitbucket.franck44.scalasmt.configurations.SMTOptions.INTERPOLANTS
 import logics._
 import org.bitbucket.franck44.scalasmt.typedterms.Commands
 import org.bitbucket.franck44.scalasmt.interpreters.Resources
 import psksvp.ADT.{AutoDispose, Disposable}
 import psksvp.TraceAnalyzer.Transition
-
-
-
 
 
 /**
@@ -73,7 +68,7 @@ object PredicatesAbstraction
         val solver = new SMTSolver("Z3")//, new SMTInit(List(INTERPOLANTS)))
         val ph = new EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
         //val ph = new InterpolantBasedHarvester(traceAnalyzer, functionInformation, solver)
-        usePredicates = ph.inferredPredicates.toIndexedSeq//ph.inferredWithFilters(/*BreakOrTerms :: ReduceToEqualTerms ::*/ Nil).toSeq
+        usePredicates = ph.inferredPredicates.toIndexedSeq
         //solverPool.releaseWorker(solver)
         solver.destroy()
         genPredicates = true
