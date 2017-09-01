@@ -50,7 +50,7 @@ object ScratchPad
     val baseDir = "/home/psksvp/workspace/sv-bench"
     val loopAcc = List(Code(baseDir + "/c/loop-acceleration/const_true-unreach-call1.c", false, "clang-3.7", 20),
                      Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call1.c", false, "clang-3.7", 20),
-                    //Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
+                    Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
                     Code(baseDir + "/c/loop-acceleration/functions_true-unreach-call1.c", false, "clang-3.7", 20),
                     Code(baseDir + "/c/loop-acceleration/nested_true-unreach-call1.c", false, "clang-3.7", 20),
                     Code(baseDir + "/c/loop-acceleration/overflow_true-unreach-call1.c", false, "clang-3.7", 20),
@@ -91,7 +91,7 @@ object ScratchPad
                       )
 
     import scala.concurrent.duration._
-    SkinkExecutor.runBenchAndOutputReport(loopLitO2, 120.minutes, "/home/psksvp/workspace/output")
+    SkinkExecutor.runBenchAndOutputReport(loopLitO2, 1.minutes, "/home/psksvp/workspace/output")
   }
 
   def testBunchEasy():Unit =

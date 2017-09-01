@@ -49,6 +49,74 @@ object SkinkExecutor
     * @param maxIteration
     * @return
     */
+  def runAsProcess(filename:String,
+                   predicates:Seq[PredicateTerm],
+                   useO2:Boolean,
+                   usePredicateAbstraction:Boolean,
+                   timeout:Duration,
+                   useClang:String = "clang-4.0",
+                   maxIteration:Int = 20): (RunResult, String)=
+  {
+    import scala.sys.process._
+    import scala.concurrent._
+    import ExecutionContext.Implicits.global
+
+    def seqToString(ls:Seq[String]):String =
+    {
+      if(ls.isEmpty) ""
+      else s"${ls.head} ${seqToString(ls.tail)}"
+    }
+
+    class StringBuffer
+    {
+      val sb = new StringBuilder
+      def addLine(line:String):Unit= sb.append(s"$line\n")
+      override def toString:String = sb.toString
+    }
+
+    val args = seqToString(List("-v",
+                     if(usePredicateAbstraction) "--use-predicate-abstraction" else "",
+                     if(useO2) "" else "--no-O2",
+                     "--use-clang", useClang,
+                     "-m", maxIteration.toString,
+                     filename))
+    val cmd = s"java -jar target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar $args"
+
+    val stdout = new StringBuffer
+    val stderr = new StringBuffer
+    val p = cmd.run(ProcessLogger(stdout.addLine, stderr.addLine))
+
+    try
+    {
+      val f = Future(blocking(p.exitValue()))
+      Await.result(f, timeout)
+      val output = stdout.toString.trim
+      if(output.lastIndexOf("TRUE") >= 0)
+        (RunTRUE(), output)
+      else if(output.lastIndexOf("FALSE") >= 0)
+        (RunFALSE(), output)
+      else
+        (RunUNKNOWN(), output)
+    }
+    catch
+    {
+      case _:TimeoutException => p.destroy()
+                                (RunTIMEOUT(), stdout.toString().trim())
+      case _:Throwable        => p.destroy()
+                                (RunTIMEOUT(), stdout.toString().trim())
+    }
+  }
+
+  /**
+    *
+    * @param filename
+    * @param predicates
+    * @param useO2
+    * @param usePredicateAbstraction
+    * @param useClang
+    * @param maxIteration
+    * @return
+    */
   def run(filename:String,
           predicates:Seq[PredicateTerm],
           useO2:Boolean,
@@ -79,22 +147,6 @@ object SkinkExecutor
       RunUNKNOWN()
   }
 
-  def playing():Unit=
-  {
-    import scala.util.{Failure, Success}
-    import org.bitbucket.franck44.expect.Expect
-
-    val process = Expect("/home/psksvp/workspace/a.out", Nil)
-    val result = process.expect("<EOC>".r, 1.minutes) match
-    {
-      case Success(r) => r
-      case Failure(e) => println(e.toString)
-      case _          => println("playing fail ")
-    }
-    process.destroy()
-    println(result)
-  }
-
   /**
     *
     * @param filePath
@@ -116,17 +168,12 @@ object SkinkExecutor
     for(d <- runDataList) yield
     {
       println(s"running -> $d")
-//      val result = runWithTimeout[RunResult](timeout, RunTIMEOUT())
-//      {
-//        run(d.filePath, Nil, d.useO2, true, d.useClang, d.maxIteration)
-//      }
 
-      val result = run(d.filePath, Nil, d.useO2, true, d.useClang, d.maxIteration)
+      val result = runAsProcess(d.filePath, Nil, d.useO2, true, timeout, d.useClang, d.maxIteration)
       copyFile(d.filePath, outputDir)
-      copyFile(s"${d.filePath}.output.txt", outputDir)
-      Seq(d.filePath.split("/").last,
-          s"${d.filePath}.output.txt".split("/").last,
-          result.toString())
+      val cSrcFile = d.filePath.split("/").last
+      writeString(result._2, toFileAtPath = s"$outputDir/$cSrcFile.output.txt")
+      Seq(cSrcFile, s"$cSrcFile.output.txt", result._1.toString())
     }
   }
 

@@ -1,6 +1,7 @@
 import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
 import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 
+
 import scala.concurrent.duration.Duration
 import scala.util.Failure
 
@@ -244,9 +245,20 @@ package object psksvp
 
   def fileExists(path:String):Boolean = new java.io.File(path).exists()
 
+  def writeString(s:String, toFileAtPath:String):Unit=
+  {
+    import java.io.PrintWriter
+    new PrintWriter(toFileAtPath)
+    {
+      write(s)
+      close()
+    }
+  }
+
 
   def runWithTimeout[T](timeout:Duration, defaultReturn:T)(f: => T):T =
   {
+    import scala.concurrent.TimeoutException
     import scala.concurrent.{Await, Future}
     import scala.concurrent.ExecutionContext.Implicits.global
     try
@@ -255,6 +267,7 @@ package object psksvp
     }
     catch
     {
+      case _: TimeoutException => defaultReturn
       case _:Throwable => defaultReturn
     }
   }
