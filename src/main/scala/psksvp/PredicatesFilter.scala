@@ -1,5 +1,7 @@
 package psksvp
 
+
+
 object PredicatesFilter
 {
   /**
@@ -79,6 +81,7 @@ object PredicatesFilter
           for(p <- inSet if !(p eq predicate) && subsetCheck(p, withSuperSet = predicate)) yield p
         }
 
+        @scala.annotation.tailrec
         def forward(ls:Set[PredicateTerm]):Set[PredicateTerm]=   //freaking state change for now.
         {                                                        //var i = 0
           if(ls.isEmpty)                                         //var subset = Set[PredicateTerm]()

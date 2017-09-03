@@ -237,10 +237,16 @@ package object psksvp
     print(s)
   }
 
-  def copyFile(path:String, toDir:String):Unit=
+  def copyFile(path:String, toDir:String):Int=
   {
     import sys.process._
     Seq("cp", path, s"$toDir/.").!
+  }
+
+  def makeDirectory(path:String):Int=
+  {
+    import sys.process._
+    Seq("mkdir", "-p", path).!
   }
 
   def fileExists(path:String):Boolean = new java.io.File(path).exists()
@@ -255,20 +261,9 @@ package object psksvp
     }
   }
 
-
-  def runWithTimeout[T](timeout:Duration, defaultReturn:T)(f: => T):T =
+  def seqToString[T](ls:Seq[T], separator:String=" "):String =
   {
-    import scala.concurrent.TimeoutException
-    import scala.concurrent.{Await, Future}
-    import scala.concurrent.ExecutionContext.Implicits.global
-    try
-    {
-      Await.result(Future[T](f), timeout)
-    }
-    catch
-    {
-      case _: TimeoutException => defaultReturn
-      case _:Throwable => defaultReturn
-    }
+    if(ls.isEmpty) ""
+    else s"${ls.head.toString} ${seqToString(ls.tail, separator)}"
   }
 }

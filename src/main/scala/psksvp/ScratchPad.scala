@@ -91,7 +91,7 @@ object ScratchPad
                       )
 
     import scala.concurrent.duration._
-    SkinkExecutor.runBenchAndOutputReport(loopLitO2, 1.minutes, "/home/psksvp/workspace/output")
+    SkinkExecutor.runBenchAndOutputReport("loopAcc", loopAcc, 60.minutes, "/home/psksvp/workspace/output")
   }
 
   def testBunchEasy():Unit =

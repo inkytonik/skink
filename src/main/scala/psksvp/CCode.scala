@@ -354,16 +354,15 @@ object CCode
                        Code(toFile(CCode.ten), false, "clang-3.7", 20),
                        Code(toFile(CCode.eleven), false, "clang-3.7", 20),
                        Code(toFile(CCode.code12), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code13), false, "clang-3.7", 20),
+                       Code(toFile(CCode.code13), false, "clang-3.7", 20))
                        //Code(toFile(CCode.code14), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code15), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code16), false, "clang-3.7", 20)
-                     )
+                       //Code(toFile(CCode.code15), false, "clang-3.7", 20),
+                       //Code(toFile(CCode.code16), false, "clang-3.7", 20))
 
   import scala.concurrent.duration._
   def runBaseTest(outputDir:String,
-                  timeout:Duration = 30.minutes):Unit=
+                  timeout:Duration = 20.minutes):Unit=
   {
-    SkinkExecutor.runBenchAndOutputReport(baseTest, timeout, outputDir)
+    SkinkExecutor.runBenchAndOutputReport("baseTest", baseTest, timeout, outputDir)
   }
 }
