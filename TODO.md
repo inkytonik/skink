@@ -1,20 +1,24 @@
+HIGH means focus for next SV-COMP
+
 #### Skink
 
+* HIGH: update README (TS)
+* HIGH: convert issues to actual issues (TS)
 * merge concurrency branch into master (FC)
-* replace inlining with modular analysis (FC, TS)
-* better invariants via predicate abstraction (Pongsak)
+* replace inlining with modular analysis (FC, TS, MR student)
+* better invariants via predicate abstraction (PS)
+* HIGH: nondet-based witnesses, check COMP rules (FC, TS)
 
 #### C frontend
 
 * proper memory model, including pointers, memory operations (TS)
-* better support for pthread programs (MR)
-* bitvector arrays (required smtlib fix, FC, TS)
-* floating-point (add theory of Fixed FloatingPoint BV, FC)
-* Termination (FC)
+* better support for pthread programs
+* HIGH: bitvector arrays (required smtlib fix, TS)
+* HIGH: floating-point (add theory of Fixed FloatingPoint BV, TS)
+* termination (FC)
 * slicing (DG thing seems to work, testing it/integrate?, TS)
-* string operations ??
-* move to latest Clang (MR, TS)
-* mem2reg pass? undef removal from benchmarks?
+* string operations
+* HIGH: move to latest Clang (TS)
 
 #### Automat
 
@@ -26,13 +30,14 @@
 
 #### SMTlib
 
-* bitvector arrays (FC)
-* floating point (FC)
+* HIGH: floating point (FC)
+* HIGH: bitvector arrays (FC)
+* reals??, not sure if any in COMP (FC)
 
 #### Infrastructure
 
-* CI testing server for SV-COMP (MR)
-* pipelines on bitbucket (??)
+* HIGH: pipelines on bitbucket (FC)
+* HIGH: dashboard for SV-COMP performance (FC)
 
 #### Other
 
