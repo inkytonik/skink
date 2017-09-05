@@ -19,6 +19,7 @@ HIGH means focus for next SV-COMP
 * slicing (DG thing seems to work, testing it/integrate?, TS)
 * string operations
 * HIGH: move to latest Clang (TS)
+* HIGH: bit-vector ops in mathematical mode (TS)
 
 #### Automat
 
