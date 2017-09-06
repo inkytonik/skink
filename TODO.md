@@ -11,7 +11,7 @@ HIGH means focus for next SV-COMP
 
 #### C frontend
 
-* proper memory model, including pointers, memory operations (TS)
+* HIGH: proper memory model, including pointers, memory operations (TS)
 * better support for pthread programs
 * HIGH: bitvector arrays (required smtlib fix, TS)
 * HIGH: floating-point (add theory of Fixed FloatingPoint BV, TS)
