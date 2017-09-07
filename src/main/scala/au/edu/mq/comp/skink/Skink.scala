@@ -8,7 +8,7 @@ object Skink {
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.util.DotConverter
     import au.edu.mq.comp.dot.DOTPrettyPrinter
-    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, DotSpec, Ident, StringLit}
+    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, Ident, StringLit}
     import com.typesafe.scalalogging.Logger
     import org.slf4j.LoggerFactory
 

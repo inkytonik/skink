@@ -9,7 +9,6 @@ class LLVMFrontend(config : SkinkConfig) extends Frontend {
 
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.inkytonik.kiama.output.PrettyPrinter
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.bitbucket.inkytonik.kiama.util.{Positions, Source}
     import org.scalallvm.assembly.Assembly

@@ -1,7 +1,5 @@
 package au.edu.mq.comp.skink
 
-import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-
 /**
  * Interface for Skink frontends.
  */

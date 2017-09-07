@@ -70,7 +70,7 @@ trait IRFunction {
     def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import scala.util.{Try, Success, Failure}
+    import scala.util.Try
     /**
      *  Check that the image of a precondition is included in a postcondition
      *

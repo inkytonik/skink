@@ -14,10 +14,9 @@ import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => show
 trait AddBackEdges extends Core with Resources {
 
     import au.edu.mq.comp.automat.edge.Implicits._
-    import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
     import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import scala.util.{Failure, Success, Try}
+    import scala.util.{Failure, Success}
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
@@ -120,12 +119,10 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
 
     import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.configurations.{SMTInit, SolverConfig}
-    import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import org.bitbucket.franck44.scalasmt.interpreters.Resources
-    import scala.util.{Failure, Success, Try}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Sat, UnSat, UnKnown, SatResponses}
+    import scala.util.{Failure, Success}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.UnSat
 
     val itpLogger = getLogger(this.getClass, ".itp")
 
@@ -194,7 +191,6 @@ object InterpolantAuto extends AddBackEdges {
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
-    import au.edu.mq.comp.skink.ir.Trace
 
     val logger = getLogger(this.getClass)
     val itpLogger = getLogger(this.getClass, ".itp")
@@ -221,7 +217,7 @@ object InterpolantAuto extends AddBackEdges {
         fromEnd : Boolean = false
     ) : NFA[Int, Int] = {
 
-        import scala.util.{Failure, Success, Try}
+        import scala.util.{Failure, Success}
 
         //  first build a linear automaton for the trace
         val linearAuto = buildAutoForTrace(choices)

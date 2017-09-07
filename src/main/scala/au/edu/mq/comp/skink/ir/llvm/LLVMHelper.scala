@@ -201,7 +201,6 @@ object LLVMHelper {
     object UserLevelVarName {
         def unapply(name : String) : Option[(String, Int)] = {
             val BaseName = "[@%](.+)@([0-9]+)".r
-            val TempName = "[@%][0-9]+@[0-9]+".r
             name match {
                 case BaseName(base, index) =>
                     Some((base, index.toInt))

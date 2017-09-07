@@ -9,7 +9,6 @@ import au.edu.mq.comp.skink.ir.IR
  */
 class Verifier(ir : IR, config : SkinkConfig) {
 
-    import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
     import scala.util.{Failure, Success}

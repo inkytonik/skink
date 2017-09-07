@@ -7,7 +7,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.2"
 
 scalacOptions := {
 

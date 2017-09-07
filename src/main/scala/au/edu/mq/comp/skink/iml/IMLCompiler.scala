@@ -333,22 +333,6 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
         def makeArgument(n : String, t : Type) : Argument =
             Argument(t, Vector(), Some(Local(n)))
 
-        def argumentDefinitionToIdentifier(argumentDefinition : IML.ArgumentDefinition) : String =
-            argumentDefinition match {
-                case IML.TypedArg(id, _) =>
-                    id
-                case IML.Arg(id) =>
-                    id
-            }
-
-        def argumentDefinitionToElement(argumentDefinition : IML.ArgumentDefinition) : Element =
-            argumentDefinition match {
-                case IML.TypedArg(id, tipe) =>
-                    Element(typeToType(tipe), NameC(Local(id)))
-                case IML.Arg(id) =>
-                    Element(typeToType(IML.IntType()), NameC(Local(id)))
-            }
-
         def argumentDefinitionToType(argumentDefinition : IML.ArgumentDefinition) : Type =
             argumentDefinition match {
                 case IML.Arg(n) =>

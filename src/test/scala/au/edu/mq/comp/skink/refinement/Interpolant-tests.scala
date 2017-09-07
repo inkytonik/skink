@@ -4,11 +4,10 @@ package verifier
 package tests
 
 import org.scalatest.{FunSuite, Matchers}
-import scala.util.{Try, Success, Failure}
+import scala.util.Success
 
 class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.bitbucket.inkytonik.kiama.util.FileSource
 
     //  create and init the config
@@ -28,8 +27,6 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
         config.frontend().buildIR(FileSource(srcFileName), positions) match {
 
             case Left(prog) =>
-                import au.edu.mq.comp.skink.verifier.Verifier
-
                 val fun = prog.functions.find(_.name == "main")
                 fun match {
                     case Some(main) =>

@@ -20,25 +20,15 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Array1Sort, EqualTerm, IntSort, BoolSort, Sort, Term}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, IntTerm}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
-    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import org.bitbucket.inkytonik.kiama.==>
-    import org.bitbucket.inkytonik.kiama.attribution.Decorators
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
-    import org.scalallvm.assembly.{
-        Analyser,
-        ElementProperty,
-        Property,
-        TypeProperty
-    }
+    import org.scalallvm.assembly.Analyser
     import org.scalallvm.assembly.Analyser.defaultBlockName
-    import scala.annotation.tailrec
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success}
 
@@ -108,7 +98,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * term operations.
      */
     def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-        import namer._
         import org.bitbucket.franck44.scalasmt.theories.Core
         object BoolOps extends Core
         import BoolOps._
@@ -129,8 +118,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
         val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
-
-        import namer._
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
@@ -322,7 +309,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
             if (after.isEmpty)
                 block
             else {
-                val metadata = after(0).metadata
                 val errorLabel = makeErrorLabel(block.optBlockLabel)
                 val errorBlock =
                     Block(BlockLabel(errorLabel), Vector(), None, after,
@@ -415,7 +401,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     def traceToBlockTrace(trace : Trace) : BlockTrace = {
         val entryBlock = function.functionBody.blocks(0)
         val (finalBlock, blocks) =
-            trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
+            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                 case ((Some(block), blocks), choice) =>
                     (nextBlock(block, choice), blocks :+ block)
                 case ((None, blocks), choice) =>
@@ -435,7 +421,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
             case trace =>
                 val entryBlock = function.functionBody.blocks(0)
                 val (finalBlock, blocks) =
-                    trace.choices.foldLeft(Option(entryBlock), Vector[Block]()) {
+                    trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                         case ((Some(block), blocks), choice) =>
                             (nextBlock(block, choice), blocks :+ block)
                         case ((None, blocks), choice) =>

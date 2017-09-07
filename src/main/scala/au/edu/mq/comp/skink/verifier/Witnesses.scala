@@ -10,7 +10,6 @@ class Witnesses(config : SkinkConfig) {
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.util.FileEmitter
-    import java.io.File
 
     val logger = getLogger(this.getClass)
 
@@ -34,7 +33,6 @@ class Witnesses(config : SkinkConfig) {
         import java.io.File
         import java.io.FileInputStream
         import java.security.MessageDigest
-        import java.security.Security
 
         val file = new File(filename)
         val buffer = Array.ofDim[Byte](file.length().toInt)

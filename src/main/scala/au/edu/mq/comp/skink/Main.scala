@@ -21,7 +21,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
@@ -142,15 +141,12 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
 
-    import au.edu.mq.comp.skink.iml.IMLCompiler
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
-    import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
+    import org.bitbucket.inkytonik.kiama.util.Source
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.rogach.scallop.exceptions.ScallopException
-    import scala.util.{Try, Success, Failure}
 
     val logger = getLogger(this.getClass)
 

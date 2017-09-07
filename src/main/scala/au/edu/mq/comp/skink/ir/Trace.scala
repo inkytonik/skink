@@ -1,6 +1,5 @@
 package au.edu.mq.comp.skink.ir
 
-import scala.util.Try
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
 import org.bitbucket.franck44.scalasmt.typedterms.Value
 
