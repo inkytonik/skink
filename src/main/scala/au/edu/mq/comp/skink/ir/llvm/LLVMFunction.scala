@@ -80,15 +80,13 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         def nonInlinedCalls(block : Block) : Vector[String] =
             block.optMetaInstructions.flatMap(nonInlinedCall)
 
-        def nonInlinedCallNames : Vector[String] =
-            function.functionBody.blocks.map(nonInlinedCalls).flatten
+        def nonInlinedCallNames : Set[String] =
+            function.functionBody.blocks.map(nonInlinedCalls).flatten.toSet
 
-        nonInlinedCallNames match {
-            case Vector() =>
-                None
-            case names =>
-                Some(s"""calls to the following functions were not inlined: ${names.mkString(", ")}""")
-        }
+        if (nonInlinedCallNames.isEmpty)
+            None
+        else
+            Some(s"""calls to the following functions were not inlined: ${nonInlinedCallNames.mkString(", ")}""")
 
     }
 
