@@ -1,6 +1,5 @@
-import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
 import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-
+import java.io.File
 
 import scala.concurrent.duration.Duration
 import scala.util.Failure
@@ -74,27 +73,26 @@ package object psksvp
     * @return
     */
   def subsetCheck(predicate:PredicateTerm, withSuperSet:PredicateTerm)
-                 (implicit solver:SMTSolver):Boolean = satisfiableCheck(predicate & !withSuperSet) match
-                                                            {
-                                                              case Sat()   => false
-                                                              case UnSat() => true
-                                                              case _       => false
-                                                            }
+                 (implicit solver:SMTSolver):Boolean =
+  {
+    satisfiableCheck(predicate & !withSuperSet) match
+    {
+      case Sat()   => false
+      case UnSat() => true
+      case _       => false
+    }
+  }
 
   /**
     *
     * @param p  precondition
     * @param e  effect
     * @param q  postcondition
-    * @return true if p is included in q
+    * @return true if p & e is included in q
     */
   def checkPost(p:PredicateTerm, e:PredicateTerm, q:PredicateTerm)
-               (implicit solver:SMTSolver):Boolean = satisfiableCheck(p & e & !q) match
-                                                             {
-                                                               case Sat()   => false
-                                                               case UnSat() => true
-                                                               case _       => false
-                                                             }
+               (implicit solver:SMTSolver):Boolean = subsetCheck(p & e, q)
+
 
   def termAsInfix[A](terms:Seq[TypedTerm[A, Term]]):String =
   {
@@ -230,13 +228,6 @@ package object psksvp
     fileName
   }
 
-  def printrc(row:Int, col:Int, s:String):Unit =
-  {
-    import ADT.ANSI._
-    setCursor(row, col)
-    print(s)
-  }
-
   def copyFile(path:String, toDir:String):Int=
   {
     import sys.process._
@@ -258,6 +249,21 @@ package object psksvp
     {
       write(s)
       close()
+    }
+  }
+
+  def readString(fromFileAtPath:String):String =
+  {
+    import sys.process._
+    Seq("cat", fromFileAtPath).!!
+  }
+
+  //https://alvinalexander.com/scala/how-to-list-files-in-directory-filter-names-scala
+  def listOfFiles(dir: File, extensions: List[String]): List[File] =
+  {
+    dir.listFiles.filter(_.isFile).toList.filter
+    {
+      file => extensions.exists(file.getName.endsWith(_))
     }
   }
 

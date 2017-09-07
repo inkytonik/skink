@@ -2,24 +2,55 @@ package psksvp
 
 
 
+
 object PredicatesFilter
 {
-  /**
-    *
-    * @param predicates
-    * @return
-    */
-  def breakOrTerm(predicates:Set[PredicateTerm]):Set[PredicateTerm] =
+  def atomicTerms(predicates:Set[PredicateTerm]):Set[PredicateTerm] =
   {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.OrTerm
-    val r = for(t <- predicates) yield
-            {
-              t.termDef match
-              {
-                case r:OrTerm => psksvp.SMTLIB.breakOrTerm(t.typeDefs, r).toSet
-                case _        => Set(t)
-              }
-            }
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.AndTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.parser.Analysis
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SimpleQId, SortedQId}
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+
+
+    def breakTerm(t:PredicateTerm):Set[PredicateTerm] =
+    {
+      // too lazy right now
+      def breakOrTerm(sortedQIds:Set[SortedQId], orTerm:OrTerm):Seq[PredicateTerm] =
+      {
+        val r = for(t <- orTerm.terms :+ orTerm.term) yield
+          {
+            val a = Analysis(t).ids
+            val defs = for(SortedQId(x, s) <- sortedQIds if a.contains(SimpleQId(x))) yield SortedQId(x,s)
+            TypedTerm[BoolTerm, Term](defs, t)
+          }
+        r
+      }
+
+      // too lazy right now
+      def breakAndTerm(sortedQIds:Set[SortedQId], andTerm:AndTerm):Seq[PredicateTerm] =
+      {
+        val r = for(t <- andTerm.terms :+ andTerm.term) yield
+          {
+            val a = Analysis(t).ids
+            val defs = for(SortedQId(x, s) <- sortedQIds if a.contains(SimpleQId(x))) yield SortedQId(x,s)
+            TypedTerm[BoolTerm, Term](defs, t)
+          }
+        r
+      }
+      /////////
+      t.termDef match
+      {
+        case orTerm:OrTerm   => (for(g <- breakOrTerm(t.typeDefs, orTerm)) yield breakTerm(g)).flatten.toSet
+        case andTerm:AndTerm => (for(g <- breakAndTerm(t.typeDefs, andTerm)) yield breakTerm(g)).flatten.toSet
+        case _            => Set[PredicateTerm](t)
+      }
+    }
+
+    val r = for(t <- predicates) yield breakTerm(t)
     r.reduceLeft(_ union _)
   }
 

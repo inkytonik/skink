@@ -17,7 +17,10 @@ object ScratchPad
     //test61()
     //test19()
     //testWithReport()
-    test8()
+    import psksvp.SkinkExecutor._
+    import psksvp.CCode._
+
+    consoleRun(toFile(code18), Nil, false, true, "clang-3.7")
   }
 
 
@@ -90,62 +93,29 @@ object ScratchPad
                         Code(baseDir + "/c/loop-lit/hhk2008_true-unreach-call.c", false, "clang-3.7", 10)
                       )
 
+    val loopInvgen = List(Code(baseDir + "/c/loop-invgen/nest-if3_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/down_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/half_2_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/heapsort_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/id_build_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/large_const_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/nested6_true-unreach-call.c", true, "clang-4.0", 10),
+                          Code(baseDir + "/c/loop-invgen/nested9_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/NetBSD_loop_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/sendmail-close-angle_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/seq_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/string_concat-noarr_true-unreach-call.c", true, "clang-4.0", 10),
+                           Code(baseDir + "/c/loop-invgen/up_true-unreach-call.c", true, "clang-4.0", 10))
+
     import scala.concurrent.duration._
-    SkinkExecutor.runBenchAndOutputReport("loopAcc", loopAcc, 60.minutes, "/home/psksvp/workspace/output")
+    SkinkExecutor.runBenchAndOutputReport("loopLit", loopLit, 5.minutes, "/home/psksvp/workspace/output")
   }
 
-  def testBunchEasy():Unit =
-  {
-    val files = List(//"/home/psksvp/workspace/svcomp/c/loop-acceleration/diamond_false-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/diamond_true-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/diamond_true-unreach-call2.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/functions_true-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/multivar_false-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/multivar_true-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/nested_false-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/nested_true-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/overflow_true-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/phases_false-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/phases_false-unreach-call2.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/phases_true-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/phases_true-unreach-call2.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_false-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_false-unreach-call2.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_false-unreach-call3.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_false-unreach-call4.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_true-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_true-unreach-call2.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_true-unreach-call3.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/simple_true-unreach-call4.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/underapprox_false-unreach-call1.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-acceleration/underapprox_false-unreach-call2.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/underapprox_true-unreach-call1.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-acceleration/underapprox_true-unreach-call2.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/down_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/fragtest_simple_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/half_2_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/id_build_true-unreach-call.c",
-                     //"/home/psksvp/workspace/svcomp/c/loop-invgen/id_trans_false-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/large_const_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/nest-if3_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/nested6_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/nested9_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/NetBSD_loop_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/sendmail-close-angle_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loop-invgen/string_concat-noarr_true-unreach-call.c",
-                     "/home/psksvp/workspace/svcomp/c/loops/sum01_bug02_false-unreach-call_true-termination.c",
-                     "/home/psksvp/workspace/svcomp/c/loops/sum01_bug02_sum01_bug02_base.c",
-                     //"/home/psksvp/workspace/svcomp/c/loops/sum01_false-unreach-call_true-termination.c",
-                     "/home/psksvp/workspace/svcomp/c/loops/sum01_true-unreach-call_true-termination.c",
-                     //"/home/psksvp/workspace/svcomp/c/loops/sum03_false-unreach-call_true-termination.c",
-                     //"/home/psksvp/workspace/svcomp/c/loops/sum03_true-unreach-call_false-termination.c",
-                     //"/home/psksvp/workspace/svcomp/c/loops/sum04_false-unreach-call_true-termination.c",
-                     "/home/psksvp/workspace/svcomp/c/loops/sum04_true-unreach-call_true-termination.c",
-                     "/home/psksvp/workspace/svcomp/c/loops/trex01_true-unreach-call.c")
-                     //"/home/psksvp/workspace/svcomp/c/loops/trex02_false-unreach-call_true-termination.c")
-  }
+
 
   def test1(): Unit =
   {
@@ -645,8 +615,8 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
+    SkinkExecutor.consoleRun(toFile(code), Nil,
+              //List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
               useO2 = false,
               usePredicateAbstraction = true,
               useClang = "clang-3.7")

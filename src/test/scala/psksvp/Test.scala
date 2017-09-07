@@ -39,6 +39,20 @@ class Test extends FunSuite with BeforeAndAfter
     assert(Set(j > -50 & i > -50, i > 0, j > -10) == reduceToSuperSetTerms(c))
   }
 
+  test("break to atomic terms Tests")
+  {
+    import psksvp.PredicatesFilter._
+
+    val i = Ints("i")
+    val j = Ints("j")
+    val a:Set[PredicateTerm] = Set(i > 0 | i > 1, j > -10 & j > 0)
+    assert(Set(i > 0, i > 1, j > -10, j > 0) == atomicTerms(a))
+    val b:Set[PredicateTerm] = Set(i > 0 & i > 1 | j > -10 | j > 0)
+    assert(Set(i > 0, i > 1, j > -10, j > 0) == atomicTerms(b))
+    val c:Set[PredicateTerm] = Set(i > 0 & i > 1 | j > -10 & j > 0)
+    assert(Set(i > 0, i > 1, j > -10, j > 0) == atomicTerms(c))
+  }
+
   test("runPredicateAbstraction on code 1 (TRUE) (Predicates are auto inferred) test")
   {
     import psksvp.SkinkExecutor._

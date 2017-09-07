@@ -16,17 +16,6 @@ package object SMTLIB
     solver.eval(Raw("(reset)"))
   }
 
-  def breakOrTerm(sortedQIds:Set[SortedQId], orTerm:OrTerm):Seq[PredicateTerm] =
-  {
-    val r = for(t <- orTerm.terms :+ orTerm.term) yield
-            {
-              val a = Analysis(t).ids
-              val defs = for(SortedQId(x, s) <- sortedQIds if a.contains(SimpleQId(x))) yield SortedQId(x,s)
-              TypedTerm[BoolTerm, Term](defs, t)
-            }
-    r
-  }
-
   /**
     * interim to create exists typedTerm.
     * until scala-smtlib fix the parameters of QuantifiedTerm.exists from (x:SMTLIB2Symbol, xs:SSymbol*) to

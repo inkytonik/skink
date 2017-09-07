@@ -50,7 +50,7 @@ object PredicatesAbstraction
     val traceAnalyzer = TraceAnalyzer(function, choices)
     val functionInformation = FunctionInformation(function.asInstanceOf[LLVMFunction])
 
-
+    println("using predAbs on trace: " + traceAnalyzer.choices)
     if (traceAnalyzer.repetitionsPairs.isEmpty)
     {
       println(choices)
@@ -63,13 +63,21 @@ object PredicatesAbstraction
     {
       if(Nil == usePredicates || genPredicates)
       {
-        //val solver = solverPool.getWorker()
         println("generating predicates for abstraction")
         val solver = new SMTSolver("Z3")//, new SMTInit(List(INTERPOLANTS)))
-        val ph = new EQEPredicatesHarvester(traceAnalyzer, functionInformation, solver)
-        //val ph = new InterpolantBasedHarvester(traceAnalyzer, functionInformation, solver)
-        usePredicates = ph.inferredPredicates.toIndexedSeq
-        //solverPool.releaseWorker(solver)
+        val tempPredicates = EQEPredicatesHarvester(traceAnalyzer,
+                                                    functionInformation,
+                                                    solver).inferredPredicates
+        println(s"${tempPredicates.size} predicates generated")
+        println(termAsInfix(tempPredicates.toList))
+        if(tempPredicates.size > 5)
+        {
+          println("running reducePredicatesToSuperSet")
+          usePredicates = PredicatesFilter.reduceToSuperSetTerms(tempPredicates).toIndexedSeq
+        }
+        else
+          usePredicates = tempPredicates.toIndexedSeq
+
         solver.destroy()
         genPredicates = true
       }
@@ -79,7 +87,6 @@ object PredicatesAbstraction
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, CNFComposer)
       val result = p.automaton
       p.dispose()
-      //solverPool.shutdown()
       result
     }
   }
@@ -117,7 +124,6 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
 
     ///////////////////////////////
     import psksvp.ADT.FixedPoint
-    println("I am doing the trace:" + traceAnalyzer.choices)
     val result = FixedPoint(equalTest,
                             computePredicates).run(True() :: List.fill(traceAnalyzer.length - 1)(False()))
 

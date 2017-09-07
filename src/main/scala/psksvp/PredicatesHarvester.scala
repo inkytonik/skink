@@ -1,5 +1,7 @@
 package psksvp
 
+import org.bitbucket.franck44.scalasmt.configurations.SMTInit
+import org.bitbucket.franck44.scalasmt.configurations.SMTOptions.INTERPOLANTS
 import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 import org.bitbucket.franck44.scalasmt.typedterms.{Commands, QuantifiedTerm, TypedTerm}
 
@@ -24,11 +26,11 @@ trait PredicatesHarvester
   * @param functionInformation
   * @param solver
   */
-class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
+case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
                              functionInformation:FunctionInformation,
                              solver:SMTSolver) extends PredicatesHarvester
-                                                          with Commands
-                                                          with QuantifiedTerm
+                                                  with Commands
+                                                  with QuantifiedTerm
 {
   import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ISymbol, SymbolId, Term}
   import org.bitbucket.franck44.scalasmt.theories.BoolTerm
@@ -54,12 +56,14 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
           functionInformation.commonVariables.contains(s.simpleVarname)
       }
 
-      val local = for(v <- blockEffect.typeDefs) yield v.id match
-                                                       {
-                                                         case SymbolId(s@ISymbol(n, i))
-                                                              if !commonVar(s) => s
-                                                         case _                => ISymbol("0", -1) /// ARGGGGGGG.......
-                                                       }
+      val local = for(v <- blockEffect.typeDefs) yield
+      {
+        v.id match
+        {
+          case SymbolId(s@ISymbol(n, i)) if !commonVar(s) => s
+          case _                                          => ISymbol("0", -1) /// ARGGGGGGG.......
+        }
+      }
       local.filter(_.digits >= 0)
     }
 
@@ -73,9 +77,7 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
 
       psksvp.SMTLIB.Z3QE(e)(solver) match
       {
-        case Success(ls) => val r = ls.map { t => t.unIndexed }
-                            //println(termAsInfix(r))
-                            r
+        case Success(ls) => ls.map { t => t.unIndexed }
         case Failure(e)  => sys.error(e.toString)
         case _           => sys.error(s"psksvp.SMTLIB.Z3QE($e) fail")
       }
@@ -101,24 +103,28 @@ class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
   * @param functionInformation
   * @param solver
   */
-class InterpolantBasedHarvester(traceAnalyzer:TraceAnalyzer,
+case class InterpolantBasedHarvester(traceAnalyzer:TraceAnalyzer,
                              functionInformation:FunctionInformation,
                              solver:SMTSolver) extends PredicatesHarvester
-                                                          with Commands
-                                                          with QuantifiedTerm
+                                                  with Commands
+                                                  with QuantifiedTerm
 {
-  lazy val namedTerms = for((tt, n) <- traceAnalyzer.traceTerms.zipWithIndex) yield tt.named("P" + n)
+  lazy val namedTerms = for((tt, n) <- traceAnalyzer.traceTerms.zipWithIndex) yield tt.named("p" + n)
 
   override def inferredPredicates: Set[PredicateTerm] =
   {
+    val itpSolver = new SMTSolver("Z3", new SMTInit(List(INTERPOLANTS)))
     println("namedTerms")
     println(psksvp.termAsInfix(namedTerms))
-    val m = getInterpolants(namedTerms.head, namedTerms.tail.head, namedTerms.drop(2) : _*)(solver)
-    m match
+    val r = getInterpolants(namedTerms.head,
+                            namedTerms.tail.head,
+                            namedTerms.drop(2) : _*)(itpSolver) match
     {
       case Success(itp) => itp.toSet
-      case _            => sys.error("InterpolantBasedHarvester fail to get interpolants ")
+      case Failure(e)   => sys.error(s"InterpolantBasedHarvester fail : ${e.toString}")
     }
+    itpSolver.destroy()
+    r
   }
 }
 

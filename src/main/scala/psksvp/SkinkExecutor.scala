@@ -157,6 +157,19 @@ object SkinkExecutor
     */
   def runBench(runDataList:Seq[Code], timeout:Duration, outputDir:String):Seq[Seq[String]] =
   {
+    def formatLog(header:String, code:String, log:String):String =
+    {
+      s"""
+        |<html>
+        |<body>
+        |<h3>$header</h3><hr>
+        |<pre>$code</pre><hr>
+        |<pre>$log</pre><hr>
+        |</body>
+        |</html>
+      """.stripMargin
+    }
+
     for(d <- runDataList) yield
     {
       println(s"running -> $d")
@@ -164,9 +177,23 @@ object SkinkExecutor
       val result = runAsProcess(d.filePath, Nil, d.useO2, true, timeout, d.useClang, d.maxIteration)
       copyFile(d.filePath, outputDir)
       val cSrcFile = d.filePath.split("/").last
-      writeString(result._2, toFileAtPath = s"$outputDir/$cSrcFile.output.txt")
-      Seq(cSrcFile, s"$cSrcFile.output.txt", result._1.toString())
+      val code = readString(d.filePath)
+      writeString(formatLog(d.toString, code, result._2), toFileAtPath = s"$outputDir/$cSrcFile.log.html")
+      Seq(cSrcFile, s"$cSrcFile.log.html", result._1.toString())
     }
+  }
+
+  def runDirAndOutputReport(name:String,
+                            dir:String,
+                            timeOut:Duration,
+                            outputDir:String,
+                            useClang:String="clang-4.0",
+                            maxIteration:Int=20):Unit =
+  {
+    val codes = for(cfile <- listOfFiles(new java.io.File(dir), List("c"))
+                    if cfile.getName.contains("true"))  yield Code(cfile.toString, true, useClang, maxIteration)
+
+    runBenchAndOutputReport(name, codes, timeOut, outputDir)
   }
 
   /**
@@ -180,10 +207,11 @@ object SkinkExecutor
                               timeout:Duration,
                               outputDir:String):Unit =
   {
-    val subOutputDir = s"$outputDir/$name"
+    val current = java.util.Calendar.getInstance().getTime()
+    val subOutputDir = s"$outputDir/$name/${current.toString.replace(' ', '_').replace(':', '-')}"
     makeDirectory(subOutputDir)
     val output = runBench(runDataList, timeout, subOutputDir)
-    val heading = s"$name :: ${java.util.Calendar.getInstance().getTime()}"
+    val heading = s"$name :: ${current.toString}"
     val report = makeReportHTML(output, heading)
     writeString(report, toFileAtPath = s"$subOutputDir/report.html")
   }
