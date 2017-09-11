@@ -28,12 +28,12 @@ class Cache[K, V](generator:K => V)
     }
   }
 
-  def clear():Unit =
-  {
-    map.clear()
-    hit = 0
-    mis = 0
-  }
+//  def clear():Unit =
+//  {
+//    map.clear()
+//    hit = 0
+//    mis = 0
+//  }
   def statistic:(Long, Long)=(hit, mis)
 }
 

@@ -166,7 +166,7 @@ object CCode
                 |      y++;
                 |  }
                 |
-                |  // if I take the below verify out, the predicate inferrer
+                |  // if I take the below verify out, the predicate inferring method
                 |  // would not be able to extract the x and y relation which is
                 |  // x == y
                 |  if(x != y) __VERIFIER_error();

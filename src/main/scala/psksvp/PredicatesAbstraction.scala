@@ -70,13 +70,11 @@ object PredicatesAbstraction
                                                     solver).inferredPredicates
         println(s"${tempPredicates.size} predicates generated")
         println(termAsInfix(tempPredicates.toList))
-        if(tempPredicates.size > 5)
-        {
-          println("running reducePredicatesToSuperSet")
-          usePredicates = PredicatesFilter.reduceToSuperSetTerms(tempPredicates).toIndexedSeq
-        }
-        else
-          usePredicates = tempPredicates.toIndexedSeq
+        println("running filters on the generated input predicates")
+        import psksvp.PredicatesFilter._
+        println("running reduceToSuperSetTerms")
+        usePredicates = reduceToSuperSetTerms(tempPredicates).toIndexedSeq
+        println(termAsInfix(usePredicates))
 
         solver.destroy()
         genPredicates = true
@@ -99,7 +97,7 @@ object PredicatesAbstraction
   * @param termComposer
   */
 case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
-                                  inputPredicates:Seq[TypedTerm[BoolTerm, Term]],
+                                  inputPredicates:Seq[TypedTerm[BoolTerm, Term]], // fix me, should be Set
                                   termComposer:TermComposer) extends Commands
                                                              with Resources
                                                              with Disposable

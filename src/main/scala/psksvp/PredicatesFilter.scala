@@ -134,4 +134,13 @@ object PredicatesFilter
     solver.destroy()
     r
   }
+
+//  def apply(filters:Seq[(Set[PredicateTerm]) => Set[PredicateTerm]],
+//            to:Set[PredicateTerm]):Set[PredicateTerm]=
+//  {
+//    if(filters.size > 0)
+//      apply(filters.tail, filters.head(to))
+//    else
+//      to
+//  }
 }

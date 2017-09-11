@@ -1009,7 +1009,9 @@ object ScratchPad
         |    {
         |        sum = sum + i;
         |    }
-        |    if(!(2*sum == n*(n+1))) __VERIFIER_error();
+        |    if(i != n + 1) __VERIFIER_error();
+        |    if(!(sum == ((i * i) / 2) - (i / 2)) ) __VERIFIER_error();
+        |    if(!(sum == (n*(n+1))/2)) __VERIFIER_error();
         |    return 0;
         |}
       """.stripMargin
@@ -1020,9 +1022,9 @@ object ScratchPad
 
     SkinkExecutor.consoleRun(toFile(code),
               Nil, //List(n >= 1 & n <= 1000, i === 1 & i < n, i === n, sum === 0, sum === ((i * i) / 2) - (i / 2)), //, sum === ((i * i) / 2) - (i / 2)),
-              useO2 = true,
+              useO2 = false,
               usePredicateAbstraction = true,
-              useClang = "clang-4.0")
+              useClang = "clang-3.7")
   }
 
   def test18():Unit =

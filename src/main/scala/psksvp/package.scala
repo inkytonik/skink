@@ -39,8 +39,7 @@ package object psksvp
     val result = isSat(term) match
                  {
                    case Success(s) => s
-                   case Failure(e) => sys.error(s"psksvp.satisfiableCheck of terms ${psksvp.termAsInfix(term)} solver returns ${e.toString}")
-                   case _          => sys.error(s"psksvp.satisfiableCheck of terms ${psksvp.termAsInfix(term)} solver returns fail")
+                   case Failure(e) => sys.error(s"satisfiableCheck of terms ${psksvp.termAsInfix(term)} solver returns ${e.toString}")
                  }
     pop()
     result
