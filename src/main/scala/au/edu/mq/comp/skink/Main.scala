@@ -90,6 +90,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
+    lazy val optLevel = opt[Int]("optlevel", short = 'O',
+        descr = "Optimisation level for source compilation (default: 2)",
+        default = Some(2))
+
     lazy val parse = opt[Boolean]("parse", short = 'p',
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))

@@ -6,11 +6,11 @@ FALSE
 
 <key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
 <key id="block"          for="node"  attr.name="block"            attr.type="int"   />
-<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
-<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="node.src"       for="node"  attr.name="node.src"         attr.type="string"/>
+<key id="edge.src"       for="edge"  attr.name="edge.src"         attr.type="string"/>
 <key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
 <key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
-<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="violation"      for="node"  attr.name="violation"        attr.type="boolean"><default>false</default></key>
 <key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
 <key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
 <key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
@@ -25,27 +25,16 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/multiple-error-calls_false-unreach-call.c</data>
-  <data key="programhash"   >02904cf5125895d6a6b0fa6d866a1be41c59c897</data>
+  <data key="programfile"   >src/test/resources/citests/bit/implicitunsignedconversion_false-unreach-call.c</data>
+  <data key="programhash"   >59cfeb3705edf7a8f1fb3969f0cbe1c9b0cfc4af</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="block">0</data>
-  <data key="node.src">int i = 0, j = 0;</data>
-</node>
-
-<edge id="E0" source="N0" target="N1">
-  <data key="edge.src">if (i &gt; j)</data>
-  <data key="startline">13</data>
-  <data key="endline">13</data>
-</edge>
-
-<node id="N1">
   <data key="violation">true</data>
-  <data key="block">18</data>
-  <data key="node.src">__VERIFIER_error();</data>
+  <data key="block">0</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
 </graph>

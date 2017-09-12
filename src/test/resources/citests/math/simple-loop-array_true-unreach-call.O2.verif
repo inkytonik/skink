@@ -6,11 +6,11 @@ TRUE
 
 <key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
 <key id="block"          for="node"  attr.name="block"            attr.type="int"   />
-<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
-<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="node.src"       for="node"  attr.name="node.src"         attr.type="string"/>
+<key id="edge.src"       for="edge"  attr.name="edge.src"         attr.type="string"/>
 <key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
 <key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
-<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="violation"      for="node"  attr.name="violation"        attr.type="boolean"><default>false</default></key>
 <key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
 <key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
 <key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
@@ -25,8 +25,8 @@ TRUE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/simple-loop2_true-unreach-call.c</data>
-  <data key="programhash"   >b9bd45365afe49477efe0896f2a7cc4abac43bd8</data>
+  <data key="programfile"   >src/test/resources/citests/math/simple-loop-array_true-unreach-call.c</data>
+  <data key="programhash"   >559afbadf390c35acb3b82f2e176a9bd9d67627e</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 

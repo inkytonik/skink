@@ -1,4 +1,4 @@
-FALSE
+TRUE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -6,11 +6,11 @@ FALSE
 
 <key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
 <key id="block"          for="node"  attr.name="block"            attr.type="int"   />
-<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
-<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="node.src"       for="node"  attr.name="node.src"         attr.type="string"/>
+<key id="edge.src"       for="edge"  attr.name="edge.src"         attr.type="string"/>
 <key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
 <key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
-<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="violation"      for="node"  attr.name="violation"        attr.type="boolean"><default>false</default></key>
 <key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
 <key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
 <key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
@@ -21,42 +21,25 @@ FALSE
 <key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >violation_witness</data>
+  <data key="witness-type"  >correctness_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/simple-if_false-unreach-call.c</data>
-  <data key="programhash"   >c04e3563dc0882fd6737b426d3b9226252879395</data>
+  <data key="programfile"   >src/test/resources/citests/math/simple-loop_true-unreach-call.c</data>
+  <data key="programhash"   >979ab2b2617a92855276f6cdf1f51c8c97ca0c02</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="block">0</data>
-  <data key="node.src">int i = __VERIFIER_nondet_int(), j = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">if (i &gt; j)</data>
-  <data key="startline">15</data>
-  <data key="endline">15</data>
 </edge>
 
 <node id="N1">
-  <data key="block">10</data>
-  <data key="node.src">__VERIFIER_assert (i &lt;= j);</data>
-</node>
-
-<edge id="E1" source="N1" target="N2">
-  <data key="edge.src">if (!(cond)) {</data>
-  <data key="startline">4</data>
-  <data key="endline">4</data>
-</edge>
-
-<node id="N2">
-  <data key="violation">true</data>
-  <data key="block">18</data>
-  <data key="node.src">ERROR: __VERIFIER_error();</data>
+  <data key="invariant">1</data>
+  <data key="invariant.scope">main</data>
 </node>
 
 </graph>

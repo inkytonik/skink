@@ -3,16 +3,27 @@ package au.edu.mq.comp.skink
 import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
-class MathCITests extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
+trait CITests extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
 
-    filetests("citests (math)", "src/test/resources/citests/math", ".c", ".verif",
-        argslist = List(List("-v", "-w", "-")))
+    def makeTests(path : String, optLevel : Int, extraArgs : List[String] = List()) =
+        filetests(s"citests ($path)", s"src/test/resources/citests/$path", ".c", s".O$optLevel.verif",
+            argslist = List(List("-v", "-w", "-", s"-O$optLevel") ++ extraArgs))
 
 }
 
-class BitCITests extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
+class MathCITests extends CITests {
 
-    filetests("citests (bit)", "src/test/resources/citests/bit", ".c", ".verif",
-        argslist = List(List("-v", "-w", "-", "-i", "bit")))
+    for (optLevel <- List(0, 2)) {
+        makeTests("math", optLevel)
+    }
+    makeTests("math/function", 2)
+
+}
+
+class BitCITests extends CITests {
+
+    for (optLevel <- List(0, 2)) {
+        makeTests("bit", optLevel, List("-i", "bit"))
+    }
 
 }
