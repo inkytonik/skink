@@ -3,12 +3,12 @@ package au.edu.mq.comp.skink.verifier
 import au.edu.mq.comp.skink.SkinkConfig
 
 /**
- * Support for SV-COMP witness generation.
+ * Common support for SV-COMP witness generation.
  */
-class Witnesses(config : SkinkConfig) {
+abstract class Witnesses(config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import org.bitbucket.inkytonik.kiama.util.FileEmitter
 
     val logger = getLogger(this.getClass)
@@ -65,10 +65,13 @@ class Witnesses(config : SkinkConfig) {
            |<key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
            |<key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
            |<key id="specification"  for="graph" attr.name="specification"    attr.type="string"/>
-           |<key id="programfile"    for="graph" attr.name="programFile"      attr.type="string"/>
+           |<key id="programfile"    for="graph" attr.name="programfile"      attr.type="string"/>
            |<key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
            |<key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
            |<key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
+           |<key id="assumption"                for="edge" attr.name="assumption"     attr.type="string"/>
+           |<key id="assumption.scope"          for="edge" attr.name="assumption.scope" attr.type="string"/>
+           |<key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
            |
            |<graph edgedefault="directed">
            |  <data key="witness-type"  >${witness.typeString}</data>
@@ -107,6 +110,9 @@ class Witnesses(config : SkinkConfig) {
     def mkEdge(id : Int, content : String = "") =
         s"""<edge id="E$id" source="N$id" target="N${id + 1}">\n$content</edge>\n"""
 
+    def field[T](field : Option[T]) : String =
+        field.map(_.toString).getOrElse(" ")
+
     /**
      * Output in SV-COMP result format a correctness witness in the given function.
      * Currently outputs a dummy witness with a "true" invariant to avoid an error
@@ -130,72 +136,22 @@ class Witnesses(config : SkinkConfig) {
     }
 
     /**
-     * Output in SV-COMP result format a violation witness for the failure
-     * given by `failTrace` in the given function.
+     * Generate and print a violation witness for the given function.
      */
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
-
-        val steps = function.traceToSteps(failTrace)
-        val numsteps = steps.length
-
-        def field[T](field : Option[T]) : String =
-            field.map(_.toString).getOrElse(" ")
-
-        for (i <- 0 until numsteps) {
-            val step = steps(i)
-            logger.info(s"""printWitness: step $i = block ${field(step.optBlockName)}: ${field(step.optBlockCode)} -> ${field(step.optTermCode)}""")
-        }
-
-        val nodesAndEdges =
-            steps.zipWithIndex.map {
-                case (step, index) =>
-                    val entry =
-                        if (index == 0)
-                            mkData(Some("true"), "entry")
-                        else
-                            ""
-                    val violation =
-                        if (index == numsteps - 1)
-                            mkData(Some("true"), "violation")
-                        else
-                            ""
-                    val node =
-                        mkNode(
-                            index,
-                            entry +
-                                violation +
-                                mkData(step.optBlockName, "block") +
-                                mkData(step.optBlockCode, "node.src")
-                        )
-                    val edge =
-                        if (index == numsteps - 1)
-                            ""
-                        else
-                            "\n" +
-                                mkEdge(
-                                    index,
-                                    mkData(step.optTermCode, "edge.src") +
-                                        mkData(step.optTermLine, "startline") +
-                                        mkData(step.optTermLine, "endline")
-                                )
-                    s"$node$edge"
-            }
-
-        outputWitness(ViolationWitness(nodesAndEdges))
-    }
+    def printViolationWitness(function : IRFunction, failTrace : FailureTrace)
 
     /**
-     * Actually output a witness.
+     * Actually output a witness text to the appropriate destination.
      */
     def outputWitness(witness : Witness) {
-        val witnessXML = makeWitnessXML(witness)
+        val xml = makeWitnessXML(witness)
         if (config.witnessFile() == "-") {
-            logger.info("printWitness: writing witness to standard output")
-            config.output().emit(witnessXML)
+            logger.info("outputWitness: writing witness to standard output")
+            config.output().emit(xml)
         } else {
-            logger.info(s"printWitness: writing witness to ${config.witnessFile()}")
+            logger.info(s"outputWitness: writing witness to ${config.witnessFile()}")
             val emitter = new FileEmitter(config.witnessFile())
-            emitter.emit(witnessXML)
+            emitter.emit(xml)
             emitter.close()
         }
     }

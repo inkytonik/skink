@@ -12,6 +12,10 @@ sealed abstract class IntegerMode
 case class MathIntegerMode() extends IntegerMode
 case class BitIntegerMode() extends IntegerMode
 
+sealed abstract class WitnessFormat
+case class NonDetWitnessFormat() extends WitnessFormat
+case class TraceWitnessFormat() extends WitnessFormat
+
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
@@ -140,6 +144,31 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val witnessFile = opt[String]("witness-file", short = 'w',
         descr = "File into which witness is written (- means standard output, default: witness.graphml)",
         default = Some("witness.graphml"))
+
+    val witnessFormatConverter =
+        new ValueConverter[WitnessFormat] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[WitnessFormat]] =
+                s match {
+                    case List((_, List("nondet"))) =>
+                        Right(Some(new NonDetWitnessFormat))
+                    case List((_, List("trace"))) =>
+                        Right(Some(new TraceWitnessFormat))
+                    case List((_, _)) =>
+                        Left("expected nondet or trace")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[WitnessFormat]]
+
+        }
+
+    lazy val witnessFormat = opt[WitnessFormat]("witness-format", short = 'W',
+        descr = "Format of witnesses (nondet or trace, default: trace)",
+        default = Some(TraceWitnessFormat()))(witnessFormatConverter)
 
 }
 

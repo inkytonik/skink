@@ -161,6 +161,22 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for nondet function calls. Successful matches return the
+     * optional binding for the return value of the call and the name of
+     * the type of value that is returned.
+     */
+    object NondetFunctionCall {
+        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
+            insn match {
+                case Call(to, _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
+                    Some((to, tipe))
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
      * Matcher for LLVM real (floating-point) types. Just standard float and double for now.
      * Returns the bit size of the type.
      */

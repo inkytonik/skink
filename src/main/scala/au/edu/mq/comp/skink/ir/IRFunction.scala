@@ -90,4 +90,13 @@ trait IRFunction {
         solver : SMTSolver
     ) : Try[Boolean]
 
+    /**
+     * Return the values that are returned by `__VERIFIER_nondet_T` functions in
+     * the given failure trace of this function. Each element of the list result
+     * gives the type of value returned by a call and the (optional) value returned.
+     * The order reflects the order in which the trace performs these calls. A
+     * value returned or `None` indicates that the value is unknown.
+     */
+    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
+
 }

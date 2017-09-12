@@ -36,3 +36,17 @@ case class Step(
     optTermCode : Option[String],
     optTermLine : Option[Int]
 )
+
+/**
+ * A description of a call to a `nondet` function in the execution of
+ * a trace for use in witness generation. Included are the type of
+ * the call (e.g., "int" or "uint"), an optional integer value that
+ * was returned by the call, optional source code for the call, and
+ * an optional line number at which the call occurs.
+ */
+case class NonDetCall(
+    tipe : String,
+    optValue : Option[Int],
+    optCode : Option[String],
+    optLine : Option[Int]
+)

@@ -4,26 +4,31 @@ import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
 trait CITests extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
+    val witnessFormats = List("trace", "nondet")
+    val optLevels = List(0, 2)
 
-    def makeTests(path : String, optLevel : Int, extraArgs : List[String] = List()) =
-        filetests(s"citests ($path)", s"src/test/resources/citests/$path", ".c", s".O$optLevel.verif",
-            argslist = List(List("-v", "-w", "-", s"-O$optLevel") ++ extraArgs))
-
+    def makeTests(path : String, optLevel : Int, witnessFormat : String, extraArgs : List[String] = List()) = {
+        val args = List(List("-v", "-w", "-", s"-O$optLevel", "-W", witnessFormat) ++ extraArgs)
+        filetests(s"citests ($path)", s"src/test/resources/citests/$path", "_true-unreach-call.c",
+            s"_true-unreach-call.verif", argslist = args)
+        filetests(s"citests ($path)", s"src/test/resources/citests/$path", "_false-unreach-call.c",
+            s"_false-unreach-call.O$optLevel.$witnessFormat.verif", argslist = args)
+    }
 }
 
 class MathCITests extends CITests {
-
-    for (optLevel <- List(0, 2)) {
-        makeTests("math", optLevel)
+    for (witnessFormat <- witnessFormats) {
+        for (optLevel <- optLevels) {
+            makeTests("math", optLevel, witnessFormat)
+        }
+        makeTests("math/function", 2, witnessFormat)
     }
-    makeTests("math/function", 2)
-
 }
 
 class BitCITests extends CITests {
-
-    for (optLevel <- List(0, 2)) {
-        makeTests("bit", optLevel, List("-i", "bit"))
+    for (witnessFormat <- witnessFormats) {
+        for (optLevel <- optLevels) {
+            makeTests("bit", optLevel, witnessFormat, List("-i", "bit"))
+        }
     }
-
 }

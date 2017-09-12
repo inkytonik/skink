@@ -17,20 +17,23 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         config : SkinkConfig) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
     import org.scalallvm.assembly.Analyser.defaultBlockName
     import scala.collection.mutable.ListBuffer
-    import scala.util.{Failure, Success}
+    import scala.util.{Failure, Success, Try}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -149,9 +152,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
 
-        def getSourceLine(source : Source, line : Int) : String =
-            source.optLineContents(line).getOrElse("").trim
-
         def blockName(block : Block) : String =
             defaultBlockName(block, funAnalyser.anonArgCount.toString)
 
@@ -160,7 +160,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 val (optFileName, optBlockCode) =
                     Analyser.blockPosition(program, block) match {
                         case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
-                            (Some(fileName), Some(getSourceLine(blockSource, blockLine)))
+                            (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
                         case _ =>
                             (None, None)
                     }
@@ -168,13 +168,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 val (optTermLine, optTermCode) =
                     block.metaTerminatorInstruction match {
                         case MetaTerminatorInstruction(insn, metadata) =>
-                            funAnalyser.instructionPosition(program, insn, metadata) match {
-                                case Some(Position(termLine, _, termSource)) =>
-                                    val termCode = getSourceLine(termSource, termLine)
-                                    (Some(termLine), Some(termCode))
-                                case _ =>
-                                    (None, None)
-                            }
+                            getCodeLine(insn, metadata)
                     }
                 Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
         }
@@ -336,6 +330,18 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
+    def getSourceLineText(source : Source, line : Int) : String =
+        source.optLineContents(line).getOrElse("").trim
+
+    def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) =
+        funAnalyser.instructionPosition(program, node, metadata) match {
+            case Some(Position(termLine, _, termSource)) =>
+                val termCode = getSourceLineText(termSource, termLine)
+                (Some(termLine), Some(termCode))
+            case _ =>
+                (None, None)
+        }
+
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
 
         val blocks = blockTrace(trace).blocks
@@ -466,10 +472,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         }
     }
 
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import scala.util.{Try, Success, Failure}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
-
     /**
      *  Check that the image of a precondition is included in a postcondition
      *
@@ -527,6 +529,49 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
+    }
+
+    /**
+     * Return the values that are returned by `__VERIFIER_nondet_T` functions.
+     */
+    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
+        val blockTrace = traceToBlockTrace(failTrace.trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+
+        def termToCValue(term : Term) : Int =
+            term match {
+                case ConstantTerm(NumLit(i))                        => i.toInt
+                case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
+                case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
+                case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
+                case _ =>
+                    sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
+            }
+
+        def getValue(to : Name, tipe : String) : Option[Int] = {
+            val varName = show(to)
+            val sort = if (tipe == "bool") BoolSort() else IntSort()
+            val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
+            failTrace.values.get(qid) match {
+                case Some(value) =>
+                    Some(termToCValue(value.t))
+                case None =>
+                    logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
+                    None
+            }
+        }
+
+        collectl {
+            case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
+                val value = binding match {
+                    case Binding(to) => getValue(to, tipe)
+                    case NoBinding() => None
+                }
+                val (optCode, optLine) = getCodeLine(call, metadata)
+                NonDetCall(tipe, value, optLine, optCode)
+        }(blockTrace.blocks)
+
     }
 
 }

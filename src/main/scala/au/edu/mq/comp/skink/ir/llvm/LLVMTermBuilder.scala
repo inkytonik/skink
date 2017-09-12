@@ -329,7 +329,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 // Call to `nondet_X` where X is an unsigned type
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(UnsignedType(bits))), Vector(), _) =>
+                case NondetFunctionCall(Binding(to), UnsignedType(bits)) =>
                     integerMode match {
                         case BitIntegerMode() =>
                             ntermBV(to, bits) uge 0.withBits(bits)
@@ -338,7 +338,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 // Other calls to `nondet_X`
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
+                case NondetFunctionCall(_, _) =>
                     True()
 
                 case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
