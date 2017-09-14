@@ -19,7 +19,7 @@ scalacOptions := {
         if (scalaVersion.value.startsWith ("2.10"))
             "-Xlint"
         else
-            "-Xlint:-stars-align,_"
+            "-Xlint:-stars-align,-unused,_"
 
     Seq (
         "-deprecation",
@@ -49,7 +49,7 @@ libraryDependencies ++=
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
-        "org.bitbucket.franck44" %% "scalasmt" % "2.0.6-SNAPSHOT",
+        "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.0.6-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.4" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
         "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
