@@ -1,4 +1,4 @@
-TRUE
+FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -24,25 +24,41 @@ TRUE
 <key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >correctness_witness</data>
+  <data key="witness-type"  >violation_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/bit/implicitunsignedconversion_true-unreach-call.c</data>
-  <data key="programhash"   >30aae13da2995f6cf7e0a5685beedb709cfcbffa</data>
+  <data key="programfile"   >src/test/resources/citests/bit/implicitunsignedconversion_false-unreach-call.c</data>
+  <data key="programhash"   >59cfeb3705edf7a8f1fb3969f0cbe1c9b0cfc4af</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
+  <data key="block">0</data>
+  <data key="node.src">unsigned int plus_one = 1;</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
+  <data key="edge.src">if(plus_one &lt; minus_one) {</data>
+  <data key="startline">7</data>
+  <data key="endline">7</data>
 </edge>
 
 <node id="N1">
-  <data key="invariant">1</data>
-  <data key="invariant.scope">main</data>
+  <data key="block">7</data>
+  <data key="node.src">goto ERROR;</data>
+</node>
+
+<edge id="E1" source="N1" target="N2">
+  <data key="edge.src">goto ERROR;</data>
+  <data key="startline">8</data>
+  <data key="endline">8</data>
+</edge>
+
+<node id="N2">
+  <data key="violation">true</data>
+  <data key="block">9</data>
 </node>
 
 </graph>

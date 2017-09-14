@@ -12,14 +12,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{Array1Sort, BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, Sort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, EqualTerm, IntSort, BoolSort, RealSort, SSymbol, Term}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import namer.{ArrayElement, indexOf, termid}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
-    import scala.language.implicitConversions
 
     val logger = getLogger(this.getClass)
 
@@ -330,7 +329,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 // Call to `nondet_X` where X is an unsigned type
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(UnsignedType(bits))), Vector(), _) =>
+                case NondetFunctionCall(Binding(to), UnsignedType(bits)) =>
                     integerMode match {
                         case BitIntegerMode() =>
                             ntermBV(to, bits) uge 0.withBits(bits)
@@ -339,7 +338,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 // Other calls to `nondet_X`
-                case Call(Binding(to), _, _, _, _, VerifierFunction(NondetFunctionName(_)), Vector(), _) =>
+                case NondetFunctionCall(_, _) =>
                     True()
 
                 case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
@@ -779,6 +778,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 0
             case TrueC() =>
                 1
+            case GetElementPtrC(_, _, _, NameC(name), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), Const(IntC(index))))) if i == 0 =>
+                arrayTermAtI(name, name).at(index.toInt)
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }

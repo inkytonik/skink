@@ -6,19 +6,22 @@ FALSE
 
 <key id="entry"          for="node"  attr.name="entry"            attr.type="boolean"><default>false</default></key>
 <key id="block"          for="node"  attr.name="block"            attr.type="int"   />
-<key id="node.src"       for="edge"  attr.name="sourcecode"       attr.type="string"/>
-<key id="edge.src"       for="node"  attr.name="sourcecode"       attr.type="string"/>
+<key id="node.src"       for="node"  attr.name="node.src"         attr.type="string"/>
+<key id="edge.src"       for="edge"  attr.name="edge.src"         attr.type="string"/>
 <key id="startline"      for="edge"  attr.name="startline"        attr.type="int"   />
 <key id="endline"        for="edge"  attr.name="endline"          attr.type="int"   />
-<key id="violation"      for="node"  attr.name="isViolationNode"  attr.type="boolean"><default>false</default></key>
+<key id="violation"      for="node"  attr.name="violation"        attr.type="boolean"><default>false</default></key>
 <key id="witness-type"   for="graph" attr.name="witness-type"     attr.type="string"/>
 <key id="sourcecodelang" for="graph" attr.name="sourcecodelang"   attr.type="string"/>
 <key id="producer"       for="graph" attr.name="producer"         attr.type="string"/>
 <key id="specification"  for="graph" attr.name="specification"    attr.type="string"/>
-<key id="programfile"    for="graph" attr.name="programFile"      attr.type="string"/>
+<key id="programfile"    for="graph" attr.name="programfile"      attr.type="string"/>
 <key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
 <key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
 <key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
+<key id="assumption"                for="edge" attr.name="assumption"     attr.type="string"/>
+<key id="assumption.scope"          for="edge" attr.name="assumption.scope" attr.type="string"/>
+<key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
 
 <graph edgedefault="directed">
   <data key="witness-type"  >violation_witness</data>
@@ -26,7 +29,7 @@ FALSE
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
   <data key="programfile"   >src/test/resources/citests/math/simple-loop_false-unreach-call.c</data>
-  <data key="programhash"   >a951bed873ce859fb0430ae4de30590c428925f6</data>
+  <data key="programhash"   >50e0f8485aa512ce83f8ba1d7986d34fac7708da</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
@@ -38,69 +41,68 @@ FALSE
 
 <edge id="E0" source="N0" target="N1">
   <data key="edge.src">while (r &gt; 0) {</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
+  <data key="startline">7</data>
+  <data key="endline">7</data>
 </edge>
 
 <node id="N1">
-  <data key="block">8</data>
+  <data key="block">4</data>
   <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
   <data key="edge.src">while (r &gt; 0) {</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
+  <data key="startline">7</data>
+  <data key="endline">7</data>
 </edge>
 
 <node id="N2">
-  <data key="block">14</data>
-  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
+  <data key="block">7</data>
+  <data key="node.src">if (r &lt;= 0) __VERIFIER_error();</data>
 </node>
 
 <edge id="E2" source="N2" target="N3">
-  <data key="edge.src">if (!(cond)) {</data>
-  <data key="startline">4</data>
-  <data key="endline">4</data>
+  <data key="edge.src">if (r &lt;= 0) __VERIFIER_error();</data>
+  <data key="startline">8</data>
+  <data key="endline">8</data>
 </edge>
 
 <node id="N3">
-  <data key="block">__VERIFIER_assert.exit</data>
-  <data key="node.src">return;</data>
+  <data key="block">11</data>
+  <data key="node.src">r = r - 1;</data>
 </node>
 
 <edge id="E3" source="N3" target="N4">
   <data key="edge.src">while (r &gt; 0) {</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
+  <data key="startline">7</data>
+  <data key="endline">7</data>
 </edge>
 
 <node id="N4">
-  <data key="block">8</data>
+  <data key="block">4</data>
   <data key="node.src">while (r &gt; 0) {</data>
 </node>
 
 <edge id="E4" source="N4" target="N5">
   <data key="edge.src">while (r &gt; 0) {</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
+  <data key="startline">7</data>
+  <data key="endline">7</data>
 </edge>
 
 <node id="N5">
-  <data key="block">20</data>
-  <data key="node.src">__VERIFIER_assert(r &gt; 0);</data>
+  <data key="block">14</data>
+  <data key="node.src">if (r &lt;= 0) __VERIFIER_error();</data>
 </node>
 
 <edge id="E5" source="N5" target="N6">
-  <data key="edge.src">if (!(cond)) {</data>
-  <data key="startline">4</data>
-  <data key="endline">4</data>
+  <data key="edge.src">if (r &lt;= 0) __VERIFIER_error();</data>
+  <data key="startline">11</data>
+  <data key="endline">11</data>
 </edge>
 
 <node id="N6">
   <data key="violation">true</data>
-  <data key="block">24</data>
-  <data key="node.src">ERROR: __VERIFIER_error();</data>
+  <data key="block">17</data>
 </node>
 
 </graph>

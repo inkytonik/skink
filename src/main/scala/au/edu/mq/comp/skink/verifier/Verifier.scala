@@ -9,7 +9,7 @@ import au.edu.mq.comp.skink.ir.IR
  */
 class Verifier(ir : IR, config : SkinkConfig) {
 
-    import au.edu.mq.comp.automat.lang.Lang
+    import au.edu.mq.comp.skink.{NonDetWitnessFormat, TraceWitnessFormat}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
     import scala.util.{Failure, Success}
@@ -23,7 +23,13 @@ class Verifier(ir : IR, config : SkinkConfig) {
 
         logger.info(s"verify: ${function.name}")
 
-        val witnesses = new Witnesses(config)
+        val witnesses =
+            config.witnessFormat() match {
+                case NonDetWitnessFormat() =>
+                    new NonDetWitnesses(config)
+                case TraceWitnessFormat() =>
+                    new TraceWitnesses(config)
+            }
 
         def reportCorrect() {
             logger.info(s"verify: ${function.name} is correct")

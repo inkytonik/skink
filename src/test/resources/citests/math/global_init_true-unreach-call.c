@@ -1,12 +1,5 @@
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
-void __VERIFIER_assert(int cond) {
-  if (!(cond)) {
-    ERROR: __VERIFIER_error();
-  }
-  return;
-}
-
 #define cC 5
 #define cS -20
 #define cI 10000
@@ -21,10 +14,10 @@ int vA[] = { 0, 1, 2, 3, 4 };
 int main(void) {
   int i;
 
-  __VERIFIER_assert(vC == cC);
-  __VERIFIER_assert(vS == cS);
-  __VERIFIER_assert(vI == cI);
-  __VERIFIER_assert(vU == cU);
+  if (vC != cC) __VERIFIER_error();
+  if (vS != cS) __VERIFIER_error();
+  if (vI != cI) __VERIFIER_error();
+  if (vU != cU) __VERIFIER_error();
   for (i = 0; i < 5; i++)
-      __VERIFIER_assert(vA[i] == i);
+      if (vA[i] != i) __VERIFIER_error();
 }

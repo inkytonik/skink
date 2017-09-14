@@ -12,6 +12,10 @@ sealed abstract class IntegerMode
 case class MathIntegerMode() extends IntegerMode
 case class BitIntegerMode() extends IntegerMode
 
+sealed abstract class WitnessFormat
+case class NonDetWitnessFormat() extends WitnessFormat
+case class TraceWitnessFormat() extends WitnessFormat
+
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
@@ -21,7 +25,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver._
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
@@ -91,6 +94,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
+    lazy val optLevel = opt[Int]("optlevel", short = 'O',
+        descr = "Optimisation level for source compilation (default: 2)",
+        default = Some(2))
+
     lazy val parse = opt[Boolean]("parse", short = 'p',
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
@@ -138,19 +145,41 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "File into which witness is written (- means standard output, default: witness.graphml)",
         default = Some("witness.graphml"))
 
+    val witnessFormatConverter =
+        new ValueConverter[WitnessFormat] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[WitnessFormat]] =
+                s match {
+                    case List((_, List("nondet"))) =>
+                        Right(Some(new NonDetWitnessFormat))
+                    case List((_, List("trace"))) =>
+                        Right(Some(new TraceWitnessFormat))
+                    case List((_, _)) =>
+                        Left("expected nondet or trace")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[WitnessFormat]]
+
+        }
+
+    lazy val witnessFormat = opt[WitnessFormat]("witness-format", short = 'W',
+        descr = "Format of witnesses (nondet or trace, default: trace)",
+        default = Some(TraceWitnessFormat()))(witnessFormatConverter)
+
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
 
-    import au.edu.mq.comp.skink.iml.IMLCompiler
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
-    import org.bitbucket.inkytonik.kiama.util.{Emitter, OutputEmitter, Source}
+    import org.bitbucket.inkytonik.kiama.util.Source
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.rogach.scallop.exceptions.ScallopException
-    import scala.util.{Try, Success, Failure}
 
     val logger = getLogger(this.getClass)
 

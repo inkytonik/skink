@@ -1,6 +1,5 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.bitbucket.inkytonik.kiama.util.Tests
 import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
 import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 

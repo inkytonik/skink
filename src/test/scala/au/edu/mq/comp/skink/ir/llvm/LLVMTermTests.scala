@@ -9,8 +9,8 @@ import org.bitbucket.franck44.scalasmt.theories.Core
 trait LLVMTermTests extends Tests with Core {
 
     import au.edu.mq.comp.skink.SkinkConfig
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, BoolSort, Sort, Term}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, Term}
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.inkytonik.kiama.relation.Tree
     import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
@@ -18,7 +18,6 @@ trait LLVMTermTests extends Tests with Core {
     import org.scalallvm.assembly.AssemblySyntax._
 
     val namer = new DummyNamer
-    import namer._
 
     def createAndInitConfig(args : Seq[String]) : SkinkConfig = {
         val config = new SkinkConfig(args)
@@ -109,8 +108,6 @@ trait LLVMTermTests extends Tests with Core {
     }
 
     // Support for processing functions
-
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, pretty}
 
     /**
      * Parses `prog` as a program and returns a vector of LLVMFunctions

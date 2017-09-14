@@ -1,6 +1,6 @@
 package au.edu.mq.comp.skink.verifier
 
-import au.edu.mq.comp.skink.ir.{IR, Trace}
+import au.edu.mq.comp.skink.ir.IR
 import au.edu.mq.comp.skink.SkinkConfig
 
 /**
@@ -9,37 +9,30 @@ import au.edu.mq.comp.skink.SkinkConfig
 class TraceRefinement(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.edge.Implicits._
     import au.edu.mq.comp.automat.lang.Lang
     import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
-    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import org.bitbucket.franck44.scalasmt.parser.Analysis
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.configurations.{SMTInit, SolverConfig}
-    import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
     import org.bitbucket.franck44.scalasmt.typedterms.Commands
-    import org.bitbucket.franck44.scalasmt.typedterms.{Model, TypedTerm, Value}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
     import org.bitbucket.franck44.scalasmt.interpreters.Resources
 
     case class ValMap(m : Map[QualifiedId, Value])
 
     object Cmds extends Commands
     import Cmds._
-
-    object logics extends IntegerArithmetics with Core
-    import logics._
 
     object resources extends Resources
     import resources._
@@ -159,9 +152,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
                     }
-
-                    // Build a single combined term for the trace effect
-                    val fullTerm = traceTerms.reduceLeft(_ & _)
 
                     // Check satisfiability and if Sat, get model values
                     val result = runSolver(selectedSolver, traceTerms)

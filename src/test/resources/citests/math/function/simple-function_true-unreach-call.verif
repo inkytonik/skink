@@ -28,8 +28,8 @@ TRUE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/bit/implicitunsignedconversion_true-unreach-call.c</data>
-  <data key="programhash"   >30aae13da2995f6cf7e0a5685beedb709cfcbffa</data>
+  <data key="programfile"   >src/test/resources/citests/math/function/simple-function_true-unreach-call.c</data>
+  <data key="programhash"   >eaac9760c9fd670cbe8bcd554888392b7d31db6b</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 

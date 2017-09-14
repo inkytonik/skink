@@ -57,7 +57,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
-    import org.scalallvm.assembly.{Analyser, ElementProperty}
+    import org.scalallvm.assembly.ElementProperty
 
     // Properties and decoration of function tree
 
