@@ -8,5 +8,5 @@ if cd automat; then git pull && cd -; else git clone https://git@bitbucket.org/f
 cd automat; sbt publish-local; cd -
 if cd expect-for-scala; then git pull && cd -; else git clone https://bitbucket.org/franck44/expect-for-scala; fi
 cd expect-for-scala; sbt publish-local; cd -
-if cd mq-scala-smtlib; then git pull && cd -; else git clone https://git@bitbucket.org/franck44/mq-scala-smtlib.git; fi
-cd mq-scala-smtlib; sbt publish-local; cd -
+if cd scalasmt; then git pull && cd -; else git clone https://git@bitbucket.org/franck44/scalasmt.git; fi
+cd scalasmt; sbt publish-local; cd -
