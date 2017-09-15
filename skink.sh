@@ -26,7 +26,7 @@ case $cmd in
     cmp) JAR=skink.jar
          ARGS="-m 300 $ARGS"
          ;;
-    dev) JAR=/vagrant/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
+    dev) JAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
          ;;
     exp) JAR=skink_exp.jar
          ARGS="-m 300 $ARGS"
