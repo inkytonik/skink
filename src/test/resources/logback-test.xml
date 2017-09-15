@@ -138,7 +138,7 @@
         <appender-ref ref="EXPECTFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.smtlib.typedterms" level="INHERITED" additivity="false">
+    <logger name="org.bitbucket.franck44.scalasmt.typedterms" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
     </logger>
 

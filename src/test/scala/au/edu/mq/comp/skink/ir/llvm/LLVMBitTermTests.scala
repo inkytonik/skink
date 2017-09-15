@@ -1,16 +1,16 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import org.bitbucket.inkytonik.kiama.util.Tests
-import au.edu.mq.comp.smtlib.theories.BitVectors
+import org.bitbucket.franck44.scalasmt.theories.BitVectors
 
 /**
  * Tests of bit vector term construction.
  */
 class LLVMBitTermTests extends LLVMTermTests with BitVectors {
 
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{BitVectorSort, Term}
-    import au.edu.mq.comp.smtlib.theories.BVTerm
-    import au.edu.mq.comp.smtlib.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, Term}
+    import org.bitbucket.franck44.scalasmt.theories.BVTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import scala.language.implicitConversions

@@ -8,11 +8,11 @@ trait IR {
     import au.edu.mq.comp.skink.ir.{IRFunction, Choice, Trace, FailureTrace}
     import au.edu.mq.comp.skink.SkinkConfig
     import au.edu.mq.comp.automat.auto.DetAuto
-    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import scala.collection.immutable.Map
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
 
     /**
      * Execute this IR instance, returning the output produced and the exit
@@ -71,7 +71,7 @@ trait IR {
      */
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int])
 
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Try, Success, Failure}
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -89,7 +89,7 @@ trait IR {
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : SMTLIBInterpreter
+        solver : SMTSolver
     ) : Try[Boolean]
 
     /**

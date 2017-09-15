@@ -15,9 +15,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import au.edu.mq.comp.skink.ir.{IRFunction, Choice, Trace, FailureTrace, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
-    import au.edu.mq.comp.smtlib.typedterms.TypedTerm
-    import au.edu.mq.comp.smtlib.theories.BoolTerm
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.scalallvm.assembly.AssemblySyntax.{
         Block,
         FunctionDefinition,
@@ -26,7 +26,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     }
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show => showAsm}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.SortedQId
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.Executor
     import org.scalallvm.assembly.Analyser.{metadata, filepath}
@@ -246,9 +246,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     }
 
-    import au.edu.mq.comp.smtlib.interpreters.SMTLIBInterpreter
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Try, Success, Failure}
-    import au.edu.mq.comp.smtlib.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{SSymbol, Sat, UnSat, UnKnown}
 
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -266,11 +266,11 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         post : TypedTerm[BoolTerm, Term]
     )(
         implicit
-        solver : SMTLIBInterpreter
+        solver : SMTSolver
     ) : Try[Boolean] = {
 
-        import au.edu.mq.comp.smtlib.theories.Core
-        import au.edu.mq.comp.smtlib.typedterms.{Commands}
+        import org.bitbucket.franck44.scalasmt.theories.Core
+        import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
 
         object BoolOps extends Core with Commands
         import BoolOps._
