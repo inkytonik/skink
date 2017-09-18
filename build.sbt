@@ -45,7 +45,7 @@ shellPrompt <<= (name, version) { (n, v) =>
 
 libraryDependencies ++=
     Seq (
-        "au.edu.mq.comp" %% "automat" % "0.2-SNAPSHOT",
+        "org.bitbucket.franck44.automat" %% "automat" % "1.0.0",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
