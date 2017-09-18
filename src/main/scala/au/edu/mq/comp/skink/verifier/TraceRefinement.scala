@@ -8,9 +8,9 @@ import au.edu.mq.comp.skink.SkinkConfig
  */
 class TraceRefinement(ir : IR, config : SkinkConfig) {
 
-    import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.lang.Lang
-    import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.lang.Lang
+    import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}

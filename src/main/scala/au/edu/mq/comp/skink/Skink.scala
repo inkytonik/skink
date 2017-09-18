@@ -5,10 +5,10 @@ package au.edu.mq.comp.skink
  */
 object Skink {
 
-    import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.util.DotConverter
-    import au.edu.mq.comp.dot.DOTPrettyPrinter
-    import au.edu.mq.comp.dot.DOTSyntax.{Attribute, Ident, StringLit}
+    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.util.DotConverter
+    import org.bitbucket.franck44.dot.DOTPrettyPrinter
+    import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
     import com.typesafe.scalalogging.Logger
     import org.slf4j.LoggerFactory
 

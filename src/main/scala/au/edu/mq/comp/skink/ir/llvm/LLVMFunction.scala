@@ -16,7 +16,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 class LLVMFunction(program : Program, val function : FunctionDefinition,
         config : SkinkConfig) extends Attribution with IRFunction {
 
-    import au.edu.mq.comp.automat.auto.NFA
+    import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
@@ -181,8 +181,8 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      */
     def buildNFA(function : FunctionDefinition) : NFA[String, Int] = {
 
-        import au.edu.mq.comp.automat.edge.LabDiEdge
-        import au.edu.mq.comp.automat.edge.Implicits._
+        import org.bitbucket.franck44.automat.edge.LabDiEdge
+        import org.bitbucket.franck44.automat.edge.Implicits._
 
         logger.info(s"buildNFA: $name")
 

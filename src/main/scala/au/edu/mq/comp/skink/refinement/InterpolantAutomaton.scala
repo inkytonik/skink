@@ -13,7 +13,7 @@ import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => show
 
 trait AddBackEdges extends Core with Resources {
 
-    import au.edu.mq.comp.automat.edge.Implicits._
+    import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success}
@@ -188,8 +188,8 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
 
 object InterpolantAuto extends AddBackEdges {
     //  NFA
-    import au.edu.mq.comp.automat.auto.NFA
-    import au.edu.mq.comp.automat.edge.Implicits._
+    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.edge.Implicits._
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
 
     val logger = getLogger(this.getClass)
@@ -242,7 +242,7 @@ object InterpolantAuto extends AddBackEdges {
                     linearAuto.accepting
                 )
                 //  dump the automaton if logger is enabled
-                import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+                import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
                 itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
                 itpAuto
 

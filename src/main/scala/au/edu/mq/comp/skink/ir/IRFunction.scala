@@ -5,7 +5,7 @@ package au.edu.mq.comp.skink.ir
  */
 trait IRFunction {
 
-    import au.edu.mq.comp.automat.auto.NFA
+    import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.FailureTrace
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
