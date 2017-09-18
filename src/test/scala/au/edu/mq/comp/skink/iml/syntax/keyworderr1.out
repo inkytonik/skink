@@ -1,3 +1,0 @@
-src/test/scala/au/edu/mq/comp/skink/iml/syntax/keyworderr1.iml:2:5: identifier expected
-def if(a): (b) = {
-    ^

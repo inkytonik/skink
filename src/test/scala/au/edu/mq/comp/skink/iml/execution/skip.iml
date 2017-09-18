@@ -1,6 +1,0 @@
-def main(): (r) {
-  r = 1;
-  skip;
-  print(1);
-  r = 0;
-}

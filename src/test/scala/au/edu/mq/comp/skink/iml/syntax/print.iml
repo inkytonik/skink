@@ -1,4 +1,0 @@
-def printing(a): (b) {
-  print (a);
-  print (a + b);
-}

@@ -21,7 +21,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     config =>
 
     import au.edu.mq.comp.skink.c.CFrontend
-    import au.edu.mq.comp.skink.iml.IMLFrontend
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
@@ -39,12 +38,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                 s match {
                     case List((_, List("C"))) =>
                         Right(Some(new CFrontend(config)))
-                    case List((_, List("IML"))) =>
-                        Right(Some(new IMLFrontend(config)))
                     case List((_, List("LLVM"))) =>
                         Right(Some(new LLVMFrontend(config)))
                     case List((_, _)) =>
-                        Left("expected 'frontend C, IML or LLVM'")
+                        Left("expected 'frontend C or LLVM'")
                     case _ =>
                         Right(None)
                 }
@@ -54,7 +51,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val frontend = opt[Frontend]("frontend", short = 'f',
-        descr = "The frontend to use: C (default), IML, LLVM",
+        descr = "The frontend to use: C (default), LLVM",
         default = Some(new CFrontend(config)))(frontendConverter)
 
     val integerModeConverter =

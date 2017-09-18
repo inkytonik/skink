@@ -1,4 +1,0 @@
-// Keyword as identifier
-def if(a): (b) = {
-  a = b;
-}

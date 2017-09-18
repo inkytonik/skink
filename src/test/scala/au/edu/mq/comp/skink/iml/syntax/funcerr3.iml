@@ -1,4 +1,0 @@
-// Bad argument type
-def funcerr4(a : Foo) : (b) {
-    a = 1;
-}

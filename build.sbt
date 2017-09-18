@@ -73,22 +73,6 @@ scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
 
 fork := true
 
-// Rats! setup
-
-sbtRatsSettings
-
-ratsScalaRepetitionType := Some (VectorType)
-
-ratsUseScalaOptions := true
-
-ratsUseScalaPositions := true
-
-ratsDefineASTClasses := true
-
-ratsDefinePrettyPrinter := true
-
-ratsUseKiama := 2
-
 // Assembly settings
 
 test in assembly := {}

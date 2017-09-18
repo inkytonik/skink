@@ -1,4 +1,0 @@
-// Non-associative operator
-def prederr1(a) : (b) {
-    assert (a != b != c);
-}
