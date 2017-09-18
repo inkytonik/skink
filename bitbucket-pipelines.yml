@@ -1,0 +1,10 @@
+image: inkytonik/docker-skink
+
+pipelines:
+  default:
+    - step:
+        caches:
+            - sbt
+            - ivy2
+        script:
+          - sbt test
