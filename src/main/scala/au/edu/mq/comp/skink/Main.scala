@@ -17,7 +17,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     config =>
 
     import au.edu.mq.comp.skink.c.CFrontend
-    import au.edu.mq.comp.skink.iml.IMLFrontend
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
@@ -36,8 +35,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                 s match {
                     case List((_, List("C"))) =>
                         Right(Some(new CFrontend(config)))
-                    case List((_, List("IML"))) =>
-                        Right(Some(new IMLFrontend(config)))
                     case List((_, List("LLVM"))) =>
                         Right(Some(new LLVMFrontend(config)))
                     case List((_, _)) =>
@@ -142,7 +139,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
 
-    import au.edu.mq.comp.skink.iml.IMLCompiler
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinter.{any, layout}

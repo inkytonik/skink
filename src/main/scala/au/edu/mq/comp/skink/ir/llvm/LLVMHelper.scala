@@ -89,7 +89,8 @@ object LLVMHelper {
      * Return whether or not a function is from the pthread library.
      */
     def isThreadFunction(name : String) : Boolean =
-        name.startsWith("pthread")
+        // name.startsWith("pthread")
+        name contains "pthread"
     /**
      * Return whether or not the named function is an output function.
      */
@@ -397,7 +398,7 @@ object LLVMHelper {
                     Vector(ValueArg(_, _, Named(Global(syncToken))),
                         ValueArg(_, _, _)),
                     _
-                    ) if List("pthread_mutex_init", "pthread_cond_init").contains(callName) =>
+                    ) if List("pthread_mutex_init", "\"\\@1_pthread_cond_init\"").contains(callName) =>
                     Some(List(callName, syncToken))
                 case Call(
                     _, _, _, _, _,
@@ -405,7 +406,7 @@ object LLVMHelper {
                     Vector(ValueArg(_, _, Named(Global(syncToken))),
                         ValueArg(_, _, Named(Global(returnMutex)))),
                     _
-                    ) if callName == "pthread_cond_wait" =>
+                    ) if callName == "\"\\@1_pthread_cond_wait\"" =>
                     Some(List(callName, syncToken, returnMutex))
                 case Call(
                     _, _, _, _, _,
@@ -414,7 +415,7 @@ object LLVMHelper {
                         ValueArg(_, _, Named(Local(threadNameRegister))),
                         _),
                     _
-                    ) if callName == "pthread_join" =>
+                    ) if callName == "\"\\@1_pthread_join\"" =>
                     Some(List(callName, threadNameRegister))
                 case _ =>
                     None

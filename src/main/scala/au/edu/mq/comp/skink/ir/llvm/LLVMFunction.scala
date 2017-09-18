@@ -99,10 +99,10 @@ class LLVMFunction(val functionDef : FunctionDefinition) extends Attribution wit
 
         // Return the new function
         val ret = functionDef.copy(functionBody = processedBody)
-        programLogger.info(s"* Function $name for verification:\n")
+        programLogger.info(s"* Function $name for verification [include make Thread verifiable]:\n")
         programLogger.info(show(ret))
-        programLogger.info(s"\n* AST of function $name for verification:\n\n")
-        programLogger.info(layout(any(ret)))
+        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+        programLogger.debug(layout(any(ret)))
         ret
     }
 

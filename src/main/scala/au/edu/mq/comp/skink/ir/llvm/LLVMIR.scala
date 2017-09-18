@@ -55,24 +55,49 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 new LLVMFunction(fd)
         }
 
+    /**
+     * Global (shared) variables of this program
+     */
     lazy val globalVars : Vector[GlobalVariableDefinition] =
         program.items.collect {
             case g : GlobalVariableDefinition => g
         }
 
+    /**
+     * ??
+     * @param    threadId   The thread number
+     * @param    blockName  The name of the block
+     */
     def getBlockByName(threadId : Int, blockName : String) : Block =
         functionIds.get(threadId).get.blockMap.get(blockName).get
 
+    /**
+     * The entry point function (main) in this program
+     */
     val main = functions.filter(_.name == "main").head
+
+    /**
+     * Index of each function
+     */
     var functionIds = MutableMap(0 -> main)
+
+    /**
+     * The deterministic concurrent auto associated with this program
+     */
     lazy val dca = new LLVMConcurrentAuto(this)
 
+    /**
+     * The program name
+     */
     lazy val name : String =
         filepath(metadata(program)) match {
             case Some(name) => name
             case None       => "unknown name"
         }
 
+    /**
+     * Pretty-print the program
+     */
     def show : String =
         showAsm(program, 5)
 
@@ -113,15 +138,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 BlockTrace(blocks.toList, trace)
         }
 
-    // Take a block trace and return a new block trace that includes only blocks and choices 
-    // relevant for the thread with supplied threadId
+    /**
+     * Projection of a block trace on a thread
+     *
+     * @param   threadId        The thread identifier
+     * @param   globalBlocks    The block trace to project
+     */
     def filterThreadBlocks(threadId : Int, globalBlocks : BlockTrace) : BlockTrace = {
         val blocks = globalBlocks.blocks.zip(globalBlocks.trace.choices.map(_.threadId)).filter(_._2 == threadId).map(_._1)
         BlockTrace(blocks, new Trace(globalBlocks.trace.choices.filter(_.threadId == threadId)))
     }
 
-    /*
-     * Construct the sequence of SMT terms for a given trace
+    /**
+     * Construct the sequence of logical terms for a given trace
+     *
+     * @param   trace       The trace to encode
      */
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
@@ -140,7 +171,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         val globalBuilder = new LLVMTermBuilder(globalNamer, config)
 
         // Construct a block trace of only the relevant blocks for each function and build
-        // a map of builders to be used for each unique function 
+        // a map of builders to be used for each unique function
         val funBlockTraces = functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
         val funBuilders = functionIds.map(
             f =>

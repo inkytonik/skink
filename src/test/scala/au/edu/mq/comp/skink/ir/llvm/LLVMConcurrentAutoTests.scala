@@ -1,15 +1,12 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.junit.runner.RunWith
 import org.scalatest.FunSuiteLike
-import org.scalatest.junit.JUnitRunner
 
 /**
  * Tests for the transformations on functions relating to concurrency in
  * LLVMFunction. Test structure mostly lifted from scalallvm's test suite
  * written by Tony.
  */
-@RunWith(classOf[JUnitRunner])
 class LLVMConcurrentAutoTests extends FunSuiteLike {
     import org.scalallvm.assembly.AssemblySyntax._
     import au.edu.mq.comp.skink.ir.{IR, IRFunction, Choice, Trace}
@@ -54,9 +51,68 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         assert(dca.isFinal(LLVMState(Map(0 -> "someotherlabel", 1 -> "__error.onAnyThread"), Map())))
     }
 
+}
+
+/**
+ * Tests for the synchronisations primitives relating to concurrency in
+ * LLVMFunction. Test structure mostly lifted from scalallvm's test suite
+ * written by Tony.
+ */
+class LLVMConcurrentAutoSyncTests extends FunSuiteLike {
+    import org.scalallvm.assembly.AssemblySyntax._
+    import au.edu.mq.comp.skink.ir.{IR, IRFunction, Choice, Trace}
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
+
+    /**
+     * Parse a piece of LLVM IR that is a program and return the AST nodes
+     * for the whole program, its first function, that function's first
+     * block and an analyser for the function.
+     */
+    def parseProgram(fileName : String) : (LLVMIR, LLVMFunction) = {
+        import au.edu.mq.comp.skink.SkinkConfig
+        import au.edu.mq.comp.skink.c.CFrontend
+        import org.bitbucket.inkytonik.kiama.util.Positions
+
+        val stubConfig = new SkinkConfig(List())
+        stubConfig.verify()
+        val frontend = new CFrontend(stubConfig)
+        val ir = frontend.buildIRFromFile(fileName, new Positions)
+        if (ir.isLeft) {
+            val llvmIR = ir.left.get.asInstanceOf[LLVMIR]
+            val main = llvmIR.functions.filter(_.name == "main").head
+            (llvmIR, main)
+        } else
+            fail(s"parse error: ${ir.right}")
+    }
+
     test("Synchronisation process test") {
+        import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
+        import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
+
+        import au.edu.mq.comp.dot.DOTSyntax.DotSpec
+        import au.edu.mq.comp.dot.DOTPrettyPrinter.format
+        import scala.language.postfixOps
+        import au.edu.mq.comp.dot.DOTSyntax._
+        import au.edu.mq.comp.automat.edge.{DiEdge, LabDiEdge}
+        import au.edu.mq.comp.dot.DOTPrettyPrinter
+
+        import au.edu.mq.comp.skink.Skink.{getLogger, toDotSpec}
+        import au.edu.mq.comp.automat.dpor.DPOR
+
         val (ir, main) = parseProgram("src/test/resources/llvm/sync_threads.c")
         val dca = ir.dca
+
+        val cfgLogger = getLogger(this.getClass, ".cfg")
+        cfgLogger.info(toDot(toDetNFA(dca)._1, s"${dca.name} tree"))
+
+        // dump the cfg
+        val spec = toDotSpec(toDetNFA(dca)._1, "name")
+        cfgLogger.info(DOTPrettyPrinter.show(spec))
+
+        //  log the llvm transformed file
+        val llvmLogger = getLogger(this.getClass, ".llvm")
+        llvmLogger.info(ir.show, s"${dca.name} llvm")
+
         // Traverse to state where both threads exit
         var state = dca.getInit
         for (i <- 1 until 5)
@@ -82,7 +138,7 @@ class LLVMConcurrentAutoTests extends FunSuiteLike {
         // t2 should unblock
         assert(!dca.isBlocked(ir.getBlockByName(2, "0"), state))
 
-        // t2 takes the mutex 
+        // t2 takes the mutex
         state = dca.succ(state, Choice(2, 0))
 
         // t2 should block on the condition and release the mutex immediately

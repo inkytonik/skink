@@ -74,11 +74,19 @@
         </encoder>
     </appender>
 
+    <appender name="AUTOMATFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/automat.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
     <root level="OFF">
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink" level="OFF"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
@@ -95,6 +103,10 @@
     </logger>
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
+
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAutoSyncTests" level="DEBUG">
+        <appender-ref ref="CFGFILE"/>
+    </logger>
 
     <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED">
         <appender-ref ref="SKINKFILE"/>
@@ -114,7 +126,7 @@
         <appender-ref ref="LLVMFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INFO" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkpost" level="OFF" additivity="false">
