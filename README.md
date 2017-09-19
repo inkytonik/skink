@@ -1,117 +1,125 @@
-Skink: A static verification tool
-=================================
+# Skink: A static verification tool
 
-Installation
-------------
+Skink is an automatic verification tool.
+Currently it targets C programs and programs written in the [LLVM intermediate representation](http://llvm.org/docs/LangRef.html).
+The current form of verification it implements is *error function unreachability* as defined by the [International Software Verification Competition](https://sv-comp.sosy-lab.org) (SV-COMP).
 
-Skink is distributed as a jar file but it relies on a number of external tools.  For each tool we give an example installation script (Ubuntu Trusty):
+Skink's code can be obtained by cloning the main repository:
 
-  * Java8 (`> java`) 
-    ~~~~~
-    wget --no-check-certificate https://github.com/aglover/ubuntu-equip/raw/master/equip_java8.sh && bash equip_java8.sh
-    ~~~~~
+    git clone git@bitbucket.org:inkytonik/skink.git
 
-    All the Java libraries required beyond the JDK are bundled in the `skink.jar` file
+Skink can be built and used on your local machine or in a Docker container.
+We describe the local build requirements and instructions here.
 
-  * CVC4 (`> cvc4`)
-    ~~~~~
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ unstable/' >> /etc/apt/sources.list
-    echo 'deb http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    echo 'deb-src http://cvc4.cs.nyu.edu/debian/ stable/' >> /etc/apt/sources.list
-    apt-get update
-    apt-get install -y --force-yes cvc4
-    ~~~~
-  * Clang/LLVM (`> clang-3.7` and `> opt-3.7`)
-    ~~~~~
-    apt-get install -y --force-yes clang-3.7 lldb-3.7
-    echo 'deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
-    echo 'deb-src http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main' >> /etc/apt/sources.list
-    apt-get update
-    apt-get install -y --force-yes clang-3.7 lldb-3.7
-    ~~~~~
-  * Z3
-    ~~~~~
-    export CC=clang-3.7
-    export CXX=clang++-3.7
-    git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build; make && sudo make install
-    ~~~~~
-  * SMTInterpol
-    ~~~~~
-    wget --no-check-certificate https://ultimate.informatik.uni-freiburg.de/smtinterpol/smtinterpol.jar && mv smtinterpol.jar /usr/bin/.
-    ~~~~~
+Using the Skink Docker setup is advisable if you want to run Skink on programs from the SV-COMP, check the witnesses that Skink produces, etc.
+If you want to run Skink using Docker, you will still need to build Skink locally (first section below) but you won't need to install the supporting tools since those are available in our Docker image.
+See the file `Docker.md` in the Skink repository for instructions on how to use Skink with Docker.
 
-Usage
----------
+## Building Skink
 
-  1. Set the `TMPDIR` environment variable to a writable directory (e.g. `/tmp` or `./tmp`)
-  2. Ensure `skink.jar` is in the same directory as `skink.sh`
-  3. Ensure `skink.sh` is executable.
-  3. Call `skink.sh` passing in the filename (`.i` or `.c`) of the file you wish to validate
-  3. Call `skink.sh` passing in the filename of the c file you wish to validate
+Building Skink requires a working Java installation and has been tested with Java 8.
+Downloads for Java can be found here:
 
-This will result in Skink's output appearing on STDOUT and in an `.ll`, `.verif` (and `.graphml` for failed verifications) files being created with the input file. 
+    http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
-Running `skink.sh` on path-to/file.c (or file.i) produces the following output (assuming
-the C file is successfully parsed by clang:
-- the LLVM-IR of path-to/file.c is generated in path-to/file.ll
-- `java -jar skink.jar` is run on path-to/file.ll
+To build Skink you will need the Scala build tool (sbt) which can be obtained here:
 
-- if the analysis determines that the program is correct, the following
-will appear on STDOUT:
-TRUE
+    http://www.scala-sbt.org    
 
-- if the analysis determines that the program is incorrect, the following lines
-will appear on STDOUT:
-FALSE
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml x ...
->
-<node id="n10"></node>
-<node id="n11"><data key="sink">true</data></node>
+Once Java and sbt are installed, you can build Skink as follows:
 
-</graph>
+    cd <skink repo clone>
+    sbt compile
 
-</graphml>
-and a file path-to-file.graphml that contains the witness path is generated.
+If you are only interested in running Skink using Docker, you can now go to the Docker instructions.
+Otherwise, continue here for further instructions on installing the toosl needed to run Skink directly on your local machine.    
 
-- if the analysis is inconclusive (parser error, internal error) the following lines
-will appear on STDOUT
-UNKNOWN
-<reason1>
-<reason2>
-<....>
-<....>
- 
-Example
--------
-> skink.sh tests/simple-loop_true-unreach-call.c
-TRUE
+## Supporting tools - Clang
 
-> skink.sh tests/simple-loop_false-unreach-call.c
-FALSE
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<graphml x ...>
-<node id="n10"></node>
-<node id="n11"><data key="sink">true</data></node>
+To analyse C programs Skink requires the Clang C compiler (currently version 5.0.0) which can be installed from here:
 
-</graph>
+    http://releases.llvm.org/download.html
 
-</graphml>
+## Supporting tools - SMT Solvers
 
-> skink.sh tests/simple-loop_unknown-unreach-call.c
-UNKNOWN
-Refinement failure
-Maximum number of iterations reached
+Skink uses SMT solvers to help verify the feasibility of program executions.
+Skink can use the Z3, CVC4 and SMTInterpol solvers.
+At a minimum you should install Z3 which is the default solver used by Skink.
 
-Tests
-=====
-The installation can be tested by running the test.sh script.
+Installation details for the solvers will depend on the machine and operating system you are using.
 
-> ./test.sh
- 
-Options
--------
+#### Mac OS X (using Homebrew)
 
-If the `$SKINK_DEBUG` environment variable is set to `"yes"` and `$PATH_TO_CPA_CHECKER` is set, then `skink.sh` will check the witnesses it generates against CPAchecker and will put the results in `witness_checks`
+    brew install z3
 
+#### Linux (Ubuntu)
+
+    apt-get install z3
+
+#### Windows
+
+    FIXME
+
+## Testing your Skink installation
+
+Once you have at least Z3 installed you can test your Skink installation by running some simple tests:
+
+    cd <skink repo clone>
+    sbt test
+
+All of the tests should pass.    
+
+## Running Skink via sbt
+
+You can run Skink via sbt as follows:
+
+    sbt 'run -v -w - <file.c>'
+
+where `<file.c>` is the name of the file you wish to verify.
+The `-v` option causes Skink to verify the program and the `-w -` option causes it to print a witness to standard output.
+
+For example, if you run the above command on
+
+    src/test/resources/citests/math/simple-if_false-unreach-call.c
+
+you should see something like this:
+
+    [info] Running au.edu.mq.comp.skink.Main -v -w - src/test/resources/citests/math/simple-if_false-unreach-call.c
+    [info] FALSE
+    [info] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    ...
+    [info] </graphml>
+
+where the `FALSE` indicates that Skinks believes that the program is incorrect (as expected for this program) and the rest of the output is the witness that demonstrates this fact.
+Other possibilities for the Skink output are `TRUE` which means Skink thinks the program is correct, or `UNKNOWN` which means it doesn't know.
+
+For a full list of Skink command-line options:
+
+    sbt 'run --help'
+
+Note that if you are often running Skink from sbt you will probably find it faster to run sbt in interactive mode since you won't pay for the sbt startup each time you execute a command.
+For example,
+
+    sbt
+    skink 2.0-SNAPSHOT> run -v -w - <file.c>
+
+## Skink logs
+
+If you want to see detail on what Skink is doing, consult the files that are written in the `logs` sub-directory of your Skink working directory.
+For example, `logs/C.log` contains information about the execution of the C frontend, `logs/LLVM.log` contains information about the LLVM side of things and `logs/Skink.log` contains overall information about the verification process.
+
+## Running Skink outside sbt (FIXME: check)
+
+#### Mac or Linux shell
+
+On Mac or Linux, you can also run Skink on a single C file using the `skink.sh` script.
+You first need to run
+
+    sbt assembly
+
+which builds Skink and packages it as a single Java archive.    
+Then you can run a shell command such as:
+
+    skink.sh loc <file.c>
+
+The `loc` argument means *local mode* which means it runs Skink using the Java archive created by `sbt assembly` in the current directory's `target` folder.

@@ -28,6 +28,8 @@ case $cmd in
          ;;
     dev) JAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
          ;;
+    loc) JAR=target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
+         ;;
     exp) JAR=skink_exp.jar
          ARGS="-m 300 $ARGS"
          GREPRES=`egrep "while[ ]*\([ ]*1[ ]*\)|pthread_[^\[;]*\[" $file`
