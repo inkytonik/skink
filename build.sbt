@@ -49,7 +49,7 @@ libraryDependencies ++=
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
-        "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.0.8-SNAPSHOT",
+        "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.0.9-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.4" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
         "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
@@ -72,22 +72,6 @@ scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
 // Fork runs and tests
 
 fork := true
-
-// Rats! setup
-//
-// sbtRatsSettings
-//
-// ratsScalaRepetitionType := Some (VectorType)
-//
-// ratsUseScalaOptions := true
-//
-// ratsUseScalaPositions := true
-//
-// ratsDefineASTClasses := true
-//
-// ratsDefinePrettyPrinter := true
-//
-// ratsUseKiama := 2
 
 // Assembly settings
 
