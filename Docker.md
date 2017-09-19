@@ -106,13 +106,13 @@ you can run
 
     ./bench -t Test
 
-to just run a test on those two benchmark files.    
+to just run a test on those two benchmark files.
 
 #### Run Skink on a single benchmark file
 
 If you want to investigate a single benchmark without using BenchExec, you can run
 Skink as follows:
 
-    ./skink.sh src/test/resources/citests/array-sequence_true-unreach-call.c
+    ./skink.sh dev src/test/resources/citests/math/array-sequence_true-unreach-call.c
 
-and you will see logging information, etc.  
+and you will see logging information, etc.
