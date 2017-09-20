@@ -8,7 +8,7 @@ import org.bitbucket.inkytonik.kiama.attribution.Attribution
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
  */
-case class BlockTrace(blocks : Seq[Block], trace : Trace)
+case class BlockTrace(blocks : Seq[Block], trace : Trace[Int])
 
 /**
  * Representation of an LLVM IR function from the given program.
@@ -109,7 +109,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
             terms.reduceLeft(_ & _)
     }
 
-    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+    def traceToTerms(trace : Trace[Int]) : Seq[TypedTerm[BoolTerm, Term]] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -150,7 +150,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
+    def traceToSteps(failTrace : FailureTrace[Int]) : Seq[Step] = {
 
         def blockName(block : Block) : String =
             defaultBlockName(block, funAnalyser.anonArgCount.toString)
@@ -342,7 +342,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 (None, None)
         }
 
-    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
+    def traceToRepetitions(trace : Trace[Int]) : Seq[Seq[Int]] = {
 
         val blocks = blockTrace(trace).blocks
 
@@ -376,7 +376,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+    def traceBlockEffect(trace : Trace[Int], index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
 
         // Get a tree for the relevant block
         val blocks = blockTrace(trace).blocks
@@ -402,7 +402,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
      */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
+    def traceToBlockTrace(trace : Trace[Int]) : BlockTrace = {
         val entryBlock = function.functionBody.blocks(0)
         val (finalBlock, blocks) =
             trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
@@ -420,7 +420,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
      */
-    lazy val blockTrace : Trace => BlockTrace =
+    lazy val blockTrace : Trace[Int] => BlockTrace =
         attr {
             case trace =>
                 val entryBlock = function.functionBody.blocks(0)
@@ -482,7 +482,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      */
     def checkPost(
         pre : TypedTerm[BoolTerm, Term],
-        trace : Trace,
+        trace : Trace[Int],
         index : Int,
         choice : Int,
         post : TypedTerm[BoolTerm, Term]
@@ -534,7 +534,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
-    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
+    def traceToNonDetValues(failTrace : FailureTrace[Int]) : List[NonDetCall] = {
         val blockTrace = traceToBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)

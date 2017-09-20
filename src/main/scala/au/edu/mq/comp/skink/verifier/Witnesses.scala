@@ -138,7 +138,7 @@ abstract class Witnesses(config : SkinkConfig) {
     /**
      * Generate and print a violation witness for the given function.
      */
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace)
+    def printViolationWitness(function : IRFunction, failTrace : FailureTrace[Int])
 
     /**
      * Actually output a witness text to the appropriate destination.

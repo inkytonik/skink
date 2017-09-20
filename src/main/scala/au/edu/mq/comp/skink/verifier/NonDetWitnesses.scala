@@ -11,7 +11,7 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
 
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
+    def printViolationWitness(function : IRFunction, failTrace : FailureTrace[Int]) {
         val returnedValues = function.traceToNonDetValues(failTrace)
         val numsteps = returnedValues.length
 

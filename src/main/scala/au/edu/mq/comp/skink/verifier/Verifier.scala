@@ -42,7 +42,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
             reportUnknown(s"refinement failure due to exception: ${e.getMessage()}")
         }
 
-        def reportIncorrect(failureTrace : FailureTrace) {
+        def reportIncorrect(failureTrace : FailureTrace[Int]) {
             logger.info(s"verify: ${function.name} is incorrect")
             config.output().emitln("FALSE")
             witnesses.printViolationWitness(function, failureTrace)

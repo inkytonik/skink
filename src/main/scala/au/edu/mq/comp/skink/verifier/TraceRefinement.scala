@@ -75,7 +75,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
+    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace[Int]]] = {
 
         val functionLang = Lang(function.nfa)
 
@@ -120,7 +120,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
-        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
+        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace[Int]]] = {
 
             logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))

@@ -10,7 +10,7 @@ import org.bitbucket.franck44.scalasmt.typedterms.Value
  * paths to successor blocks, the index will be 0 or 1, indicating which of
  * the possible paths was taken in the trace.
  */
-case class Trace(choices : Seq[Int]) {
+case class Trace[T](choices : Seq[T]) {
 
     /**
      * Pretty print the sequence
@@ -22,7 +22,7 @@ case class Trace(choices : Seq[Int]) {
  * A feasible trace that leads to a program failure. `values` maps ids
  * from the trace to values.
  */
-case class FailureTrace(trace : Trace, values : Map[SortedQId, Value])
+case class FailureTrace[T](trace : Trace[T], values : Map[SortedQId, Value])
 
 /**
  * A description of a step in the execution of a trace for use in witness
