@@ -33,7 +33,7 @@ trait IRFunction {
      * Edges must be labelled with choice indices. See the documentation
      * of the `Trace` type for more detail on choices.
      */
-    def nfa : NFA[String, Int]
+    def nfa : NFA[String, Choice]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for
@@ -42,7 +42,7 @@ trait IRFunction {
      * sequences collect terms that express the effect of each block
      * that appears in the trace.
      */
-    def traceToTerms(trace : Trace[Int]) : Seq[TypedTerm[BoolTerm, Term]]
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
 
     /**
      * Given a trace, return one list element for each block in that trace
@@ -54,20 +54,20 @@ trait IRFunction {
      * When comparing blocks it is the effect of that block at that point of the
      * trace that matters, not just the identity of the block.
      */
-    def traceToRepetitions(trace : Trace[Int]) : Seq[Seq[Int]]
+    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]]
 
     /**
      * Given a trace and an index of a block in that trace give the effect of that
      * block when leaving using the given choice. Also return a map from variable
      * names to the variable indices that apply at the end of the block.
      */
-    def traceBlockEffect(trace : Trace[Int], index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int])
+    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int])
 
     /**
      * Return descriptions of the steps taken by a failure trace for use
      * in witness generation.
      */
-    def traceToSteps(failTrace : FailureTrace[Int]) : Seq[Step]
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.Try
@@ -81,7 +81,7 @@ trait IRFunction {
      */
     def checkPost(
         pre : TypedTerm[BoolTerm, Term],
-        trace : Trace[Int],
+        trace : Trace,
         index : Int,
         choice : Int,
         post : TypedTerm[BoolTerm, Term]
@@ -97,6 +97,6 @@ trait IRFunction {
      * The order reflects the order in which the trace performs these calls. A
      * value returned or `None` indicates that the value is unknown.
      */
-    def traceToNonDetValues(failTrace : FailureTrace[Int]) : List[NonDetCall]
+    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
 
 }

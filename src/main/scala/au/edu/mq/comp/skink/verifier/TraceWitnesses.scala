@@ -10,7 +10,7 @@ class TraceWitnesses(config : SkinkConfig) extends Witnesses(config) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
 
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace[Int]) {
+    def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
 
         val steps = function.traceToSteps(failTrace)
         val numsteps = steps.length

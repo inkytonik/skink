@@ -282,7 +282,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     test("multiple phi insns are correctly encoded in parallel") {
 
-        import au.edu.mq.comp.skink.ir.Trace
+        import au.edu.mq.comp.skink.ir.{Trace, Choice}
 
         // In %1 coming from %1, %y should refer to the incoming %x not the
         // %x set by the first phi insn, since the phis are supposed to run
@@ -303,7 +303,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
         val Vector(func) = parseProgram(prog)
 
-        func.traceToTerms(Trace(Seq(0, 0, 0, 0))) shouldBe
+        func.traceToTerms(Trace(Seq(Choice(0, 0), Choice(0, 0), Choice(0, 0), Choice(0, 0)))) shouldBe
             Seq(
                 True(),
                 (ix1 === 0) & (iy1 === 1),

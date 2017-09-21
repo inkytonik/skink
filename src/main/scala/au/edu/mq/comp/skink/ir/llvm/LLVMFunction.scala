@@ -1,14 +1,14 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
+import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
  */
-case class BlockTrace(blocks : Seq[Block], trace : Trace[Int])
+case class BlockTrace(blocks : Seq[Block], trace : Trace)
 
 /**
  * Representation of an LLVM IR function from the given program.
@@ -56,7 +56,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     lazy val name : String =
         nameToString(function.global)
 
-    lazy val nfa : NFA[String, Int] =
+    lazy val nfa : NFA[String, Choice] =
         buildNFA(makeVerifiable)
 
     /**
@@ -109,7 +109,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
             terms.reduceLeft(_ & _)
     }
 
-    def traceToTerms(trace : Trace[Int]) : Seq[TypedTerm[BoolTerm, Term]] = {
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -139,7 +139,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                             None
                         else
                             Some(treeBlockTrace.blocks(count - 1))
-                    termBuilder.blockTerms(block, optPrevBlock, choice)
+                    termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
             }.map(termBuilder.combineTerms)
 
         // Prepend the global initialisation terms to the terms of the first block
@@ -150,7 +150,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceToSteps(failTrace : FailureTrace[Int]) : Seq[Step] = {
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
 
         def blockName(block : Block) : String =
             defaultBlockName(block, funAnalyser.anonArgCount.toString)
@@ -179,7 +179,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     /**
      * Build the Control Flow Graph NFA for the function.
      */
-    def buildNFA(function : FunctionDefinition) : NFA[String, Int] = {
+    def buildNFA(function : FunctionDefinition) : NFA[String, Choice] = {
 
         import org.bitbucket.franck44.automat.edge.LabDiEdge
         import org.bitbucket.franck44.automat.edge.Implicits._
@@ -194,28 +194,29 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         val initial = Set(blockName(blocks.head))
         val accepting = blocks.map(blockName).filter(_.startsWith("__error")).toSet
 
+        val threadId = 0
         val transitions = {
-            val buf = new ListBuffer[LabDiEdge[String, Int]]
+            val buf = new ListBuffer[LabDiEdge[String, Choice]]
             for (srcBlock <- blocks) {
                 val src = blockName(srcBlock)
                 srcBlock.metaTerminatorInstruction.terminatorInstruction match {
 
                     // Unconditional branch
                     case Branch(Label(Local(tgt))) =>
-                        buf += (src ~> tgt)(0)
+                        buf += (src ~> tgt)(Choice(threadId, 0))
 
                     // Two-sided conditional branch
                     case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                        buf += (src ~> trueTgt)(0)
-                        buf += (src ~> falseTgt)(1)
+                        buf += (src ~> trueTgt)(Choice(threadId, 0))
+                        buf += (src ~> falseTgt)(Choice(threadId, 1))
 
                     // Multi-way branch
                     case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
                         cases.zipWithIndex.foreach {
                             case (Case(_, _, Label(Local(tgt))), i) =>
-                                buf += (src ~> tgt)(i)
+                                buf += (src ~> tgt)(Choice(threadId, i))
                         }
-                        buf += (src ~> dfltTgt)(cases.length)
+                        buf += (src ~> dfltTgt)(Choice(threadId, cases.length))
 
                     // Return
                     case _ : Ret | _ : RetVoid | _ : Unreachable =>
@@ -342,7 +343,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 (None, None)
         }
 
-    def traceToRepetitions(trace : Trace[Int]) : Seq[Seq[Int]] = {
+    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
 
         val blocks = blockTrace(trace).blocks
 
@@ -376,7 +377,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceBlockEffect(trace : Trace[Int], index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
 
         // Get a tree for the relevant block
         val blocks = blockTrace(trace).blocks
@@ -402,12 +403,12 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
      */
-    def traceToBlockTrace(trace : Trace[Int]) : BlockTrace = {
+    def traceToBlockTrace(trace : Trace) : BlockTrace = {
         val entryBlock = function.functionBody.blocks(0)
         val (finalBlock, blocks) =
             trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                 case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice), blocks :+ block)
+                    (nextBlock(block, choice.branchId), blocks :+ block)
                 case ((None, blocks), choice) =>
                     (None, blocks)
             }
@@ -420,14 +421,14 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
      */
-    lazy val blockTrace : Trace[Int] => BlockTrace =
+    lazy val blockTrace : Trace => BlockTrace =
         attr {
             case trace =>
                 val entryBlock = function.functionBody.blocks(0)
                 val (finalBlock, blocks) =
                     trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                         case ((Some(block), blocks), choice) =>
-                            (nextBlock(block, choice), blocks :+ block)
+                            (nextBlock(block, choice.branchId), blocks :+ block)
                         case ((None, blocks), choice) =>
                             (None, blocks)
                     }
@@ -482,7 +483,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      */
     def checkPost(
         pre : TypedTerm[BoolTerm, Term],
-        trace : Trace[Int],
+        trace : Trace,
         index : Int,
         choice : Int,
         post : TypedTerm[BoolTerm, Term]
@@ -534,7 +535,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
-    def traceToNonDetValues(failTrace : FailureTrace[Int]) : List[NonDetCall] = {
+    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
         val blockTrace = traceToBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)

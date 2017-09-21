@@ -8,7 +8,7 @@ import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
 import org.bitbucket.franck44.scalasmt.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
 import au.edu.mq.comp.skink.ir.IRFunction
-import au.edu.mq.comp.skink.ir.{Trace}
+import au.edu.mq.comp.skink.ir.{Trace, Choice}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
 trait AddBackEdges extends Core with Resources {
@@ -37,7 +37,7 @@ trait AddBackEdges extends Core with Resources {
      *
      * @note
      */
-    def computeSafeBackEdges(function : IRFunction, choices : Seq[Int], preds : Seq[TypedTerm[BoolTerm, Term]]) = {
+    def computeSafeBackEdges(function : IRFunction, choices : Seq[Choice], preds : Seq[TypedTerm[BoolTerm, Term]]) = {
         val itpLogger = getLogger(this.getClass, ".itp")
         itpLogger.info(s"Annotations: ${preds.map(_.termDef).map(showTerm(_))}")
 
@@ -92,7 +92,7 @@ trait AddBackEdges extends Core with Resources {
                             x1,
                             Trace(choices),
                             index = j,
-                            choice = choices(i),
+                            choice = choices(i).branchId,
                             x2
                         )
                 };
@@ -113,7 +113,7 @@ trait AddBackEdges extends Core with Resources {
     }
 }
 
-case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Boolean) extends AddBackEdges with Commands {
+case class Interpolant(function : IRFunction, choices : Seq[Choice], fromEnd : Boolean) extends AddBackEdges with Commands {
 
     require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
 
@@ -141,21 +141,11 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
         itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
-            }
-        }
-
         /**
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new SMTSolver(solverFromName("Z3"), new SMTInit(List(INTERPOLANTS)))) {
+        using(new SMTSolver("Z3", new SMTInit(List(INTERPOLANTS)))) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 
@@ -199,7 +189,7 @@ object InterpolantAuto extends AddBackEdges {
     /**
      * Make a linear interpolant automaton for the given trace choices.
      */
-    def buildAutoForTrace(choices : Seq[Int]) : NFA[Int, Int] = {
+    def buildAutoForTrace(choices : Seq[Choice]) : NFA[Int, Choice] = {
         val transitions =
             for (i <- 0 until choices.length)
                 yield (i ~> (i + 1))(choices(i))
@@ -212,10 +202,10 @@ object InterpolantAuto extends AddBackEdges {
      */
     def buildInterpolantAuto(
         function : IRFunction,
-        choices : Seq[Int],
+        choices : Seq[Choice],
         iteration : Int,
         fromEnd : Boolean = false
-    ) : NFA[Int, Int] = {
+    ) : NFA[Int, Choice] = {
 
         import scala.util.{Failure, Success}
 

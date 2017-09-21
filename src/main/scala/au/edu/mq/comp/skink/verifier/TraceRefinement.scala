@@ -12,7 +12,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace, Choice}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import scala.annotation.tailrec
@@ -75,19 +75,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace[Int]]] = {
+    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
 
         val functionLang = Lang(function.nfa)
-
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
-            }
-        }
 
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
@@ -97,21 +87,21 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("CVC4"), new SMTInit(AUFNIRA, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(AUFNIRA, List(MODELS)))
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
                     }
@@ -120,7 +110,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         @tailrec
-        def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace[Int]]] = {
+        def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
@@ -138,7 +128,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case Some(choices) =>
 
                     logger.info(s"${function.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
+                    logger.debug(s"failure trace is: ${choices}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -197,6 +187,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         }
 
         // Start the refinement algorithm with no "ruled out" traces.
-        refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
+        refineRec(NFA[Int, Choice](Set(), Set(), Set()), 0)
     }
 }
