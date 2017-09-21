@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice}
+import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
@@ -56,7 +56,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     lazy val name : String =
         nameToString(function.global)
 
-    lazy val nfa : NFA[String, Choice] =
+    lazy val nfa : NFA[State, Choice] =
         buildNFA(makeVerifiable)
 
     /**
@@ -179,7 +179,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     /**
      * Build the Control Flow Graph NFA for the function.
      */
-    def buildNFA(function : FunctionDefinition) : NFA[String, Choice] = {
+    def buildNFA(function : FunctionDefinition) : NFA[State, Choice] = {
 
         import org.bitbucket.franck44.automat.edge.LabDiEdge
         import org.bitbucket.franck44.automat.edge.Implicits._
@@ -191,32 +191,38 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         // Shouldn't get LLVM function with no blocks
         assert(!blocks.isEmpty)
 
-        val initial = Set(blockName(blocks.head))
-        val accepting = blocks.map(blockName).filter(_.startsWith("__error")).toSet
-
+        //  FIXME: when threads are used this should be dynamically set?
         val threadId = 0
+
+        val initial = Set(State(Map(threadId -> blockName(blocks.head))))
+        val accepting = blocks.
+            map(blockName).
+            filter(_.startsWith("__error")).
+            map({ b => State(Map(threadId -> b)) }).
+            toSet
+
         val transitions = {
-            val buf = new ListBuffer[LabDiEdge[String, Choice]]
+            val buf = new ListBuffer[LabDiEdge[State, Choice]]
             for (srcBlock <- blocks) {
-                val src = blockName(srcBlock)
+                val src = State(Map(threadId -> blockName(srcBlock)))
                 srcBlock.metaTerminatorInstruction.terminatorInstruction match {
 
                     // Unconditional branch
                     case Branch(Label(Local(tgt))) =>
-                        buf += (src ~> tgt)(Choice(threadId, 0))
+                        buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, 0))
 
                     // Two-sided conditional branch
                     case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                        buf += (src ~> trueTgt)(Choice(threadId, 0))
-                        buf += (src ~> falseTgt)(Choice(threadId, 1))
+                        buf += (src ~> State(Map(threadId -> trueTgt)))(Choice(threadId, 0))
+                        buf += (src ~> State(Map(threadId -> falseTgt)))(Choice(threadId, 1))
 
                     // Multi-way branch
                     case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
                         cases.zipWithIndex.foreach {
                             case (Case(_, _, Label(Local(tgt))), i) =>
-                                buf += (src ~> tgt)(Choice(threadId, i))
+                                buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, i))
                         }
-                        buf += (src ~> dfltTgt)(Choice(threadId, cases.length))
+                        buf += (src ~> State(Map(threadId -> dfltTgt)))(Choice(threadId, cases.length))
 
                     // Return
                     case _ : Ret | _ : RetVoid | _ : Unreachable =>

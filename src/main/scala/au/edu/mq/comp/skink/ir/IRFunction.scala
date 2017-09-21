@@ -33,7 +33,7 @@ trait IRFunction {
      * Edges must be labelled with choice indices. See the documentation
      * of the `Trace` type for more detail on choices.
      */
-    def nfa : NFA[String, Choice]
+    def nfa : NFA[State, Choice]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for

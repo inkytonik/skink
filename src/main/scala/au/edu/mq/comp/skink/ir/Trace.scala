@@ -4,9 +4,15 @@ import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
 import org.bitbucket.franck44.scalasmt.typedterms.Value
 
 /**
+ * A State is defined by the state of each thread. E.g.  Map(0 -> "b0", 1 -> "b7")
+ * represents a state where thread 0 is in block b0 and thread 1 is in b7.
+ */
+case class State(threadLocs : Map[Int, String])
+
+/**
  * A choice is defined by the id of the program thread to which it belongs
  * and the index of the branch chosen on that thread. Eg. Choosing the
- * second branch on the main thread (with id 0) is represented by
+ * second branch (1) on the main thread (with id 0) is represented by
  * Choice(0, 1).
  */
 case class Choice(threadId : Int, branchId : Int)
