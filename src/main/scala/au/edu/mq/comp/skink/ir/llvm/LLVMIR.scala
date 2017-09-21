@@ -9,7 +9,7 @@ import org.scalallvm.assembly.AssemblySyntax.Program
  */
 class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
-    import au.edu.mq.comp.skink.ir.IRFunction
+    import au.edu.mq.comp.skink.ir.IRVerifiable
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
@@ -21,7 +21,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(ir, config.lli())
 
-    def functions : Vector[IRFunction] =
+    def functions : Vector[IRVerifiable] =
         ir.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(ir, fd, config)

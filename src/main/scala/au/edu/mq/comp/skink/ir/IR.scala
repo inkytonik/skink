@@ -16,7 +16,7 @@ trait IR {
     /**
      * Return information about the functions in this IR instance.
      */
-    def functions : Vector[IRFunction]
+    def functions : Vector[IRVerifiable]
 
     /**
      * Return a pretty-printed version of this IR instance.

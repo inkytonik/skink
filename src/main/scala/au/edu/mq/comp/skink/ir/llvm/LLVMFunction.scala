@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
+import au.edu.mq.comp.skink.ir.{IRVerifiable, Trace, Choice, State}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
@@ -14,9 +14,9 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
  * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction {
+        config : SkinkConfig) extends Attribution with IRVerifiable {
 
-    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger

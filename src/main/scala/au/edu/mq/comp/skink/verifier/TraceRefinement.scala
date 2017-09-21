@@ -12,7 +12,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace, Choice}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRVerifiable, State, Trace, Choice}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import scala.annotation.tailrec
@@ -75,7 +75,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
+    def traceRefinement(function : IRVerifiable) : Try[Option[FailureTrace]] = {
 
         val functionLang = Lang(function.nfa)
 

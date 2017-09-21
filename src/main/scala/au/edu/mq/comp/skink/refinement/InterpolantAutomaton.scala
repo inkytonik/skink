@@ -7,8 +7,8 @@ import org.bitbucket.franck44.scalasmt.interpreters.Resources
 import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
 import org.bitbucket.franck44.scalasmt.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
-import au.edu.mq.comp.skink.ir.IRFunction
-import au.edu.mq.comp.skink.ir.{Trace, Choice}
+import au.edu.mq.comp.skink.ir.IRVerifiable
+import au.edu.mq.comp.skink.ir.{Trace, State, Choice}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
 trait AddBackEdges extends Core with Resources {
@@ -37,7 +37,7 @@ trait AddBackEdges extends Core with Resources {
      *
      * @note
      */
-    def computeSafeBackEdges(function : IRFunction, choices : Seq[Choice], preds : Seq[TypedTerm[BoolTerm, Term]]) = {
+    def computeSafeBackEdges(function : IRVerifiable, choices : Seq[Choice], preds : Seq[TypedTerm[BoolTerm, Term]]) = {
         val itpLogger = getLogger(this.getClass, ".itp")
         itpLogger.info(s"Annotations: ${preds.map(_.termDef).map(showTerm(_))}")
 
@@ -113,7 +113,7 @@ trait AddBackEdges extends Core with Resources {
     }
 }
 
-case class Interpolant(function : IRFunction, choices : Seq[Choice], fromEnd : Boolean) extends AddBackEdges with Commands {
+case class Interpolant(function : IRVerifiable, choices : Seq[Choice], fromEnd : Boolean) extends AddBackEdges with Commands {
 
     require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
 
@@ -201,7 +201,7 @@ object InterpolantAuto extends AddBackEdges {
      * For now does exactly what buildAutoForTrace deos
      */
     def buildInterpolantAuto(
-        function : IRFunction,
+        function : IRVerifiable,
         choices : Seq[Choice],
         iteration : Int,
         fromEnd : Boolean = false

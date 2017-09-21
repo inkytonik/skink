@@ -8,7 +8,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 abstract class Witnesses(config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRVerifiable}
     import org.bitbucket.inkytonik.kiama.util.FileEmitter
 
     val logger = getLogger(this.getClass)
@@ -118,7 +118,7 @@ abstract class Witnesses(config : SkinkConfig) {
      * Currently outputs a dummy witness with a "true" invariant to avoid an error
      * when no correctness witness at all is produced.
      */
-    def printCorrectnessWitness(function : IRFunction) {
+    def printCorrectnessWitness(function : IRVerifiable) {
         val nodesAndEdges =
             Seq(
                 mkNode(
@@ -138,7 +138,7 @@ abstract class Witnesses(config : SkinkConfig) {
     /**
      * Generate and print a violation witness for the given function.
      */
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace)
+    def printViolationWitness(function : IRVerifiable, failTrace : FailureTrace)
 
     /**
      * Actually output a witness text to the appropriate destination.

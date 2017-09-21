@@ -10,7 +10,7 @@ import au.edu.mq.comp.skink.ir.IR
 class Verifier(ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.{NonDetWitnessFormat, TraceWitnessFormat}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRVerifiable}
     import au.edu.mq.comp.skink.Skink.getLogger
     import scala.util.{Failure, Success}
 
@@ -19,7 +19,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
     /**
      * Verify a function and output the result in SV-COMP format.
      */
-    def verify(function : IRFunction) {
+    def verify(function : IRVerifiable) {
 
         logger.info(s"verify: ${function.name}")
 
