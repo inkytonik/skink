@@ -29,7 +29,7 @@ trait AddBackEdges extends Core with Resources {
     /**
      * Provide a list of new edges that preserve infeasibility.
      *
-     * @param   function     The function to analyse
+     * @param   function    The function to analyse
      * @param   choices     An infeasible path of size n in `function` given by a sequence
      *                      of choices
      * @param   preds       Am inductive interpolants of size n - 2 (initial predicate is True and
