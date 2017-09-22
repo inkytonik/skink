@@ -1,22 +1,20 @@
-package au.edu.mq.comp.skink
+package au.edu.mq.comp.skink.ir
 
-package ir.llvm
+package llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IRVerifiable, IRFunction, Trace, Choice, State}
-import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
+
+import org.bitbucket.franck44.automat.auto.DetAuto
+import org.scalallvm.assembly.AssemblySyntax.Block
+import au.edu.mq.comp.skink.ir.{Choice}
+import scala.collection.immutable.Map
+import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
 
-/**
- * A block trace is a sequence of blocks that comprise an error trace.
- */
-case class BlockTrace(blocks : Seq[Block], trace : Trace)
+case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
 
-/**
- * Representation of an LLVM IR function from the given program.
- */
-class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction with IRVerifiable {
+class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : SkinkConfig) extends Attribution with IRVerifiable {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -58,13 +56,10 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
     lazy val name : String =
         nameToString(function.global)
 
-    val function = makeVerifiable
-
     /**
      * The verification ready NFA
      */
-    lazy val nfa : NFA[State, Choice] =
-        buildNFA(makeVerifiable)
+    lazy val nfa : DetAuto[LLVMState, Choice] = LLVMConcurrentAuto(ir, new LLVMFunction(ir.program, function, config))
 
     /**
      * Return `None` if this function is verifiable. Otherwise, return a
@@ -72,7 +67,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
      * verifiable. Currently, the only reason is that some function
      * calls have not been inlined.
      */
-    override def isVerifiable() : Option[String] = {
+    def isVerifiable() : Option[String] = {
 
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
@@ -128,7 +123,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
         val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
         // The term for the effects of program initialisation
-        val initTerm = termBuilder.initTerm(program)
+        val initTerm = termBuilder.initTerm(ir.program)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -165,7 +160,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
         traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(program, block) match {
+                    Analyser.blockPosition(ir.program, block) match {
                         case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
                             (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
                         case _ =>
@@ -182,70 +177,6 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
     }
 
     // Helper methods
-
-    /**
-     * Build the Control Flow Graph NFA for the function.
-     */
-    def buildNFA(function : FunctionDefinition) : NFA[State, Choice] = {
-
-        import org.bitbucket.franck44.automat.edge.LabDiEdge
-        import org.bitbucket.franck44.automat.edge.Implicits._
-
-        logger.info(s"buildNFA: $name")
-
-        val blocks = function.functionBody.blocks
-
-        // Shouldn't get LLVM function with no blocks
-        assert(!blocks.isEmpty)
-
-        //  FIXME: when threads are used this should be dynamically set?
-        val threadId = 0
-
-        val initial = Set(State(Map(threadId -> blockName(blocks.head))))
-        val accepting = blocks.
-            map(blockName).
-            filter(_.startsWith("__error")).
-            map({ b => State(Map(threadId -> b)) }).
-            toSet
-
-        val transitions = {
-            val buf = new ListBuffer[LabDiEdge[State, Choice]]
-            for (srcBlock <- blocks) {
-                val src = State(Map(threadId -> blockName(srcBlock)))
-                srcBlock.metaTerminatorInstruction.terminatorInstruction match {
-
-                    // Unconditional branch
-                    case Branch(Label(Local(tgt))) =>
-                        buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, 0))
-
-                    // Two-sided conditional branch
-                    case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                        buf += (src ~> State(Map(threadId -> trueTgt)))(Choice(threadId, 0))
-                        buf += (src ~> State(Map(threadId -> falseTgt)))(Choice(threadId, 1))
-
-                    // Multi-way branch
-                    case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-                        cases.zipWithIndex.foreach {
-                            case (Case(_, _, Label(Local(tgt))), i) =>
-                                buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, i))
-                        }
-                        buf += (src ~> State(Map(threadId -> dfltTgt)))(Choice(threadId, cases.length))
-
-                    // Return
-                    case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                    // Do nothing
-
-                    case i =>
-                        sys.error(s"nfa: unexpected form of terminator insn: $i")
-
-                }
-            }
-            buf.toSet
-        }
-
-        NFA(initial, transitions, accepting)
-
-    }
 
     /**
      * Prepare the IR of a function for verification and return the
@@ -279,7 +210,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    def makeVerifiable : FunctionDefinition = {
+    lazy val makeVerifiable : FunctionDefinition = {
 
         logger.info(s"makeVerifiable: $name")
 
@@ -348,7 +279,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
         source.optLineContents(line).getOrElse("").trim
 
     def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) =
-        funAnalyser.instructionPosition(program, node, metadata) match {
+        funAnalyser.instructionPosition(ir.program, node, metadata) match {
             case Some(Position(termLine, _, termSource)) =>
                 val termCode = getSourceLineText(termSource, termLine)
                 (Some(termLine), Some(termCode))
@@ -585,7 +516,6 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
                 val (optCode, optLine) = getCodeLine(call, metadata)
                 NonDetCall(tipe, value, optLine, optCode)
         }(blockTrace.blocks)
-
     }
 
     /**
@@ -595,7 +525,6 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
         trace : Seq[Choice],
         info : Option[String] = None
     ) : NFA[_, Choice] = {
-        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace, info.getOrElse("0").toInt, fromEnd = true)
+        NFA[Int, Choice](Set(), Set(), Set())
     }
-
 }

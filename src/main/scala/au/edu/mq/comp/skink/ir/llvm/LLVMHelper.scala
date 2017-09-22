@@ -301,4 +301,98 @@ object LLVMHelper {
         if (pd == Math.round(pd)) pd.toInt else -1
     }
 
+    //  Useful thread extractors
+    object PThreadType {
+        def unapply(tipe : Type) : Option[Type] =
+            tipe match {
+                case NameT(Local(name)) if name.contains("pthread") => Some(tipe)
+                case _ => None
+            }
+    }
+
+    /**
+     * Return whether or not a function is from the pthread library.
+     */
+    def isThreadFunction(name : String) : Boolean =
+        // name.startsWith("pthread")
+        name contains "pthread"
+
+    def isThreadPrimitive(use : Product) : Boolean = {
+        use match {
+            case GlobalFunctionCall(name) =>
+                isThreadFunction(name)
+            case _ =>
+                false
+        }
+    }
+    /**
+     * Big ugly extractor for function calls which might contain information about
+     * operations on Pthread synchronisation tokens.
+     *
+     * TODO: Currently assumes all init calls are constructing null (unlocked) mutexes
+     * and false conds
+     */
+    object PThreadOperation {
+        def unapplySeq(insn : MetaInstruction) : Option[Seq[String]] =
+            insn.instruction match {
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ) if List("pthread_mutex_lock", "pthread_mutex_unlock", "pthread_cond_signal").contains(callName) =>
+                    Some(List(callName, syncToken))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ) if callName == "pthread_cond_condition" =>
+                    Some(List(callName, syncToken))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))),
+                        ValueArg(_, _, _)),
+                    _
+                    ) if List("pthread_mutex_init", "\"\\@1_pthread_cond_init\"").contains(callName) =>
+                    Some(List(callName, syncToken))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))),
+                        ValueArg(_, _, Named(Global(returnMutex)))),
+                    _
+                    ) if callName == "\"\\@1_pthread_cond_wait\"" =>
+                    Some(List(callName, syncToken, returnMutex))
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(
+                        ValueArg(_, _, Named(Local(threadNameRegister))),
+                        _),
+                    _
+                    ) if callName == "\"\\@1_pthread_join\"" =>
+                    Some(List(callName, threadNameRegister))
+                case _ =>
+                    None
+            }
+    }
+
+    object GlobalFunctionCall {
+        def unapply(call : Call) : Option[String] =
+            call match {
+                case Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(name))),
+                    _, _
+                    ) =>
+                    Some(name)
+                case _ =>
+                    None
+
+            }
+
+    }
+
 }

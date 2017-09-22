@@ -9,11 +9,11 @@ import org.scalallvm.assembly.AssemblySyntax.Program
  */
 class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
-    import au.edu.mq.comp.skink.ir.IRVerifiable
+    import au.edu.mq.comp.skink.ir.IRFunction
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
-    import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
+    import org.scalallvm.assembly.AssemblySyntax.{FunctionDefinition}
     import org.scalallvm.assembly.Executor
 
     // Implementation of IR interface
@@ -21,7 +21,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     def execute() : (String, Int) =
         Executor.execute(ir, config.lli())
 
-    def functions : Vector[IRVerifiable] =
+    def functions : Vector[LLVMFunction] =
         ir.items.collect {
             case fd : FunctionDefinition =>
                 new LLVMFunction(ir, fd, config)
@@ -32,5 +32,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
         ids.sorted
+
+    def program : Program = ir
 
 }

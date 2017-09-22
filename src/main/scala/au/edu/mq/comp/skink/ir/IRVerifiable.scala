@@ -1,31 +1,19 @@
 package au.edu.mq.comp.skink.ir
 
 /**
- * Interface for an Intermediate Representation program that can be analysed.
+ * Interface for an Intermediate Representation that can be analysed.
  */
 trait IRVerifiable {
 
     import org.bitbucket.franck44.automat.auto.{DetAuto, NFA}
-    import au.edu.mq.comp.skink.ir.FailureTrace
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
 
     /**
-     * The IR-level name of this program.
+     * The IR-level name of this IR.
      */
     def name : String
-
-    /**
-     * Return `None` if this program actually is amenable to verification.
-     * A function might not be amenable to verification if some pre-processing
-     * is necessary but it didn't work. If verification is not possible, a
-     * message is returned that can be displayed to the user. By default
-     * this method always returns `None`.
-     */
-    // FIXME franck: do we need that ???
-    def isVerifiable() : Option[String] =
-        None
 
     /**
      * An NFA that represents the possible control flow of executions of
@@ -34,7 +22,7 @@ trait IRVerifiable {
      * Edges must be labelled with choice indices. See the documentation
      * of the `Trace` type for more detail on choices.
      */
-    def nfa : NFA[State, Choice]
+    def nfa : DetAuto[_, Choice]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for

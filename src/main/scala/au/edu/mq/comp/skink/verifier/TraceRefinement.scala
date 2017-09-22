@@ -105,7 +105,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def traceRefinement(function : IRVerifiable) : Try[Option[FailureTrace]] = {
 
-        cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
+        cfgLogger.debug(toDot(toDetNFA(function.nfa)._1, s"${function.name} initial"))
 
         /*
          *  The recursive definition of the trace refinement algorithm

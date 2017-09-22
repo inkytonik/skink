@@ -16,7 +16,7 @@ trait IR {
     /**
      * Return information about the functions in this IR instance.
      */
-    def functions : Vector[IRVerifiable]
+    def functions : Vector[IRFunction]
 
     /**
      * Return a pretty-printed version of this IR instance.
@@ -27,5 +27,9 @@ trait IR {
      * Sort IR ids into a useful order of display to the user.
      */
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
+
+    import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
+
+    def program : Program
 
 }
