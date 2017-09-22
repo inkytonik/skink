@@ -1,4 +1,6 @@
-package au.edu.mq.comp.skink.ir.llvm
+package au.edu.mq.comp.skink
+
+package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRVerifiable, Trace, Choice, State}
@@ -579,6 +581,16 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 NonDetCall(tipe, value, optLine, optCode)
         }(blockTrace.blocks)
 
+    }
+
+    /**
+     * Compute a refinement from a trace for this function
+     */
+    def buildRefinement(
+        trace : Seq[Choice],
+        info : Option[String] = None
+    ) : NFA[_, Choice] = {
+        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace, info.getOrElse("0").toInt, fromEnd = true)
     }
 
 }
