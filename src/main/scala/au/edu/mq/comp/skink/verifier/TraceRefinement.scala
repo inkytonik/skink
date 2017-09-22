@@ -65,9 +65,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             case _ =>
                                 (Sat(), Map())
                         }
-                    //FIXME franck: there is case with Unknown() as well.
-                    case UnKnown() => (UnKnown(), Map())
-                    case UnSat()   => (UnSat(), Map())
+                    //  Either UnSat() or UnKnown()
+                    case status => (status, Map())
                 }
         }
 
@@ -106,8 +105,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def traceRefinement(function : IRVerifiable) : Try[Option[FailureTrace]] = {
 
-        // val functionLang = Lang(function.nfa)
-
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         /*
@@ -119,10 +116,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
             logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
 
-            // (functionLang \ Lang(r)).getAcceptedTrace
             function.getErrorTrace(r) match {
 
-                // No error trace in the language, so there are no failure traces.
+                // No failure trace in the language, so there are no failure traces.
                 case None =>
                     logger.info(s"${function.name} has no failure traces")
                     Success(None)
@@ -136,7 +132,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     logger.debug(s"failure trace is: ${choices}")
 
                     /*
-                     * Get the SMTlib terms that describe the meaning of the operations
+                     * Get the ScalaSMT terms that describe the meaning of the operations
                      * that would be executed. If an empty collection of terms is returned,
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
@@ -154,7 +150,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     result match {
 
                         // Yes, feasible. We've found a way in which the program
-                        // can file. Build the failure trace and return.
+                        // can fail. Build the failure trace and return.
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)) {
