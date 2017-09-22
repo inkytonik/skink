@@ -41,7 +41,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     val cfgLogger = getLogger(this.getClass, ".cfg")
 
     /**
-     * Run the given solver to see if the given terms are satisifiable. If so,
+     * Run the given solver to see if the given terms are satisfiable. If so,
      * return `Sat()` and a map that relates ids from the terms to their values.
      * If the term is not satisfiable, return `UnSat()` and an empty map.
      */
@@ -65,8 +65,37 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             case _ =>
                                 (Sat(), Map())
                         }
-                    case r =>
-                        (r, Map())
+                    //FIXME franck: there is case with Unknown() as well.
+                    case UnKnown() => (UnKnown(), Map())
+                    case UnSat()   => (UnSat(), Map())
+                }
+        }
+
+    // Get a solver specification as per configuration options. This
+    // object creation does not spawn any process merely declare a solver
+    // type we want to use
+    private def selectedSolver =
+        config.solverMode() match {
+            case Z3SolverMode() =>
+                config.integerMode() match {
+                    case MathIntegerMode() =>
+                        new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                    case BitIntegerMode() =>
+                        new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                }
+            case CVC4SolverMode() =>
+                config.integerMode() match {
+                    case MathIntegerMode() =>
+                        new SMTSolver("CVC4", new SMTInit(AUFNIRA, List(MODELS)))
+                    case BitIntegerMode() =>
+                        new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
+                }
+            case SMTInterpolSolverMode() =>
+                config.integerMode() match {
+                    case MathIntegerMode() =>
+                        new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                    case BitIntegerMode() =>
+                        sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
                 }
         }
 
@@ -77,52 +106,28 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def traceRefinement(function : IRVerifiable) : Try[Option[FailureTrace]] = {
 
-        val functionLang = Lang(function.nfa)
-
-        // Get a solver specification as per configuration options. This
-        // object creation does not spawn any process merely declare a solver
-        // type we want to use
-        def selectedSolver =
-            config.solverMode() match {
-                case Z3SolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
-                        case BitIntegerMode() =>
-                            new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
-                    }
-                case CVC4SolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(AUFNIRA, List(MODELS)))
-                        case BitIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
-                    }
-                case SMTInterpolSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
-                        case BitIntegerMode() =>
-                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
-                    }
-            }
+        // val functionLang = Lang(function.nfa)
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
+        /*
+         *  The recursive definition of the trace refinement algorithm
+         */
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"${function.name} iteration $iteration")
             cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
 
-            (functionLang \ Lang(r)).getAcceptedTrace match {
+            // (functionLang \ Lang(r)).getAcceptedTrace
+            function.getErrorTrace(r) match {
 
-                // No accepting trace in the language, so there are no failure traces.
+                // No error trace in the language, so there are no failure traces.
                 case None =>
                     logger.info(s"${function.name} has no failure traces")
                     Success(None)
 
-                // Found a potential failure trace given by the choices. We
+                // Found a potential failure trace given by trace. We
                 // need to check if it's feasible. If so, it's a real failure.
                 // If not, refine and try again.
                 case Some(choices) =>
@@ -136,8 +141,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
-                    val trace = Trace(choices)
-                    val traceTerms = function.traceToTerms(trace)
+                    val traceTerms = function.traceToTerms(Trace(choices))
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
@@ -156,7 +160,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             for (x <- ir.sortIds(values.keys.toVector)) {
                                 logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
                             }
-                            val failTrace = FailureTrace(trace, values)
+                            val failTrace = FailureTrace(Trace(choices), values)
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program
@@ -166,14 +170,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case Success((UnSat(), _)) =>
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
-                                import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
-                                    toDetNFA(r +
-                                    (
-                                        buildInterpolantAuto(function, choices, iteration)
-                                    // +
-                                    // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
-                                    ))._1,
+                                    toDetNFA(r + function.buildRefinement(choices, Some(iteration.toString)))._1,
                                     iteration + 1
                                 )
                             } else {

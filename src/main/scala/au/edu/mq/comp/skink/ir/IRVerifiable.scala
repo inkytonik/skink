@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.ir
 
 /**
- * Interface for an Intermediate Representation program.
+ * Interface for an Intermediate Representation program that can be analysed.
  */
 trait IRVerifiable {
 
@@ -23,7 +23,7 @@ trait IRVerifiable {
      * message is returned that can be displayed to the user. By default
      * this method always returns `None`.
      */
-    // FIXME: do we need that ???
+    // FIXME franck: do we need that ???
     def isVerifiable() : Option[String] =
         None
 
@@ -99,5 +99,31 @@ trait IRVerifiable {
      * value returned or `None` indicates that the value is unknown.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
+
+    /**
+     * Build a refinement automaton from an infeasible error trace.
+     *
+     * @param   trace   A trace that is not feasible
+     * @param   info    Some text that can be used for logging
+     *
+     * @return          An automaton that accepts trace and other traces
+     *                  that are infeasible.
+     */
+    def buildRefinement(
+        trace : Seq[Choice],
+        info : Option[String] = None
+    ) : NFA[_, Choice]
+
+    /**
+     * Return an error trace if any.
+     *
+     * @param   r   A refinement
+     * @return      An error trace not in the refinement.
+     */
+    def getErrorTrace(r : NFA[_, Choice]) = {
+        import org.bitbucket.franck44.automat.lang.Lang
+
+        (Lang(nfa) \ Lang(r)).getAcceptedTrace
+    }
 
 }
