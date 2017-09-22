@@ -23,6 +23,8 @@ case class Choice(threadId : Int, branchId : Int)
  * by successor blocks given by the choices. E.g., if a block has two possible
  * paths to successor blocks, the index will be 0 or 1, indicating which of
  * the possible paths was taken in the trace.
+ * FIXME: franck: do we need to keep Trace? Seq[Choice] seems more appropriate now has
+ * some methods use Choice instead of Int.
  */
 case class Trace(choices : Seq[Choice]) {
 
