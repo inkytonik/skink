@@ -7,7 +7,7 @@ import org.scalallvm.assembly.AssemblySyntax.Program
 /**
  * Representation of LLVM IR.
  */
-class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
+class LLVMIR(val program : Program, config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
@@ -19,20 +19,18 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     // Implementation of IR interface
 
     def execute() : (String, Int) =
-        Executor.execute(ir, config.lli())
+        Executor.execute(program, config.lli())
 
     def functions : Vector[LLVMFunction] =
-        ir.items.collect {
+        program.items.collect {
             case fd : FunctionDefinition =>
-                new LLVMFunction(ir, fd, config)
+                new LLVMFunction(program, fd, config)
         }
 
     def show : String =
-        AssemblyPrettyPrinter.show(ir, 5)
+        AssemblyPrettyPrinter.show(program, 5)
 
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
         ids.sorted
-
-    def program : Program = ir
 
 }
