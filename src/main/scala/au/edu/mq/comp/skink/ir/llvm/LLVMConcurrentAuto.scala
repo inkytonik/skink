@@ -36,12 +36,6 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction) 
         functionIds.get(threadId).get.blockMap.get(blockName).get
 
     /**
-     * The verification ready NFA
-     */
-    // lazy val nfa : DetAuto[LLVMState, Choice] =
-    //     buildNFA(makeVerifiable)
-
-    /**
      * The entry point function (main) in this program
      */
     // val main = ir.functions.filter(_.name == "main").head
@@ -53,7 +47,7 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction) 
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
 
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.makeVerifiable)
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
     def blockName(block : Block) =

@@ -15,7 +15,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
+class LLVMFunction(program : Program, val function : FunctionDefinition,
         config : SkinkConfig) extends Attribution with IRFunction with IRVerifiable {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
@@ -43,7 +43,7 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
 
     // An analyser for the verifiable version of this function and its associated tree
 
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable)
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
     def blockName(block : Block) =
@@ -51,20 +51,17 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
 
     // Gather properties of the function
 
-    lazy val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
+    lazy val blockMap = Map(verifiableForm.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
 
     lazy val name : String =
         nameToString(function.global)
 
-    val function = makeVerifiable
-
     /**
      * The verification ready NFA
      */
-    lazy val nfa : NFA[State, Choice] =
-        buildNFA(makeVerifiable)
+    lazy val nfa : NFA[State, Choice] = buildNFA(verifiableForm)
 
     /**
      * Return `None` if this function is verifiable. Otherwise, return a
@@ -279,9 +276,9 @@ class LLVMFunction(program : Program, val functionDef : FunctionDefinition,
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    def makeVerifiable : FunctionDefinition = {
+    lazy val verifiableForm : FunctionDefinition = {
 
-        logger.info(s"makeVerifiable: $name")
+        logger.info(s"verifiableForm: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 

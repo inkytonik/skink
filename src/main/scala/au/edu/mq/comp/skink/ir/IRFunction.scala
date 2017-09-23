@@ -23,6 +23,6 @@ trait IRFunction extends IRVerifiable {
     def isVerifiable() : Option[String] =
         None
 
-    def makeVerifiable() : FunctionDefinition
+    val verifiableForm : FunctionDefinition
 
 }
