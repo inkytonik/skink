@@ -46,6 +46,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
+    //  Get the name of a block
     def blockName(block : Block) =
         funAnalyser.blockName(block)
 
@@ -59,7 +60,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         nameToString(function.global)
 
     /**
-     * The verification ready NFA
+     * The verification ready NFA. Built fron the verifiableForm of the function
      */
     lazy val nfa : NFA[State, Choice] = buildNFA(verifiableForm)
 

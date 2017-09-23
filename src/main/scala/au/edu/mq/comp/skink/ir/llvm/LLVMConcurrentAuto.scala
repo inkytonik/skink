@@ -10,7 +10,10 @@ import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition}
 
-case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction) extends Attribution with DetAuto[LLVMState, Choice] {
+case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
+        extends Attribution
+        with DetAuto[LLVMState, Choice] {
+
     import org.scalallvm.assembly.AssemblySyntax._
     import scala.collection.mutable.ListBuffer
     import au.edu.mq.comp.skink.Skink.getLogger
