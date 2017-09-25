@@ -116,7 +116,7 @@ object LLVMHelper {
 
     /**
      * Extractor for initialised global variable items that returns global name,
-     * type and intiial constant value.
+     * type and initial constant value.
      */
     object InitGlobalVar {
         def unapply(item : Item) : Option[(Name, Type, ConstantValue)] =
@@ -301,7 +301,11 @@ object LLVMHelper {
         if (pd == Math.round(pd)) pd.toInt else -1
     }
 
-    //  Useful thread extractors
+    //  Threads useful helpers/extractors
+
+    /**
+     *
+     */
     object PThreadType {
         def unapply(tipe : Type) : Option[Type] =
             tipe match {
@@ -311,12 +315,13 @@ object LLVMHelper {
     }
 
     /**
-     * Return whether or not a function is from the pthread library.
+     *  Return whether or not a function is from the pthread library.
      */
-    def isThreadFunction(name : String) : Boolean =
-        // name.startsWith("pthread")
-        name contains "pthread"
+    def isThreadFunction(name : String) : Boolean = name contains "pthread"
 
+    /**
+     *  Whether a block has a call to pthread library.
+     */
     def isThreadPrimitive(use : Product) : Boolean = {
         use match {
             case GlobalFunctionCall(name) =>
@@ -325,6 +330,126 @@ object LLVMHelper {
                 false
         }
     }
+
+    /**
+     * Whether an instruction is a pthread_create
+     */
+    object PThreadCreate {
+        def unapply(insn : MetaInstruction) : Option[(String, String)] =
+            insn match {
+                case MetaInstruction(
+                    Call(
+                        _, _, _, _, _,
+                        Function(Named(Global(callName))),
+                        Vector(ValueArg(_, _, Named(Local(threadName))), _, ValueArg(_, _, Named(Global(threadFn))), _),
+                        _
+                        ),
+                    _) if callName contains "pthread_create" => Some((threadName, threadFn))
+                case _ =>
+                    None
+            }
+    }
+
+    /**
+     * Whether an instruction is a pthread_exit
+     */
+    object PThreadExit {
+        def unapply(insn : MetaInstruction) : Boolean =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    _, _),
+                    _) if callName contains "pthread_exit" =>
+                    true
+
+                case _ => false
+            }
+    }
+
+    /**
+     * Whether an instruction is pthread_mutex_lock and in this case the sync token
+     */
+    object PThreadMutexLock {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ), _) if callName contains "pthread_mutex_lock" => Some(syncToken)
+                case _ => None
+            }
+    }
+
+    /**
+     * Whether an instruction is pthread_mutex_unlock and in this case the sync token
+     */
+    object PThreadMutexUnLock {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ), _) if callName contains "pthread_mutex_unlock" => Some(syncToken)
+                case _ => None
+            }
+    }
+
+    /**
+     * Whether an instruction is pthread_cond_signal and in this case the cond token
+     */
+    object PThreadCondSignal {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ), _) if callName contains "pthread_cond_signal" => Some(syncToken)
+
+                case _ => None
+            }
+    }
+
+    /**
+     * Whether an instruction is pthread_cond_condition and in this case the cond token
+     */
+    object PThreadCondCondition {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken)))),
+                    _
+                    ), _) if callName contains "pthread_cond_condition" => Some(syncToken)
+
+                case _ => None
+            }
+    }
+
+    /**
+     * Whether an instruction is pthread_mutex_init and in this case the cond token
+     */
+    object PThreadMutexInit {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))), _),
+                    _),
+                    _) if callName contains "pthread_mutex_init" => Some(syncToken)
+
+                case _ => None
+            }
+    }
+
     /**
      * Big ugly extractor for function calls which might contain information about
      * operations on Pthread synchronisation tokens.
