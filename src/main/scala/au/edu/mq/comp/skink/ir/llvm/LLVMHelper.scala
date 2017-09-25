@@ -451,6 +451,23 @@ object LLVMHelper {
     }
 
     /**
+     * Whether an instruction is pthread_cond_init and in this case the cond token
+     */
+    object PThreadCondInit {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))), _),
+                    _),
+                    _) if callName contains "pthread_cond_init" => Some(syncToken)
+
+                case _ => None
+            }
+    }
+
+    /**
      * Big ugly extractor for function calls which might contain information about
      * operations on Pthread synchronisation tokens.
      *

@@ -163,15 +163,8 @@ class LLVMHelperExtractorTests extends FunSuite with TableDrivenPropertyChecks w
     //  format: OFF
     //  Table of strings to match
     val condConditionsCalls = Table[ String , String](
-        ( "Call to pthread library"                                 , "Token"),
-        ( """|call i32 @pthread_create(
-             |  %struct._opaque_pthread_t** nonnull %4,
-             |  %struct._opaque_pthread_attr_t* null,
-             |  i8* (i8*)* nonnull @f2, i8* null) #6""".stripMargin , "4" ),
-        ( """|call i32 @pthread_create(
-             |  %struct._opaque_pthread_t** nonnull %3,
-             |  %struct._opaque_pthread_attr_t* null,
-             |  i8* (i8*)* nonnull @f1, i8* null) #6""".stripMargin , "3")
+        ( "Call to pthread library"                              , "Token"),
+        ( """|call i32 @pthread_cond_condition ??""".stripMargin , "4" )
     )
 
     //  PThreadCondCondition(_,_)
@@ -203,6 +196,29 @@ class LLVMHelperExtractorTests extends FunSuite with TableDrivenPropertyChecks w
         test(s"The call to: $callName - should match PThreadMutexInit") {
             parseMetaInst(callName) should matchPattern {
                 case PThreadMutexInit(token) if (token == expectedToken) =>
+            }
+
+        }
+    }
+
+    //  format: OFF
+    //  Table of strings to match
+    val condInitCalls = Table[ String, String ](
+        ( "Call to pthread library"                                           , "Token"),
+        ( """|tail call i32 @"\01_pthread_cond_init"(
+             |  %struct._opaque_pthread_cond_t* nonnull @five,
+             |  %struct._opaque_pthread_condattr_t* null) #5""".stripMargin   ,  "five"),
+        ( """|tail call i32 @pthread_cond_init(
+             |  %struct._opaque_pthread_cond_t* nonnull @five,
+             |  %struct._opaque_pthread_condattr_t* null) #5""".stripMargin   ,  "five")
+
+    )
+
+    //  PThreadCondInit(_)
+    for ((callName, expectedToken) ← condInitCalls) {
+        test(s"The call to: $callName - should match PThreadCondInit") {
+            parseMetaInst(callName) should matchPattern {
+                case PThreadCondInit(token) if (token == expectedToken) =>
             }
 
         }
