@@ -87,43 +87,44 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
     }
 
     /**
-     *  Whether
+     *  FIXME: Whether what??
      */
     def isBlocked(block : Block, state : LLVMState) : Boolean = {
-        //
+        //  Thread instructions in the block
         val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
 
         if (threadInsns.length != 0) {
             // We should have at most one thread primitive per block
+            //  FIXME franck: move this test somewhere else so that we can assume this is OK
             assert(threadInsns.length == 1)
 
+            //  By construction first instruction in threadInsn is a thread operation
             logger.debug(s"isBlocked: checking if ${show(threadInsns.head._1)} is blocking with tokens ${state.syncTokens}")
             threadInsns.head match {
-                case (PThreadOperation(callName, syncToken), i) => callName match {
-                    case "pthread_mutex_lock" => state.syncTokens.get(syncToken).getOrElse(false)
-                    case "pthread_join" => {
-                        val threadName = block.optMetaInstructions(i - 1).instruction match {
-                            case Load(Binding(Local(registerName)), _, _, _, Named(Local(threadName)), _) => threadName
-                            case _ => sys.error("Couldn't get threadName for join")
-                        }
-                        val threadId = seenThreads.get(threadName).getOrElse(-1)
-                        val syncThreadBlock = state.threadLocs.get(threadId)
-                        syncThreadBlock match {
-                            case Some(blockName) => !isExitBlock(getBlockByName(threadId, blockName))
-                            case None            => true
-                        }
+                case (PThreadMutexLock(syncToken), _) => state.syncTokens.get(syncToken).getOrElse(false)
+
+                case (PThreadJoin(syncToken), i) =>
+                    //  pthread_join,
+                    // case "pthread_mutex_lock" => state.syncTokens.get(syncToken).getOrElse(false)
+                    val threadName = block.optMetaInstructions(i - 1).instruction match {
+                        case Load(Binding(Local(registerName)), _, _, _, Named(Local(threadName)), _) => threadName
+                        case _ => sys.error("Couldn't get threadName for join")
                     }
-                    case _ => false
-                }
-                case (PThreadOperation(callName, syncToken, returnMutex), _) => callName match {
+                    val threadId = seenThreads.get(threadName).getOrElse(-1)
+                    val syncThreadBlock = state.threadLocs.get(threadId)
+                    syncThreadBlock match {
+                        case Some(blockName) => !isExitBlock(getBlockByName(threadId, blockName))
+                        case None            => true
+                    }
+
+                case (PThreadCondWait((syncToken, returnMutex)), _) =>
                     // If the condition we are waiting on is false or not set (shouldn't happen)
                     // we release the mutex we were holding and block or else we're unblocked.
-                    case "pthread_cond_wait" =>
-                        !state.syncTokens.get(syncToken).getOrElse(false) ||
-                            state.syncTokens.get(returnMutex).getOrElse(true)
-                    case _ => false
-                }
+                    !state.syncTokens.get(syncToken).getOrElse(false) ||
+                        state.syncTokens.get(returnMutex).getOrElse(true)
+
                 case _ => false
+
             }
         } else {
             false
