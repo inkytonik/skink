@@ -223,4 +223,27 @@ class LLVMHelperExtractorTests extends FunSuite with TableDrivenPropertyChecks w
 
         }
     }
+
+    //  format: OFF
+    //  Table of strings to match
+    val condWaitCalls = Table[ String, (String, String) ](
+        ( "Call to pthread library"                                             , "Token/returnMutex"),
+        ( """|tail call i32 @"\01_pthread_cond_wait"(
+             |  %struct._opaque_pthread_cond_t* nonnull @five,
+             |  %struct._opaque_pthread_mutex_t* nonnull @m) #5""".stripMargin  ,  ("five", "m")),
+        ( """|tail call i32 @pthread_cond_wait(
+             |  %struct._opaque_pthread_cond_t* nonnull @five,
+             |  %struct._opaque_pthread_mutex_t* nonnull @m) #5""".stripMargin  ,  ("five", "m"))
+    )
+
+    //  PThreadCondWait(_)
+    for ((callName, expectedTokenReturnMutex) ← condWaitCalls) {
+        test(s"The call to: $callName - should match PThreadCondWait") {
+            parseMetaInst(callName) should matchPattern {
+                case PThreadCondWait ((token, returnMutex))
+                    if ((token, returnMutex) == expectedTokenReturnMutex) =>
+            }
+
+        }
+    }
 }

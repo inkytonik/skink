@@ -468,6 +468,25 @@ object LLVMHelper {
     }
 
     /**
+     * Whether an instruction is pthread_cond_wait and in this case the cond token
+     */
+    object PThreadCondWait {
+        def unapply(insn : MetaInstruction) : Option[(String, String)] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(ValueArg(_, _, Named(Global(syncToken))),
+                        ValueArg(_, _, Named(Global(returnMutex)))),
+                    _
+                    ),
+                    _) if callName contains "pthread_cond_wait" => Some((syncToken, returnMutex))
+
+                case _ => None
+            }
+    }
+
+    /**
      * Big ugly extractor for function calls which might contain information about
      * operations on Pthread synchronisation tokens.
      *
