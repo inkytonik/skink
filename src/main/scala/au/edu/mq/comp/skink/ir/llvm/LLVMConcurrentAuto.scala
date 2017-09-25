@@ -53,12 +53,14 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
+    //  Get the name of a block
     def blockName(block : Block) =
         funAnalyser.blockName(block)
 
-    def getInit : LLVMState = LLVMState(Map(0 -> blockName(main.function.functionBody.blocks.head)), Map())
-
     def getFunctionById(threadId : Int) : Option[LLVMFunction] = functionIds.get(threadId)
+
+    //  Implementation of DetAuto interface
+    def getInit = LLVMState(Map(0 -> blockName(main.function.functionBody.blocks.head)), Map())
 
     def isFinal(state : LLVMState) : Boolean = state.threadLocs.values.filter(_.contains("__error")).toVector.length != 0
 
@@ -66,19 +68,29 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
 
     def acceptsNone(state : LLVMState) : Boolean = false
 
+    //  Properties of blocks
+
+    /**
+     * Whether a block is a return (function call) or a pthread_exit
+     */
     def isExitBlock(block : Block) : Boolean = {
-        logger.debug(s"checking if ${blockName(block)} is exit block")
+        logger.debug(s"checking if ${blockName(block)} is an exit block")
         block.metaTerminatorInstruction.terminatorInstruction match {
             case _ : Ret | _ : RetVoid => return true
             case _                     => // Do nothing
         }
         val exitInsns = block.optMetaInstructions.collect {
-            case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
+            case PThreadExit() => true
+            // case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
         }
         false
     }
 
+    /**
+     *  Whether
+     */
     def isBlocked(block : Block, state : LLVMState) : Boolean = {
+        //
         val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
 
         if (threadInsns.length != 0) {
