@@ -246,4 +246,25 @@ class LLVMHelperExtractorTests extends FunSuite with TableDrivenPropertyChecks w
 
         }
     }
+
+    //  format: OFF
+    //  Table of strings to match
+    val joinCalls = Table[ String, String ](
+        ( "Call to pthread library"                                             , "Token"),
+        ( """|call i32 @"\01_pthread_join"(
+             |  %struct._opaque_pthread_t* %11, i8** null) #5""".stripMargin    ,  "11"),
+        ( """|call i32 @pthread_join(
+             |  %struct._opaque_pthread_t* %11, i8** null) #5""".stripMargin    ,  "11")
+    )
+
+    //  PThreadJoin(_)
+    for ((callName, expectedToken) ← joinCalls) {
+        test(s"The call to: $callName - should match PThreadJoin") {
+            parseMetaInst(callName) should matchPattern {
+                case PThreadJoin (token)
+                    if ( token == expectedToken) =>
+            }
+
+        }
+    }
 }

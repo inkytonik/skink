@@ -487,6 +487,26 @@ object LLVMHelper {
     }
 
     /**
+     * Whether an instruction is pthread_joint and in this case the cond token
+     */
+    object PThreadJoin {
+        def unapply(insn : MetaInstruction) : Option[String] =
+            insn match {
+                case MetaInstruction(Call(
+                    _, _, _, _, _,
+                    Function(Named(Global(callName))),
+                    Vector(
+                        ValueArg(_, _, Named(Local(threadNameRegister))),
+                        _),
+                    _
+                    ),
+                    _) if callName contains "pthread_join" => Some(threadNameRegister)
+
+                case _ => None
+            }
+    }
+
+    /**
      * Big ugly extractor for function calls which might contain information about
      * operations on Pthread synchronisation tokens.
      *
