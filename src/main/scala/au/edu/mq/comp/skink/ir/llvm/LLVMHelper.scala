@@ -332,7 +332,8 @@ object LLVMHelper {
     }
 
     /**
-     * Whether an instruction is a pthread_create
+     * Whether an instruction is a pthread_create and in this case
+     * the threadId and threadFn (entry point)
      */
     object PThreadCreate {
         def unapply(insn : MetaInstruction) : Option[(String, String)] =
@@ -434,7 +435,7 @@ object LLVMHelper {
     }
 
     /**
-     * Whether an instruction is pthread_mutex_init and in this case the cond token
+     * Whether an instruction is pthread_mutex_init and in this case the sync token
      */
     object PThreadMutexInit {
         def unapply(insn : MetaInstruction) : Option[String] =
@@ -468,7 +469,7 @@ object LLVMHelper {
     }
 
     /**
-     * Whether an instruction is pthread_cond_wait and in this case the cond token
+     * Whether an instruction is pthread_cond_wait and in this case the cond and mutex tokens
      */
     object PThreadCondWait {
         def unapply(insn : MetaInstruction) : Option[(String, String)] =
@@ -487,7 +488,7 @@ object LLVMHelper {
     }
 
     /**
-     * Whether an instruction is pthread_joint and in this case the cond token
+     * Whether an instruction is pthread_join and in this case the sync token
      */
     object PThreadJoin {
         def unapply(insn : MetaInstruction) : Option[String] =
@@ -506,6 +507,9 @@ object LLVMHelper {
             }
     }
 
+    /**
+     * Whether an instruction is global fun call
+     */
     object GlobalFunctionCall {
         def unapply(call : Call) : Option[String] =
             call match {
