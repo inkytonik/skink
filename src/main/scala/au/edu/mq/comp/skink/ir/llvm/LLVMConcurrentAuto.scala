@@ -105,7 +105,6 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
 
                 case (PThreadJoin(syncToken), i) =>
                     //  pthread_join,
-                    // case "pthread_mutex_lock" => state.syncTokens.get(syncToken).getOrElse(false)
                     val threadName = block.optMetaInstructions(i - 1).instruction match {
                         case Load(Binding(Local(registerName)), _, _, _, Named(Local(threadName)), _) => threadName
                         case _ => sys.error("Couldn't get threadName for join")
@@ -241,24 +240,19 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
             assert(threadInsns.length == 1)
             logger.debug(s"outSyncEffects: checking effect of ${show(threadInsns.head)}")
             newSyncTokens = threadInsns.head match {
-                case PThreadOperation(callName, syncToken) => callName match {
-                    case "pthread_cond_init"    => syncTokens + (syncToken -> false)
-                    case "pthread_mutex_init"   => syncTokens + (syncToken -> false)
-                    case "pthread_mutex_lock"   => syncTokens + (syncToken -> true)
-                    case "pthread_mutex_unlock" => syncTokens + (syncToken -> false)
-                    case "pthread_cond_signal"  => syncTokens + (syncToken -> true)
-                    case _                      => syncTokens
-                }
-                case PThreadOperation(callName, syncToken, returnMutex) => callName match {
-                    case "pthread_cond_wait" => {
-                        // We must be unblocked in order to exit a wait block, so we
-                        // assert that our condition is true and that the mutex is free
-                        assert(syncTokens.get(syncToken).getOrElse(false))
-                        assert(!syncTokens.get(returnMutex).getOrElse(true))
-                        syncTokens + (returnMutex -> true)
-                    }
-                    case _ => syncTokens
-                }
+                case PThreadCondInit(syncToken)    => syncTokens + (syncToken -> false)
+                case PThreadMutexInit(syncToken)   => syncTokens + (syncToken -> false)
+                case PThreadMutexLock(syncToken)   => syncTokens + (syncToken -> true)
+                case PThreadMutexUnLock(syncToken) => syncTokens + (syncToken -> false)
+                case PThreadCondSignal(syncToken)  => syncTokens + (syncToken -> true)
+
+                case PThreadCondWait(syncToken, returnMutex) =>
+                    // We must be unblocked in order to exit a wait block, so we
+                    // assert that our condition is true and that the mutex is free
+                    assert(syncTokens.get(syncToken).getOrElse(false))
+                    assert(!syncTokens.get(returnMutex).getOrElse(true))
+                    syncTokens + (returnMutex -> true)
+
                 case _ => {
                     logger.debug(s"outSyncEffects: ignoring thread operation")
                     syncTokens
@@ -277,21 +271,13 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
             // We should have atmost one thread primitive per block
             assert(threadInsns.length == 1)
             newSyncTokens = threadInsns.head match {
-                case PThreadOperation(callName, syncToken, returnMutex) => callName match {
+                case PThreadCondWait(syncToken, returnMutex) if (!syncTokens.get(syncToken).getOrElse(true)) =>
                     // When we arrive in a thread with a wait call in it, we need to decide
                     // if we should release the mutex in order to block, or hold it as
                     // we are unblocked.
-                    case "pthread_cond_wait" => {
-                        // We need to be holding the mutex associated with this wait call
-                        assert(syncTokens.get(returnMutex).get)
-                        // If we are going to block, we need to give back the mutex
-                        if (!syncTokens.get(syncToken).getOrElse(true))
-                            syncTokens + (returnMutex -> false)
-                        // Else if we're unblocked, we hold it
-                        else
-                            syncTokens
-                    }
-                }
+                    // assert(syncTokens.get(returnMutex).get)
+                    syncTokens + (returnMutex -> false)
+
                 case _ => {
                     logger.debug(s"inSyncEffects: ignoring thread operation")
                     syncTokens
