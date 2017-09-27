@@ -2,17 +2,18 @@ package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.ir.IR
 import au.edu.mq.comp.skink.SkinkConfig
+// import au.edu.mq.comp.skink.verifier.Verifiable
 
 /**
  * Implementation of the trace refinement process.
  */
-class TraceRefinement(ir : IR, config : SkinkConfig) {
+class TraceRefinement(config : SkinkConfig) {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, IRVerifiable, State, Trace, Choice}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, State, Trace, Choice}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import scala.annotation.tailrec
@@ -103,9 +104,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : IRVerifiable) : Try[Option[FailureTrace]] = {
+    def traceRefinement(function : Verifiable) : Try[Option[FailureTrace]] = {
 
-        cfgLogger.debug(toDot(toDetNFA(function.nfa)._1, s"${function.name} initial"))
+        // cfgLogger.debug(toDot(toDetNFA(function.nfa)._1, s"${function.name} initial"))
 
         /*
          *  The recursive definition of the trace refinement algorithm
@@ -114,7 +115,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
             logger.info(s"${function.name} iteration $iteration")
-            cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
+            // cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
 
             function.getErrorTrace(r) match {
 
@@ -126,10 +127,10 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 // Found a potential failure trace given by trace. We
                 // need to check if it's feasible. If so, it's a real failure.
                 // If not, refine and try again.
-                case Some(choices) =>
+                case Some(trace) =>
 
                     logger.info(s"${function.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${choices}")
+                    logger.debug(s"failure trace is: ${trace}")
 
                     /*
                      * Get the ScalaSMT terms that describe the meaning of the operations
@@ -137,7 +138,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
-                    val traceTerms = function.traceToTerms(Trace(choices))
+                    val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
@@ -152,11 +153,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // Yes, feasible. We've found a way in which the program
                         // can fail. Build the failure trace and return.
                         case Success((Sat(), values)) =>
-                            logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- ir.sortIds(values.keys.toVector)) {
-                                logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
-                            }
-                            val failTrace = FailureTrace(Trace(choices), values)
+                            // logger.info(s"failure trace is feasible, program is incorrect")
+                            // for (x <- ir.sortIds(values.keys.toVector)) {
+                            //     logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
+                            // }
+                            val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
 
                         // No, infeasible. That trace can't occur in a program
@@ -167,7 +168,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 refineRec(
-                                    toDetNFA(r + function.buildRefinement(choices, Some(iteration.toString)))._1,
+                                    toDetNFA(r + function.buildRefinement(trace, Some(iteration.toString)))._1,
                                     iteration + 1
                                 )
                             } else {

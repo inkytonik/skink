@@ -1,11 +1,8 @@
 package au.edu.mq.comp.skink.ir
 
-/**
- * Interface for an Intermediate Representation function.
- */
-trait IRFunction {
+trait IRMultiThread {
 
-    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.auto.DetAuto
     import au.edu.mq.comp.skink.ir.FailureTrace
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
@@ -33,7 +30,7 @@ trait IRFunction {
      * Edges must be labelled with choice indices. See the documentation
      * of the `Trace` type for more detail on choices.
      */
-    def nfa : NFA[_, Choice]
+    def nfa : DetAuto[_, Choice]
 
     /**
      * Return SMTlib terms that express the effect of the given trace for
@@ -98,5 +95,4 @@ trait IRFunction {
      * value returned or `None` indicates that the value is unknown.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
-
 }

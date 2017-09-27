@@ -3,7 +3,8 @@ package au.edu.mq.comp.skink
 package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IRVerifiable, IRFunction, Trace, Choice, State}
+import au.edu.mq.comp.skink.verifier.{Verifiable}
+import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
@@ -16,7 +17,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
  * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction with IRVerifiable {
+        config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -584,16 +585,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 NonDetCall(tipe, value, optLine, optCode)
         }(blockTrace.blocks)
 
-    }
-
-    /**
-     * Compute a refinement from a trace for this function
-     */
-    def buildRefinement(
-        trace : Seq[Choice],
-        info : Option[String] = None
-    ) : NFA[_, Choice] = {
-        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace, info.getOrElse("0").toInt, fromEnd = true)
     }
 
 }

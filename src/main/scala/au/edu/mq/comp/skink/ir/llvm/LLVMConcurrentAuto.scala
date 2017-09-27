@@ -3,14 +3,14 @@ package au.edu.mq.comp.skink.ir
 package llvm
 
 import org.bitbucket.franck44.automat.auto.DetAuto
-import org.scalallvm.assembly.AssemblySyntax.Block
+import org.scalallvm.assembly.AssemblySyntax.{Block, Program}
 import au.edu.mq.comp.skink.ir.{Choice}
 import scala.collection.immutable.Map
 import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition}
 
-case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
+case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
         extends Attribution
         with DetAuto[LLVMState, Choice] {
 
@@ -23,6 +23,7 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
     private val logger = getLogger(this.getClass)
     private var threadCount = 0
     private var seenThreads = MutableMap[String, Int]()
+
     val name : String = main.name
 
     /**
@@ -215,7 +216,8 @@ case class LLVMConcurrentAuto(private val ir : LLVMIR, val main : LLVMFunction)
             assert(threadInfo.length == 1)
             val (threadName, threadFn) = threadInfo.head
             logger.debug(s"Discovered a new thread with id $threadName and function $threadFn")
-            val threadIRFn = ir.functions.filter(_.name == threadFn).head
+            //  FIX that ugly asInstanceOf
+            val threadIRFn : LLVMFunction = ir.functions.filter(_.name == threadFn).head.asInstanceOf[LLVMFunction]
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
             val newThreadId = if (!seenThreads.isDefinedAt(threadName)) {
                 logger.debug(s"Discovered a new thread with name $threadName and function $threadFn")

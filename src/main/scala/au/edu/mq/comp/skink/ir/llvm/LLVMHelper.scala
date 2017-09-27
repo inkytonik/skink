@@ -107,7 +107,7 @@ object LLVMHelper {
         def unapply(fn : Function) : Option[String] =
             fn match {
                 case Function(Named(Global(s))) if isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
-                    isOutputFunction(s) =>
+                    isOutputFunction(s) || isThreadFunction(s) =>
                     Some(s)
                 case _ =>
                     None

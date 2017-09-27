@@ -4,9 +4,9 @@ package llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 
+import au.edu.mq.comp.skink.verifier.Verifiable
 import org.bitbucket.franck44.automat.auto.DetAuto
 import org.scalallvm.assembly.AssemblySyntax.Block
-import au.edu.mq.comp.skink.ir.{Choice}
 import scala.collection.immutable.Map
 import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
@@ -14,7 +14,8 @@ import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Progr
 
 case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
 
-class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : SkinkConfig) extends Attribution with IRVerifiable {
+class LLVMMultiThread(ir : IR, config : SkinkConfig)
+        extends Attribution with IRMultiThread {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -41,25 +42,28 @@ class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : S
 
     // An analyser for the verifiable version of this function and its associated tree
 
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable)
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](ir.main.makeVerifiable)
     lazy val funAnalyser = new Analyser(funTree)
 
-    def blockName(block : Block) =
-        funAnalyser.blockName(block)
+    // def blockName(block : Block) =
+    //     funAnalyser.blockName(block)
+
+    //  get main from ir.functions
+    val main = ir.functions.find(_.name == "main").get.asInstanceOf[LLVMFunction]
 
     // Gather properties of the function
 
-    lazy val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
+    // lazy val blockMap = Map(makeVerifiable.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
     // Implementation of IRFunction interface
 
-    lazy val name : String =
-        nameToString(function.global)
+    lazy val name : String = "name" //ir.program.name
+    // nameToString(function.global)
 
     /**
      * The verification ready NFA
      */
-    lazy val nfa : DetAuto[LLVMState, Choice] = LLVMConcurrentAuto(ir, new LLVMFunction(ir.program, function, config))
+    lazy val nfa : DetAuto[LLVMState, Choice] = new LLVMConcurrentAuto(ir, main)
 
     /**
      * Return `None` if this function is verifiable. Otherwise, return a
@@ -69,6 +73,7 @@ class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : S
      */
     def isVerifiable() : Option[String] = {
 
+        //  nonInlinedCall except IgnoredFunction
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
             insn match {
@@ -82,12 +87,19 @@ class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : S
             }
         }
 
+        //  Set of entry point functions ie. argument of pthread_create
+        //  TODO: test it!!
+        def entryPointFunctions : Set[LLVMFunction] = Set()
+
+        //  nonInlinedCall in a block
         def nonInlinedCalls(block : Block) : Vector[String] =
             block.optMetaInstructions.flatMap(nonInlinedCall)
 
+        //  Names of the non properly inlined calls
         def nonInlinedCallNames : Set[String] =
-            function.functionBody.blocks.map(nonInlinedCalls).flatten.toSet
+            entryPointFunctions.flatMap(_.function.functionBody.blocks.map(nonInlinedCalls).flatten.toSet)
 
+        //  If one entry point is not inlined, not verifiable
         if (nonInlinedCallNames.isEmpty)
             None
         else
@@ -178,102 +190,102 @@ class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : S
 
     // Helper methods
 
-    /**
-     * Prepare the IR of a function for verification and return the
-     * new IR form. The transformation is:
-     *
-     * Replace blocks that contain a call to the __VERIFIER_error
-     * function after an assertion has failed to a branch to a
-     * __error block. In detail, look for a block of this form
-     *
-     * ; <label>:14
-     *   <insns1>
-     *   call void (...) @__VERIFIER_error() #4
-     *   <insns2>
-     *   <terminator>
-     *
-     * and replace it with one of this form
-     *
-     * ; <label>:14
-     *   <insns1>
-     *   br label __error.14 #4
-     *
-     * And the error block
-     *
-     *  __error.14:
-     *   call void (...) @__VERIFIER_error() #4
-     *   <insns2>
-     *   <terminator>
-     *
-     * The metadata from the call is transferred to the new branch so it can
-     * recovered later during reporting.
-     *
-     * Blocks that don't contain a call to __VERIFIER_error are left alone.
-     */
-    lazy val makeVerifiable : FunctionDefinition = {
-
-        logger.info(s"makeVerifiable: $name")
-
-        val errorBlocks = new ListBuffer[Block]()
-
-        def makeErrorLabel(label : OptBlockLabel) : String =
-            label match {
-                case BlockLabel(label) =>
-                    s"__error.$label"
-                case ImplicitLabel(num) =>
-                    s"__error.$num"
-                case NoLabel() =>
-                    s"__error.nolabel"
-            }
-
-        def isNotErrorCall(insn : MetaInstruction) : Boolean =
-            insn match {
-                case MetaInstruction(
-                    Call(
-                        _, _, _, _, _,
-                        VerifierFunction(Global("__VERIFIER_error")),
-                        _, _
-                        ),
-                    _
-                    ) =>
-                    false
-                case _ =>
-                    true
-            }
-
-        def replaceErrorCalls(block : Block) : Block = {
-            val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
-            if (after.isEmpty)
-                block
-            else {
-                val errorLabel = makeErrorLabel(block.optBlockLabel)
-                val errorBlock =
-                    Block(BlockLabel(errorLabel), Vector(), None, after,
-                        block.metaTerminatorInstruction)
-                errorBlocks += errorBlock
-                Block(block.optBlockLabel, Vector(), None, before,
-                    MetaTerminatorInstruction(
-                        Branch(Label(Local(errorLabel))),
-                        Metadata(Vector())
-                    ))
-            }
-        }
-
-        val functionBodyWithProcessedBlocks =
-            function.functionBody.blocks.map(replaceErrorCalls)
-
-        val functionBodyWithErrorBlock =
-            FunctionBody(functionBodyWithProcessedBlocks ++ errorBlocks)
-
-        // Return the new function
-        val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-        programLogger.debug(s"* Function $name for verification:\n")
-        programLogger.debug(show(ret))
-        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
-        programLogger.debug(layout(any(ret)))
-        ret
-
-    }
+    // /**
+    //  * Prepare the IR of a function for verification and return the
+    //  * new IR form. The transformation is:
+    //  *
+    //  * Replace blocks that contain a call to the __VERIFIER_error
+    //  * function after an assertion has failed to a branch to a
+    //  * __error block. In detail, look for a block of this form
+    //  *
+    //  * ; <label>:14
+    //  *   <insns1>
+    //  *   call void (...) @__VERIFIER_error() #4
+    //  *   <insns2>
+    //  *   <terminator>
+    //  *
+    //  * and replace it with one of this form
+    //  *
+    //  * ; <label>:14
+    //  *   <insns1>
+    //  *   br label __error.14 #4
+    //  *
+    //  * And the error block
+    //  *
+    //  *  __error.14:
+    //  *   call void (...) @__VERIFIER_error() #4
+    //  *   <insns2>
+    //  *   <terminator>
+    //  *
+    //  * The metadata from the call is transferred to the new branch so it can
+    //  * recovered later during reporting.
+    //  *
+    //  * Blocks that don't contain a call to __VERIFIER_error are left alone.
+    //  */
+    // lazy val makeVerifiable : FunctionDefinition = {
+    //
+    //     logger.info(s"makeVerifiable: $name")
+    //
+    //     val errorBlocks = new ListBuffer[Block]()
+    //
+    //     def makeErrorLabel(label : OptBlockLabel) : String =
+    //         label match {
+    //             case BlockLabel(label) =>
+    //                 s"__error.$label"
+    //             case ImplicitLabel(num) =>
+    //                 s"__error.$num"
+    //             case NoLabel() =>
+    //                 s"__error.nolabel"
+    //         }
+    //
+    //     def isNotErrorCall(insn : MetaInstruction) : Boolean =
+    //         insn match {
+    //             case MetaInstruction(
+    //                 Call(
+    //                     _, _, _, _, _,
+    //                     VerifierFunction(Global("__VERIFIER_error")),
+    //                     _, _
+    //                     ),
+    //                 _
+    //                 ) =>
+    //                 false
+    //             case _ =>
+    //                 true
+    //         }
+    //
+    //     def replaceErrorCalls(block : Block) : Block = {
+    //         val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
+    //         if (after.isEmpty)
+    //             block
+    //         else {
+    //             val errorLabel = makeErrorLabel(block.optBlockLabel)
+    //             val errorBlock =
+    //                 Block(BlockLabel(errorLabel), Vector(), None, after,
+    //                     block.metaTerminatorInstruction)
+    //             errorBlocks += errorBlock
+    //             Block(block.optBlockLabel, Vector(), None, before,
+    //                 MetaTerminatorInstruction(
+    //                     Branch(Label(Local(errorLabel))),
+    //                     Metadata(Vector())
+    //                 ))
+    //         }
+    //     }
+    //
+    //     val functionBodyWithProcessedBlocks =
+    //         function.functionBody.blocks.map(replaceErrorCalls)
+    //
+    //     val functionBodyWithErrorBlock =
+    //         FunctionBody(functionBodyWithProcessedBlocks ++ errorBlocks)
+    //
+    //     // Return the new function
+    //     val ret = function.copy(functionBody = functionBodyWithErrorBlock)
+    //     programLogger.debug(s"* Function $name for verification:\n")
+    //     programLogger.debug(show(ret))
+    //     programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+    //     programLogger.debug(layout(any(ret)))
+    //     ret
+    //
+    // }
 
     def getSourceLineText(source : Source, line : Int) : String =
         source.optLineContents(line).getOrElse("").trim
@@ -522,9 +534,19 @@ class LLVMMultiThread(ir : LLVMIR, val function : FunctionDefinition, config : S
      * Compute a refinement from a trace for this function
      */
     def buildRefinement(
-        trace : Seq[Choice],
+        trace : Trace,
         info : Option[String] = None
     ) : NFA[_, Choice] = {
         NFA[Int, Choice](Set(), Set(), Set())
+    }
+
+    /**
+     * Return an error trace if any.
+     *
+     * @param   r   A refinement
+     * @return      An error trace not in the refinement.
+     */
+    def getErrorTrace(r : NFA[_, Choice]) = {
+        None
     }
 }

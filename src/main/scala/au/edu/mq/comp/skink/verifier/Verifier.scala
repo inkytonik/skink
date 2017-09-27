@@ -1,7 +1,7 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.IR
+import au.edu.mq.comp.skink.ir.{IR, STVerifiable, MTVerifiable}
 
 /**
  * The main verifier which wraps the trace refinement process with
@@ -19,9 +19,15 @@ class Verifier(ir : IR, config : SkinkConfig) {
     /**
      * Verify a function and output the result in SV-COMP format.
      */
-    def verify(function : IRFunction) {
+    def verify() {
 
-        logger.info(s"verify: ${function.name}")
+        //  Create a verifiable according to the config
+        //  TODO: add config flag and set mtFlag accordingly
+        val mtFlag = false
+
+        val verifiable = if (mtFlag) new STVerifiable(ir) else new MTVerifiable(ir)
+
+        logger.info(s"verify: ${verifiable.name}")
 
         val witnesses =
             config.witnessFormat() match {
@@ -32,9 +38,9 @@ class Verifier(ir : IR, config : SkinkConfig) {
             }
 
         def reportCorrect() {
-            logger.info(s"verify: ${function.name} is correct")
+            logger.info(s"verify: ${verifiable.name} is correct")
             config.output().emitln("TRUE")
-            witnesses.printCorrectnessWitness(function)
+            witnesses.printCorrectnessWitness(verifiable)
         }
 
         def reportException(e : Exception) {
@@ -43,20 +49,20 @@ class Verifier(ir : IR, config : SkinkConfig) {
         }
 
         def reportIncorrect(failureTrace : FailureTrace) {
-            logger.info(s"verify: ${function.name} is incorrect")
+            logger.info(s"verify: ${verifiable.name} is incorrect")
             config.output().emitln("FALSE")
-            witnesses.printViolationWitness(function, failureTrace)
+            witnesses.printViolationWitness(verifiable, failureTrace)
         }
 
         def reportUnknown(message : String) {
-            logger.info(s"verify: correctness of ${function.name} is unknown")
+            logger.info(s"verify: correctness of ${verifiable.name} is unknown")
             logger.info(s"verify: $message")
             config.output().emitln(s"UNKNOWN\n$message")
         }
 
         def runVerification() {
-            val refiner = new TraceRefinement(ir, config)
-            refiner.traceRefinement(function) match {
+            val refiner = new TraceRefinement(config)
+            refiner.traceRefinement(verifiable) match {
                 case Success(None) =>
                     reportCorrect()
                 case Success(Some(witnessTrace)) =>
@@ -67,11 +73,11 @@ class Verifier(ir : IR, config : SkinkConfig) {
         }
 
         try {
-            // Detect if the function is not in a form for verification and abort
-            function.isVerifiable() match {
+            // Detect if the verifiable is not in a form for verification and abort
+            verifiable.isVerifiable() match {
                 case Some(reason) =>
-                    logger.info(s"verify: ${function.name} is not verifiable, aborting")
-                    sys.error(s"${function.name} is not verifiable, $reason")
+                    logger.info(s"verify: ${verifiable.name} is not verifiable, aborting")
+                    sys.error(s"${verifiable.name} is not verifiable, $reason")
                 case _ =>
                     // Function is ok, go for verification
                     runVerification()
