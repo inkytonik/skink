@@ -304,6 +304,53 @@ object LLVMHelper {
     //  Threads useful helpers/extractors
 
     /**
+     * Generate a new label from an existing block label and a supplied prefix
+     * string.
+     */
+    def makeLabelFromPrefix(label : OptBlockLabel, prefix : String) : String =
+        label match {
+            case BlockLabel(label) =>
+                s"$prefix.$label"
+            case ImplicitLabel(num) =>
+                s"$prefix.$num"
+            case NoLabel() =>
+                s"$prefix.nolabel"
+        }
+
+    def isGlobalAccess(use : Product) : Boolean = {
+        use match {
+            case Load(_, _, _, _, Named(Global(_)), _)  => true
+            case Store(_, _, _, _, Named(Global(_)), _) => true
+            case _                                      => false
+        }
+    }
+
+    def isLocalName(use : Product) : Boolean = {
+        use match {
+            case Local(_)                              => true
+            case Binding(Local(_))                     => true
+            case Load(_, _, _, _, Named(Local(_)), _)  => true
+            case Store(_, _, _, _, Named(Local(_)), _) => true
+            case _ =>
+                false
+        }
+    }
+
+    def areDependent(a : Block, b : Block) : Boolean = {
+        def globalAccessNames(block : Block) : (Set[String], Set[String]) =
+            block.optMetaInstructions.map(_.instruction).foldLeft((Set[String](), Set[String]())) {
+                case ((l, s), GlobalFunctionCall(f)) if isThreadFunction(f) => (l, s + "pthread")
+                case ((l, s), Load(_, _, _, _, Named(Global(n)), _)) => (l + n, s)
+                case ((l, s), Store(_, _, _, _, Named(Global(n)), _)) => (l, s + n)
+                case ((l, s), _) => (l, s)
+            }
+
+        val (aLoads, aStores) = globalAccessNames(a)
+        val (bLoads, bStores) = globalAccessNames(b)
+        !((aStores & bStores).isEmpty && (aStores & bLoads).isEmpty && (aLoads & bStores).isEmpty)
+    }
+
+    /**
      *
      */
     object PThreadType {

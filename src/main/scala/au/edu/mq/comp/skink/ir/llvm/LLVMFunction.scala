@@ -42,6 +42,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     val programLogger = getLogger(this.getClass, ".program")
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
+    // val program = ir.program
     // An analyser for the verifiable version of this function and its associated tree
 
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
@@ -124,7 +125,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
@@ -400,7 +401,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))

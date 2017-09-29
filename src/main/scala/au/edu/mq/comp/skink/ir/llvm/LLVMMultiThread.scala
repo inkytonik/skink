@@ -42,14 +42,20 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
 
     // An analyser for the verifiable version of this function and its associated tree
 
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](ir.main.makeVerifiable)
+    //
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
-    // def blockName(block : Block) =
-    //     funAnalyser.blockName(block)
+    def blockName(block : Block) =
+        funAnalyser.blockName(block)
 
     //  get main from ir.functions
     val main = ir.functions.find(_.name == "main").get.asInstanceOf[LLVMFunction]
+
+    /**
+     * Index of each function
+     */
+    var functionIds = MutableMap(0 -> main)
 
     // Gather properties of the function
 
@@ -63,7 +69,7 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
     /**
      * The verification ready NFA
      */
-    lazy val nfa : DetAuto[LLVMState, Choice] = new LLVMConcurrentAuto(ir, main)
+    lazy val nfa = new LLVMConcurrentAuto(ir, main)
 
     /**
      * Return `None` if this function is verifiable. Otherwise, return a
@@ -108,267 +114,102 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
     }
 
     /**
-     * Combine terms via conjunction, dealing with teh case where there are no
-     * terms so effect is "true". THe namer is used to access the underlying
-     * term operations.
+     * Split blocks on global variable access to allow permutations of dependent
+     * instructions to be generated between thread functions.
+     *
+     * Only necessary for functions which are expected to be used in a concurrent
+     * program.
+     *
+     * TODO: Add all types of memory mutation
      */
-    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-        import org.bitbucket.franck44.scalasmt.theories.Core
-        object BoolOps extends Core
-        import BoolOps._
+    def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
+        logger.debug(s"makeThreadVerifiable: $name")
 
-        if (terms.isEmpty)
-            True()
-        else
-            terms.reduceLeft(_ & _)
-    }
+        val insertedBlocks = new ListBuffer[Block]()
 
-    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+        def splitOnPredicate(
+            insns : List[MetaInstruction],
+            pred : MetaInstruction => Boolean
+        ) : List[List[MetaInstruction]] =
+            insns.span(pred) match {
+                case (Nil, Nil) => Nil
+                case (Nil, access :: remains) => splitOnPredicate(remains, pred) match {
+                    case start :: end => List(access) :: start :: end
+                    case Nil          => List(List(access))
+                }
+                case (remains, Nil)                => List(remains)
+                case (previous, access :: remains) => (previous :+ access) :: splitOnPredicate(remains, pred)
+            }
 
-        // Make the block trace that corresponds to this trace and set it
-        // up so we can do context-dependent computations on it.
-        val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        def insertBranchOnGlobalAccess(block : Block) : Block = {
+            // Get a list of blocks which contain a global memory access as their last
+            // instruction.
+            val splitBlocks = splitOnPredicate(
+                block.optMetaInstructions.toList,
+                i => !isThreadPrimitive(i.instruction) && !isGlobalAccess(i.instruction)
+            )
 
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
-
-        // The term for the effects of program initialisation
-        val initTerm = termBuilder.initTerm(ir.program)
-
-        // If blocks occur more than once in the block trace they will be
-        // shared. We need each instance to be treated separately so we use
-        // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree.root
-
-        // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block.
-        val blockTerms =
-            trace.choices.init.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = treeBlockTrace.blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            Some(treeBlockTrace.blocks(count - 1))
-                    termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
-            }.map(termBuilder.combineTerms)
-
-        // Prepend the global initialisation terms to the terms of the first block
-        if (blockTerms.isEmpty)
-            Seq(initTerm)
-        else
-            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
-
-    }
-
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-
-        def blockName(block : Block) : String =
-            defaultBlockName(block, funAnalyser.anonArgCount.toString)
-
-        traceToBlockTrace(failTrace.trace).blocks.map {
-            block =>
-                val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(ir.program, block) match {
-                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
-                            (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
-                        case _ =>
-                            (None, None)
-                    }
-                val optBlockName = Some(blockName(block))
-                val (optTermLine, optTermCode) =
-                    block.metaTerminatorInstruction match {
-                        case MetaTerminatorInstruction(insn, metadata) =>
-                            getCodeLine(insn, metadata)
-                    }
-                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
+            if (splitBlocks.length <= 1) {
+                logger.debug(s"makeThreadVerifiable: No concurrent operations encountered")
+                block
+            } else {
+                logger.debug(s"makeThreadVerifiable: Concurrent operations encountered, inserting new blocks")
+                val first = splitBlocks.head
+                val rest = splitBlocks.drop(1).dropRight(1)
+                val last = splitBlocks.last
+                var label = makeLabelFromPrefix(block.optBlockLabel, "__threading")
+                // Generate the final block in the function and add it to the list
+                insertedBlocks += Block(BlockLabel(label), Vector(), None, last.toVector,
+                    block.metaTerminatorInstruction)
+                // Working backwards over the list so that we can keep around the label for the next
+                // block in the function. This is fine as the actual order of the blocks in the list
+                // has no relation to the structure of the function.
+                var blockCount = 0
+                for (b <- rest.reverse) {
+                    val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
+                    logger.debug(s"makeThreadVerifiable: Inserted new block with label $newLabel")
+                    insertedBlocks += Block(BlockLabel(newLabel), Vector(), None, b.toVector,
+                        MetaTerminatorInstruction(
+                            Branch(Label(Local(label))),
+                            Metadata(Vector())
+                        ))
+                    label = newLabel
+                    blockCount += 1
+                }
+                val startBlock = Block(block.optBlockLabel, Vector(), None, first.toVector,
+                    MetaTerminatorInstruction(
+                        Branch(Label(Local(label))),
+                        Metadata(Vector())
+                    ))
+                startBlock
+            }
         }
+
+        val startingBlocks = functionBody.blocks.map(insertBranchOnGlobalAccess)
+        val functionBodyWithSplitBlocks = FunctionBody(startingBlocks ++ insertedBlocks)
+        functionBodyWithSplitBlocks
     }
 
     // Helper methods
 
-    // /**
-    //  * Prepare the IR of a function for verification and return the
-    //  * new IR form. The transformation is:
-    //  *
-    //  * Replace blocks that contain a call to the __VERIFIER_error
-    //  * function after an assertion has failed to a branch to a
-    //  * __error block. In detail, look for a block of this form
-    //  *
-    //  * ; <label>:14
-    //  *   <insns1>
-    //  *   call void (...) @__VERIFIER_error() #4
-    //  *   <insns2>
-    //  *   <terminator>
-    //  *
-    //  * and replace it with one of this form
-    //  *
-    //  * ; <label>:14
-    //  *   <insns1>
-    //  *   br label __error.14 #4
-    //  *
-    //  * And the error block
-    //  *
-    //  *  __error.14:
-    //  *   call void (...) @__VERIFIER_error() #4
-    //  *   <insns2>
-    //  *   <terminator>
-    //  *
-    //  * The metadata from the call is transferred to the new branch so it can
-    //  * recovered later during reporting.
-    //  *
-    //  * Blocks that don't contain a call to __VERIFIER_error are left alone.
-    //  */
-    // lazy val makeVerifiable : FunctionDefinition = {
-    //
-    //     logger.info(s"makeVerifiable: $name")
-    //
-    //     val errorBlocks = new ListBuffer[Block]()
-    //
-    //     def makeErrorLabel(label : OptBlockLabel) : String =
-    //         label match {
-    //             case BlockLabel(label) =>
-    //                 s"__error.$label"
-    //             case ImplicitLabel(num) =>
-    //                 s"__error.$num"
-    //             case NoLabel() =>
-    //                 s"__error.nolabel"
-    //         }
-    //
-    //     def isNotErrorCall(insn : MetaInstruction) : Boolean =
-    //         insn match {
-    //             case MetaInstruction(
-    //                 Call(
-    //                     _, _, _, _, _,
-    //                     VerifierFunction(Global("__VERIFIER_error")),
-    //                     _, _
-    //                     ),
-    //                 _
-    //                 ) =>
-    //                 false
-    //             case _ =>
-    //                 true
-    //         }
-    //
-    //     def replaceErrorCalls(block : Block) : Block = {
-    //         val (before, after) = block.optMetaInstructions.span(isNotErrorCall)
-    //         if (after.isEmpty)
-    //             block
-    //         else {
-    //             val errorLabel = makeErrorLabel(block.optBlockLabel)
-    //             val errorBlock =
-    //                 Block(BlockLabel(errorLabel), Vector(), None, after,
-    //                     block.metaTerminatorInstruction)
-    //             errorBlocks += errorBlock
-    //             Block(block.optBlockLabel, Vector(), None, before,
-    //                 MetaTerminatorInstruction(
-    //                     Branch(Label(Local(errorLabel))),
-    //                     Metadata(Vector())
-    //                 ))
-    //         }
-    //     }
-    //
-    //     val functionBodyWithProcessedBlocks =
-    //         function.functionBody.blocks.map(replaceErrorCalls)
-    //
-    //     val functionBodyWithErrorBlock =
-    //         FunctionBody(functionBodyWithProcessedBlocks ++ errorBlocks)
-    //
-    //     // Return the new function
-    //     val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-    //     programLogger.debug(s"* Function $name for verification:\n")
-    //     programLogger.debug(show(ret))
-    //     programLogger.debug(s"\n* AST of function $name for verification:\n\n")
-    //     programLogger.debug(layout(any(ret)))
-    //     ret
-    //
-    // }
+    def makeVerifiable(functionDef : FunctionDefinition) : FunctionDefinition = {
+        logger.debug(s"makeVerifiable: $name")
 
-    def getSourceLineText(source : Source, line : Int) : String =
-        source.optLineContents(line).getOrElse("").trim
+        // val processedBody = function.makeVerifiable(makeThreadVerifiable(functionDef.functionBody))
+        // val processedBody = function.makeErrorsVerifiable(makeThreadVerifiable(functionDef.functionBody))
 
-    def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) =
-        funAnalyser.instructionPosition(ir.program, node, metadata) match {
-            case Some(Position(termLine, _, termSource)) =>
-                val termCode = getSourceLineText(termSource, termLine)
-                (Some(termLine), Some(termCode))
-            case _ =>
-                (None, None)
-        }
-
-    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
-
-        val blocks = blockTrace(trace).blocks
-
-        // Build the steps between optional previous block and next block, but
-        // only include a previous block if the current block has phi insns
-        // (and hence the previous block can affect the behaviour of the current
-        // block). We do this with block name strings since the full block data
-        // is not needed and it's easier for debugging
-        val steps =
-            trace.choices.init.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            Some(blockName(blocks(count - 1)))
-                    if (block.optMetaPhiInstructions.isEmpty)
-                        (None, blockName(block))
-                    else
-                        (optPrevBlock, blockName(block))
-            }
-
-        // Combine steps with their indices, accumulate indices for same step,
-        // throw away steps, turn into Seq
-        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
-            case (m, (k, i)) =>
-                val s = m.getOrElse(k, Vector())
-                m.updated(k, s :+ i)
-        }.values.toIndexedSeq
-
+        // Return the new function
+        val ret = functionDef //.copy(functionBody = processedBody)
+        programLogger.info(s"* Function $name for verification [include make Thread verifiable]:\n")
+        programLogger.info(show(ret))
+        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+        programLogger.debug(layout(any(ret)))
+        ret
     }
 
-    def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
-
-        // Get a tree for the relevant block
-        val blocks = blockTrace(trace).blocks
-        if ((index < 0) || (index >= blocks.length))
-            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
-        val blockTree = new Tree[Product, Block](blocks(index))
-        val block = blockTree.root
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
-
-        // Make a single term for this block and choice
-        val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
-        val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
-
-        // Return the term and the name mapping that applies after the block
-        (term, namer.stores(block))
-
-    }
-
-    /**
-     * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace.
-     */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        val entryBlock = function.functionBody.blocks(0)
-        val (finalBlock, blocks) =
-            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-                case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice.branchId), blocks :+ block)
-                case ((None, blocks), choice) =>
-                    (None, blocks)
-            }
-        BlockTrace(blocks, trace)
+    def independent(trace : Seq[Choice])(i : Int, j : Int) : Boolean = {
+        val blocks = blockTrace(Trace(trace)).blocks
+        !areDependent(blocks(i), blocks(j)) && trace(i).threadId != trace(j).threadId
     }
 
     /**
@@ -380,54 +221,187 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
     lazy val blockTrace : Trace => BlockTrace =
         attr {
             case trace =>
-                val entryBlock = function.functionBody.blocks(0)
-                val (finalBlock, blocks) =
-                    trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-                        case ((Some(block), blocks), choice) =>
-                            (nextBlock(block, choice.branchId), blocks :+ block)
-                        case ((None, blocks), choice) =>
-                            (None, blocks)
+                import scala.collection.mutable.ListBuffer
+                logger.debug(s"doing blocktrace for ${trace.choices}")
+                var threadBlocks = Map[Int, Block]()
+                val blocks = new ListBuffer[Block]()
+                for (c <- trace.choices) {
+                    logger.debug(s"doing choice $c with blocks ${blocks.map(blockName(_))}")
+                    val threadFn = nfa.getFunctionById(c.threadId).get
+                    val currBlock = threadBlocks.get(c.threadId) match {
+                        case Some(block) => block
+                        case None        => threadFn.function.functionBody.blocks(0)
                     }
-                BlockTrace(blocks, trace)
+                    threadBlocks = threadBlocks - c.threadId
+                    threadFn.nextBlock(currBlock, c.branchId) match {
+                        case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
+                        case None        => threadBlocks = threadBlocks - (c.threadId)
+                    }
+                    //assert(threadBlocks.get(c.threadId).get != currBlock)
+                    blocks += currBlock
+                    logger.debug(s"blocks ${blocks.map(blockName(_))}")
+                }
+                BlockTrace(blocks.toList, trace)
         }
 
     /**
-     * Get the block that follows `block` when we make a given choice.
-     * Return `None` if there is no such block.
+     * Projection of a block trace on a thread
+     *
+     * @param   threadId        The thread identifier
+     * @param   globalBlocks    The block trace to project
      */
-    def nextBlock(block : Block, choice : Int) : Option[Block] = {
-        val optNextBlockLabel =
-            block.metaTerminatorInstruction.terminatorInstruction match {
-                case Branch(label) if choice == 0 =>
-                    Some(label)
-                case BranchCond(_, label1, label2) if choice == 0 =>
-                    Some(label1)
-                case BranchCond(_, label1, label2) if choice == 1 =>
-                    Some(label2)
-                case IndirectBr(_, _, labels) if (choice >= 0) && (choice < labels.length) =>
-                    Some(labels(choice))
-                case Switch(IntT(_), _, dfltLabel, cases) if (choice >= 0) && (choice <= cases.length) =>
-                    if (choice == cases.length)
-                        Some(dfltLabel)
-                    else
-                        Some(cases(choice).label)
-                case Unreachable() =>
-                    None
-                case insn =>
-                    sys.error(s"nextBlock: unexpected terminator insn $insn with choice $choice")
-            }
-        optNextBlockLabel match {
-            case Some(Label(name)) =>
-                blockMap.get(nameToString(name)) match {
-                    case Some(block) =>
-                        Some(block)
-                    case None =>
-                        sys.error(s"nextBlock: unable to find block $name")
-                }
-            case None =>
-                None
-        }
+    def filterThreadBlocks(threadId : Int, globalBlocks : BlockTrace) : BlockTrace = {
+        val blocks = globalBlocks.blocks.zip(globalBlocks.trace.choices.map(_.threadId)).filter(_._2 == threadId).map(_._1)
+        BlockTrace(blocks, new Trace(globalBlocks.trace.choices.filter(_.threadId == threadId)))
     }
+
+    /**
+     * Construct the sequence of logical terms for a given trace
+     *
+     * @param   trace       The trace to encode
+     */
+    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+
+        // Make the block trace that corresponds to this trace and set it
+        // up so we can do context-dependent computations on it.
+        val blocks = blockTrace(trace)
+        val traceTree = new Tree[Product, BlockTrace](blocks)
+
+        // If blocks occur more than once in the block trace they will be
+        // shared. We need each instance to be treated separately so we use
+        // the block trace after it has been made into a proper tree.
+        val treeBlockTrace = traceTree.root
+
+        // Get a global namer and term builder
+        val globalNamer = new LLVMGlobalNamer(traceTree)
+        val globalBuilder = new LLVMTermBuilder(blockName, globalNamer, config)
+
+        // Construct a block trace of only the relevant blocks for each function and build
+        // a map of builders to be u    sed for each unique function
+        val funBlockTraces = functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
+        val funBuilders = functionIds.map(
+            f =>
+                (
+                    f._1,
+                    new LLVMTermBuilder(
+                        blockName,
+                        new LLVMMTFunctionNamer(
+                            f._2.funAnalyser,
+                            f._2.funTree,
+                            new Tree[Product, BlockTrace](
+                                funBlockTraces.get(f._1).get
+                            ),
+                            f._1,
+                            globalNamer
+                        ),
+                        config
+                    )
+                )
+        )
+
+        // Return the terms corresponding to the traced blocks, not including
+        // the last step since that is to the error block.
+        val blockTerms = trace.choices.init.zipWithIndex.map {
+            case (choice, count) =>
+                val block = treeBlockTrace.blocks(count)
+                val optPrevBlock =
+                    if (count == 0)
+                        None
+                    else
+                        Some(treeBlockTrace.blocks(count - 1))
+                val namer = funBuilders.get(choice.threadId).get
+                logger.debug(s"generating term for block ${blockName(block)} with choice $choice with namer $namer")
+                namer.blockTerms(block, optPrevBlock, choice.branchId)
+        }.map(combineTerms)
+
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            // Seq(initTerm)
+            Seq()
+        else
+            blockTerms
+        // combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+    }
+
+    /**
+     * Combine terms via conjunction, dealing with case where there are no
+     * terms so effect is "true". Any true terms in the sequence are removed.
+     * FIXME: same as one in LLVMFunction. Share or move to another place
+     */
+    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
+        import org.bitbucket.franck44.scalasmt.theories.Core
+        import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+        object SMTCore extends Core
+        import SMTCore._
+        if (terms.isEmpty)
+            True()
+        else
+            terms.reduceLeft((l, r) => if (r == True()) l else l & r)
+    }
+
+    def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
+
+        val blocks = blockTrace(trace).blocks
+
+        // Build the steps between optional previous block and next block, but
+        // only include a previous block if the current block has phi insns
+        // (and hence the previous block can affect the behaviour of the current
+        // block). We do this with block name strings since the full block data
+        // is not needed and it's easier for debugging
+        val steps = {
+            var prevBlocks = Map[Int, String]()
+            trace.choices.zipWithIndex.map {
+                case (choice, count) =>
+                    val block = blocks(count)
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            prevBlocks.get(choice.threadId)
+                    prevBlocks = prevBlocks + (choice.threadId -> blockName(block))
+                    if (block.optMetaPhiInstructions.isEmpty)
+                        (None, choice.threadId + blockName(block))
+                    else
+                        (optPrevBlock, choice.threadId + blockName(block))
+            }
+        }
+
+        logger.debug(s"steps for $trace: $steps")
+        // Combine steps with their indices, accumulate indices for same step,
+        // throw away steps, turn into Seq
+        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
+            case (m, (k, i)) =>
+                val s = m.getOrElse(k, Vector())
+                m.updated(k, s :+ i)
+        }.values.toIndexedSeq
+
+    }
+
+    def traceBlockEffect(trace : Trace, index : Int, branch : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+
+        // Get a tree for the relevant block
+
+        val blocks = blockTrace(trace).blocks
+        if ((index < 0) || (index >= blocks.length))
+            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
+        val blockTree = new Tree[Product, Block](blocks(index))
+        val block = blockTree.root
+
+        // Get a function-specifc namer and term builder
+        val threadId = trace.choices(index).threadId
+        val function = functionIds.get(threadId).get
+        val globalNamer = new LLVMGlobalNamer(blockTree)
+        val namer = new LLVMMTFunctionNamer(function.funAnalyser, function.funTree, blockTree, threadId, globalNamer)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
+
+        // Make a single term for this block and branch
+        val term = combineTerms(termBuilder.blockTerms(block, None, branch))
+
+        // Return the term and the name mapping that applies after the block
+        (term, namer.stores(block))
+
+    }
+    // Helper methods
 
     /**
      *  Check that the image of a precondition is included in a postcondition
@@ -487,6 +461,37 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
     }
+
+    /**
+     * Follow the choices given by a trace to construct the trace of blocks
+     * that are executed by the trace.
+     */
+    def traceToBlockTrace(trace : Trace) : BlockTrace = {
+        //  FIXME: fix this one for the MT case
+        // val entryBlock = function.functionBody.blocks(0)
+        val entryBlock = main.function.functionBody.blocks(0)
+        val (finalBlock, blocks) =
+            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
+                case ((Some(block), blocks), choice) =>
+                    //  FIXME: use of main is not OK
+                    (main.nextBlock(block, choice.branchId), blocks :+ block)
+                case ((None, blocks), choice) =>
+                    (None, blocks)
+            }
+        BlockTrace(blocks, trace)
+    }
+
+    def getSourceLineText(source : Source, line : Int) : String =
+        source.optLineContents(line).getOrElse("").trim
+
+    def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) = (None, None)
+    // funAnalyser.instructionPosition(program, node, metadata) match {
+    //     case Some(Position(termLine, _, termSource)) =>
+    //         val termCode = getSourceLineText(termSource, termLine)
+    //         (Some(termLine), Some(termCode))
+    //     case _ =>
+    //         (None, None)
+    // }
 
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
