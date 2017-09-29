@@ -1,14 +1,12 @@
-import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-import java.io.File
-
-import scala.concurrent.duration.Duration
-import scala.util.Failure
-
 /**
   * Created by psksvp on 14/2/17.
   */
 package object psksvp
 {
+  import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+  import java.io.File
+  import scala.util.Failure
+  import au.edu.mq.comp.skink.Skink.getLogger
   import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Sat
   import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
   import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
@@ -23,6 +21,8 @@ package object psksvp
   import Cmds._
   object logics extends IntegerArithmetics with Core
   import logics._
+
+  val logger = getLogger(this.getClass)
 
   type PredicateTerm = TypedTerm[BoolTerm, Term]
   type AbstractDomain = Seq[Int]
@@ -227,7 +227,9 @@ package object psksvp
     fileName
   }
 
-  def copyFile(path:String, toDir:String):Int=
+  def fromFile(path:String):String = readString(path)
+
+  def copyFile(path:String, toDir:String):Int =
   {
     import sys.process._
     Seq("cp", path, s"$toDir/.").!
@@ -270,5 +272,58 @@ package object psksvp
   {
     if(ls.isEmpty) ""
     else s"${ls.head.toString} ${seqToString(ls.tail, separator)}"
+  }
+
+  //https://stackoverflow.com/questions/10520566/regular-expression-wildcard-matching
+  import scala.util.matching.Regex
+  def wildcardToRegex(wildcardString:String):Regex =
+  {
+    val sb = new StringBuilder
+    for (c <- wildcardString)
+    {
+      c match
+      {
+        case '*' => sb.append(".*")
+        case '?' => sb.append('.')
+        case _   => sb.append(c)
+      }
+    }
+    sb.toString().r
+  }
+
+  def inlineVerifierAssert(src:String):String=
+  {
+    def inlineWithPairSet(p:Set[(String, String)], s:String):String=
+    {
+      if(p.nonEmpty)
+      {
+        val pair = p.head
+        val rs = s.replaceAllLiterally(pair._1, pair._2)
+        inlineWithPairSet(p.tail, rs)
+      }
+      else
+        s
+    }
+
+    val verifierAssert = """__VERIFIER_assert\((.*)\);""".r
+
+    val re = for(vfes <- wildcardToRegex("__VERIFIER_assert(*);").findAllIn(src)) yield
+             {
+               //http://www.scala-lang.org/api/2.12.1/scala/util/matching/Regex.html
+               vfes match
+               {
+                 case verifierAssert(cond) => Set((s"$vfes", s"if(!($cond)) __VERIFIER_error();)"))
+                 case             _        => Set[(String, String)]()
+               }
+             }
+
+    val pairs = re.reduceLeft(_ union _)
+    inlineWithPairSet(re.reduceLeft(_ union _), src)
+  }
+
+  def log(s:Any):Unit=
+  {
+    //println(s)
+    logger.info(s.toString)
   }
 }

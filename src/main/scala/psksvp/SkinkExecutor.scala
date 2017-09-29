@@ -32,6 +32,18 @@ object SkinkExecutor
     Main.main(args.filter(_.length > 0).toArray)
   }
 
+  def consoleRunLLVM(filename:String,
+                     usePredicateAbstraction:Boolean=true,
+                     predicates:Seq[PredicateTerm]=Nil):Unit=
+  {
+    PredicatesAbstraction.setToUsePredicates(predicates)
+    import au.edu.mq.comp.skink.Main
+    val a = if(usePredicateAbstraction) "--use-predicate-abstraction" else ""
+    val args = List("-v", a, "-m", "20", "-f", "LLVM", filename)
+
+    Main.main(args.filter(_.length > 0).toArray)
+  }
+
 
   abstract class RunResult
   case class RunTRUE() extends RunResult
@@ -66,7 +78,7 @@ object SkinkExecutor
       }
     }
     else
-      println(s"$outputPath exists, grabbing the result..")
+      log(s"$outputPath exists, grabbing the result..")
 
     import sys.process._
     val result = Seq("/usr/bin/tail", "-n", "1", outputPath).!!
@@ -172,7 +184,7 @@ object SkinkExecutor
 
     for(d <- runDataList) yield
     {
-      println(s"running -> $d")
+      log(s"running -> $d")
 
       val result = runAsProcess(d.filePath, Nil, d.useO2, true, timeout, d.useClang, d.maxIteration)
       copyFile(d.filePath, outputDir)

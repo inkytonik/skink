@@ -73,7 +73,7 @@ case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
     {
       //val indexedPre = pre.indexedBy {case _ => 0}
       val e = SMTLIB.Exists(s.head, s.tail:_*)(blockEffect) //( indexedPre & blockEffect)
-      //println(s"exists term:${psksvp.termAsInfix(e)}")
+      //log(s"exists term:${psksvp.termAsInfix(e)}")
 
       psksvp.SMTLIB.Z3QE(e)(solver) match
       {
@@ -84,7 +84,7 @@ case class EQEPredicatesHarvester(traceAnalyzer:TraceAnalyzer,
     }
     else
     {
-      println("list of variables to quantify over is empty")
+      log("list of variables to quantify over is empty")
       Nil
     }
   }
@@ -114,8 +114,8 @@ case class InterpolantBasedHarvester(traceAnalyzer:TraceAnalyzer,
   override def inferredPredicates: Set[PredicateTerm] =
   {
     val itpSolver = new SMTSolver("Z3", new SMTInit(List(INTERPOLANTS)))
-    println("namedTerms")
-    println(psksvp.termAsInfix(namedTerms))
+    log("namedTerms")
+    log(psksvp.termAsInfix(namedTerms))
     val r = getInterpolants(namedTerms.head,
                             namedTerms.tail.head,
                             namedTerms.drop(2) : _*)(itpSolver) match

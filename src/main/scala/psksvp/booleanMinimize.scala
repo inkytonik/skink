@@ -5,7 +5,7 @@ import org.bitbucket.franck44.scalasmt.theories.{Core, IntegerArithmetics}
 case class BooleanMinimize(termCombinerFunc:List[List[PredicateTerm]] => PredicateTerm) extends IntegerArithmetics with Core
 {
   import psksvp.ADT.Cache
-  private val cache = Cache[(Seq[Int], Seq[PredicateTerm]), PredicateTerm]
+  private val cache = Cache[(Set[Int], Set[PredicateTerm]), PredicateTerm]
                       {
                         case (minTerms, predicates) => minimize(minTerms.toList,
                                                                 predicates.toList)
@@ -24,7 +24,7 @@ case class BooleanMinimize(termCombinerFunc:List[List[PredicateTerm]] => Predica
     * @return
     */
   def apply(minTerms:List[Int],
-               predicates:List[PredicateTerm]):PredicateTerm = cache((minTerms, predicates))
+               predicates:List[PredicateTerm]):PredicateTerm = cache((minTerms.toSet, predicates.toSet))
 
   /**
     * minimize boolean combination without looking at cache

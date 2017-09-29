@@ -50,38 +50,43 @@ object PredicatesAbstraction
     val traceAnalyzer = TraceAnalyzer(function, choices)
     val functionInformation = FunctionInformation(function.asInstanceOf[LLVMFunction])
 
-    println("using predAbs on trace: " + traceAnalyzer.choices)
+    log("using predAbs on trace: " + traceAnalyzer.choices)
     if (traceAnalyzer.repetitionsPairs.isEmpty)
     {
-      println(choices)
-      println("no Repetitions, rtn linear automaton")
+      log(choices)
+      log("no Repetitions, rtn linear automaton")
       val la = traceAnalyzer.linearAutomaton
-      println("linear auto created and about to return")
+      log("linear auto created and about to return")
       la
     }
     else
     {
       if(Nil == usePredicates || genPredicates)
       {
-        println("generating predicates for abstraction")
+        log("generating predicates for abstraction")
         val solver = new SMTSolver("Z3")//, new SMTInit(List(INTERPOLANTS)))
         val tempPredicates = EQEPredicatesHarvester(traceAnalyzer,
                                                     functionInformation,
                                                     solver).inferredPredicates
-        println(s"${tempPredicates.size} predicates generated")
-        println(termAsInfix(tempPredicates.toList))
-        println("running filters on the generated input predicates")
-        import psksvp.PredicatesFilter._
-        println("running reduceToSuperSetTerms")
-        usePredicates = reduceToSuperSetTerms(tempPredicates).toIndexedSeq
-        println(termAsInfix(usePredicates))
+        log(s"${tempPredicates.size} predicates generated")
+        log(termAsInfix(tempPredicates.toList))
+        if(tempPredicates.size > 5)
+        {
+          log("running filters on the generated input predicates")
+          import psksvp.PredicatesFilter._
+          log("running reduceToSuperSetTerms")
+          usePredicates = reduceToSuperSetTerms(tempPredicates).toIndexedSeq
+          log(termAsInfix(usePredicates))
+        }
+        else
+          usePredicates = tempPredicates.toIndexedSeq
 
         solver.destroy()
         genPredicates = true
       }
 
-      println(s"running with predicates: ${usePredicates.length}")
-      println(termAsInfix(usePredicates))
+      log(s"running with predicates: ${usePredicates.length}")
+      log(termAsInfix(usePredicates))
       val p = PredicatesAbstraction(traceAnalyzer, usePredicates, CNFComposer)
       val result = p.automaton
       p.dispose()
@@ -125,11 +130,11 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
     val result = FixedPoint(equalTest,
                             computePredicates).run(True() :: List.fill(traceAnalyzer.length - 1)(False()))
 
-    println("\nFixed point reached with Predicates ===============" )
-    result.foreach { t => println(termAsInfix(t))}
-    println("------------")
+    log("\nFixed point reached with Predicates ===============" )
+    result.foreach { t => log(termAsInfix(t))}
+    log("------------")
     val (hits, miss) = BooleanMinimizeCNF.cacheStatistic
-    println(s"simplify cache hit is $hits and mis is $miss")
+    log(s"simplify cache hit is $hits and mis is $miss")
     result
   }
 
@@ -137,7 +142,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
   lazy val automaton:NFA[Int, Int] =
   {
     val lastLocPredicateIsFalse = equivalence(False(), tracePredicates.last)(solverArray(0))
-    println("last loc eq to false? >>>" + (if(lastLocPredicateIsFalse) "yes" else "no"))
+    log("last loc eq to false? >>>" + (if(lastLocPredicateIsFalse) "yes" else "no"))
 
     if(lastLocPredicateIsFalse)
       traceAnalyzer.automatonWithBackEdges(tracePredicates)(solverArray(0))
@@ -220,7 +225,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
       val absPosts = for(t <- traceAnalyzer.transitionMap(loc)) yield
                      {
                        val usePredicates = predicatesForTransition(t) // use only predicates which lits are in the eff or pre
-                       //println(s"usePredicates:${usePredicates.length} <-> inputPredicates:${inputPredicates.length}")
+                       //log(s"usePredicates:${usePredicates.length} <-> inputPredicates:${inputPredicates.length}")
 
                        val combinationSize:Int = Math.pow(2, usePredicates.length).toInt
                        val absDom = for(c <- List.range(0, combinationSize)
@@ -249,7 +254,7 @@ case class PredicatesAbstraction(traceAnalyzer: TraceAnalyzer,
                           if (equivalence(term, currentPredicates(loc))(solverArray(loc)))
                             currentPredicates(loc)
                           else
-                            term | currentPredicates(loc)
+                            term | currentPredicates(loc) // expand the abstraction
                         }
     // the first loc is always true.
     True() +: newPredicates.toIndexedSeq

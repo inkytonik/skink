@@ -127,17 +127,17 @@ case class TraceAnalyzer(function:IRFunction, choices:Seq[Int]) extends Commands
     ////////////////////////////////////////////////////////////
     lazy val backEdges:Seq[LabDiEdge[Int, Int]] =
     {
-      println("------------------safeBackEdges")
-      println(s"candidate pairs $repetitionsPairs")
+      log("------------------safeBackEdges")
+      log(s"candidate pairs $repetitionsPairs")
       val newBackEdges = for((i, j) <- repetitionsPairs; if checkTransitionPost(fromSource = j,
                                                                                 toSink = i + 1,
                                                                                 exitChoice = choices(i))) yield
                          {
-                           println(s"new backedge found from $j to ${i + 1} with choice($i) exitValue is ${choices(i)}")
+                           log(s"new backedge found from $j to ${i + 1} with choice($i) exitValue is ${choices(i)}")
                            (j ~> (i + 1))(choices(i))
                          }
 
-      println("----------------------")
+      log("----------------------")
       newBackEdges
     }
 
