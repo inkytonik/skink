@@ -59,6 +59,13 @@ object LLVMHelper {
     def isMemoryAllocFunction(name : String) : Boolean =
         List("alloca", "calloc", "free", "malloc") contains name
 
+    /**
+     * Return whether or not the named function is a function that terminates
+     * program execution.
+     */
+    def isExitFunction(name : String) : Boolean =
+        name == "exit"
+
     // Extractors to make matching more convenient
 
     /**
@@ -107,7 +114,7 @@ object LLVMHelper {
         def unapply(fn : Function) : Option[String] =
             fn match {
                 case Function(Named(Global(s))) if isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
-                    isOutputFunction(s) =>
+                    isOutputFunction(s) || isExitFunction(s) =>
                     Some(s)
                 case _ =>
                     None
