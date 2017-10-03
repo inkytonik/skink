@@ -26,14 +26,6 @@
         </encoder>
     </appender>
 
-    <appender name="IMLFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/IML.log</file>
-        <append>false</append>
-        <encoder>
-            <pattern>%msg</pattern>
-        </encoder>
-    </appender>
-
     <appender name="LLVMFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/LLVM.log</file>
         <append>false</append>
@@ -86,12 +78,6 @@
     </logger>
     <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
-    </logger>
-
-    <logger name="au.edu.mq.comp.skink.iml" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.iml.IMLFrontend.program" level="INHERITED" additivity="false">
-        <appender-ref ref="IMLFILE"/>
     </logger>
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
