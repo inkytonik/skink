@@ -25,6 +25,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.reflect.runtime.universe.TypeTag
 
+    lazy val architecture = opt[Int]("architecture", short = 'a',
+        descr = "Architecture specified by bits (default: 32)",
+        default = Some(32))
+
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
         default = Some(false))
