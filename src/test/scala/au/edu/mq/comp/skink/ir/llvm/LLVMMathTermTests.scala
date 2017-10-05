@@ -10,6 +10,7 @@ import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperators
         with Core with IntegerArithmetics with QuantifiedTerm {
 
+    import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, SSymbol}
     import org.bitbucket.franck44.scalasmt.theories.IntTerm
     import org.bitbucket.franck44.scalasmt.typedterms.VarTerm
@@ -283,14 +284,11 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     }
 
     test("multiple phi insns are correctly encoded in parallel") {
-
-        import au.edu.mq.comp.skink.ir.Trace
-
         // In %1 coming from %1, %y should refer to the incoming %x not the
         // %x set by the first phi insn, since the phis are supposed to run
         // simultaneously.
 
-        val prog =
+        traceEffect(
             """
             |define void @func() {
             |   0:
@@ -301,11 +299,9 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |     %y = phi i32 [ 1, %0 ], [ %x, %1 ]
             |     br label %1
             |}
-            """.stripMargin
-
-        val Vector(func) = parseProgram(prog)
-
-        func.traceToTerms(Trace(Seq(0, 0, 0, 0))) shouldBe
+            """.stripMargin,
+            Trace(Seq(0, 0, 0, 0))
+        ) shouldBe
             Seq(
                 True(),
                 (ix1 === 0) & (iy1 === 1),
@@ -536,6 +532,41 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
             }
         )
+    }
+
+    // getelementptr
+
+    test("the effect of basic getelementptrs for single index accesses is true") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %a = alloca [5 x i32], align 16
+            |     %x = getelementptr inbounds i32, i32* %a, i32 4
+            |     %y = getelementptr inbounds i32, i32* %a, i32 0, i32 8
+            |     br label %0
+            |}
+            """.stripMargin,
+            Trace(Seq(0, 0))
+        ) shouldBe
+            Seq(True())
+    }
+
+    test("a getelementptr that use multiple indexes is not handled") {
+        val e = intercept[RuntimeException] {
+            traceEffect(
+                """
+                |define void @func() {
+                |   0:
+                |     %a = alloca [5 x i32], align 16
+                |     %x = getelementptr inbounds i32, i32* %a, i32 4, i32 8
+                |     br label %0
+                |}
+                """.stripMargin,
+                Trace(Seq(0, 0))
+            )
+        }
+        e.getMessage shouldBe "insnTerm: unsupported getelementptr insn %x = getelementptr inbounds i32, i32* %a, i32 4, i32 8"
     }
 
     // Memory allocation calls

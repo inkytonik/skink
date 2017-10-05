@@ -9,6 +9,7 @@ import org.bitbucket.franck44.scalasmt.theories.Core
 trait LLVMTermTests extends Tests with Core {
 
     import au.edu.mq.comp.skink.SkinkConfig
+    import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, Term}
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
@@ -126,6 +127,14 @@ trait LLVMTermTests extends Tests with Core {
             }
         } else
             fail(s"parse error: ${pr.parseError.msg}")
+    }
+
+    /**
+     * The effect of a trace of a given program.
+     */
+    def traceEffect(prog : String, trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+        val Vector(func) = parseProgram(prog)
+        func.traceToTerms(trace)
     }
 
 }

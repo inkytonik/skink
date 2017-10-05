@@ -47,6 +47,14 @@ trait LLVMNamer {
             def unapply(value : Value) : Option[(Name, Value)] =
                 None
         }
+
+    /*
+     * Get the array element property for name, if there is one.
+     * By default, there isn't one.
+     */
+    def elementProperty(name : Name) : Option[(Name, Value)] =
+        None
+
 }
 
 /**
@@ -85,7 +93,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
     /*
      * Get the array element property for name, if there is one.
      */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
+    override def elementProperty(name : Name) : Option[(Name, Value)] =
         properties(name).collectFirst {
             case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
                 (array, index)

@@ -490,14 +490,15 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
                 // Pointer dereference
 
-                case insn @ GetElementPtr(Binding(to), _, _, _, ArrayElement(_, _), _) =>
-                    sys.error(s"insnTerm: unsupported getelementptr insn ${longshow(insn)}")
-
-                case _ : GetElementPtr =>
-                    // We ignore these here, but the associations that they establish
-                    // between their bound name and their arguments are expressed in
-                    // the element properties of the name.
+                // We ignore getelementptr insns that have an "array element" as the target.
+                // The element properties are accessed when the target is used in another insn.
+                case GetElementPtr(Binding(to), _, _, _, _, _) if namer.elementProperty(to).isDefined =>
                     True()
+
+                // Otherwise, fail on getelementptr insns since we don't want to draw any
+                // invalid conclusions
+                case _ : GetElementPtr =>
+                    sys.error(s"insnTerm: unsupported getelementptr insn ${longshow(insn)}")
 
                 // Select (inline choice)
 
@@ -843,7 +844,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     ntermI(to) === vtermB(from).ite(1, 0)
                                 case (IntT(_), IntT(_)) =>
                                     ntermI(to) === vtermI(from)
-                                case (PointerT(_, _), PointerT(_, _)) =>
+                                case (PointerT(IntT(_), _), PointerT(IntT(_), _)) =>
                                     ntermI(to) === vtermI(from)
                                 case (RealT(_), IntT(_)) =>
                                     ntermR(to) === vtermR(from)
