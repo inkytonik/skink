@@ -10,6 +10,24 @@ import au.edu.mq.comp.skink.SkinkConfig
 class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+    import org.bitbucket.franck44.scalasmt.typedterms.Value
+
+    def optValueToCValue(optValue : Option[Value]) : String =
+        if (optValue.isDefined)
+            optValue.get.t match {
+                case RealDivTerm(ConstantTerm(DecLit(d)), List(ConstantTerm(DecLit(n)))) =>
+                    s"${java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
+                case ConstantTerm(DecLit(s))                        => s
+                case ConstantTerm(NumLit(i))                        => i.toString
+                case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
+                case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
+                case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => "0"
+                case term =>
+                    sys.error(s"optValueToCValue: unexpected value $term")
+            }
+        else
+            "0"
 
     def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
         val returnedValues = function.traceToNonDetValues(failTrace)
@@ -24,7 +42,7 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
             returnedValues.zipWithIndex.map {
                 case (call, index) =>
                     val node = if (index == 0) "" else mkNode(index) + "\n"
-                    val value = call.optValue.getOrElse(0)
+                    val value = optValueToCValue(call.optValue)
                     val edge =
                         mkEdge(
                             index,

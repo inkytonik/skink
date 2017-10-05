@@ -24,11 +24,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-    import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.AssemblySyntax.{Value => _, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
     import org.scalallvm.assembly.Analyser.defaultBlockName
@@ -94,8 +94,8 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     }
 
     /**
-     * Combine terms via conjunction, dealing with teh case where there are no
-     * terms so effect is "true". THe namer is used to access the underlying
+     * Combine terms via conjunction, dealing with the case where there are no
+     * terms so effect is "true". The namer is used to access the underlying
      * term operations.
      */
     def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
@@ -539,27 +539,16 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
 
-        def termToCValue(term : Term) : Int =
-            term match {
-                case ConstantTerm(NumLit(i))                        => i.toInt
-                case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
-                case _ =>
-                    sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
-            }
-
-        def getValue(to : Name, tipe : String) : Option[Int] = {
+        def getValue(to : Name, tipe : String) : Option[Value] = {
             val varName = show(to)
-            val sort = if (tipe == "bool") BoolSort() else IntSort()
+            val sort =
+                tipe match {
+                    case "bool"             => BoolSort()
+                    case "float" | "double" => RealSort()
+                    case _                  => IntSort()
+                }
             val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
-            failTrace.values.get(qid) match {
-                case Some(value) =>
-                    Some(termToCValue(value.t))
-                case None =>
-                    logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
-                    None
-            }
+            failTrace.values.get(qid)
         }
 
         collectl {
