@@ -1,6 +1,6 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, Core, IntegerArithmetics}
+import org.bitbucket.franck44.scalasmt.theories.{ArrayExInt, ArrayExOperators, ArrayExReal, Core, IntegerArithmetics, RealArithmetics}
 import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 
 /**
@@ -8,12 +8,13 @@ import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
  * terms but also non-integer terms.
  */
 class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperators
-        with Core with IntegerArithmetics with QuantifiedTerm {
+        with ArrayExReal with Core with IntegerArithmetics with QuantifiedTerm
+        with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.Trace
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, SSymbol}
-    import org.bitbucket.franck44.scalasmt.theories.IntTerm
-    import org.bitbucket.franck44.scalasmt.typedterms.VarTerm
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, RealSort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, IntTerm, RealTerm}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
@@ -22,6 +23,15 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     def makeVarTermI(id : String, index : Int = 0) : VarTerm[IntTerm] =
         new VarTerm(id, IntSort(), Some(index))
+
+    def makeVarTermR(id : String, index : Int = 0) : VarTerm[RealTerm] =
+        new VarTerm(id, RealSort(), Some(index))
+
+    def makeArrayTermR(id : String, index : Int = 0) : TypedTerm[ArrayTerm[RealTerm], Term] =
+        ArrayReal1(id).indexed(index)
+
+    def makeArrayElemTermR(id : String, elem : Int, index : Int = 0) : TypedTerm[RealTerm, Term] =
+        makeArrayTermR(id, index).at(elem)
 
     val ix = makeVarTermI("%x")
     val iy = makeVarTermI("%y")
@@ -32,6 +42,17 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     val iy1 = makeVarTermI("%y", 1)
     val iy2 = makeVarTermI("%y", 2)
+
+    val fx = makeVarTermR("%x")
+    val fy = makeVarTermR("%y")
+    val fz = makeVarTermR("%z")
+
+    val afx0 = makeArrayElemTermR("%x", 0)
+    val afy0 = makeArrayElemTermR("%y", 0)
+    val afz0 = makeArrayElemTermR("%z", 0)
+    val afx1 = makeArrayElemTermR("%x", 1)
+    val afy1 = makeArrayElemTermR("%y", 1)
+    val afz1 = makeArrayElemTermR("%z", 1)
 
     // Binary operations
 
@@ -65,23 +86,50 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
+    val floatBinaryOps = Vector(
+        (FAdd(Vector()), fz === (fx + fy)),
+        (FDiv(Vector()), fz === (fx / fy)),
+        (FMul(Vector()), fz === (fx * fy)),
+        (FSub(Vector()), fz === (fx - fy))
+    )
+
+    for ((op, term) <- floatBinaryOps) {
+        test(s"binary real ${show(op)} insn is encoded correctly") {
+            hasEffect(Binary(Binding(z), op, FloatT(), xexp, yexp), term)
+        }
+    }
+
+    val floatVectorBinaryOps = Vector(
+        (FAdd(Vector()), (afz0 === (afx0 + afy0)) & (afz1 === (afx1 + afy1))),
+        (FDiv(Vector()), (afz0 === (afx0 / afy0)) & (afz1 === (afx1 / afy1))),
+        (FMul(Vector()), (afz0 === (afx0 * afy0)) & (afz1 === (afx1 * afy1))),
+        (FSub(Vector()), (afz0 === (afx0 - afy0)) & (afz1 === (afx1 - afy1)))
+    )
+
+    for ((op, term) <- floatVectorBinaryOps) {
+        test(s"binary real vector ${show(op)} insn is encoded correctly") {
+            hasEffect(Binary(Binding(z), op, VectorT(2, FloatT()), xexp, yexp), term)
+        }
+    }
+
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "Boolean op add %x %y not handled"),
-        (And(), IntT(32), "math integer op and %x %y not handled"),
-        (AShR(Exact()), IntT(32), "math integer op ashr exact %x %y not handled"),
-        (AShR(NotExact()), IntT(32), "math integer op ashr %x %y not handled"),
-        (FAdd(Vector()), IntT(32), "math integer op fadd %x %y not handled"),
-        (FDiv(Vector()), IntT(32), "math integer op fdiv %x %y not handled"),
-        (FMul(Vector()), IntT(32), "math integer op fmul %x %y not handled"),
-        (FRem(Vector()), IntT(32), "math integer op frem %x %y not handled"),
-        (FSub(Vector()), IntT(32), "math integer op fsub %x %y not handled"),
-        (LShR(Exact()), IntT(32), "math integer op lshr exact %x %y not handled"),
-        (LShR(NotExact()), IntT(32), "math integer op lshr %x %y not handled"),
-        (Or(), IntT(32), "math integer op or %x %y not handled"),
-        (ShL(Vector()), IntT(32), "math integer op shl %x %y not handled"),
-        (XOr(), IntT(32), "math integer op xor %x %y not handled")
+        (Add(Vector()), IntT(1), "Boolean op add %x@0 %y@0 not handled"),
+        (And(), IntT(32), "math integer op and %x@0 %y@0 not handled"),
+        (AShR(Exact()), IntT(32), "math integer op ashr exact %x@0 %y@0 not handled"),
+        (AShR(NotExact()), IntT(32), "math integer op ashr %x@0 %y@0 not handled"),
+        (FAdd(Vector()), IntT(32), "math integer op fadd %x@0 %y@0 not handled"),
+        (FDiv(Vector()), IntT(32), "math integer op fdiv %x@0 %y@0 not handled"),
+        (FMul(Vector()), IntT(32), "math integer op fmul %x@0 %y@0 not handled"),
+        (FRem(Vector()), IntT(32), "math integer op frem %x@0 %y@0 not handled"),
+        (FRem(Vector()), VectorT(2, FloatT()), "float op frem (select %x@0 0 ) (select %y@0 0 ) not handled"),
+        (FSub(Vector()), IntT(32), "math integer op fsub %x@0 %y@0 not handled"),
+        (LShR(Exact()), IntT(32), "math integer op lshr exact %x@0 %y@0 not handled"),
+        (LShR(NotExact()), IntT(32), "math integer op lshr %x@0 %y@0 not handled"),
+        (Or(), IntT(32), "math integer op or %x@0 %y@0 not handled"),
+        (ShL(Vector()), IntT(32), "math integer op shl %x@0 %y@0 not handled"),
+        (XOr(), IntT(32), "math integer op xor %x@0 %y@0 not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -143,7 +191,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison op ugt %x %y not handled")
+        (UGT(), IntT(1), "Boolean comparison op ugt %x@0 %y@0 not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {
