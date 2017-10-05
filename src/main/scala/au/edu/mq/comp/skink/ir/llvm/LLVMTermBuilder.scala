@@ -341,6 +341,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case NondetFunctionCall(_, _) =>
                     True()
 
+                // Memory allocations can't fail
+                case MemoryAllocFunctionCall(Binding(to), _) =>
+                    !(ntermI(to) === 0)
+
                 case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
                     True()
 

@@ -93,14 +93,16 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     test("assume with Boolean argument is encoded correctly") {
         hasEffect(
-            makeCall("__VERIFIER_assume", Vector(ValueArg(IntT(1), Vector(), Named(x)))),
+            makeCall(NoBinding(), "__VERIFIER_assume",
+                Vector(ValueArg(IntT(1), Vector(), Named(x)))),
             bx
         )
     }
 
     test("assume with integer argument is encoded correctly") {
         hasEffect(
-            makeCall("__VERIFIER_assume", Vector(ValueArg(IntT(32), Vector(), Named(x)))),
+            makeCall(NoBinding(), "__VERIFIER_assume",
+                Vector(ValueArg(IntT(32), Vector(), Named(x)))),
             !(ix === 0)
         )
     }
@@ -208,8 +210,8 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     val theIgnoredInsns = Vector(
         ("alloca", Alloca(NoBinding(), NotInAlloca(), IntT(32), OneElement(), DefaultAlign())),
-        ("__VERIFIER_nondet_int call", makeCall("__VERIFIER_nondet_int", Vector())),
-        ("llvm.va_start call", makeCall("llvm.va_start", Vector()))
+        ("__VERIFIER_nondet_int call", makeCall(Binding(x), "__VERIFIER_nondet_int", Vector())),
+        ("llvm.va_start call", makeCall(NoBinding(), "llvm.va_start", Vector()))
     )
 
     for ((desc, insn) <- theIgnoredInsns) {
@@ -533,6 +535,15 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 val i = Ints("i")
                 ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
             }
+        )
+    }
+
+    // Memory allocation calls
+
+    test("the term for a memory allocation call expresses non-failure") {
+        hasEffect(
+            makeCall(Binding(x), "malloc", Vector(ValueArg(IntT(1), Vector(), Const(IntC(42))))),
+            !(ix === 0)
         )
     }
 

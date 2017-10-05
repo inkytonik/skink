@@ -152,6 +152,21 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for memory allocation calls. Successful matches return the
+     * optional binding and the name of the function.
+     */
+    object MemoryAllocFunctionCall {
+        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
+            insn match {
+                case Call(to, _, _, _, _, Function(Named(Global(name))), _, _) if isMemoryAllocFunction(name) =>
+                    Some((to, name))
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
      * Matcher for nondet function names. Successful matches return the
      * identifier of the type that is returned by the matched function.
      */

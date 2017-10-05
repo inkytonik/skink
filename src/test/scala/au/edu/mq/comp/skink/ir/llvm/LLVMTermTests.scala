@@ -60,8 +60,8 @@ trait LLVMTermTests extends Tests with Core {
     val by = makeVarTermB("%y")
     val bz = makeVarTermB("%z")
 
-    def makeCall(id : String, args : Vector[CallArgument]) =
-        Call(NoBinding(), NotTail(), DefaultCC(), Vector(), VoidT(),
+    def makeCall(binding : OptBinding, id : String, args : Vector[CallArgument]) =
+        Call(binding, NotTail(), DefaultCC(), Vector(), VoidT(),
             Function(Named(Global(id))), args, Vector())
 
     def makeLabel(name : String) =

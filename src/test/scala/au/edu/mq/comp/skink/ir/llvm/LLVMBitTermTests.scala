@@ -76,14 +76,14 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
 
     test("assume with Boolean argument is encoded correctly") {
         hasEffect(
-            makeCall("__VERIFIER_assume", Vector(ValueArg(IntT(1), Vector(), Named(x)))),
+            makeCall(NoBinding(), "__VERIFIER_assume", Vector(ValueArg(IntT(1), Vector(), Named(x)))),
             bx
         )
     }
 
     test("assume with integer argument is encoded correctly") {
         hasEffect(
-            makeCall("__VERIFIER_assume", Vector(ValueArg(IntT(32), Vector(), Named(x)))),
+            makeCall(NoBinding(), "__VERIFIER_assume", Vector(ValueArg(IntT(32), Vector(), Named(x)))),
             !(ix === 0)
         )
     }
