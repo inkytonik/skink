@@ -70,6 +70,7 @@ FALSE
 <node id="N3">
   <data key="violation">true</data>
   <data key="block">19</data>
+  <data key="node.src">if (y == n) __VERIFIER_error();</data>
 </node>
 
 </graph>

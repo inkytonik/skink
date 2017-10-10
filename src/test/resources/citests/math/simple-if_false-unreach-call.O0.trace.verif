@@ -59,6 +59,7 @@ FALSE
 <node id="N2">
   <data key="violation">true</data>
   <data key="block">13</data>
+  <data key="node.src">if (i &gt; j) __VERIFIER_error();</data>
 </node>
 
 </graph>

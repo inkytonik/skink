@@ -103,6 +103,7 @@ FALSE
 <node id="N6">
   <data key="violation">true</data>
   <data key="block">17</data>
+  <data key="node.src">if (r &lt;= 0) __VERIFIER_error();</data>
 </node>
 
 </graph>

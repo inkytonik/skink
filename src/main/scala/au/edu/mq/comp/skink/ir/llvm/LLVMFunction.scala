@@ -310,7 +310,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                     block.optMetaLandingPadInstruction, before,
                     MetaTerminatorInstruction(
                         Branch(Label(Local(errorLabel))),
-                        Metadata(Vector())
+                        after(0).metadata
                     ))
             }
         }
