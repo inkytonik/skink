@@ -306,7 +306,8 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                     Block(BlockLabel(errorLabel), Vector(), None, after,
                         block.metaTerminatorInstruction)
                 errorBlocks += errorBlock
-                Block(block.optBlockLabel, Vector(), None, before,
+                Block(block.optBlockLabel, block.optMetaPhiInstructions,
+                    block.optMetaLandingPadInstruction, before,
                     MetaTerminatorInstruction(
                         Branch(Label(Local(errorLabel))),
                         Metadata(Vector())
