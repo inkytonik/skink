@@ -408,7 +408,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     lazy val traceToBlockTrace : Trace => BlockTrace =
         attr {
             case trace =>
-                val entryBlock = function.functionBody.blocks(0)
+                val entryBlock = makeVerifiable.functionBody.blocks(0)
                 val (finalBlock, blocks) =
                     trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                         case ((Some(block), blocks), choice) =>
