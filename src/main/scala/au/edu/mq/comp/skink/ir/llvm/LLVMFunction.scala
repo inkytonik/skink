@@ -345,7 +345,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
 
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
 
         // Build the steps between optional previous block and next block, but
         // only include a previous block if the current block has phi insns
@@ -380,7 +380,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
 
         // Get a tree for the relevant block
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
         if ((index < 0) || (index >= blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
         val blockTree = new Tree[Product, Block](blocks(index))
@@ -401,27 +401,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     /**
      * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace.
-     */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        val entryBlock = function.functionBody.blocks(0)
-        val (finalBlock, blocks) =
-            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-                case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice), blocks :+ block)
-                case ((None, blocks), choice) =>
-                    (None, blocks)
-            }
-        BlockTrace(blocks, trace)
-    }
-
-    /**
-     * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace. It's useful for this to be an attribute
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
      */
-    lazy val blockTrace : Trace => BlockTrace =
+    lazy val traceToBlockTrace : Trace => BlockTrace =
         attr {
             case trace =>
                 val entryBlock = function.functionBody.blocks(0)
