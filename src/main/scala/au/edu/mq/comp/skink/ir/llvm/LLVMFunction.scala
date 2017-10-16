@@ -96,17 +96,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    /**
-     * Combine terms via conjunction, dealing with the case where there are no
-     * terms so effect is "true". The namer is used to access the underlying
-     * term operations.
-     */
-    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
-        if (terms.isEmpty)
-            True()
-        else
-            terms.reduceLeft(_ & _)
-
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
         // Make the block trace that corresponds to this trace and set it
@@ -400,7 +389,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
-        val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
+        val term = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
 
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))
