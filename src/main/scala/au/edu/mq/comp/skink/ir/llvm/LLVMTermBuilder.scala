@@ -174,6 +174,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             vtermI(value) === vtermI(cases(choice).value)
                     }
 
+                case _ : Ret | RetVoid() if choice == 0 =>
+                    True()
+
                 case insn =>
                     sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
             }

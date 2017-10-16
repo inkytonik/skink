@@ -23,17 +23,20 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.theories.{BoolTerm, Core}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-    import org.scalallvm.assembly.AssemblySyntax.{Value => _, _}
+    import org.scalallvm.assembly.AssemblySyntax.{True => _, Value => _, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
     import org.scalallvm.assembly.Analyser.defaultBlockName
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success, Try}
+
+    object BoolOps extends Core
+    import BoolOps._
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -98,16 +101,11 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * terms so effect is "true". The namer is used to access the underlying
      * term operations.
      */
-    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-        import org.bitbucket.franck44.scalasmt.theories.Core
-        object BoolOps extends Core
-        import BoolOps._
-
+    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] =
         if (terms.isEmpty)
             True()
         else
             terms.reduceLeft(_ & _)
-    }
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
@@ -129,18 +127,28 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         val treeBlockTrace = traceTree.root
 
         // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block.
+        // the last step since that is to the error block. A trace with a
+        // single choice doesn't have an error block. This can't occur during
+        // verification but is useful for testing.
         val blockTerms =
-            trace.choices.init.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = treeBlockTrace.blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            Some(treeBlockTrace.blocks(count - 1))
-                    termBuilder.blockTerms(block, optPrevBlock, choice)
-            }.map(termBuilder.combineTerms)
+            trace.choices.size match {
+                case 0 =>
+                    sys.error("traceToTerms: unexpected empty trace")
+                case 1 =>
+                    val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
+                    Seq(termBuilder.combineTerms(terms))
+                case _ =>
+                    trace.choices.init.zipWithIndex.map {
+                        case (choice, count) =>
+                            val block = treeBlockTrace.blocks(count)
+                            val optPrevBlock =
+                                if (count == 0)
+                                    None
+                                else
+                                    Some(treeBlockTrace.blocks(count - 1))
+                            termBuilder.blockTerms(block, optPrevBlock, choice)
+                    }.map(termBuilder.combineTerms)
+            }
 
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
@@ -439,6 +447,8 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                         Some(dfltLabel)
                     else
                         Some(cases(choice).label)
+                case _ : Ret | RetVoid() if choice == 0 =>
+                    None
                 case Unreachable() =>
                     None
                 case insn =>

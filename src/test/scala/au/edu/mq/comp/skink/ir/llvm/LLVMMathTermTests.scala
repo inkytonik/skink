@@ -453,26 +453,12 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         e.getMessage shouldBe "exitTerm: can't handle choice 0 of resume i32 1"
     }
 
-    test("the effect of a non-void ret instruction is an error") {
-        val e = intercept[RuntimeException] {
-            hasExitEffect(
-                Ret(IntT(32), Const(IntC(1))),
-                0,
-                True()
-            )
-        }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret i32 1"
+    test("the effect of a non-void ret instruction is true") {
+        hasExitEffect(Ret(IntT(32), Const(IntC(1))), 0, True())
     }
 
-    test("the effect of a void ret instruction is an error") {
-        val e = intercept[RuntimeException] {
-            hasExitEffect(
-                RetVoid(),
-                0,
-                True()
-            )
-        }
-        e.getMessage shouldBe "exitTerm: can't handle choice 0 of ret void"
+    test("the effect of a void ret instruction is true") {
+        hasExitEffect(RetVoid(), 0, True())
     }
 
     val sw =
@@ -592,10 +578,10 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |     %a = alloca [5 x i32], align 16
             |     %x = getelementptr inbounds i32, i32* %a, i32 4
             |     %y = getelementptr inbounds i32, i32* %a, i32 0, i32 8
-            |     br label %0
+            |     ret void
             |}
             """.stripMargin,
-            Trace(Seq(0, 0))
+            Trace(Seq(0))
         ) shouldBe
             Seq(True())
     }
@@ -608,10 +594,10 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 |   0:
                 |     %a = alloca [5 x i32], align 16
                 |     %x = getelementptr inbounds i32, i32* %a, i32 4, i32 8
-                |     br label %0
+                |     ret void
                 |}
                 """.stripMargin,
-                Trace(Seq(0, 0))
+                Trace(Seq(0))
             )
         }
         e.getMessage shouldBe "insnTerm: unsupported getelementptr insn %x = getelementptr inbounds i32, i32* %a, i32 4, i32 8"
