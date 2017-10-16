@@ -18,6 +18,11 @@ trait LLVMTermTests extends Tests with Core {
     import org.scalallvm.assembly.{Analyser, Assembly}
     import org.scalallvm.assembly.AssemblySyntax._
 
+    // Override Kiama Tests setting for ScalaTest suite source path
+    // Needed to make output include correct path so sbt Atom can find tests
+    override def suiteSourcePath : String =
+        s"src/test/scala/$suitePackagePath"
+
     val namer = new DummyNamer
 
     def createAndInitConfig(args : Seq[String]) : SkinkConfig = {
