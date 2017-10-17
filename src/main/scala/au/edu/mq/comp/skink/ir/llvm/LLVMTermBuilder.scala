@@ -563,13 +563,11 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
                 // Array loads and stores, just non-Boolean, integer elements for now
 
-                // FIXME: handle the bit size of the indexes, currently assumed to be 32...
-
                 case insn @ Load(Binding(to), _, IntegerT(size), _, ArrayElement(array, index), _) =>
                     integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, 64, index))
+                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, config.architecture(), index))
                         case MathIntegerMode() =>
                             ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
                     }
@@ -578,7 +576,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, 64, index), vtermBV(from, bits))
+                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, config.architecture(), index), vtermBV(from, bits))
                         case MathIntegerMode() =>
                             arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
                     }
@@ -664,7 +662,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * identifier and include an index.
      */
     def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayBV1(termid(id), 64, bits).indexed(index)
+        ArrayBV1(termid(id), config.architecture(), bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name
