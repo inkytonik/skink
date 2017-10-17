@@ -19,6 +19,7 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
                 case RealDivTerm(ConstantTerm(DecLit(d)), List(ConstantTerm(DecLit(n)))) =>
                     s"${java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
                 case ConstantTerm(DecLit(s))                        => s
+                case ConstantTerm(HexaLit(s))                       => s"${java.lang.Integer.valueOf(s, 16)}"
                 case ConstantTerm(NumLit(i))                        => i.toString
                 case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
                 case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
