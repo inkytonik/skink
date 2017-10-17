@@ -523,23 +523,18 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
 
-        def getValue(to : Name, tipe : String) : Option[Value] = {
+        def getIndexedVarName(to : Name) : String = {
             val varName = show(to)
-            val sort =
-                tipe match {
-                    case "bool"             => BoolSort()
-                    case "float" | "double" => RealSort()
-                    case _                  => IntSort()
-                }
-            val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
-            failTrace.values.get(qid)
+            makeIndexedVarName(varName, namer.indexOf(to, varName))
         }
 
         collectl {
             case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
                 val value = binding match {
-                    case Binding(to) => getValue(to, tipe)
-                    case NoBinding() => None
+                    case Binding(to) =>
+                        failTrace.values.get(getIndexedVarName(to))
+                    case NoBinding() =>
+                        None
                 }
                 val (optCode, optLine) = getCodeLine(call, metadata)
                 NonDetCall(tipe, value, optLine, optCode)

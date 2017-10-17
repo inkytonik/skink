@@ -10,7 +10,6 @@ import org.scalallvm.assembly.AssemblySyntax.Program
 class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.SortedQIdOrdering
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
@@ -30,7 +29,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     def show : String =
         AssemblyPrettyPrinter.show(ir, 5)
 
-    def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
+    def sortIds(ids : Vector[String]) : Vector[String] =
         ids.sorted
 
 }

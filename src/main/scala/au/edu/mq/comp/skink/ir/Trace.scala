@@ -22,7 +22,7 @@ case class Trace(choices : Seq[Int]) {
  * A feasible trace that leads to a program failure. `values` maps ids
  * from the trace to values.
  */
-case class FailureTrace(trace : Trace, values : Map[SortedQId, Value])
+case class FailureTrace(trace : Trace, values : Map[String, Value])
 
 /**
  * A description of a step in the execution of a trace for use in witness

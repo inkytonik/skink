@@ -26,6 +26,6 @@ trait IR {
     /**
      * Sort IR ids into a useful order of display to the user.
      */
-    def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
+    def sortIds(ids : Vector[String]) : Vector[String]
 
 }

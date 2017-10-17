@@ -48,7 +48,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     def runSolver(
         selectedSolver : SMTSolver,
         terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[SortedQId, Value])] =
+    ) : Try[(SatResponses, Map[String, Value])] =
         using(selectedSolver) {
             implicit solver =>
                 isSat(terms : _*) map {
@@ -56,10 +56,10 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         getDeclCmd() match {
                             case Success(xs) =>
                                 val map = xs.map {
-                                    x => (x, getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                    x => (showTerm(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
                                 }.collect {
-                                    case (x, Success(v)) =>
-                                        (x, v)
+                                    case (s, Success(v)) =>
+                                        (s, v)
                                 }.toMap
                                 (Sat(), map)
                             case _ =>
@@ -166,7 +166,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)) {
-                                logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
+                                logger.debug(s"value: $x = ${values(x).show}")
                             }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))

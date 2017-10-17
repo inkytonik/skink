@@ -4,8 +4,6 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     // Property helpers
@@ -229,12 +227,16 @@ object LLVMHelper {
 
     }
 
-    /*
-     * Extractor for variable names that matches if the variable is a
-     * user-level variable (i.e., one defined in the source code) as
-     * opposed to a compiler-defined temporary. If a match is found,
-     * the basename of the variable and the index are returned (e.g.,
-     * `%i@1` returns `i` and 1).
+    /**
+     * Make an indexed variable name. Inverse of `UserLevelVarName`.
+     */
+    def makeIndexedVarName(varName : String, index : Int) : String =
+        s"${varName}@${index}"
+
+    /**
+     * Extractor for indexed variable names. If a match is found,
+     * the name of the variable and the index are returned (e.g.,
+     * `%i@1` returns `i` and 1). Inverse of `makeIndexedVarName`.
      */
     object UserLevelVarName {
         def unapply(name : String) : Option[(String, Int)] = {
@@ -247,6 +249,7 @@ object LLVMHelper {
             }
         }
     }
+
     /*
      * Extractor for base variable names that identifies numeric names,
      * i.e., LLVM temporaries.
@@ -259,29 +262,6 @@ object LLVMHelper {
                     Some(temp.toInt)
                 case _ =>
                     None
-            }
-        }
-    }
-
-    /**
-     * Ordering for qualified Ids that keeps ids like %1@1 ahead of
-     * things ids like %1@2 and %11@1.
-     */
-    implicit object SortedQIdOrdering extends math.Ordering[SortedQId] {
-        def compare(a : SortedQId, b : SortedQId) : Int = {
-            (showTerm(a.id), showTerm(b.id)) match {
-                case (UserLevelVarName(x, i), UserLevelVarName(y, j)) =>
-                    if (x == y)
-                        i - j
-                    else
-                        (x, y) match {
-                            case (TempVarBaseName(xn), TempVarBaseName(yn)) =>
-                                xn - yn
-                            case _ =>
-                                x compare y
-                        }
-                case (aStr, bStr) =>
-                    aStr compare bStr
             }
         }
     }
