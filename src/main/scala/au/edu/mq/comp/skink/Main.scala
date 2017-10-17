@@ -83,10 +83,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Integer representation: bit, math (default)",
         default = Some(new MathIntegerMode))(integerModeConverter)
 
-    lazy val integerSize = opt[Int]("intsize", short = 's',
-        descr = "Size of integers in bits when using bit representation (default: 32)",
-        default = Some(32))
-
     lazy val lli = opt[String]("lli", noshort = true,
         descr = "Program to use to execute target code (default: lli)",
         default = Some("lli"))

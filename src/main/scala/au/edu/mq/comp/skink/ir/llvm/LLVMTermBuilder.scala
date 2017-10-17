@@ -32,9 +32,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
     val logger = getLogger(this.getClass)
 
-    // Cached integer mode and size
+    // Cached integer mode and architecture
     val integerMode = config.integerMode()
-    val integerSize = config.integerSize()
+    val architecture = config.architecture()
 
     /**
      * Return a term that expresses the effects of the global variable
@@ -58,7 +58,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
                     case (IntT(size), _) =>
-                        config.integerMode() match {
+                        integerMode match {
                             case BitIntegerMode() =>
                                 val bits = size.toInt
                                 varTermBV(id, bits, index) === ctermBV(constantValue, bits)
@@ -157,7 +157,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     !vtermB(value)
 
                 case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
-                    config.integerMode() match {
+                    integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
                             combineTerms(cases.map { case Case(_, v, _) => !(vtermBV(value, bits) === vtermBV(v, bits)) })
@@ -166,7 +166,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
-                    config.integerMode() match {
+                    integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
                             vtermBV(value, bits) === vtermBV(cases(choice).value, bits)
@@ -265,7 +265,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     True()
 
                 case Binary(Binding(to), op, IntT(size), left, right) =>
-                    config.integerMode() match {
+                    integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
                             val lterm = vtermBV(left, bits)
@@ -567,7 +567,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, config.architecture(), index))
+                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, architecture, index))
                         case MathIntegerMode() =>
                             ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
                     }
@@ -576,7 +576,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
-                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, config.architecture(), index), vtermBV(from, bits))
+                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, architecture, index), vtermBV(from, bits))
                         case MathIntegerMode() =>
                             arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
                     }
@@ -662,7 +662,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * identifier and include an index.
      */
     def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayBV1(termid(id), config.architecture(), bits).indexed(index)
+        ArrayBV1(termid(id), architecture, bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name

@@ -81,7 +81,7 @@ abstract class Witnesses(config : SkinkConfig) {
            |  <data key="programfile"   >${config.filenames.getOrElse(List[String]("unknown")).head}</data>
            |  <data key="programhash"   >${config.filenames.map(_.head).map(digestOfFile(_)).getOrElse("0000000000000000000000000000000000000000")}</data>
            |  <data key="memorymodel"   >simple</data>
-           |  <data key="architecture"  >${config.integerSize.map(_.toString).getOrElse("32")}bit</data>
+           |  <data key="architecture"  >${config.architecture()}bit</data>
            |
            |${witness.nodesAndEdges.mkString("\n")}
            |</graph>
