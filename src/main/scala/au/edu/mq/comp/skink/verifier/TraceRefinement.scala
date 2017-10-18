@@ -51,7 +51,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     ) : Try[(SatResponses, Map[String, Value])] =
         using(selectedSolver) {
             implicit solver =>
-                isSat(terms : _*) map {
+                isSat(config.solverTimeOut())(terms : _*) map {
                     case Sat() =>
                         getDeclCmd() match {
                             case Success(xs) =>

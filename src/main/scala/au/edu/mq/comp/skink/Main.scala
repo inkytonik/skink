@@ -23,6 +23,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.c.CFrontend
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
+    import scala.concurrent.duration.Duration
     import scala.reflect.runtime.universe.TypeTag
 
     lazy val architecture = opt[Int]("architecture", short = 'a',
@@ -126,9 +127,31 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
         default = Some(Z3SolverMode()))(solverModeConverter)
 
-    lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers in seconds (default : 200)",
-        default = Some(200))
+    val solverTimeOutConverter =
+        new ValueConverter[Duration] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[Duration]] =
+                s match {
+                    case List((_, List(s))) =>
+                        if (s.forall(_.isDigit))
+                            Right(Some(Duration(s.toLong, "second")))
+                        else
+                            Left("expected numeric duration in seconds")
+                    case List((_, _)) =>
+                        Left("expected numeric duration in seconds")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[Duration]]
+
+        }
+
+    lazy val solverTimeOut = opt[Duration]("timeout", short = 'o',
+        descr = "Timeout for SMT solvers in seconds (default : 10s)",
+        default = Some(Duration(10, "second")))(solverTimeOutConverter)
 
     lazy val trackValues = opt[Boolean]("track", short = 'k',
         descr = "Track values (default: false)",
