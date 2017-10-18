@@ -4,8 +4,11 @@ import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
 sealed abstract class SolverMode
+case class BoolectorSolverMode() extends SolverMode
 case class CVC4SolverMode() extends SolverMode
 case class SMTInterpolSolverMode() extends SolverMode
+case class YicesSolverMode() extends SolverMode
+case class YicesNonIncrSolverMode() extends SolverMode
 case class Z3SolverMode() extends SolverMode
 
 sealed abstract class IntegerMode
@@ -107,14 +110,20 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
             def parse(s : List[(String, List[String])]) : Either[String, Option[SolverMode]] =
                 s match {
+                    case List((_, List("Boolector"))) =>
+                        Right(Some(BoolectorSolverMode()))
                     case List((_, List("CVC4"))) =>
                         Right(Some(CVC4SolverMode()))
                     case List((_, List("SMTInterpol"))) =>
                         Right(Some(SMTInterpolSolverMode()))
+                    case List((_, List("Yices"))) =>
+                        Right(Some(YicesSolverMode()))
+                    case List((_, List("Yices-nonIncr"))) =>
+                        Right(Some(YicesNonIncrSolverMode()))
                     case List((_, List("Z3"))) =>
                         Right(Some(Z3SolverMode()))
                     case List((_, _)) =>
-                        Left("expected CVC4, SMTInterpol or Z3")
+                        Left("expected Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3")
                     case _ =>
                         Right(None)
                 }
@@ -124,7 +133,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val solverMode = opt[SolverMode]("solver", short = 'e',
-        descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
+        descr = "SMT solver: Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3 (default)",
         default = Some(Z3SolverMode()))(solverModeConverter)
 
     val solverTimeOutConverter =

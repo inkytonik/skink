@@ -11,7 +11,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
-    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
+    import au.edu.mq.comp.skink.{BitIntegerMode, BoolectorSolverMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, YicesSolverMode, YicesNonIncrSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
@@ -94,17 +94,17 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         // type we want to use
         def selectedSolver =
             config.solverMode() match {
-                case Z3SolverMode() =>
+                case BoolectorSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                            sys.error(s"TraceRefinement: Boolector not supported in math integer mode")
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver(solverFromName("Boolector"), new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("CVC4"), new SMTInit(AUFNIRA, List(MODELS)))
+                            new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_AUFLIRA, List(MODELS)))
                         case BitIntegerMode() =>
                             new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
                     }
@@ -113,7 +113,28 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case MathIntegerMode() =>
                             new SMTSolver(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
-                            sys.error(s"TraceRefinement: SMTInterpol not supported in BitVector mode")
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in bit integer mode")
+                    }
+                case YicesSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver(solverFromName("Yices"), new SMTInit(QF_AUFLIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: Yices not supported in bit integer mode")
+                    }
+                case YicesNonIncrSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver(solverFromName("Yices-nonIncr"), new SMTInit(QF_NIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: Yices-nonIncr not supported in bit integer mode")
+                    }
+                case Z3SolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                        case BitIntegerMode() =>
+                            new SMTSolver(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
                     }
             }
 
