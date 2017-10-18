@@ -64,6 +64,8 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         nametree : Tree[Product, Product]) extends LLVMNamer {
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
+    import org.bitbucket.inkytonik.kiama.relation.NodeNotInTreeException
+    import org.bitbucket.inkytonik.kiama.util.Comparison.same
     import org.bitbucket.inkytonik.kiama.==>
     import org.scalallvm.assembly.ElementProperty
 
@@ -136,18 +138,25 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * because they need to use incoming values from the block, not
      * from previous `Phi` nodes (if any). If we are in such a
      * position, we find the block that encloses the `Phi` and use
-     * its incoming map.
+     * its incoming map. If the use is not in this function then it's
+     * global data and we are referring to its initial value, so a
+     * default index is returned.
      */
-    def indexOf(use : Product, s : String) : Int = {
-        val map =
-            enclosingPhi(use) match {
-                case Some(phi) =>
-                    stores.in(enclosingBlock(phi))
-                case _ =>
-                    stores(use)
-            }
-        map.get(s).getOrElse(defaultIndexOf(s))
-    }
+    def indexOf(use : Product, s : String) : Int =
+        try {
+            val map =
+                enclosingPhi(use) match {
+                    case Some(phi) =>
+                        stores.in(enclosingBlock(phi))
+                    case _ =>
+                        stores(use)
+                }
+            map.get(s).getOrElse(defaultIndexOf(s))
+        } catch {
+            case e @ NodeNotInTreeException(t : Product) if same(t, use) =>
+                // Not in the function so global and it's the initial version
+                defaultIndexOf(s)
+        }
 
     /**
      * The enclosing phi instruction of a node in a block, if there is one

@@ -142,4 +142,25 @@ trait LLVMTermTests extends Tests with Core {
         func.traceToTerms(trace)
     }
 
+    // Support for testing phi insns
+
+    def makeDummyBlock(name : String) =
+        Block(BlockLabel(name), Vector(), None, Vector(),
+            MetaTerminatorInstruction(Unreachable(), noMetadata))
+
+    val fooBlock = makeDummyBlock("foo")
+    val barBlock = makeDummyBlock("bar")
+    val bleBlock = makeDummyBlock("ble")
+
+    // Support for testing global variable initialisation
+
+    def makeGlobalInitVar(id : String, tipe : Type, constantValue : ConstantValue) : GlobalVariableDefinition =
+        GlobalVariableDefinition(
+            GlobalBinding(Global(id)), Common(), DefaultVisibility(),
+            DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
+            DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
+            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4),
+            Metadata(Vector())
+        )
+
 }

@@ -57,35 +57,45 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 val id = show(name)
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
-                    case (IntT(size), _) =>
-                        integerMode match {
-                            case BitIntegerMode() =>
-                                val bits = size.toInt
-                                varTermBV(id, bits, index) === ctermBV(constantValue, bits)
-                            case MathIntegerMode() =>
-                                varTermI(id, index) === ctermI(constantValue)
-                        }
-                    case (RealT(_), _) =>
-                        varTermR(id, index) === ctermR(constantValue)
-                    case (ArrayT(_, IntT(_)), ZeroC()) =>
-                        val i = Ints("i")
+                    case (IntT(_) | RealT(_), _) =>
+                        equality(name, tipe, Const(constantValue), tipe)
+                    case (ArrayT(_, elemtype @ (IntT(_) | RealT(_))), ZeroC()) =>
+                        val i =
+                            integerMode match {
+                                case BitIntegerMode() =>
+                                    BVs("i", config.architecture())
+                                case MathIntegerMode() =>
+                                    Ints("i")
+                            }
                         forall(SSymbol("i")) {
-                            arrayTermI(id, index).at(i) === 0
+                            elemtype match {
+                                case IntT(size) =>
+                                    integerMode match {
+                                        case BitIntegerMode() =>
+                                            val bits = size.toInt
+                                            arrayTermBV(id, bits, index).at(i) === 0.withBits(bits)
+                                        case MathIntegerMode() =>
+                                            arrayTermI(id, index).at(i) === 0
+                                    }
+                                case RealT(_) =>
+                                    arrayTermR(id, index).at(i) === 0
+                            }
                         }
-                    case (ArrayT(_, RealT(_)), ZeroC()) =>
-                        val i = Ints("i")
-                        forall(SSymbol("i")) {
-                            arrayTermR(id, index).at(i) === 0
-                        }
-                    case (ArrayT(_, IntT(_)), ArrayC(elems)) =>
+                    case (ArrayT(_, elemtype @ (IntT(_) | RealT(_))), ArrayC(elems)) =>
                         combineTerms(elems.zipWithIndex.map {
                             case (Element(_, constantValue), i) =>
-                                arrayTermI(id, index).at(i) === ctermI(constantValue)
-                        })
-                    case (ArrayT(_, RealT(_)), ArrayC(elems)) =>
-                        combineTerms(elems.zipWithIndex.map {
-                            case (Element(_, constantValue), i) =>
-                                arrayTermR(id, index).at(i) === ctermR(constantValue)
+                                elemtype match {
+                                    case IntT(size) =>
+                                        integerMode match {
+                                            case BitIntegerMode() =>
+                                                val bits = size.toInt
+                                                arrayTermBV(id, bits, index).at(i.withBits(config.architecture())) === ctermBV(constantValue, bits)
+                                            case MathIntegerMode() =>
+                                                arrayTermI(id, index).at(i) === ctermI(constantValue)
+                                        }
+                                    case RealT(_) =>
+                                        arrayTermR(id, index).at(i) === ctermR(constantValue)
+                                }
                         })
                     case (ArrayT(_, IntT(_)), StringC(_)) =>
                         // Ignore for now, so printfs don't get in the way
@@ -915,8 +925,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         constantValue match {
             case FalseC() =>
                 False()
+            case IntC(i) =>
+                if (i == 0) False() else True()
             case TrueC() =>
                 True()
+            case ZeroC() =>
+                False()
             case value =>
                 sys.error(s"ctermB: unexpected constant value $constantValue")
         }
@@ -927,9 +941,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     def ctermBV(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
         constantValue match {
             case IntC(i) =>
-                BVs.fromString(i.toString, bits)
+                i.toInt.withBits(bits)
             case NullC() | ZeroC() =>
-                BVs("#b0", bits)
+                0.withBits(bits)
             case value =>
                 sys.error(s"ctermBV: unexpected constant value $constantValue")
         }

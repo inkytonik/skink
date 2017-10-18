@@ -12,14 +12,17 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.Trace
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, RealSort, SSymbol, Term}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, IntTerm, RealTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, IntSort, RealSort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     def config = createAndInitConfig(Seq())
     val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+
+    def makeVarTermB(id : String, index : Int = 0) : VarTerm[BoolTerm] =
+        new VarTerm(id, BoolSort(), Some(index))
 
     def makeVarTermI(id : String, index : Int = 0) : VarTerm[IntTerm] =
         new VarTerm(id, IntSort(), Some(index))
@@ -269,24 +272,6 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
     }
 
-    test("integer array element store is encoded correctly") {
-        traceEffect(
-            """
-            |define void @func() {
-            |   0:
-            |     %x = alloca i32, i32 8
-            |     %1 = getelementptr inbounds [8 x i32], [8 x i32]* %x, i32 0, i32 1
-            |     store i32 %y, i32* %1
-            |     ret void
-            |}
-            """.stripMargin,
-            Trace(Seq(0))
-        ) shouldBe
-            Seq(
-                True() & makeArrayTermI("%x", 2) === makeArrayStoreTermI("%x", iy, 1, 1)
-            )
-    }
-
     test("float array element load is encoded correctly") {
         traceEffect(
             """
@@ -302,6 +287,40 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         ) shouldBe
             Seq(
                 True() & makeVarTermR("%y", 1) === makeArrayLoadTermR("%x", 1, 1)
+            )
+    }
+
+    // Stores
+
+    val stores = Vector(
+        (IntT(1), bx === by),
+        (IntT(32), ix === iy)
+    )
+
+    for ((tipe, term) <- stores) {
+        test(s"store of ${show(tipe)} is encoded correctly") {
+            hasEffect(
+                Store(NotVolatile(), tipe, yexp, PointerT(tipe, DefaultAddrSpace()), xexp, DefaultAlign()),
+                term
+            )
+        }
+    }
+
+    test("integer array element store is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 8
+            |     %1 = getelementptr inbounds [8 x i32], [8 x i32]* %x, i32 0, i32 1
+            |     store i32 %y, i32* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermI("%x", 2) === makeArrayStoreTermI("%x", iy, 1, 1)
             )
     }
 
@@ -323,22 +342,6 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
     }
 
-    // Stores
-
-    val stores = Vector(
-        (IntT(1), bx === by),
-        (IntT(32), ix === iy)
-    )
-
-    for ((tipe, term) <- stores) {
-        test(s"store of ${show(tipe)} is encoded correctly") {
-            hasEffect(
-                Store(NotVolatile(), tipe, yexp, PointerT(tipe, DefaultAddrSpace()), xexp, DefaultAlign()),
-                term
-            )
-        }
-    }
-
     // Make sure instructions we are not handling yet are actually ignored
 
     val theIgnoredInsns = Vector(
@@ -355,90 +358,117 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     // Phi instructions
 
-    def makeDummyBlock(name : String) =
-        Block(BlockLabel(name), Vector(), None, Vector(),
-            MetaTerminatorInstruction(Unreachable(), noMetadata))
+    {
+        val phiPredecessors =
+            Vector(
+                PhiPredecessor(Const(IntC(1)), makeLabel("foo")),
+                PhiPredecessor(Const(IntC(2)), makeLabel("bar"))
+            )
 
-    val fooBlock = makeDummyBlock("foo")
-    val barBlock = makeDummyBlock("bar")
-    val bleBlock = makeDummyBlock("ble")
-
-    val phiPredecessors =
-        Vector(
-            PhiPredecessor(Const(IntC(1)), makeLabel("foo")),
-            PhiPredecessor(Const(IntC(2)), makeLabel("bar"))
-        )
-
-    test("a phi insn with no binding has no effect") {
-        hasPhiEffect(
-            Phi(NoBinding(), IntT(32), phiPredecessors),
-            Some(fooBlock),
-            True()
-        )
-    }
-
-    test("a phi insn with a binding and first predecessor gives correct term") {
-        hasPhiEffect(
-            Phi(Binding(x), IntT(32), phiPredecessors),
-            Some(fooBlock),
-            ix === 1
-        )
-    }
-
-    test("a phi insn with a binding and non-first predecessor gives correct term") {
-        hasPhiEffect(
-            Phi(Binding(x), IntT(32), phiPredecessors),
-            Some(barBlock),
-            ix === 2
-        )
-    }
-
-    test("the effect of a phi insn and no previous block is an error") {
-        val e = intercept[RuntimeException] {
+        test("an integer phi insn with no binding has no effect") {
             hasPhiEffect(
                 Phi(NoBinding(), IntT(32), phiPredecessors),
-                None,
+                Some(fooBlock),
                 True()
             )
         }
-        e.getMessage shouldBe "phiInsnTerm: found phi i32 [ 1, %foo ], [ 2, %bar ] but have no previous block"
-    }
 
-    test("the effect of a phi insn and a bogus previous block is an error") {
-        val e = intercept[RuntimeException] {
+        test("an integer phi insn with a binding and first predecessor gives correct term") {
             hasPhiEffect(
                 Phi(Binding(x), IntT(32), phiPredecessors),
-                Some(bleBlock),
+                Some(fooBlock),
+                ix === 1
+            )
+        }
+
+        test("an integer phi insn with a binding and non-first predecessor gives correct term") {
+            hasPhiEffect(
+                Phi(Binding(x), IntT(32), phiPredecessors),
+                Some(barBlock),
+                ix === 2
+            )
+        }
+
+        test("the effect of an integer phi insn and no previous block is an error") {
+            val e = intercept[RuntimeException] {
+                hasPhiEffect(
+                    Phi(NoBinding(), IntT(32), phiPredecessors),
+                    None,
+                    True()
+                )
+            }
+            e.getMessage shouldBe "phiInsnTerm: found phi i32 [ 1, %foo ], [ 2, %bar ] but have no previous block"
+        }
+
+        test("the effect of an integer phi insn and a bogus previous block is an error") {
+            val e = intercept[RuntimeException] {
+                hasPhiEffect(
+                    Phi(Binding(x), IntT(32), phiPredecessors),
+                    Some(bleBlock),
+                    True()
+                )
+            }
+            e.getMessage shouldBe "phiInsnTerm: can't find %ble in %x = phi i32 [ 1, %foo ], [ 2, %bar ]"
+        }
+
+        test("multiple phi insns are correctly encoded in parallel") {
+            // In %1 coming from %1, %y should refer to the incoming %x not the
+            // %x set by the first phi insn, since the phis are supposed to run
+            // simultaneously.
+
+            traceEffect(
+                """
+                |define void @func() {
+                |   0:
+                |     br label %1
+                |
+                |   1:
+                |     %x = phi i32 [ 0, %0 ], [ %y, %1 ]
+                |     %y = phi i32 [ 1, %0 ], [ %x, %1 ]
+                |     br label %1
+                |}
+                """.stripMargin,
+                Trace(Seq(0, 0, 0, 0))
+            ) shouldBe
+                Seq(
+                    True(),
+                    (ix1 === 0) & (iy1 === 1),
+                    (ix2 === iy1) & (iy2 === ix1) // Note: ix1 not ix2!
+                )
+
+        }
+    }
+
+    {
+        val phiPredecessors =
+            Vector(
+                PhiPredecessor(Const(FloatC("1.4")), makeLabel("foo")),
+                PhiPredecessor(Const(FloatC("-0.7")), makeLabel("bar"))
+            )
+
+        test("a float phi insn with no binding has no effect") {
+            hasPhiEffect(
+                Phi(NoBinding(), FloatT(), phiPredecessors),
+                Some(fooBlock),
                 True()
             )
         }
-        e.getMessage shouldBe "phiInsnTerm: can't find %ble in %x = phi i32 [ 1, %foo ], [ 2, %bar ]"
-    }
 
-    test("multiple phi insns are correctly encoded in parallel") {
-        // In %1 coming from %1, %y should refer to the incoming %x not the
-        // %x set by the first phi insn, since the phis are supposed to run
-        // simultaneously.
-
-        traceEffect(
-            """
-            |define void @func() {
-            |   0:
-            |     br label %1
-            |
-            |   1:
-            |     %x = phi i32 [ 0, %0 ], [ %y, %1 ]
-            |     %y = phi i32 [ 1, %0 ], [ %x, %1 ]
-            |     br label %1
-            |}
-            """.stripMargin,
-            Trace(Seq(0, 0, 0, 0))
-        ) shouldBe
-            Seq(
-                True(),
-                (ix1 === 0) & (iy1 === 1),
-                (ix2 === iy1) & (iy2 === ix1) // Note: ix1 not ix2!
+        test("a float phi insn with a binding and first predecessor gives correct term") {
+            hasPhiEffect(
+                Phi(Binding(x), FloatT(), phiPredecessors),
+                Some(fooBlock),
+                fx === 1.4
             )
+        }
+
+        test("a float phi insn with a binding and non-first predecessor gives correct term") {
+            hasPhiEffect(
+                Phi(Binding(x), FloatT(), phiPredecessors),
+                Some(barBlock),
+                fx === -0.7
+            )
+        }
 
     }
 
@@ -591,14 +621,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     // Global variable initialisation
 
-    def makeGlobalInitVar(id : String, tipe : Type, constantValue : ConstantValue) : GlobalVariableDefinition =
-        GlobalVariableDefinition(
-            GlobalBinding(Global(id)), Common(), DefaultVisibility(),
-            DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
-            DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
-            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4),
-            Metadata(Vector())
-        )
+    val gbx = makeVarTermB("@x")
 
     val gix = makeVarTermI("@x")
     val giy = makeVarTermI("@y")
@@ -607,14 +630,14 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     test("a global initialised Boolean variable generates the correct term") {
         hasItemEffect(
             makeGlobalInitVar("x", IntT(1), IntC(1)),
-            gix === 1
+            gbx === True()
         )
     }
 
     test("a global zero initialised Boolean variable generates the correct term") {
         hasItemEffect(
             makeGlobalInitVar("x", IntT(1), ZeroC()),
-            gix === 0
+            gbx === False()
         )
     }
 
@@ -633,31 +656,31 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     }
 
     test("a global zero initialised Boolean array variable generates the correct term") {
+        val i = Ints("i")
         hasItemEffect(
             makeGlobalInitVar("z", ArrayT(10, IntT(1)), ZeroC()),
             forall(SSymbol("i")) {
-                val i = Ints("i")
-                ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
+                ArrayInt1("@z").indexed(0).at(i) === 0
             }
         )
     }
 
     test("a global zero initialised integer array variable generates the correct term") {
+        val i = Ints("i")
         hasItemEffect(
             makeGlobalInitVar("z", ArrayT(10, IntT(32)), ZeroC()),
             forall(SSymbol("i")) {
-                val i = Ints("i")
-                ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
+                ArrayInt1("@z").indexed(0).at(i) === 0
             }
         )
     }
 
     test("a global zero initialised real array variable generates the correct term") {
+        val i = Ints("i")
         hasItemEffect(
             makeGlobalInitVar("z", ArrayT(10, FloatT()), ZeroC()),
             forall(SSymbol("i")) {
-                val i = Ints("i")
-                ArrayEx1[RealTerm]("@z").indexed(0).at(i) === 0
+                ArrayReal1("@z").indexed(0).at(i) === 0
             }
         )
     }
@@ -670,8 +693,8 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                     Element(IntT(32), IntC(42))
                 )
             )),
-            (ArrayEx1[IntTerm]("@z").indexed(0).at(0) === 10) &
-                (ArrayEx1[IntTerm]("@z").indexed(0).at(1) === 42)
+            (ArrayInt1("@z").indexed(0).at(0) === 10) &
+                (ArrayInt1("@z").indexed(0).at(1) === 42)
         )
     }
 
@@ -683,8 +706,8 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                     Element(IntT(32), FloatC("-0.7e12"))
                 )
             )),
-            (ArrayEx1[RealTerm]("@z").indexed(0).at(0) === 1.5) &
-                (ArrayEx1[RealTerm]("@z").indexed(0).at(1) === -700000000000.0)
+            (ArrayReal1("@z").indexed(0).at(0) === 1.5) &
+                (ArrayReal1("@z").indexed(0).at(1) === -700000000000.0)
         )
     }
 

@@ -1,14 +1,16 @@
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.bitbucket.franck44.scalasmt.theories.BitVectors
+import org.bitbucket.franck44.scalasmt.theories.{ArrayExBV, ArrayExOperators, BitVectors}
+import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 
 /**
  * Tests of bit vector term construction.
  */
-class LLVMBitTermTests extends LLVMTermTests with BitVectors {
+class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperators with BitVectors with QuantifiedTerm {
 
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, Term}
-    import org.bitbucket.franck44.scalasmt.theories.BVTerm
+    import au.edu.mq.comp.skink.ir.Trace
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
@@ -17,15 +19,26 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
     def config = createAndInitConfig(Seq("-i", "bit"))
     val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
 
-    def makeVarTermI(id : String) : VarTerm[BVTerm] =
-        new VarTerm(id, BitVectorSort("32"), Some(0))
+    def makeVarTermBV(id : String, index : Int = 0) : VarTerm[BVTerm] =
+        new VarTerm(id, BitVectorSort("32"), Some(index))
+
+    def makeArrayTermBV(id : String, index : Int = 0) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        ArrayBV1(id, 32, 32).indexed(index)
+
+    def makeArrayLoadTermBV(id : String, elem : Int, index : Int = 0) : TypedTerm[BVTerm, Term] =
+        makeArrayTermBV(id, index).at(elem)
+
+    def makeArrayStoreTermBV(id : String, from : TypedTerm[BVTerm, Term], elem : Int, index : Int = 0) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        makeArrayTermBV(id, index).store(elem, from)
 
     implicit def BVs32(i : Int) : TypedTerm[BVTerm, Term] =
         BVs(i, 32)
 
-    val ix = makeVarTermI("%x")
-    val iy = makeVarTermI("%y")
-    val iz = makeVarTermI("%z")
+    val ix = makeVarTermBV("%x")
+    val iy = makeVarTermBV("%y")
+    val iz = makeVarTermBV("%z")
+
+    val iy1 = makeVarTermBV("%y", 1)
 
     // Binary operations
 
@@ -236,6 +249,24 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
         }
     }
 
+    test("integer array element load is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 5
+            |     %1 = getelementptr inbounds [5 x i32], [5 x i32]* %x, i32 0, i32 1
+            |     %y = load i32, i32* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & iy1 === makeArrayLoadTermBV("%x", 1, 1)
+            )
+    }
+
     // Stores
 
     val stores = Vector(
@@ -249,6 +280,126 @@ class LLVMBitTermTests extends LLVMTermTests with BitVectors {
                 term
             )
         }
+    }
+
+    test("integer array element store is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 8
+            |     %1 = getelementptr inbounds [8 x i32], [8 x i32]* %x, i32 0, i32 1
+            |     store i32 %y, i32* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermBV("%x", 2) === makeArrayStoreTermBV("%x", iy, 1, 1)
+            )
+    }
+
+    {
+        val phiPredecessors =
+            Vector(
+                PhiPredecessor(Const(IntC(1)), makeLabel("foo")),
+                PhiPredecessor(Const(IntC(2)), makeLabel("bar"))
+            )
+
+        test("an integer phi insn with no binding has no effect") {
+            hasPhiEffect(
+                Phi(NoBinding(), FloatT(), phiPredecessors),
+                Some(fooBlock),
+                True()
+            )
+        }
+
+        test("an integer phi insn with a binding and first predecessor gives correct term") {
+            hasPhiEffect(
+                Phi(Binding(x), IntT(32), phiPredecessors),
+                Some(fooBlock),
+                ix === 1
+            )
+        }
+
+        test("an integer phi insn with a binding and non-first predecessor gives correct term") {
+            hasPhiEffect(
+                Phi(Binding(x), IntT(32), phiPredecessors),
+                Some(barBlock),
+                ix === 2
+            )
+        }
+
+    }
+
+    // Global variable initialisation
+
+    val gbx = makeVarTermB("@x")
+
+    val gix = makeVarTermBV("@x")
+    val giy = makeVarTermBV("@y")
+    val giz = makeVarTermBV("@z")
+
+    test("a global initialised Boolean variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("x", IntT(1), IntC(1)),
+            gbx === True()
+        )
+    }
+
+    test("a global zero initialised Boolean variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("x", IntT(1), ZeroC()),
+            gbx === False()
+        )
+    }
+
+    test("a global initialised integer variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("y", IntT(32), IntC(42)),
+            giy === 42
+        )
+    }
+
+    test("a global zero initialised integer variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("y", IntT(32), ZeroC()),
+            giy === 0
+        )
+    }
+
+    test("a global zero initialised Boolean array variable generates the correct term") {
+        val i = BVs("i", 32)
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(1)), ZeroC()),
+            forall(SSymbol("i")) {
+                ArrayBV1("@z", 32, 1).indexed(0).at(i) === 0.withBits(1)
+            }
+        )
+    }
+
+    test("a global zero initialised integer array variable generates the correct term") {
+        val i = BVs("i", 32)
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(32)), ZeroC()),
+            forall(SSymbol("i")) {
+                ArrayBV1("@z", 32, 32).indexed(0).at(i) === 0
+            }
+        )
+    }
+
+    test("a global non-zero initialised integer array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(32)), ArrayC(
+                Vector(
+                    Element(IntT(32), IntC(10)),
+                    Element(IntT(32), IntC(42))
+                )
+            )),
+            (ArrayBV1("@z", 32, 32).indexed(0).at(0) === 10) &
+                (ArrayBV1("@z", 32, 32).indexed(0).at(1) === 42)
+        )
     }
 
 }
