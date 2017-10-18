@@ -27,11 +27,23 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     def makeVarTermR(id : String, index : Int = 0) : VarTerm[RealTerm] =
         new VarTerm(id, RealSort(), Some(index))
 
+    def makeArrayTermI(id : String, index : Int = 0) : TypedTerm[ArrayTerm[IntTerm], Term] =
+        ArrayInt1(id).indexed(index)
+
     def makeArrayTermR(id : String, index : Int = 0) : TypedTerm[ArrayTerm[RealTerm], Term] =
         ArrayReal1(id).indexed(index)
 
-    def makeArrayElemTermR(id : String, elem : Int, index : Int = 0) : TypedTerm[RealTerm, Term] =
+    def makeArrayLoadTermI(id : String, elem : Int, index : Int = 0) : TypedTerm[IntTerm, Term] =
+        makeArrayTermI(id, index).at(elem)
+
+    def makeArrayLoadTermR(id : String, elem : Int, index : Int = 0) : TypedTerm[RealTerm, Term] =
         makeArrayTermR(id, index).at(elem)
+
+    def makeArrayStoreTermI(id : String, from : TypedTerm[IntTerm, Term], elem : Int, index : Int = 0) : TypedTerm[ArrayTerm[IntTerm], Term] =
+        makeArrayTermI(id, index).store(elem, from)
+
+    def makeArrayStoreTermR(id : String, from : TypedTerm[RealTerm, Term], elem : Int, index : Int = 0) : TypedTerm[ArrayTerm[RealTerm], Term] =
+        makeArrayTermR(id, index).store(elem, from)
 
     val ix = makeVarTermI("%x")
     val iy = makeVarTermI("%y")
@@ -47,12 +59,12 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     val fy = makeVarTermR("%y")
     val fz = makeVarTermR("%z")
 
-    val afx0 = makeArrayElemTermR("%x", 0)
-    val afy0 = makeArrayElemTermR("%y", 0)
-    val afz0 = makeArrayElemTermR("%z", 0)
-    val afx1 = makeArrayElemTermR("%x", 1)
-    val afy1 = makeArrayElemTermR("%y", 1)
-    val afz1 = makeArrayElemTermR("%z", 1)
+    val afx0 = makeArrayLoadTermR("%x", 0)
+    val afy0 = makeArrayLoadTermR("%y", 0)
+    val afz0 = makeArrayLoadTermR("%z", 0)
+    val afx1 = makeArrayLoadTermR("%x", 1)
+    val afy1 = makeArrayLoadTermR("%y", 1)
+    val afz1 = makeArrayLoadTermR("%z", 1)
 
     // Binary operations
 
@@ -237,6 +249,78 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 term
             )
         }
+    }
+
+    test("integer array element load is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 5
+            |     %1 = getelementptr inbounds [5 x i32], [5 x i32]* %x, i32 0, i32 1
+            |     %y = load i32, i32* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & iy1 === makeArrayLoadTermI("%x", 1, 1)
+            )
+    }
+
+    test("integer array element store is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 8
+            |     %1 = getelementptr inbounds [8 x i32], [8 x i32]* %x, i32 0, i32 1
+            |     store i32 %y, i32* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermI("%x", 2) === makeArrayStoreTermI("%x", iy, 1, 1)
+            )
+    }
+
+    test("float array element load is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca float, float 4
+            |     %1 = getelementptr inbounds [4 x float], [4 x float]* %x, i32 0, i32 1
+            |     %y = load float, float* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeVarTermR("%y", 1) === makeArrayLoadTermR("%x", 1, 1)
+            )
+    }
+
+    test("float array element store is encoded correctly") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca float, float 8
+            |     %1 = getelementptr inbounds [8 x float], [8 x float]* %x, i32 0, i32 1
+            |     store float %y, float* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermR("%x", 2) === makeArrayStoreTermR("%x", fy, 1, 1)
+            )
     }
 
     // Stores
@@ -565,6 +649,42 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 val i = Ints("i")
                 ArrayEx1[IntTerm]("@z").indexed(0).at(i) === 0
             }
+        )
+    }
+
+    test("a global zero initialised real array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, FloatT()), ZeroC()),
+            forall(SSymbol("i")) {
+                val i = Ints("i")
+                ArrayEx1[RealTerm]("@z").indexed(0).at(i) === 0
+            }
+        )
+    }
+
+    test("a global non-zero initialised integer array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, IntT(32)), ArrayC(
+                Vector(
+                    Element(IntT(32), IntC(10)),
+                    Element(IntT(32), IntC(42))
+                )
+            )),
+            (ArrayEx1[IntTerm]("@z").indexed(0).at(0) === 10) &
+                (ArrayEx1[IntTerm]("@z").indexed(0).at(1) === 42)
+        )
+    }
+
+    test("a global non-zero initialised real array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(10, FloatT()), ArrayC(
+                Vector(
+                    Element(IntT(32), FloatC("1.5")),
+                    Element(IntT(32), FloatC("-0.7e12"))
+                )
+            )),
+            (ArrayEx1[RealTerm]("@z").indexed(0).at(0) === 1.5) &
+                (ArrayEx1[RealTerm]("@z").indexed(0).at(1) === -700000000000.0)
         )
     }
 

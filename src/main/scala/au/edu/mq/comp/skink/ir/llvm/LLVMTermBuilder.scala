@@ -72,10 +72,20 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                         forall(SSymbol("i")) {
                             arrayTermI(id, index).at(i) === 0
                         }
+                    case (ArrayT(_, RealT(_)), ZeroC()) =>
+                        val i = Ints("i")
+                        forall(SSymbol("i")) {
+                            arrayTermR(id, index).at(i) === 0
+                        }
                     case (ArrayT(_, IntT(_)), ArrayC(elems)) =>
                         combineTerms(elems.zipWithIndex.map {
                             case (Element(_, constantValue), i) =>
                                 arrayTermI(id, index).at(i) === ctermI(constantValue)
+                        })
+                    case (ArrayT(_, RealT(_)), ArrayC(elems)) =>
+                        combineTerms(elems.zipWithIndex.map {
+                            case (Element(_, constantValue), i) =>
+                                arrayTermR(id, index).at(i) === ctermR(constantValue)
                         })
                     case (ArrayT(_, IntT(_)), StringC(_)) =>
                         // Ignore for now, so printfs don't get in the way
@@ -561,7 +571,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             ntermI(to) === vtermB(from).ite(vtermI(value1), vtermI(value2))
                     }
 
-                // Array loads and stores, just non-Boolean, integer elements for now
+                // Array loads and stores, just non-Boolean, integer and float elements for now
 
                 case insn @ Load(Binding(to), _, IntegerT(size), _, ArrayElement(array, index), _) =>
                     integerMode match {
@@ -572,6 +582,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
                     }
 
+                case insn @ Load(Binding(to), _, FloatT(), _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            sys.error("insnTerm: floating-point bit-vector load not yet supported")
+                        case MathIntegerMode() =>
+                            ntermR(to) === arrayTermAtR(insn, array).at(vtermAtI(insn, index))
+                    }
+
                 case insn @ Store(_, IntegerT(size), from, _, ArrayElement(array, index), _) =>
                     integerMode match {
                         case BitIntegerMode() =>
@@ -579,6 +597,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, architecture, index), vtermBV(from, bits))
                         case MathIntegerMode() =>
                             arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
+                    }
+
+                case insn @ Store(_, FloatT(), from, _, ArrayElement(array, index), _) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            sys.error("insnTerm: floating-point bit-vector store not yet supported")
+                        case MathIntegerMode() =>
+                            arrayTermAtR(insn, array) === prevArrayTermAtR(insn, array).store(vtermAtI(insn, index), vtermR(from))
                     }
 
                 // Non-array loads and stores
