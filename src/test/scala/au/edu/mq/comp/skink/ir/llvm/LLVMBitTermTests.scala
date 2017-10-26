@@ -402,4 +402,12 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
         )
     }
 
+    test("a global string initialised integer array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(2, IntT(32)), StringC(""""Hi"""")),
+            (ArrayBV1("@z", 32, 32).indexed(0).at(0) === 72) &
+                (ArrayBV1("@z", 32, 32).indexed(0).at(1) === 105)
+        )
+    }
+
 }

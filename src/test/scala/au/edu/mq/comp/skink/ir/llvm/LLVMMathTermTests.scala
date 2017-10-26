@@ -766,6 +766,14 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         )
     }
 
+    test("a global string initialised integer array variable generates the correct term") {
+        hasItemEffect(
+            makeGlobalInitVar("z", ArrayT(2, IntT(32)), StringC(""""Hi"""")),
+            (ArrayInt1("@z").indexed(0).at(0) === 72) &
+                (ArrayInt1("@z").indexed(0).at(1) === 105)
+        )
+    }
+
     test("a global non-zero initialised real array variable generates the correct term") {
         hasItemEffect(
             makeGlobalInitVar("z", ArrayT(10, FloatT()), ArrayC(

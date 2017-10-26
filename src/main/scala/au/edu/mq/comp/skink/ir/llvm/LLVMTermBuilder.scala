@@ -27,6 +27,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import namer.{ArrayElement, ArrayElementC, indexOf, termid}
+    import org.scalallvm.assembly.Analyser.unescape
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
@@ -97,9 +98,21 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                         arrayTermR(id, index).at(i) === ctermR(constantValue)
                                 }
                         })
-                    case (ArrayT(_, IntT(_)), StringC(_)) =>
-                        // Ignore for now, so printfs don't get in the way
-                        True()
+                    case (ArrayT(_, IntT(size)), c : StringC) =>
+                        val chars = unescape(c).zipWithIndex
+                        integerMode match {
+                            case BitIntegerMode() =>
+                                val bits = size.toInt
+                                combineTerms(chars.map {
+                                    case (char, i) =>
+                                        arrayTermBV(id, bits, index).at(i.withBits(config.architecture())) === ctermBV(IntC(char.toInt), bits)
+                                })
+                            case MathIntegerMode() =>
+                                combineTerms(chars.map {
+                                    case (char, i) =>
+                                        arrayTermI(id, index).at(i) === ctermI(IntC(char.toInt))
+                                })
+                        }
                     case _ =>
                         sys.error(s"itemTerm: no support for global ${show(tipe)} variable initialisation to ${show(constantValue)}")
                 }
