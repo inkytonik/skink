@@ -15,6 +15,13 @@ trait ArrayElementExtractor {
 }
 
 /**
+ * As for `ArrayElementExtractor` but for constant values.
+ */
+trait ArrayElementCExtractor {
+    def unapply(constantValue : ConstantValue) : Option[(Name, Value)]
+}
+
+/**
  * Interface for support of naming within structures.
  */
 trait LLVMNamer {
@@ -45,6 +52,15 @@ trait LLVMNamer {
     val ArrayElement =
         new ArrayElementExtractor {
             def unapply(value : Value) : Option[(Name, Value)] =
+                None
+        }
+
+    /**
+     * As for `ArrayElement` but for constant values.
+     */
+    val ArrayElementC =
+        new ArrayElementCExtractor {
+            def unapply(constantValue : ConstantValue) : Option[(Name, Value)] =
                 None
         }
 
@@ -87,6 +103,19 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
                 value match {
                     case Named(name) =>
                         elementProperty(name)
+                    case Const(ArrayElementC(name, index)) =>
+                        Some((name, index))
+                    case _ =>
+                        None
+                }
+        }
+
+    override val ArrayElementC =
+        new ArrayElementCExtractor {
+            def unapply(valconstantValueue : ConstantValue) : Option[(Name, Value)] =
+                valconstantValueue match {
+                    case GetElementPtrC(_, _, _, NameC(name), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+                        Some((name, index))
                     case _ =>
                         None
                 }

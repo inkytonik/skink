@@ -26,7 +26,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import namer.{ArrayElement, indexOf, termid}
+    import namer.{ArrayElement, ArrayElementC, indexOf, termid}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
@@ -949,7 +949,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         }
 
     /**
-     * Return an integer term that exprinsesses an LLVM integer constant value.
+     * Return an integer term that expresses an LLVM integer constant value.
      */
     def ctermI(constantValue : ConstantValue) : TypedTerm[IntTerm, Term] =
         constantValue match {
@@ -959,7 +959,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 0
             case TrueC() =>
                 1
-            case GetElementPtrC(_, _, _, NameC(name), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), Const(IntC(index))))) if i == 0 =>
+            case ArrayElementC(name, Const(IntC(index))) =>
                 arrayTermAtI(name, name).at(index.toInt)
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")

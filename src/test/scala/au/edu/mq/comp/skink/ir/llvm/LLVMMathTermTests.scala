@@ -254,7 +254,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    test("integer array element load is encoded correctly") {
+    test("integer array element load is encoded correctly (separate getelementptr)") {
         traceEffect(
             """
             |define void @func() {
@@ -272,7 +272,24 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
     }
 
-    test("float array element load is encoded correctly") {
+    test("integer array element load is encoded correctly (argument getelementptr)") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 5
+            |     %y = load i32, i32* getelementptr inbounds ([5 x i32], [5 x i32]* %x, i32 0, i32 1)
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & iy1 === makeArrayLoadTermI("%x", 1, 1)
+            )
+    }
+
+    test("float array element load is encoded correctly (separate getelementptr)") {
         traceEffect(
             """
             |define void @func() {
@@ -280,6 +297,23 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |     %x = alloca float, float 4
             |     %1 = getelementptr inbounds [4 x float], [4 x float]* %x, i32 0, i32 1
             |     %y = load float, float* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeVarTermR("%y", 1) === makeArrayLoadTermR("%x", 1, 1)
+            )
+    }
+
+    test("float array element load is encoded correctly (argument getelementptr)") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca float, float 4
+            |     %y = load float, float* getelementptr inbounds ([4 x float], [4 x float]* %x, i32 0, i32 1)
             |     ret void
             |}
             """.stripMargin,
@@ -306,7 +340,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    test("integer array element store is encoded correctly") {
+    test("integer array element store is encoded correctly (separate getelementptr)") {
         traceEffect(
             """
             |define void @func() {
@@ -324,7 +358,24 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
     }
 
-    test("float array element store is encoded correctly") {
+    test("integer array element store is encoded correctly (argument getelementptr)") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca i32, i32 8
+            |     store i32 %y, i32* getelementptr inbounds ([8 x i32], [8 x i32]* %x, i32 0, i32 1)
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermI("%x", 2) === makeArrayStoreTermI("%x", iy, 1, 1)
+            )
+    }
+
+    test("float array element store is encoded correctly (separate getelementptr)") {
         traceEffect(
             """
             |define void @func() {
@@ -332,6 +383,23 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             |     %x = alloca float, float 8
             |     %1 = getelementptr inbounds [8 x float], [8 x float]* %x, i32 0, i32 1
             |     store float %y, float* %1
+            |     ret void
+            |}
+            """.stripMargin,
+            Trace(Seq(0))
+        ) shouldBe
+            Seq(
+                True() & makeArrayTermR("%x", 2) === makeArrayStoreTermR("%x", fy, 1, 1)
+            )
+    }
+
+    test("float array element store is encoded correctly (argument getelementptr)") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     %x = alloca float, float 8
+            |     store float %y, float* getelementptr inbounds ([8 x float], [8 x float]* %x, i32 0, i32 1)
             |     ret void
             |}
             """.stripMargin,
