@@ -1033,6 +1033,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     ntermB(to) === !(vtermI(from) === 0)
                                 case (IntT(_), BoolT()) =>
                                     ntermI(to) === vtermB(from).ite(1, 0)
+                                case (BoolT(), RealT(_)) =>
+                                    ntermB(to) === !(vtermR(from) === 0)
+                                case (RealT(_), BoolT()) =>
+                                    ntermR(to) === vtermB(from).ite(1, 0)
                                 case (IntT(_), IntT(_)) =>
                                     ntermI(to) === vtermI(from)
                                 case (PointerT(IntT(_), _), PointerT(IntT(_), _)) =>

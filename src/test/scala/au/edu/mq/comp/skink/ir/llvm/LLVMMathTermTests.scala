@@ -221,7 +221,9 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         (IntT(1), IntT(1), bx === by),
         (IntT(32), IntT(1), bx === !(iy === 0)),
         (IntT(1), IntT(32), ix === by.ite(1, 0)),
-        (IntT(32), IntT(32), ix === iy)
+        (IntT(32), IntT(32), ix === iy),
+        (FloatT(), IntT(1), bx === !(fy === 0)),
+        (IntT(1), FloatT(), fx === by.ite(1, 0))
     )
 
     val convOps = Vector(
