@@ -528,20 +528,20 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                         case BitIntegerMode() =>
                             val toBits = toSize.toInt
                             val fromBits = fromSize.toInt
-                            val toTerm =
-                                if (toBits == 1)
-                                    ntermB(to).ite(1.withBits(toBits), 0.withBits(toBits))
-                                else
-                                    ntermBV(to, toBits)
                             val bitsDiff = toBits - fromBits
-                            val fromTerm =
-                                if (fromBits == 1)
-                                    vtermB(from).ite(1.withBits(fromBits), 0.withBits(fromBits))
-                                else
-                                    vtermBV(from, fromBits)
                             if (bitsDiff == 0)
                                 equality(to, toType, from, fromType)
-                            else
+                            else {
+                                val toTerm =
+                                    if (toBits == 1)
+                                        ntermB(to).ite(1.withBits(toBits), 0.withBits(toBits))
+                                    else
+                                        ntermBV(to, toBits)
+                                val fromTerm =
+                                    if (fromBits == 1)
+                                        vtermB(from).ite(1.withBits(fromBits), 0.withBits(fromBits))
+                                    else
+                                        vtermBV(from, fromBits)
                                 op match {
                                     case SExt() =>
                                         if (bitsDiff > 0)
@@ -561,6 +561,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ =>
                                         equality(to, toType, from, fromType)
                                 }
+                            }
                         case MathIntegerMode() =>
                             equality(to, toType, from, fromType)
                     }
