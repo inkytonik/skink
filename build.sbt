@@ -7,7 +7,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 
 scalacOptions := {
 
@@ -46,8 +46,8 @@ shellPrompt <<= (name, version) { (n, v) =>
 libraryDependencies ++=
     Seq (
         "org.bitbucket.franck44.automat" %% "automat" % "1.0.2-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.1.0" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
         "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.0.11-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.4" % "test",
