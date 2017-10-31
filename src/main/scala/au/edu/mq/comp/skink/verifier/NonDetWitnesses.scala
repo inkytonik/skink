@@ -16,8 +16,11 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
     def optValueToCValue(optValue : Option[Value]) : String =
         if (optValue.isDefined)
             optValue.get.t match {
+                // FIXME: how do we know we have all of these?
                 case RealDivTerm(ConstantTerm(DecLit(d)), List(ConstantTerm(DecLit(n)))) =>
                     s"${java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
+                case RealDivTerm(NegTerm(ConstantTerm(NumLit(d))), List(ConstantTerm(NumLit(n)))) =>
+                    s"${-1 * java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
                 case ConstantTerm(DecLit(s))                        => s
                 case ConstantTerm(HexaLit(s))                       => s"${java.lang.Integer.valueOf(s, 16)}"
                 case ConstantTerm(NumLit(i))                        => i.toString
