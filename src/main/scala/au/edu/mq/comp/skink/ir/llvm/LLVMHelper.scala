@@ -62,7 +62,7 @@ object LLVMHelper {
      * program execution.
      */
     def isExitFunction(name : String) : Boolean =
-        name == "exit"
+        name == "abort" || name == "exit"
 
     // Extractors to make matching more convenient
 
