@@ -353,6 +353,8 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                     Const(elems(index).constantValue)
                 case Const(UndefC()) =>
                     Const(UndefC())
+                case Const(ZeroC()) =>
+                    Const(ZeroC())
                 case _ =>
                     sys.error(s"sourceElem: unexpected source ${show(source)}")
             }
@@ -408,10 +410,21 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                         sys.error(s"insnTerm: unexpected mask index $index in ${longshow(insn)}")
             }.toVector
 
+        def phiToPhis(insn : MetaPhiInstruction, to : Name, n : Int, tipe : Type, preds : Vector[PhiPredecessor], metadata : Metadata) : Vector[MetaPhiInstruction] =
+            (0 until n).map {
+                case i =>
+                    MetaPhiInstruction(
+                        Phi(Binding(elemName(to, i)), tipe,
+                            preds.map(p =>
+                                PhiPredecessor(sourceElem(p.value, i), p.label))),
+                        metadata
+                    )
+            }.toVector
+
         def removeFromPhis(insns : Vector[MetaPhiInstruction]) : Vector[MetaPhiInstruction] =
             insns.foldLeft(Vector[MetaPhiInstruction]()) {
-                case (insns, MetaPhiInstruction(Phi(Binding(to), VectorT(n, _), preds), metadata)) =>
-                    sys.error(s"removeFromPhis: removing vector phis not supported yet")
+                case (insns, insn @ MetaPhiInstruction(Phi(Binding(to), VectorT(n, tipe), preds), metadata)) =>
+                    insns ++ phiToPhis(insn, to, n.toInt, tipe, preds, metadata)
                 case (insns, insn) =>
                     insns :+ insn
             }

@@ -69,6 +69,9 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     val afy1 = makeArrayLoadTermR("%y", 1)
     val afz1 = makeArrayLoadTermR("%z", 1)
 
+    val ix01 = makeVarTermI("%x_0", 1)
+    val ix11 = makeVarTermI("%x_1", 1)
+
     // Binary operations
 
     val booleanBinaryOps = Vector(
@@ -531,6 +534,26 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
             )
         }
 
+    }
+
+    test("vector phi insns are correctly encoded") {
+        traceEffect(
+            """
+            |define void @func() {
+            |   0:
+            |     br label %1
+            |
+            |   1:
+            |     %x = phi <2 x i32> [ zeroinitializer, %0 ], [ %y, %1 ]
+            |     br label %1
+            |}
+            """.stripMargin,
+            Trace(Seq(0, 0, 0))
+        ) shouldBe
+            Seq(
+                True(),
+                (ix01 === 0) & (ix11 === 0)
+            )
     }
 
     // Terminator instructions
