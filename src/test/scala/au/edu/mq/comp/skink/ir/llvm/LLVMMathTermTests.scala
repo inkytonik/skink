@@ -114,37 +114,28 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    val floatVectorBinaryOps = Vector(
-        (FAdd(Vector()), (afz0 === (afx0 + afy0)) & (afz1 === (afx1 + afy1))),
-        (FDiv(Vector()), (afz0 === (afx0 / afy0)) & (afz1 === (afx1 / afy1))),
-        (FMul(Vector()), (afz0 === (afx0 * afy0)) & (afz1 === (afx1 * afy1))),
-        (FSub(Vector()), (afz0 === (afx0 - afy0)) & (afz1 === (afx1 - afy1)))
-    )
-
-    for ((op, term) <- floatVectorBinaryOps) {
-        test(s"binary real vector ${show(op)} insn is encoded correctly") {
-            hasEffect(Binary(Binding(z), op, VectorT(2, FloatT()), xexp, yexp), term)
-        }
-    }
-
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "Boolean op add %x@0 %y@0 not handled"),
-        (And(), IntT(32), "math integer op and %x@0 %y@0 not handled"),
-        (AShR(Exact()), IntT(32), "math integer op ashr exact %x@0 %y@0 not handled"),
-        (AShR(NotExact()), IntT(32), "math integer op ashr %x@0 %y@0 not handled"),
-        (FAdd(Vector()), IntT(32), "math integer op fadd %x@0 %y@0 not handled"),
-        (FDiv(Vector()), IntT(32), "math integer op fdiv %x@0 %y@0 not handled"),
-        (FMul(Vector()), IntT(32), "math integer op fmul %x@0 %y@0 not handled"),
-        (FRem(Vector()), IntT(32), "math integer op frem %x@0 %y@0 not handled"),
-        (FRem(Vector()), VectorT(2, FloatT()), "float op frem (select %x@0 0 ) (select %y@0 0 ) not handled"),
-        (FSub(Vector()), IntT(32), "math integer op fsub %x@0 %y@0 not handled"),
-        (LShR(Exact()), IntT(32), "math integer op lshr exact %x@0 %y@0 not handled"),
-        (LShR(NotExact()), IntT(32), "math integer op lshr %x@0 %y@0 not handled"),
-        (Or(), IntT(32), "math integer op or %x@0 %y@0 not handled"),
-        (ShL(Vector()), IntT(32), "math integer op shl %x@0 %y@0 not handled"),
-        (XOr(), IntT(32), "math integer op xor %x@0 %y@0 not handled")
+        (Add(Vector()), IntT(1), "Boolean op add %x %y not handled"),
+        (And(), IntT(32), "math integer op and %x %y not handled"),
+        (AShR(Exact()), IntT(32), "math integer op ashr exact %x %y not handled"),
+        (AShR(NotExact()), IntT(32), "math integer op ashr %x %y not handled"),
+        (FAdd(Vector()), IntT(32), "math integer op fadd %x %y not handled"),
+        (FDiv(Vector()), IntT(32), "math integer op fdiv %x %y not handled"),
+        (FMul(Vector()), IntT(32), "math integer op fmul %x %y not handled"),
+        (FRem(Vector()), IntT(32), "math integer op frem %x %y not handled"),
+        (FAdd(Vector()), VectorT(2, FloatT()), "insnTerm: don't know the effect of %z = fadd <2 x float> %x, %y"),
+        (FDiv(Vector()), VectorT(2, FloatT()), "insnTerm: don't know the effect of %z = fdiv <2 x float> %x, %y"),
+        (FMul(Vector()), VectorT(2, FloatT()), "insnTerm: don't know the effect of %z = fmul <2 x float> %x, %y"),
+        (FRem(Vector()), VectorT(2, FloatT()), "insnTerm: don't know the effect of %z = frem <2 x float> %x, %y"),
+        (FSub(Vector()), VectorT(2, FloatT()), "insnTerm: don't know the effect of %z = fsub <2 x float> %x, %y"),
+        (FSub(Vector()), IntT(32), "math integer op fsub %x %y not handled"),
+        (LShR(Exact()), IntT(32), "math integer op lshr exact %x %y not handled"),
+        (LShR(NotExact()), IntT(32), "math integer op lshr %x %y not handled"),
+        (Or(), IntT(32), "math integer op or %x %y not handled"),
+        (ShL(Vector()), IntT(32), "math integer op shl %x %y not handled"),
+        (XOr(), IntT(32), "math integer op xor %x %y not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -206,7 +197,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison op ugt %x@0 %y@0 not handled")
+        (UGT(), IntT(1), "Boolean comparison op ugt %x %y not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {

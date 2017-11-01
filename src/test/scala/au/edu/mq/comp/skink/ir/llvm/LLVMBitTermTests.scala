@@ -71,12 +71,12 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     // Make sure bad uses of binary operations are not accepted
 
     val badBinaryOps = Vector(
-        (Add(Vector()), IntT(1), "Boolean op add %x@0 %y@0 not handled"),
-        (FAdd(Vector()), IntT(32), "bitvector integer op fadd %x@0 %y@0 not handled"),
-        (FDiv(Vector()), IntT(32), "bitvector integer op fdiv %x@0 %y@0 not handled"),
-        (FMul(Vector()), IntT(32), "bitvector integer op fmul %x@0 %y@0 not handled"),
-        (FRem(Vector()), IntT(32), "bitvector integer op frem %x@0 %y@0 not handled"),
-        (FSub(Vector()), IntT(32), "bitvector integer op fsub %x@0 %y@0 not handled")
+        (Add(Vector()), IntT(1), "Boolean op add %x %y not handled"),
+        (FAdd(Vector()), IntT(32), "bitvector integer op fadd %x %y not handled"),
+        (FDiv(Vector()), IntT(32), "bitvector integer op fdiv %x %y not handled"),
+        (FMul(Vector()), IntT(32), "bitvector integer op fmul %x %y not handled"),
+        (FRem(Vector()), IntT(32), "bitvector integer op frem %x %y not handled"),
+        (FSub(Vector()), IntT(32), "bitvector integer op fsub %x %y not handled")
     )
 
     for ((op, tipe, msg) <- badBinaryOps) {
@@ -136,7 +136,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     // Make sure bad uses of compare conditions are not accepted
 
     val badCompares = Vector(
-        (UGT(), IntT(1), "Boolean comparison op ugt %x@0 %y@0 not handled")
+        (UGT(), IntT(1), "Boolean comparison op ugt %x %y not handled")
     )
 
     for ((cond, tipe, msg) <- badCompares) {

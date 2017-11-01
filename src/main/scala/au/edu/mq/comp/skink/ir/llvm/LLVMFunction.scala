@@ -28,10 +28,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-    import org.scalallvm.assembly.AssemblySyntax.{True => _, Value => _, _}
+    import org.scalallvm.assembly.AssemblySyntax.{True => _, Value => LLVMValue, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
-    import org.scalallvm.assembly.Analyser.defaultBlockName
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success, Try}
 
@@ -147,11 +146,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-
-        def blockName(block : Block) : String =
-            defaultBlockName(block, funAnalyser.anonArgCount.toString)
-
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
         traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
@@ -169,7 +164,6 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                     }
                 Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
         }
-    }
 
     // Helper methods
 
@@ -231,9 +225,13 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
     }
 
     /**
-     * Prepare the IR of a function for verification and return the
-     * new IR form. The transformation is:
-     *
+     * Prepare the IR of a function for verification by transforming it
+     * and return the new IR form.
+     */
+    lazy val makeVerifiable : FunctionDefinition =
+        removeVectorOps(fixErrorCalls(function))
+
+    /**
      * Replace blocks that contain a call to the __VERIFIER_error
      * function after an assertion has failed to a branch to a
      * __error block. In detail, look for a block of this form
@@ -262,9 +260,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    lazy val makeVerifiable : FunctionDefinition = {
+    def fixErrorCalls(function : FunctionDefinition) : FunctionDefinition = {
 
-        logger.info(s"makeVerifiable: $name")
+        logger.info(s"fixErrorCalls: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 
@@ -320,10 +318,134 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
 
         // Return the new function
         val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-        programLogger.debug(s"* Function $name for verification:\n")
+        programLogger.debug(s"* Function $name after fixErrorCalls:\n")
         programLogger.debug(show(ret))
-        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+        programLogger.debug(s"\n* AST of function $name after fixErrorCalls:\n\n")
         programLogger.debug(layout(any(ret)))
+        programLogger.debug("\n\n")
+        ret
+
+    }
+
+    /**
+     * Remove vector operations. We assume that these have been flattened
+     * to separate operations on the scalar elements. This only works if
+     * the vector indices are constants, but that seems to be what Clang
+     * does in common cases.
+     */
+    def removeVectorOps(function : FunctionDefinition) : FunctionDefinition = {
+
+        logger.info(s"removeVectorOps: $name")
+
+        def elemName(name : Name, index : Int) : Name =
+            name match {
+                case Global(s) =>
+                    Global(s"${s}_$index")
+                case Local(s) =>
+                    Local(s"${s}_$index")
+            }
+
+        def sourceElem(source : LLVMValue, index : Int) : LLVMValue =
+            source match {
+                case Named(vector) =>
+                    Named(elemName(vector, index))
+                case Const(VectorC(elems)) =>
+                    Const(elems(index).constantValue)
+                case Const(UndefC()) =>
+                    Const(UndefC())
+                case _ =>
+                    sys.error(s"sourceElem: unexpected source ${show(source)}")
+            }
+
+        def move(to : Name, fromElem : LLVMValue, tipe : Type, metadata : Metadata) : MetaInstruction =
+            MetaInstruction(
+                Binary(Binding(to), FAdd(Vector()), tipe, fromElem, Const(FloatC("0"))),
+                metadata
+            )
+
+        def binaryVectorOpToOps(insn : MetaInstruction, to : Name, op : BinOp, n : Int, tipe : Type, left : LLVMValue, right : LLVMValue, metadata : Metadata) : Vector[MetaInstruction] =
+            (0 until n).map {
+                case i =>
+                    MetaInstruction(
+                        Binary(Binding(elemName(to, i)), op, tipe, sourceElem(left, i), sourceElem(right, i)),
+                        metadata
+                    )
+            }.toVector
+
+        def insertElementToMoves(insn : MetaInstruction, to : Name, n : Int, tipe : Type, source : LLVMValue, from : LLVMValue, index : Int, metadata : Metadata) : Vector[MetaInstruction] =
+            (0 until n).map {
+                case i =>
+                    val fromElem = if (i == index) from else sourceElem(source, i)
+                    move(elemName(to, i), fromElem, tipe, metadata)
+            }.toVector
+
+        def extractElementToMove(insn : MetaInstruction, to : Name, n : Int, tipe : Type, source : LLVMValue, index : Int, metadata : Metadata) : MetaInstruction =
+            move(to, sourceElem(source, index), tipe, metadata)
+
+        def shuffleVectorToMoves(insn : MetaInstruction, to : Name, n : Int, tipe : Type, left : LLVMValue, right : LLVMValue, m : Int, mask : LLVMValue, metadata : Metadata) : Vector[MetaInstruction] =
+            (0 until m).map {
+                case maskIndex =>
+                    val index =
+                        mask match {
+                            case Const(ZeroC()) =>
+                                0
+                            case Const(VectorC(elems)) =>
+                                elems(maskIndex).constantValue match {
+                                    case IntC(i) =>
+                                        i.toInt
+                                    case UndefC() =>
+                                        0 // Dummy
+                                    case _ =>
+                                        sys.error(s"shuffleVectorToMoves: unexpected mask element ${longshow(elems(maskIndex))} in ${longshow(insn)}")
+                                }
+                            case _ =>
+                                sys.error(s"shuffleVectorToMoves: unexpected mask value ${longshow(mask)} in ${longshow(insn)}")
+                        }
+                    if ((index >= 0) && (index < 2 * n)) {
+                        val fromElem = if (index < n) sourceElem(left, index) else sourceElem(right, index - n)
+                        move(elemName(to, maskIndex), fromElem, tipe, metadata)
+                    } else
+                        sys.error(s"insnTerm: unexpected mask index $index in ${longshow(insn)}")
+            }.toVector
+
+        def removeFromPhis(insns : Vector[MetaPhiInstruction]) : Vector[MetaPhiInstruction] =
+            insns.foldLeft(Vector[MetaPhiInstruction]()) {
+                case (insns, MetaPhiInstruction(Phi(Binding(to), VectorT(n, _), preds), metadata)) =>
+                    sys.error(s"removeFromPhis: removing vector phis not supported yet")
+                case (insns, insn) =>
+                    insns :+ insn
+            }
+
+        def removeFromInsns(insns : Vector[MetaInstruction]) : Vector[MetaInstruction] =
+            insns.foldLeft(Vector[MetaInstruction]()) {
+                case (insns, insn @ MetaInstruction(Binary(Binding(to), op, VectorT(n, tipe @ RealT(_)), left, right), metadata)) =>
+                    insns ++ binaryVectorOpToOps(insn, to, op, n.toInt, tipe, left, right, metadata)
+                case (insns, insn @ MetaInstruction(InsertElement(Binding(to), VectorT(n, tipe @ RealT(_)), source, RealT(_), from, IntT(_), Const(IntC(index))), metadata)) =>
+                    insns ++ insertElementToMoves(insn, to, n.toInt, tipe, source, from, index.toInt, metadata)
+                case (insns, insn @ MetaInstruction(ExtractElement(Binding(to), VectorT(n, tipe @ RealT(_)), source, IntT(_), Const(IntC(index))), metadata)) =>
+                    insns :+ extractElementToMove(insn, to, n.toInt, tipe, source, index.toInt, metadata)
+                case (insns, insn @ MetaInstruction(ShuffleVector(Binding(to), VectorT(n, tipe @ RealT(_)), left, _, right, VectorT(m, IntT(_)), mask), metadata)) =>
+                    insns ++ shuffleVectorToMoves(insn, to, n.toInt, tipe, left, right, m.toInt, mask, metadata)
+                case (insns, insn) =>
+                    insns :+ insn
+            }
+
+        def removeVectorOpsFromBlock(block : Block) : Block =
+            block.copy(
+                optMetaPhiInstructions = removeFromPhis(block.optMetaPhiInstructions),
+                optMetaInstructions = removeFromInsns(block.optMetaInstructions)
+            )
+
+        val functionBodyWithoutVectorOps =
+            FunctionBody(function.functionBody.blocks.map(removeVectorOpsFromBlock))
+
+        // Return the new function
+        val ret = function.copy(functionBody = functionBodyWithoutVectorOps)
+        programLogger.debug(s"* Function $name after removeVectorOps:\n")
+        programLogger.debug(show(ret))
+        programLogger.debug(s"\n* AST of function $name after removeVectorOps:\n\n")
+        programLogger.debug(layout(any(ret)))
+        programLogger.debug("\n")
         ret
 
     }
