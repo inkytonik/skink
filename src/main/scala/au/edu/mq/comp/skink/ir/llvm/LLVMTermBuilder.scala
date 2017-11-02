@@ -510,12 +510,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             else {
                                 val toTerm =
                                     if (toBits == 1)
-                                        ntermB(to).ite(1.withBits(toBits), 0.withBits(toBits))
+                                        ntermB(to).ite(1.withUBits(toBits), 0.withUBits(toBits))
                                     else
                                         ntermBV(to, toBits)
                                 val fromTerm =
                                     if (fromBits == 1)
-                                        vtermB(from).ite(1.withBits(fromBits), 0.withBits(fromBits))
+                                        vtermB(from).ite(1.withUBits(fromBits), 0.withUBits(fromBits))
                                     else
                                         vtermBV(from, fromBits)
                                 op match {
