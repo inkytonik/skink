@@ -52,10 +52,10 @@ object LLVMHelper {
         name.startsWith("llvm.")
 
     /**
-     * Return whether or not the named function is a memory allcoation function.
+     * Return whether or not the named function is a memory allocation function.
      */
     def isMemoryAllocFunction(name : String) : Boolean =
-        List("alloca", "calloc", "free", "malloc") contains name
+        List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
 
     /**
      * Return whether or not the named function is a function that terminates
