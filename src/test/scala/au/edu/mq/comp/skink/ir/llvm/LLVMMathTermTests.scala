@@ -104,21 +104,21 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    test(s"binary and with one less than power of two is encoded as a modulus") {
+    test(s"binary and with constant one less than power of two is encoded as a modulus") {
         hasEffect(
             Binary(Binding(z), And(), IntT(32), xexp, Const(IntC(7))),
             iz === ix % 8
         )
     }
 
-    test(s"binary shift right is encoded as division") {
+    test(s"binary shift right by constant is encoded as division") {
         hasEffect(
             Binary(Binding(z), AShR(Exact()), IntT(32), xexp, Const(IntC(3))),
             iz === ix / 8
         )
     }
 
-    test(s"binary shift left is encoded as multiplication") {
+    test(s"binary shift left by constant is encoded as multiplication") {
         hasEffect(
             Binary(Binding(z), ShL(Vector()), IntT(32), xexp, Const(IntC(4))),
             iz === ix * 16
