@@ -73,6 +73,8 @@ scalacOptions in (Compile,doc) ++= Seq("-groups", "-implicits", "-diagrams",
 
 fork := true
 
+javaOptions in run += "-Xss16m"
+
 // Assembly settings
 
 test in assembly := {}
