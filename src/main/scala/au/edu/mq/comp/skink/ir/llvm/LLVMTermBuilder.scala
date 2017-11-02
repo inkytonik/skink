@@ -335,6 +335,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     case _ : Sub  => lterm - rterm
                                     case _ : UDiv => lterm / rterm
                                     case _ : URem => lterm % rterm
+                                    case _ : XOr =>
+                                        right match {
+                                            case Const(IntC(i)) if i == -1 =>
+                                                lterm * -1 - 1
+                                            case _ =>
+                                                opError[IntTerm]("math integer", left, op, right)
+                                        }
                                     case _ =>
                                         opError[IntTerm]("math integer", left, op, right)
                                 }
