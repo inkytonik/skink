@@ -42,7 +42,7 @@ case $cmd in
        exit 1
 esac
 
-java -Xmx1400m -Xss5m \
+java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \
   --verify \
