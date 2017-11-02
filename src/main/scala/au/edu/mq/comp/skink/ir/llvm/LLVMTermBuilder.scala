@@ -376,7 +376,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             integerMode match {
                                 case BitIntegerMode() =>
                                     val bits = size.toInt
-                                    !(vtermBV(arg, bits) === 0.withBits(bits))
+                                    !(vtermBV(arg, bits) === 0.withUBits(bits))
                                 case MathIntegerMode() =>
                                     !(vtermI(arg) === 0)
                             }
@@ -931,10 +931,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             (toType, fromType) match {
                                 case (BoolT(), IntT(size)) =>
                                     val bits = size.toInt
-                                    ntermB(to) === !(vtermBV(from, size.toInt) === 0.withBits(bits))
+                                    ntermB(to) === !(vtermBV(from, size.toInt) === 0.withUBits(bits))
                                 case (IntT(size), BoolT()) =>
                                     val bits = size.toInt
-                                    ntermBV(to, bits) === vtermB(from).ite(1.withBits(bits), 0.withBits(bits))
+                                    ntermBV(to, bits) === vtermB(from).ite(1.withUBits(bits), 0.withUBits(bits))
                                 case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
                                     val bits = toSize.toInt
                                     ntermBV(to, bits) === vtermBV(from, bits)

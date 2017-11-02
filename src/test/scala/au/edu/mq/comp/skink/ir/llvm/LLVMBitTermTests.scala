@@ -182,7 +182,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     test(s"sext Int(1) to Int(32) insn is encoded correctly") {
         hasEffect(
             Convert(Binding(x), SExt(), IntT(1), yexp, IntT(32)),
-            ix === ((by.ite(1.withBits(1), 0.withBits(1))) sext 31)
+            ix === ((by.ite(1.withUBits(1), 0.withUBits(1))) sext 31)
         )
     }
 
@@ -196,7 +196,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     test(s"zext Int(1) to Int(32) insn is encoded correctly") {
         hasEffect(
             Convert(Binding(x), ZExt(), IntT(1), yexp, IntT(32)),
-            ix === ((by.ite(1.withBits(1), 0.withBits(1))) zext 31)
+            ix === ((by.ite(1.withUBits(1), 0.withUBits(1))) zext 31)
         )
     }
 
@@ -210,7 +210,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     test(s"trunc Int(32) to Int(1) insn is encoded correctly") {
         hasEffect(
             Convert(Binding(x), Trunc(), IntT(32), yexp, IntT(1)),
-            (bx.ite(1.withBits(1), 0.withBits(1))) === iy.extract(0, 0)
+            (bx.ite(1.withUBits(1), 0.withUBits(1))) === iy.extract(0, 0)
         )
     }
 
@@ -374,7 +374,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
         hasItemEffect(
             makeGlobalInitVar("z", ArrayT(10, IntT(1)), ZeroC()),
             forall(SSymbol("i")) {
-                ArrayBV1("@z", 32, 1).indexed(0).at(i) === 0.withBits(1)
+                ArrayBV1("@z", 32, 1).indexed(0).at(i) === 0.withUBits(1)
             }
         )
     }
