@@ -99,7 +99,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val archarg = s"-m${config.architecture()}"
         val optargs = s"-O${config.optLevel()} "
         val wargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-        val otherargs = "-gline-tables-only -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
+        val otherargs = "-gline-tables-only -Xclang -disable-lifetime-markers -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
         val llvmargs = "-mllvm -inline-threshold=15000"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -S -emit-llvm $archarg $optargs $wargs $otherargs $llvmargs -o $clangllfile $clangdefs -x c $filename"
