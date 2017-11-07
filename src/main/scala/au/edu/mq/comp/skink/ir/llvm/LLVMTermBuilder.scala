@@ -397,6 +397,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case NondetFunctionCall(_, _) =>
                     True()
 
+                // Absolute value calls convert to the op
+                case AbsoluteValueFunctionCall(Binding(to), arg) =>
+                    ntermR(to) === absR(vtermR(arg))
+
                 // Memory allocations can't fail
                 case MemoryAllocFunctionCall(Binding(to), _) =>
                     !(ntermI(to) === 0)

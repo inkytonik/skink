@@ -177,6 +177,14 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     // Call instructions
 
+    test("absolute value call is encoded as abs operation") {
+        hasEffect(
+            makeCall(Binding(x), "llvm.fabs.f64",
+                Vector(ValueArg(FloatT(), Vector(), Named(y)))),
+            fx === absR(fy)
+        )
+    }
+
     test("assume with Boolean argument is encoded correctly") {
         hasEffect(
             makeCall(NoBinding(), "__VERIFIER_assume",

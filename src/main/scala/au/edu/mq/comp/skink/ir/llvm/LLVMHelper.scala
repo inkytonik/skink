@@ -26,6 +26,13 @@ object LLVMHelper {
     // Useful predicates
 
     /**
+     * Return whether or not the named function is an absolute value
+     * function.
+     */
+    def isAbsoluteValueFunction(name : String) : Boolean =
+        name.startsWith("llvm.fabs.")
+
+    /**
      * Return whether or not the named function is the special verifier
      * assertion function.
      */
@@ -33,17 +40,11 @@ object LLVMHelper {
         name.startsWith("__VERIFIER_assert")
 
     /**
-     * Return whether or not the named function is a special verifier
-     * function.
+     * Return whether or not the named function is a function that terminates
+     * program execution.
      */
-    def isVerifierFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER")
-
-    /**
-     * Return whether or not the named function is an output function.
-     */
-    def isOutputFunction(name : String) : Boolean =
-        List("fprintf", "printf") contains name
+    def isExitFunction(name : String) : Boolean =
+        name == "abort" || name == "exit"
 
     /**
      * Return whether or not the named function is an LLVM intrinsic.
@@ -58,13 +59,34 @@ object LLVMHelper {
         List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
 
     /**
-     * Return whether or not the named function is a function that terminates
-     * program execution.
+     * Return whether or not the named function is an output function.
      */
-    def isExitFunction(name : String) : Boolean =
-        name == "abort" || name == "exit"
+    def isOutputFunction(name : String) : Boolean =
+        List("fprintf", "printf") contains name
+
+    /**
+     * Return whether or not the named function is a special verifier
+     * function.
+     */
+    def isVerifierFunction(name : String) : Boolean =
+        name.startsWith("__VERIFIER")
 
     // Extractors to make matching more convenient
+
+    /**
+     * Matcher for absolute value calls. Successful matches return the
+     * optional binding and the argument.
+     */
+    object AbsoluteValueFunctionCall {
+        def unapply(insn : Instruction) : Option[(OptBinding, Value)] = {
+            insn match {
+                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(ValueArg(_, _, arg)), _) if isAbsoluteValueFunction(name) =>
+                    Some((to, arg))
+                case _ =>
+                    None
+            }
+        }
+    }
 
     /**
      * Matcher for assumption function names.
