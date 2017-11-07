@@ -564,26 +564,6 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     }
 
-    test("vector phi insns are correctly encoded") {
-        traceEffect(
-            """
-            |define void @func() {
-            |   0:
-            |     br label %1
-            |
-            |   1:
-            |     %x = phi <2 x i32> [ zeroinitializer, %0 ], [ %y, %1 ]
-            |     br label %1
-            |}
-            """.stripMargin,
-            Trace(Seq(0, 0, 0))
-        ) shouldBe
-            Seq(
-                True(),
-                (ix01 === 0) & (ix11 === 0)
-            )
-    }
-
     // Terminator instructions
 
     test("the effect of a branch is an error if the choice is negative") {

@@ -28,7 +28,7 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/function/simple-function_false-unreach-call.c</data>
+  <data key="programfile"   >src/test/resources/citests/math/function-Z3/simple-function_false-unreach-call.c</data>
   <data key="programhash"   >b2dd17f32cb0c8f331f86e8f6a725858a1cbd310</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
