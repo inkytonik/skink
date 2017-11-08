@@ -485,14 +485,15 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     val rterm = vtermR(right)
                     val exp =
                         fcond match {
-                            case FFalse()        => False()
-                            case FOEQ() | FUEQ() => lterm === rterm
-                            case FOGT() | FUGT() => lterm > rterm
-                            case FOGE() | FUGE() => lterm >= rterm
-                            case FOLT() | FULT() => lterm < rterm
-                            case FOLE() | FULE() => lterm <= rterm
-                            case FONE() | FUNE() => !(lterm === rterm)
-                            case FTrue()         => True()
+                            case FFalse() => False()
+                            case FOEQ()   => lterm === rterm
+                            case FOGT()   => lterm > rterm
+                            case FOGE()   => lterm >= rterm
+                            case FOLT()   => lterm < rterm
+                            case FOLE()   => lterm <= rterm
+                            case FONE()   => !(lterm === rterm)
+                            case FORD()   => True()
+                            case FTrue()  => True()
                             case _ =>
                                 opError[BoolTerm]("real comparison", left, fcond, right)
                         }
