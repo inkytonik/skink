@@ -13,14 +13,27 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import org.bitbucket.franck44.scalasmt.typedterms.Value
 
+    def termToFloat(term : Term) : Float =
+        term match {
+            case ConstantTerm(DecLit(v)) =>
+                java.lang.Float.valueOf(v)
+            case NegTerm(ConstantTerm(DecLit(v))) =>
+                -1 * java.lang.Float.valueOf(v)
+            case ConstantTerm(NumLit(v)) =>
+                java.lang.Float.valueOf(v)
+            case NegTerm(ConstantTerm(NumLit(v))) =>
+                -1 * java.lang.Float.valueOf(v)
+            case _ =>
+                sys.error(s"termToFloat: unexpected first arg of RealDivTerm: $term")
+        }
+
     def optValueToCValue(optValue : Option[Value]) : String =
         if (optValue.isDefined)
             optValue.get.t match {
-                // FIXME: how do we know we have all of these?
-                case RealDivTerm(ConstantTerm(DecLit(d)), List(ConstantTerm(DecLit(n)))) =>
-                    s"${java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
-                case RealDivTerm(NegTerm(ConstantTerm(NumLit(d))), List(ConstantTerm(NumLit(n)))) =>
-                    s"${-1 * java.lang.Float.valueOf(d) / java.lang.Float.valueOf(n)}"
+                case RealDivTerm(dt, List(nt)) =>
+                    val dv = termToFloat(dt)
+                    val nv = termToFloat(nt)
+                    s"${dv / nv}"
                 case ConstantTerm(DecLit(s))                        => s
                 case ConstantTerm(HexaLit(s))                       => s"${new java.math.BigInteger(s, 16).intValue()}"
                 case ConstantTerm(NumLit(i))                        => i.toString
