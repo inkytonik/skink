@@ -41,6 +41,7 @@
     <includesfile>../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
     <propertyfile>../sv-benchmarks/c/ReachSafety.prp</propertyfile>
     <option name="dev"></option>
+    <option name="-e">Yices-nonIncr</option>
   </tasks>
   <tasks name="ReachSafety-Heap">
     <includesfile>../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
