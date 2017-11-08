@@ -85,7 +85,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case Some(sc) =>
                     sc
                 case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
+                    sys.error(s"traceRefinement: can't find solver called $name in config file")
             }
         }
 
