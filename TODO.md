@@ -1,7 +1,7 @@
 #### Skink
 
 * HIGH: convert issues to actual issues (TS)
-* merge concurrency branch into master (FC)
+* merge concurrency branch into master (FC) **started**
 * replace inlining with modular analysis (FC, TS, MR student)
 * better invariants via predicate abstraction (PS)
 
@@ -22,9 +22,9 @@
 
 #### SMTlib
 
-* HIGH: floating point (FC)
-* HIGH: bitvector arrays (FC)
-* reals??, not sure if any in COMP (FC)
+* HIGH: floating point (FC) **[IN PROGRESS]**
+* HIGH: bitvector arrays (FC) **[DONE]**
+* reals??, not sure if any in COMP (FC) **[DONE]**
 
 #### Other
 
