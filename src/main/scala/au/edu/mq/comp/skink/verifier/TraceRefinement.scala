@@ -79,64 +79,55 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"traceRefinement: can't find solver called $name in config file")
-            }
-        }
-
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
         // type we want to use
-        def selectedSolver =
+        def selectedSolver = {
             config.solverMode() match {
                 case BoolectorSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
                             sys.error(s"TraceRefinement: Boolector not supported in math integer mode")
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("Boolector"), new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_AUFLIRA, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(MODELS)))
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("CVC4"), new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("SMTInterpol"), new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: SMTInterpol not supported in bit integer mode")
                     }
                 case YicesSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("Yices"), new SMTInit(QF_AUFLIRA, List(MODELS)))
+                            new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, List(MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: Yices not supported in bit integer mode")
                     }
                 case YicesNonIncrSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("Yices-nonIncr"), new SMTInit(QF_NIRA, List(MODELS)))
+                            new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, List(MODELS)))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: Yices-nonIncr not supported in bit integer mode")
                     }
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
                         case BitIntegerMode() =>
-                            new SMTSolver(solverFromName("Z3"), new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
                     }
             }
+        }
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
