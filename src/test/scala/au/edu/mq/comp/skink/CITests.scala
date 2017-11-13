@@ -21,7 +21,9 @@ class MathCITests extends CITests {
         for (optLevel <- optLevels) {
             makeTests("math", optLevel, witnessFormat)
         }
-        makeTests("math/function", 2, witnessFormat)
+        for (solver <- List("Z3", "Yices-nonIncr")) {
+            makeTests(s"math/function-$solver", 2, witnessFormat, List("-e", solver))
+        }
     }
 }
 

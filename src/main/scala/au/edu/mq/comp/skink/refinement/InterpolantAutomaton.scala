@@ -56,16 +56,6 @@ trait AddBackEdges extends Core with Resources {
 
         itpLogger.info(s"candidate pairs $candidatePairs")
 
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
-            }
-        }
-
         /**
          * Check if backedges can be added to the linear automaton
          * If there is a repetition of a block at index i and j, we
@@ -86,7 +76,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new SMTSolver(solverFromName("Z3"))) {
+                res = using(new SMTSolver("Z3")) {
                     implicit solver =>
                         function.checkPost(
                             x1,
@@ -141,21 +131,11 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
         itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
-            }
-        }
-
         /**
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new SMTSolver(solverFromName("Z3"), new SMTInit(List(INTERPOLANTS)))) {
+        using(new SMTSolver("Z3", new SMTInit(List(INTERPOLANTS)))) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 
