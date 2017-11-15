@@ -6,8 +6,6 @@ then
   exit 1
 fi
 
-cat=$1; shift
-
 # Witness file for competititon, benchexec etc
 WTNFILE=witness.graphml
 
