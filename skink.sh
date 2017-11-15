@@ -2,8 +2,7 @@
 
 if test $# -lt 2
 then
-  echo "usage: skink.sh cat file.c"
-  echo "where cat is SV-COMP category"
+  echo "usage: skink.sh file.c"
   exit 1
 fi
 
@@ -31,17 +30,6 @@ else
     JAR=skink.jar 
 fi    
 
-case $cat in
-    bitvectors) ARGS="-i bit $ARGS";;
-    floats)     ARGS="-e Yices-nonIncr $ARGS";;
-    *)          
-esac 
-    
-case $cat in
-    arrays) ARGS="-m 40 $ARGS";;
-    *)      ARGS="-m 300 $ARGS"
-esac 
-    
 java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \

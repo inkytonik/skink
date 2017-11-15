@@ -13,7 +13,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, val function : FunctionDefinition,
+class LLVMFunction(val program : Program, val function : FunctionDefinition,
         config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
