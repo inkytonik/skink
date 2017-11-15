@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if test $# -lt 2
+if test $# -lt 1
 then
   echo "usage: skink.sh file.c"
   exit 1
