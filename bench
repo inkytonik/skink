@@ -6,8 +6,10 @@
 # E.g., use "-t ReachSafety-Loops" to just run Loops task.
 
 BENCHMARK_SPEC=/skink/skink.xml
-VIOLATION_WITNESS_SPEC=/skink/cpa-seq-validate-violation-witnesses.xml
-CORRECTNESS_WITNESS_SPEC=/skink/cpa-seq-validate-correctness-witnesses.xml
+ORIG_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-violation-witnesses.xml
+ORIG_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-correctness-witnesses.xml
+VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-violation-witnesses.xml
+CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-correctness-witnesses.xml
 
 VERIFIER_OUTPUT_PATH=/skink/results-verified
 VIOLATION_OUTPUT_PATH=/skink/results-violation
@@ -19,6 +21,21 @@ BENCHEXEC_ARGS="--no-container"
 MERGEBENCHMARKSETS=/usr/src/benchexec/contrib/mergeBenchmarkSets.py
 TABLEGENERATOR=/usr/local/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
+
+# Massage the witness validation specifications:
+# - add a section for Test.set 
+# - fix pathnames so they work in our image
+function addspec() {
+  j=`basename $1 .xml`
+  sed -e '$d' $1 | cat - $3 | \
+    sed -e 's|../sv-benchmarks|/sv-benchmarks|' \
+      -e 's|../../results-verified|../results-verified|'\
+      -e 's|../results-verified/LOGDIR/sv-comp18.${inputfile_name}.files/witness.graphml|${inputfile_path}/${inputfile_name}.graphml|' \
+    >$2
+  echo '</benchmark>' >>$2
+}
+addspec $ORIG_VIOLATION_WITNESS_SPEC $VIOLATION_WITNESS_SPEC /skink/Test-violation.xml
+addspec $ORIG_CORRECTNESS_WITNESS_SPEC $CORRECTNESS_WITNESS_SPEC /skink/Test-correctness.xml
 
 rm -rf $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
 mkdir $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
