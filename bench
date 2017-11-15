@@ -6,14 +6,14 @@
 # E.g., use "-t ReachSafety-Loops" to just run Loops task.
 
 BENCHMARK_SPEC=/skink/skink.xml
-ORIG_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-violation-witnesses.xml
-ORIG_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-correctness-witnesses.xml
-VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-violation-witnesses.xml
-CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-correctness-witnesses.xml
-
 VERIFIER_OUTPUT_PATH=/skink/results-verified
-VIOLATION_OUTPUT_PATH=/skink/results-violation
-CORRECTNESS_OUTPUT_PATH=/skink/results-correctness
+
+ORIG_CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-violation-witnesses.xml
+ORIG_CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-correctness-witnesses.xml
+CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-violation-witnesses.xml
+CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-correctness-witnesses.xml
+CPA_VIOLATION_OUTPUT_PATH=/skink/results-violation-cpa
+CPA_CORRECTNESS_OUTPUT_PATH=/skink/results-correctness-cpa
 PATH_TO_CPACHECKER=/usr/local/bin/CPAchecker
 
 BENCHEXEC=/usr/local/bin/benchexec
@@ -34,11 +34,11 @@ function addspec() {
     >$2
   echo '</benchmark>' >>$2
 }
-addspec $ORIG_VIOLATION_WITNESS_SPEC $VIOLATION_WITNESS_SPEC /skink/Test-violation.xml
-addspec $ORIG_CORRECTNESS_WITNESS_SPEC $CORRECTNESS_WITNESS_SPEC /skink/Test-correctness.xml
+addspec $ORIG_CPA_VIOLATION_WITNESS_SPEC $CPA_VIOLATION_WITNESS_SPEC /skink/Test-violation.xml
+addspec $ORIG_CPA_CORRECTNESS_WITNESS_SPEC $CPA_CORRECTNESS_WITNESS_SPEC /skink/Test-correctness.xml
 
-rm -rf $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
-mkdir $VERIFIER_OUTPUT_PATH $VIOLATION_OUTPUT_PATH $CORRECTNESS_OUTPUT_PATH
+rm -rf $VERIFIER_OUTPUT_PATH $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
+mkdir $VERIFIER_OUTPUT_PATH $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
 
 # Run verifier on benchmarks
 $BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC $*
@@ -46,16 +46,16 @@ result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
 
 # Run CPAchecker to validate the violation witnesses
 cd $PATH_TO_CPACHECKER
-$BENCHEXEC $BENCHEXEC_ARGS -o $VIOLATION_OUTPUT_PATH $VIOLATION_WITNESS_SPEC $*
-violation_xml=`echo $VIOLATION_OUTPUT_PATH/*.xml.bz2`
+$BENCHEXEC $BENCHEXEC_ARGS -o $CPA_VIOLATION_OUTPUT_PATH $CPA_VIOLATION_WITNESS_SPEC $*
+cpa_violation_xml=`echo $CPA_VIOLATION_OUTPUT_PATH/*.xml.bz2`
 
 # Run CPAchecker to validate the correctness witnesses
 cd $PATH_TO_CPACHECKER
-$BENCHEXEC $BENCHEXEC_ARGS -o $CORRECTNESS_OUTPUT_PATH $CORRECTNESS_WITNESS_SPEC $*
-correctness_xml=`echo $CORRECTNESS_OUTPUT_PATH/*.xml.bz2`
+$BENCHEXEC $BENCHEXEC_ARGS -o $CPA_CORRECTNESS_OUTPUT_PATH $CPA_CORRECTNESS_WITNESS_SPEC $*
+cpa_correctness_xml=`echo $CPA_CORRECTNESS_OUTPUT_PATH/*.xml.bz2`
 
 # Merge verifier results and witness validation results
-python3 $MERGEBENCHMARKSETS $result_xml $violation_xml $correctness_xml
+python3 $MERGEBENCHMARKSETS $result_xml $cpa_violation_xml $cpa_correctness_xml
 
 # Format merged results
 merged=`echo $VERIFIER_OUTPUT_PATH/*.merged.xml.bz2`
