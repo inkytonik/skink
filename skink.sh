@@ -2,12 +2,12 @@
 
 if test $# -lt 2
 then
-  echo "usage: skink.sh cmd file.c"
-  echo "where cmd is cmp, dev or exp"
+  echo "usage: skink.sh cat file.c"
+  echo "where cat is SV-COMP category"
   exit 1
 fi
 
-cmd=$1; shift
+cat=$1; shift
 
 # Witness file for competititon, benchexec etc
 WTNFILE=witness.graphml
@@ -22,26 +22,26 @@ export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=./include/:$C_INCLUDE_PATH
 
 ARGS=""
-case $cmd in
-    cmp) JAR=skink.jar
-         ARGS="-m 300 $ARGS"
-         ;;
-    dev) JAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
-         ;;
-    loc) JAR=target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
-         ;;
-    exp) JAR=skink_exp.jar
-         ARGS="-m 300 $ARGS"
-         GREPRES=`egrep "while[ ]*\([ ]*1[ ]*\)|pthread_[^\[;]*\[" $file`
-         if [[ ! -z $GREPRES ]]; then
-           echo "UNKNOWN"
-           exit 0
-         fi
-         ;;
-    *) echo "skink.sh: unexpected command $cmd"
-       exit 1
-esac
 
+DEVJAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
+if test -f $DEVJAR 
+then 
+    JAR=$DEVJAR 
+else 
+    JAR=skink.jar 
+fi    
+
+case $cat in
+    bitvectors) ARGS="-i bit $ARGS";;
+    floats)     ARGS="-e Yices-nonIncr $ARGS";;
+    *)          
+esac 
+    
+case $cat in
+    arrays) ARGS="-m 40 $ARGS";;
+    *)      ARGS="-m 300 $ARGS"
+esac 
+    
 java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \
