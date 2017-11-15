@@ -38,8 +38,6 @@ object Skink {
                     List(label, style)
                 },
                 (b : S) => '"' + b.toString + '"',
-                (i : L) => i.toString
-            )
-        )
+                (i : L) => i.toString))
 
 }

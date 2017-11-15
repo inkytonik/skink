@@ -94,8 +94,7 @@ trait AddBackEdges extends Core with Resources {
                             Trace(choices),
                             index = j,
                             choice = choices(i),
-                            x2
-                        )
+                            x2)
                 };
                 uu = {
                     itpLogger.info(s"Result of checkPost $res")
@@ -218,8 +217,7 @@ object InterpolantAuto extends AddBackEdges {
         function : IRFunction,
         choices : Seq[Int],
         iteration : Int,
-        fromEnd : Boolean = false
-    ) : NFA[Int, Int] = {
+        fromEnd : Boolean = false) : NFA[Int, Int] = {
 
         import scala.util.{Failure, Success, Try}
 
@@ -243,8 +241,7 @@ object InterpolantAuto extends AddBackEdges {
                     linearAuto.getInit,
                     linearAuto.transitions ++ newBackEdges,
                     linearAuto.accepting,
-                    linearAuto.accepting
-                )
+                    linearAuto.accepting)
                 //  dump the automaton if logger is enabled
                 import au.edu.mq.comp.automat.util.Determiniser.toDetNFA
                 itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
@@ -257,8 +254,7 @@ object InterpolantAuto extends AddBackEdges {
                     linearAuto.getInit,
                     linearAuto.transitions,
                     linearAuto.accepting,
-                    linearAuto.accepting
-                )
+                    linearAuto.accepting)
         }
     }
 }

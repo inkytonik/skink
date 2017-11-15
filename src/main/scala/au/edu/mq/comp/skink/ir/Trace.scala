@@ -35,5 +35,4 @@ case class Step(
     optBlockName : Option[String],
     optBlockCode : Option[String],
     optTermCode : Option[String],
-    optTermLine : Option[Int]
-)
+    optTermLine : Option[Int])

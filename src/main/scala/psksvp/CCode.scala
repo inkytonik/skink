@@ -1,10 +1,7 @@
 package psksvp
 
-
-
-object CCode
-{
-  val one =  """
+object CCode {
+    val one = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -17,8 +14,7 @@ object CCode
                 |}
               """.stripMargin
 
-
-  val two =  """
+    val two = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |unsigned int __VERIFIER_nondet_uint();
                 |
@@ -33,7 +29,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val three =  """
+    val three = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -48,7 +44,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val four =  """
+    val four = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -67,8 +63,7 @@ object CCode
                 |}
               """.stripMargin
 
-
-  val five =  """
+    val five = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |extern int __VERIFIER_nondet_int();
                 |extern void __VERIFIER_assume(int);
@@ -90,7 +85,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val six =  """
+    val six = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -108,8 +103,7 @@ object CCode
                 |}
               """.stripMargin
 
-
-  val seven =  """
+    val seven = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -127,7 +121,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val eight =  """
+    val eight = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |int __VERIFIER_nondet_int();
                 |extern void __VERIFIER_assume(int);
@@ -149,7 +143,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val nine =  """
+    val nine = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |int __VERIFIER_nondet_int();
                 |extern void __VERIFIER_assume(int);
@@ -178,7 +172,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val ten =  """
+    val ten = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |
                 |int main(int argc, char** arg)
@@ -197,7 +191,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val eleven =  """
+    val eleven = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |unsigned int __VERIFIER_nondet_uint();
                 |extern void __VERIFIER_assume(int);
@@ -219,8 +213,7 @@ object CCode
                 |}
               """.stripMargin
 
-
-  val code12 =  """
+    val code12 = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |extern int __VERIFIER_nondet_int();
                 |extern void __VERIFIER_assume(int);
@@ -242,7 +235,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val code13 =  """
+    val code13 = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |int __VERIFIER_nondet_int();
                 |extern void __VERIFIER_assume(int);
@@ -271,7 +264,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val code14 =  """
+    val code14 = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |unsigned int __VERIFIER_nondet_uint();
                 |
@@ -293,7 +286,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val code15 =  """
+    val code15 = """
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                 |unsigned int __VERIFIER_nondet_uint();
                 |extern void __VERIFIER_assume(int);
@@ -316,7 +309,7 @@ object CCode
                 |}
               """.stripMargin
 
-  val code16 =  """
+    val code16 = """
                 |// Source: Sumit Gulwani, Nebosja Jojic: "Program Verification as
                 |// Probabilistic Inference", POPL 2007.
                 |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
@@ -340,8 +333,8 @@ object CCode
                 |}
               """.stripMargin
 
-  val code17 =
-    """
+    val code17 =
+        """
       |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
       |int main()
       |{
@@ -358,8 +351,8 @@ object CCode
       |}
     """.stripMargin
 
-  val code18 =
-    """
+    val code18 =
+        """
       |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
       |extern void __VERIFIER_assume(int);
       |extern _Bool __VERIFIER_nondet_bool();
@@ -386,100 +379,105 @@ object CCode
       |}
     """.stripMargin
 
-  import psksvp.SkinkExecutor.Code
+    import psksvp.SkinkExecutor.Code
 
-  val baseTest = List(Code(toFile(CCode.one), false, "clang-3.7", 20),
-                       Code(toFile(CCode.two), false, "clang-3.7", 20),
-                       Code(toFile(CCode.three), false, "clang-3.7", 20),
-                       Code(toFile(CCode.four), false, "clang-3.7", 20),
-                       Code(toFile(CCode.five), false, "clang-3.7", 20),
-                       Code(toFile(CCode.six), false, "clang-3.7", 20),
-                       Code(toFile(CCode.seven), false, "clang-3.7", 20),
-                       Code(toFile(CCode.eight), false, "clang-3.7", 20),
-                       Code(toFile(CCode.nine), false, "clang-3.7", 20),
-                       Code(toFile(CCode.ten), false, "clang-3.7", 20),
-                       Code(toFile(CCode.eleven), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code12), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code13), false, "clang-3.7", 20),
-                       Code(toFile(CCode.code17), false, "clang-3.7", 20))
-                       //Code(toFile(CCode.code14), false, "clang-3.7", 20),
-                       //Code(toFile(CCode.code15), false, "clang-3.7", 20),
-                       //Code(toFile(CCode.code16), false, "clang-3.7", 20))
+    val baseTest = List(
+        Code(toFile(CCode.one), false, "clang-3.7", 20),
+        Code(toFile(CCode.two), false, "clang-3.7", 20),
+        Code(toFile(CCode.three), false, "clang-3.7", 20),
+        Code(toFile(CCode.four), false, "clang-3.7", 20),
+        Code(toFile(CCode.five), false, "clang-3.7", 20),
+        Code(toFile(CCode.six), false, "clang-3.7", 20),
+        Code(toFile(CCode.seven), false, "clang-3.7", 20),
+        Code(toFile(CCode.eight), false, "clang-3.7", 20),
+        Code(toFile(CCode.nine), false, "clang-3.7", 20),
+        Code(toFile(CCode.ten), false, "clang-3.7", 20),
+        Code(toFile(CCode.eleven), false, "clang-3.7", 20),
+        Code(toFile(CCode.code12), false, "clang-3.7", 20),
+        Code(toFile(CCode.code13), false, "clang-3.7", 20),
+        Code(toFile(CCode.code17), false, "clang-3.7", 20))
+    //Code(toFile(CCode.code14), false, "clang-3.7", 20),
+    //Code(toFile(CCode.code15), false, "clang-3.7", 20),
+    //Code(toFile(CCode.code16), false, "clang-3.7", 20))
 
-  val baseDir = "/home/psksvp/workspace/sv-bench"
-  val loopAcc = List(Code(baseDir + "/c/loop-acceleration/const_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-acceleration/functions_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/nested_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/overflow_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/multivar_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call2.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call2.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call3.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call4.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call1.c", false, "clang-3.7", 20),
-                      Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call2.c", false, "clang-3.7", 20))
+    val baseDir = "/home/psksvp/workspace/sv-bench"
+    val loopAcc = List(
+        Code(baseDir + "/c/loop-acceleration/const_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-acceleration/functions_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/nested_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/overflow_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/multivar_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call2.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call2.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call3.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call4.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call1.c", false, "clang-3.7", 20),
+        Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call2.c", false, "clang-3.7", 20))
 
-  val loopLit = List(Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", false, "clang-3.7", 10),
-                      Code(baseDir + "/c/loop-lit/ghhk2008_true-unreach-call.c", false, "clang-3.7", 10)
-                    )
+    val loopLit = List(
+        Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", false, "clang-3.7", 10),
+        Code(baseDir + "/c/loop-lit/ghhk2008_true-unreach-call.c", false, "clang-3.7", 10))
 
-  val loopLitO2 = List(Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/hhk2008_true-unreach-call.c", false, "clang-3.7", 10)
-                      )
+    val loopLitO2 = List(
+        Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-lit/hhk2008_true-unreach-call.c", false, "clang-3.7", 10))
 
-  val loopInvgen = List(Code(baseDir + "/c/loop-invgen/nest-if3_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/down_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/half_2_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/heapsort_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/id_build_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/large_const_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/nested6_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/nested9_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/NetBSD_loop_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/sendmail-close-angle_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/seq_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loop-invgen/string_concat-noarr_true-unreach-call.c", true, "clang-4.0", 10))
-                         //Code(baseDir + "/c/loop-invgen/up_true-unreach-call.c", true, "clang-4.0", 10))
+    val loopInvgen = List(
+        Code(baseDir + "/c/loop-invgen/nest-if3_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/down_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/half_2_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/heapsort_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/id_build_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/large_const_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/nested6_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/nested9_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/NetBSD_loop_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/sendmail-close-angle_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/seq_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loop-invgen/string_concat-noarr_true-unreach-call.c", true, "clang-4.0", 10))
+    //Code(baseDir + "/c/loop-invgen/up_true-unreach-call.c", true, "clang-4.0", 10))
 
-  val loops = List(Code(baseDir + "/c/loops/count_up_down_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loops/for_infinite_loop_1_true-unreach-call_false-termination.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loops/sum01_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loops/sum03_true-unreach-call_false-termination.c", true, "clang-4.0", 10),
-                         Code(baseDir + "/c/loops/sum04_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
-                    Code(baseDir + "/c/loops/terminator_02_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
-                    Code(baseDir + "/c/loops/terminator_03_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
-                    Code(baseDir + "/c/loops/trex03_true-unreach-call.c", true, "clang-4.0", 10),
-                    Code(baseDir + "/c/loops/sum04_true-unreach-call_true-termination.c", true, "clang-4.0", 10))
+    val loops = List(
+        Code(baseDir + "/c/loops/count_up_down_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/for_infinite_loop_1_true-unreach-call_false-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/sum01_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/sum03_true-unreach-call_false-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/sum04_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/terminator_02_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/terminator_03_true-unreach-call_true-termination.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/trex03_true-unreach-call.c", true, "clang-4.0", 10),
+        Code(baseDir + "/c/loops/sum04_true-unreach-call_true-termination.c", true, "clang-4.0", 10))
 
-  import scala.concurrent.duration._
-  def runBaseTest(outputDir:String,
-                  timeout:Duration = 20.minutes):Unit=
-  {
-    SkinkExecutor.runBenchAndOutputReport("baseTest", baseTest, timeout, outputDir)
-  }
+    import scala.concurrent.duration._
+    def runBaseTest(
+        outputDir : String,
+        timeout : Duration = 20.minutes) : Unit =
+        {
+            SkinkExecutor.runBenchAndOutputReport("baseTest", baseTest, timeout, outputDir)
+        }
 }

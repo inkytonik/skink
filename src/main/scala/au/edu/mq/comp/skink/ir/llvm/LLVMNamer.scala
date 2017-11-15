@@ -53,7 +53,7 @@ trait LLVMNamer {
  * Naming for a given function which names uniquely over the given name tree.
  */
 class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
-        nametree : Tree[Product, Product]) extends LLVMNamer {
+    nametree : Tree[Product, Product]) extends LLVMNamer {
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>

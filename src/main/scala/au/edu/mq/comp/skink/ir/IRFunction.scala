@@ -84,10 +84,8 @@ trait IRFunction {
         trace : Trace,
         index : Int,
         choice : Int,
-        post : TypedTerm[BoolTerm, Term]
-    )(
+        post : TypedTerm[BoolTerm, Term])(
         implicit
-        solver : SMTSolver
-    ) : Try[Boolean]
+        solver : SMTSolver) : Try[Boolean]
 
 }

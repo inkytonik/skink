@@ -231,8 +231,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
                 exitDeclaration(),
                 printfDeclaration(),
                 assertionFailureStringConstant(),
-                printFormatStringConstant()
-            )
+                printFormatStringConstant())
         val functions = program.functionDefinitions.map(translateFunDef)
         Program(topLevels ++ functions)
     }
@@ -250,9 +249,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
                     NameC(Global(assertionFailureStringName)),
                     Vector(
                         ElemIndex(defaultIntType(), Const(IntC(0))),
-                        ElemIndex(defaultIntType(), Const(IntC(0)))
-                    ))
-            )
+                        ElemIndex(defaultIntType(), Const(IntC(0))))))
         val arg1 = ValueArg(bytePtrType, Vector(), arg1Value)
         val arg2 = ValueArg(defaultIntType(), Vector(), Const(IntC(getStart(predicate).line)))
         val arg3 = ValueArg(defaultIntType(), Vector(), Const(IntC(getStart(predicate).column)))
@@ -494,9 +491,7 @@ class IMLCompiler(positions : Positions, config : SkinkConfig) {
                     NameC(Global(printFormatStringName)),
                     Vector(
                         ElemIndex(defaultIntType(), Const(IntC(0))),
-                        ElemIndex(defaultIntType(), Const(IntC(0)))
-                    ))
-            )
+                        ElemIndex(defaultIntType(), Const(IntC(0))))))
         val arg1 = ValueArg(bytePtrType, Vector(), arg1Value)
         val arg2 = ValueArg(defaultIntType(), Vector(), etemp)
         val ctemp = nextTemp()

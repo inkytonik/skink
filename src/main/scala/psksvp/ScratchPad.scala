@@ -2,127 +2,123 @@ package psksvp
 
 // this file is a scratch pad
 
-
 import logics._
 import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
 
-
 /**
-  * Created by psksvp on 9/5/17.
-  */
-object ScratchPad
-{
-  def implies(a:PredicateTerm, b:PredicateTerm):PredicateTerm = !a | b
+ * Created by psksvp on 9/5/17.
+ */
+object ScratchPad {
+    def implies(a : PredicateTerm, b : PredicateTerm) : PredicateTerm = !a | b
 
-  def main(args: Array[String]): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
-    val p = List(i < 1000, i === 1000, a === i)
-    psksvp.SkinkExecutor.consoleRunLLVM("/home/psksvp/workspace/example.ll", true, p)
-  }
+    def main(args : Array[String]) : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
+            val p = List(i < 1000, i === 1000, a === i)
+            psksvp.SkinkExecutor.consoleRunLLVM("/home/psksvp/workspace/example.ll", true, p)
+        }
 
+    def testEspresso() : Unit =
+        {
+            val minterms = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511)
+            val r = BooleanMinimize(toCNF).espresso(minterms, 9)
+            log(r)
+        }
 
+    def testBooleanMinimizeX() : Unit =
+        {
+            val i = Ints("i")
+            val j = Ints("j")
 
-  def testEspresso():Unit=
-  {
-    val minterms = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511)
-    val r = BooleanMinimize(toCNF).espresso(minterms, 9)
-    log(r)
-  }
+            val r = BooleanMinimize(toCNF).minimize(
+                List(0, 1, 3, 7, 8, 9, 11, 15),
+                List(i > 0, i < 0, j > 0, j < 0))
+            log(termAsInfix(r))
 
-  def testBooleanMinimizeX():Unit =
-  {
-    val i = Ints("i")
-    val j = Ints("j")
+            val m = BooleanMinimize(toDNF).minimize(
+                List(0, 1, 3, 7, 8, 9, 11, 15),
+                List(i > 0, i < 0, j > 0, j < 0))
+            log(termAsInfix(m))
+        }
 
-    val r = BooleanMinimize(toCNF).minimize(List(0, 1, 3, 7, 8, 9, 11, 15),
-                                             List(i > 0, i < 0, j > 0, j < 0))
-    log(termAsInfix(r))
+    def testWithReport() : Unit =
+        {
+            import psksvp.SkinkExecutor.Code
+            val baseDir = "/home/psksvp/workspace/sv-bench"
+            val loopAcc = List(
+                Code(baseDir + "/c/loop-acceleration/const_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-acceleration/functions_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/nested_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/overflow_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/multivar_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call2.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call2.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call3.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call4.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call1.c", false, "clang-3.7", 20),
+                Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call2.c", false, "clang-3.7", 20))
 
-    val m = BooleanMinimize(toDNF).minimize(List(0, 1, 3, 7, 8, 9, 11, 15),
-                                             List(i > 0, i < 0, j > 0, j < 0))
-    log(termAsInfix(m))
-  }
+            val loopLit = List(
+                Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", false, "clang-3.7", 10),
+                Code(baseDir + "/c/loop-lit/ghhk2008_true-unreach-call.c", false, "clang-3.7", 10))
 
+            val loopLitO2 = List(
+                Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-lit/hhk2008_true-unreach-call.c", false, "clang-3.7", 10))
 
-  def testWithReport():Unit=
-  {
-    import psksvp.SkinkExecutor.Code
-    val baseDir = "/home/psksvp/workspace/sv-bench"
-    val loopAcc = List(Code(baseDir + "/c/loop-acceleration/const_true-unreach-call1.c", false, "clang-3.7", 20),
-                     Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/diamond_true-unreach-call2.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-acceleration/functions_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/nested_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/overflow_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/multivar_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/phases_true-unreach-call2.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call2.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call3.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/simple_true-unreach-call4.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call1.c", false, "clang-3.7", 20),
-                    Code(baseDir + "/c/loop-acceleration/underapprox_true-unreach-call2.c", false, "clang-3.7", 20))
+            val loopInvgen = List(
+                Code(baseDir + "/c/loop-invgen/nest-if3_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/down_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/half_2_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/heapsort_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/id_build_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/large_const_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/nested6_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/nested9_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/NetBSD_loop_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/sendmail-close-angle_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/seq_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/string_concat-noarr_true-unreach-call.c", true, "clang-4.0", 10),
+                Code(baseDir + "/c/loop-invgen/up_true-unreach-call.c", true, "clang-4.0", 10))
 
-    val loopLit = List(Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", false, "clang-3.7", 10),
-                    Code(baseDir + "/c/loop-lit/ghhk2008_true-unreach-call.c", false, "clang-3.7", 10)
-                   )
+            import scala.concurrent.duration._
+            SkinkExecutor.runBenchAndOutputReport("loopLit", loopLit, 5.minutes, "/home/psksvp/workspace/output")
+        }
 
-    val loopLitO2 = List(Code(baseDir + "/c/loop-lit/afnp2014_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/bhmr2007_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/cggmp2005_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/cggmp2005b_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/css2003_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/ddlm2013_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gj2007_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gj2007b_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gr2006_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/gsv2008_true-unreach-call.c", true, "clang-4.0", 10),
-                        Code(baseDir + "/c/loop-lit/hhk2008_true-unreach-call.c", false, "clang-3.7", 10)
-                      )
+    def test1() : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
 
-    val loopInvgen = List(Code(baseDir + "/c/loop-invgen/nest-if3_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/down_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/fragtest_simple_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/half_2_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/heapsort_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/id_build_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/large_const_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/MADWiFi-encode_ie_ok_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/nested6_true-unreach-call.c", true, "clang-4.0", 10),
-                          Code(baseDir + "/c/loop-invgen/nested9_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/NetBSD_loop_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/sendmail-close-angle_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/seq_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/SpamAssassin-loop_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/string_concat-noarr_true-unreach-call.c", true, "clang-4.0", 10),
-                           Code(baseDir + "/c/loop-invgen/up_true-unreach-call.c", true, "clang-4.0", 10))
-
-    import scala.concurrent.duration._
-    SkinkExecutor.runBenchAndOutputReport("loopLit", loopLit, 5.minutes, "/home/psksvp/workspace/output")
-  }
-
-
-
-  def test1(): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
-
-    // predicate abs ok
-    val code =  """
+            // predicate abs ok
+            val code = """
       |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
       |
       |int main(int argc, char** arg)
@@ -135,20 +131,21 @@ object ScratchPad
       |}
     """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-               Nil, //List(i >= 1, i <= 1000, !(i === 1001)),
-               useO2 = false,
-               usePredicateAbstraction = true,
-               useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(i >= 1, i <= 1000, !(i === 1001)),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test1Dot1(): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
+    def test1Dot1() : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
 
-    // predicate abs ok
-    val code =  """
+            // predicate abs ok
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |
@@ -163,20 +160,21 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(i >= 1, i <= 1000, !(i === 1001)),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(i >= 1, i <= 1000, !(i === 1001)),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-  def test2(): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
+    def test2() : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
 
-    // predicate abs ok
-    val code =  """
+            // predicate abs ok
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main(int argc, char** arg)
@@ -191,21 +189,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(i >= 1, i <= 1000, !(i === 1001), a === 0),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(i >= 1, i <= 1000, !(i === 1001), a === 0),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test3(): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
+    def test3() : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
 
-    // pred abs works
-    // interpol require many iteration
-    val code =  """
+            // pred abs works
+            // interpol require many iteration
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main()
@@ -223,21 +222,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-               List(/*i >= 0,*/ i < 1000, i === 1000, /*a >= 0, a < 1000,*/ a === 1000, a === i),
-               useO2 = false,
-               usePredicateAbstraction = true,
-               useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List( /*i >= 0,*/ i < 1000, i === 1000, /*a >= 0, a < 1000,*/ a === 1000, a === i),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test31(useO2:Boolean = false, useClang:String = "clang-3.7"): Unit =
-  {
-    val i = Ints("%i")
-    val a = Ints("%a")
+    def test31(useO2 : Boolean = false, useClang : String = "clang-3.7") : Unit =
+        {
+            val i = Ints("%i")
+            val a = Ints("%a")
 
-    // pred abs works
-    // interpol require many iteration
-    val code =  """
+            // pred abs works
+            // interpol require many iteration
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |extern int __VERIFIER_nondet_int();
                   |extern void __VERIFIER_assume(int);
@@ -259,21 +259,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(/*i >= 0,*/ i < 1000, i === 1000, /*a >= 0, a < 1000,*/ a === 1000, a === i),
-              useO2,
-              usePredicateAbstraction = true,
-              useClang)
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(/*i >= 0,*/ i < 1000, i === 1000, /*a >= 0, a < 1000,*/ a === 1000, a === i),
+                useO2,
+                usePredicateAbstraction = true,
+                useClang)
+        }
 
-  def test4(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
+    def test4() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    // interpolant have problem
-    // predicate abs ok
-    val code =  """
+            // interpolant have problem
+            // predicate abs ok
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main(int argc, char** arg)
@@ -291,21 +292,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-               Nil, //List(x >= 0, y >= 0, x === 2000, x < 2000),
-               useO2 = false,
-               usePredicateAbstraction = true,
-               useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(x >= 0, y >= 0, x === 2000, x < 2000),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test5(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
+    def test5() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    //
-    // both ok.
-    val code =  """
+            //
+            // both ok.
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main(int argc, char** arg)
@@ -323,22 +325,23 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-               Nil, //List(y === x, x === -1, y === -1, x < 2000),
-               useO2 = false,
-               usePredicateAbstraction = true,
-               useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(y === x, x === -1, y === -1, x < 2000),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test51(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
-    val n = Ints("%n")
+    def test51() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
+            val n = Ints("%n")
 
-    //
-    // both ok.
-    val code =  """
+            //
+            // both ok.
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |int __VERIFIER_nondet_int();
                   |extern void __VERIFIER_assume(int);
@@ -360,23 +363,24 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(n > 0, y === x, x === -1, y === -1, x < n),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(n > 0, y === x, x === -1, y === -1, x < n),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test52(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
-    val n = Ints("%n")
+    def test52() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
+            val n = Ints("%n")
 
-    // Pred ok
-    // auto pred no.
-    // Interpol max iter.
-    val code =  """
+            // Pred ok
+            // auto pred no.
+            // Interpol max iter.
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |int __VERIFIER_nondet_int();
                   |extern void __VERIFIER_assume(int);
@@ -405,21 +409,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(n > 0, y === x, x === n, y === n, x < n),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(n > 0, y === x, x === n, y === n, x < n),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test6(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
+    def test6() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    // pred abs works
-    // interpol require many iteration
-    val code =  """
+            // pred abs works
+            // interpol require many iteration
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main(int argc, char** arg)
@@ -438,21 +443,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List( x === 0, x > 0, y === x, y < x),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List( x === 0, x > 0, y === x, y < x),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test61(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
+    def test61() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    // pred abs works
-    // interpol require many iteration
-    val code =  """
+            // pred abs works
+            // interpol require many iteration
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |extern void __VERIFIER_assume(int);
@@ -474,21 +480,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List( x === 0, x > 0, y === x, y < x),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List( x === 0, x > 0, y === x, y < x),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test62(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
+    def test62() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    // pred abs works
-    // interpol require many iteration
-    val code =  """
+            // pred abs works
+            // interpol require many iteration
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |extern int __VERIFIER_nondet_int();
                   |extern void __VERIFIER_assume(int);
@@ -510,21 +517,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List( x === 0, x > 0, y === x, y < x),
-              useO2 = true,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List( x === 0, x > 0, y === x, y < x),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-  def test7(): Unit =
-  {
-    val x = Ints("%x")
-    val a = Ints("%a")
+    def test7() : Unit =
+        {
+            val x = Ints("%x")
+            val a = Ints("%a")
 
-    // pred abs works
-    // intepol works with too many iterations
-    val code =  """
+            // pred abs works
+            // intepol works with too many iterations
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main()
@@ -544,21 +552,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( x >= 0, a === 0, x <= 1000, a === 1000, a === x, a === x - 1, x === 1001),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
-  def test71(): Unit =
-  {
-    val x = Ints("%x")
-    val a = Ints("%a")
-    val n = Ints("%n")
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(x >= 0, a === 0, x <= 1000, a === 1000, a === x, a === x - 1, x === 1001),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
+    def test71() : Unit =
+        {
+            val x = Ints("%x")
+            val a = Ints("%a")
+            val n = Ints("%n")
 
-    // pred abs works
-    // intepol works with too many iterations
-    val code =  """
+            // pred abs works
+            // intepol works with too many iterations
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |
@@ -580,22 +589,23 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List( x >= 0, x <= n, a === n, a === x, a === x - 1, x === n + 1),
-              useO2 = true,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List( x >= 0, x <= n, a === n, a === x, a === x - 1, x === n + 1),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-  def test8(): Unit =
-  {
-    val x = Ints("%x")
-    val a = Ints("%a")
+    def test8() : Unit =
+        {
+            val x = Ints("%x")
+            val a = Ints("%a")
 
-    // predABS works 53 sec
-    // interpol does not work max iter reach
-    // non linear relation ship between a and x
-    val code =  """
+            // predABS works 53 sec
+            // interpol does not work max iter reach
+            // non linear relation ship between a and x
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |
                   |int main(int argc, char** arg)
@@ -613,21 +623,21 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code), Nil,
-              //List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(toFile(code), Nil,
+                //List( x >= 1, x <= 10, a === 0, a === 55, a === ((x * x) / 2) - (x / 2), x === 11),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test81(): Unit =
-  {
-    val x = Ints("%x")
-    val a = Ints("%a")
-    val n = Ints("%n")
-    val p = Ints("%p")
+    def test81() : Unit =
+        {
+            val x = Ints("%x")
+            val a = Ints("%a")
+            val n = Ints("%n")
+            val p = Ints("%p")
 
-    val code =  """
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |
@@ -649,20 +659,21 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( p >= 0, n >= 1, x >= 1, x <= n, a >= 0, a >= x,  x === n + 1, a === 0),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(p >= 0, n >= 1, x >= 1, x <= n, a >= 0, a >= x, x === n + 1, a === 0),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test82(): Unit =
-  {
-    val x = Ints("%x")
-    val a = Ints("%a")
-    val n = Ints("%n")
+    def test82() : Unit =
+        {
+            val x = Ints("%x")
+            val a = Ints("%a")
+            val n = Ints("%n")
 
-    val code =  """
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |int main(int argc, char** arg)
@@ -681,23 +692,23 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-                              List(x === 1, a === 0, x <= n, n >= 0,/* a === ((n * n) + n) / 2,*/ a === ((x * x) / 2) - (x / 2), x === n + 1),
-                              useO2 = false,
-                              usePredicateAbstraction = true,
-                              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(x === 1, a === 0, x <= n, n >= 0, /* a === ((n * n) + n) / 2,*/ a === ((x * x) / 2) - (x / 2), x === n + 1),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
+    def test9() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
+            val n = Ints("%n")
 
-  def test9(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
-    val n = Ints("%n")
-
-    // both works
-    // count_up_down_true-unreach-call_true-termination.c
-    val code =  """
+            // both works
+            // count_up_down_true-unreach-call_true-termination.c
+            val code = """
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
                   |unsigned int __VERIFIER_nondet_uint();
                   |
@@ -714,23 +725,23 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( n >= 0, x === n, x > 0, y === 0, y === n, y === n - x),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(n >= 0, x === n, x > 0, y === 0, y === n, y === n - x),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test10(): Unit =
-  {
-    val i = Ints("%i")
-    val j = Ints("%j")
+    def test10() : Unit =
+        {
+            val i = Ints("%i")
+            val j = Ints("%j")
 
-
-    // interpolant works
-    // predicate abstraction works
-    // cggmp2005_true-unreach-call.c
-    val code =  """
+            // interpolant works
+            // predicate abstraction works
+            // cggmp2005_true-unreach-call.c
+            val code = """
                   |// Source: A. Costan, S. Gaubert, E. Goubault, M. Martel, S. Putot: "A Policy
                   |// Iteration Algorithm for Computing Fixed Points in Static Analysis of
                   |// Programs", CAV 2005
@@ -752,22 +763,22 @@ object ScratchPad
                   |}
                 """.stripMargin
 
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(i === 1, j === 10, j === 6, j >= i, i === Ints(21) - (j * 2)),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( i === 1, j === 10 , j === 6, j >= i, i === Ints(21) - (j * 2) ),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+    def test11() : Unit =
+        {
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-  def test11(): Unit =
-  {
-    val x = Ints("%x")
-    val y = Ints("%y")
-
-    // interpolant: max iter reach
-    // predicate abstraction works 399 sec, now down to 196
-    val code =  """
+            // interpolant: max iter reach
+            // predicate abstraction works 399 sec, now down to 196
+            val code = """
                   |// Source: Sumit Gulwani, Nebosja Jojic: "Program Verification as
                   |// Probabilistic Inference", POPL 2007.
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
@@ -791,25 +802,25 @@ object ScratchPad
                   |}
                 """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              List( x === 0, y === 50, x < 100, x < 50, y === 100, x === y),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(x === 0, y === 50, x < 100, x < 50, y === 100, x === y),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test12(): Unit =
-  {
-    val m = Ints("%m")
-    val n = Ints("%n")
-    val x = Ints("%x")
-    val call1 = Ints("%call1")
+    def test12() : Unit =
+        {
+            val m = Ints("%m")
+            val n = Ints("%n")
+            val x = Ints("%x")
+            val call1 = Ints("%call1")
 
-
-    // interpolant: max iter reach
-    // predicate abstraction     no
-    // gj2007b_true-unreach-call.c
-    val code =  """
+            // interpolant: max iter reach
+            // predicate abstraction     no
+            // gj2007b_true-unreach-call.c
+            val code = """
                   |// Source: Sumit Gulwani, Nebosja Jojic: "Program Verification as
                   |// Probabilistic Inference", POPL 2007.
                   |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
@@ -836,27 +847,26 @@ object ScratchPad
                   |}
                 """.stripMargin
 
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(m === x, x < n, n <= 0, m >= 0, m < n),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                maxIteration = 30,
+                useClang = "clang-4.0")
+        }
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil,//List(m === x, x < n, n <= 0, m >= 0, m < n),
-              useO2 = true,
-              usePredicateAbstraction = true,
-              maxIteration = 30,
-              useClang = "clang-4.0")
-  }
+    def test13() : Unit =
+        {
+            val r = Ints("%r")
 
-  def test13(): Unit =
-  {
-      val r = Ints("%r")
+            //val i = Ints("%2")
+            //val j = Ints("%3")
 
-      //val i = Ints("%2")
-      //val j = Ints("%3")
+            /// this is false
+            val code =
 
-
-      /// this is false
-      val code =
-
-        """
+                """
             |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
             |
             |
@@ -874,17 +884,18 @@ object ScratchPad
             |}
           """.stripMargin
 
-      SkinkExecutor.consoleRun(toFile(code),
-                List( r > 0 ),
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                List(r > 0),
                 useO2 = false,
                 usePredicateAbstraction = true,
                 useClang = "clang-3.7")
-  }
+        }
 
-  def test14():Unit =
-  {
-    val code2 =
-      """
+    def test14() : Unit =
+        {
+            val code2 =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |
         |void __VERIFIER_assert(int cond) {
@@ -907,20 +918,19 @@ object ScratchPad
         |}
       """.stripMargin
 
+            SkinkExecutor.consoleRun(
+                toFile(code2),
+                Nil,
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-    SkinkExecutor.consoleRun(toFile(code2),
-              Nil,
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+    def test15() : Unit =
+        {
 
-
-  def test15():Unit=
-  {
-
-    val codeNoO2 =
-      """
+            val codeNoO2 =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |
         |
@@ -940,17 +950,18 @@ object ScratchPad
         |}
       """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(codeNoO2),
-              Nil,
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(codeNoO2),
+                Nil,
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test16():Unit=
-  {
-    val code =
-      """
+    def test16() : Unit =
+        {
+            val code =
+                """
        |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
        |extern void __VERIFIER_assume(int);
        |extern unsigned int __VERIFIER_nondet_uint(void);
@@ -978,20 +989,21 @@ object ScratchPad
        |}
       """.stripMargin
 
-    val x = Ints("%x")
-    val y = Ints("%y")
+            val x = Ints("%x")
+            val y = Ints("%y")
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(x === 1, y > 0, x < y, x === y, (y / x) > x),
-              useO2 = true,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(x === 1, y > 0, x < y, x === y, (y / x) > x),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-  def test17():Unit=
-  {
-    val code =
-      """
+    def test17() : Unit =
+        {
+            val code =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |extern void __VERIFIER_assume(int);
         |extern  int __VERIFIER_nondet_int(void);
@@ -1013,23 +1025,24 @@ object ScratchPad
         |}
       """.stripMargin
 
-    val i = Ints("%i")
-    val n = Ints("%n")
-    val sum = Ints("%sum")
+            val i = Ints("%i")
+            val n = Ints("%n")
+            val sum = Ints("%sum")
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(n >= 1 & n <= 1000, i === 1 & i < n, i === n, sum === 0, sum === ((i * i) / 2) - (i / 2)), //, sum === ((i * i) / 2) - (i / 2)),
-              useO2 = false,
-              usePredicateAbstraction = true,
-              useClang = "clang-3.7")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(n >= 1 & n <= 1000, i === 1 & i < n, i === n, sum === 0, sum === ((i * i) / 2) - (i / 2)), //, sum === ((i * i) / 2) - (i / 2)),
+                useO2 = false,
+                usePredicateAbstraction = true,
+                useClang = "clang-3.7")
+        }
 
-  def test18():Unit =
-  {
-    // pred with auto gen works, 3 iters with only one
-    // interpol works
-    val code =
-      """
+    def test18() : Unit =
+        {
+            // pred with auto gen works, 3 iters with only one
+            // interpol works
+            val code =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |
         |extern void __VERIFIER_assume(int);
@@ -1068,17 +1081,18 @@ object ScratchPad
         |}
       """.stripMargin
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil,
-              useO2 = true,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil,
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-  def test19():Unit=
-  {
-    val code =
-      """
+    def test19() : Unit =
+        {
+            val code =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |
         |void __VERIFIER_assert(int cond) {
@@ -1111,24 +1125,24 @@ object ScratchPad
         |}
       """.stripMargin
 
-    val cb1 = Ints("%cb1")
-    val cb2 = Ints("%cb2")
-    val x1 = Ints("%x1")
-    val x2 = Ints("%x2")
-    val x3 = Ints("%x3")
+            val cb1 = Ints("%cb1")
+            val cb2 = Ints("%cb2")
+            val x1 = Ints("%x1")
+            val x2 = Ints("%x2")
+            val x3 = Ints("%x3")
 
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(x1 > 0, x2 > 0, x3 > 0, x1 >= 0, x2 >= 0, x3 >= 0),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 
-    SkinkExecutor.consoleRun(toFile(code),
-              Nil, //List(x1 > 0, x2 > 0, x3 > 0, x1 >= 0, x2 >= 0, x3 >= 0),
-              useO2 = true,
-              usePredicateAbstraction = true,
-              useClang = "clang-4.0")
-  }
-
-  def test20(): Unit =
-  {
-    val code =
-      """
+    def test20() : Unit =
+        {
+            val code =
+                """
         |extern void __VERIFIER_error() __attribute__ ((__noreturn__));
         |extern unsigned int __VERIFIER_nondet_uint();
         |
@@ -1153,15 +1167,16 @@ object ScratchPad
         |
       """.stripMargin
 
-    val n = Ints("%n")
-    val k = Ints("%k")
-    val i = Ints("%i")
-    val j = Ints("%j")
+            val n = Ints("%n")
+            val k = Ints("%k")
+            val i = Ints("%i")
+            val j = Ints("%j")
 
-    SkinkExecutor.consoleRun(toFile(code),
-                              Nil, //List(n >= 0, i === 0, k === 0, i < n, i > 0, k <= 0, j === n, j < n, k === i, i === n),
-                              useO2 = true,
-                              usePredicateAbstraction = true,
-                              useClang = "clang-4.0")
-  }
+            SkinkExecutor.consoleRun(
+                toFile(code),
+                Nil, //List(n >= 0, i === 0, k === 0, i < n, i > 0, k <= 0, j === n, j < n, k === i, i === n),
+                useO2 = true,
+                usePredicateAbstraction = true,
+                useClang = "clang-4.0")
+        }
 }

@@ -66,8 +66,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             val process = rest.foldLeft(Process(command))(_ #&& _)
             val processLoggger = ProcessLogger(
                 line => outputBuilder.append(s"$line\n"),
-                line => outputBuilder.append(s"$line\n")
-            )
+                line => outputBuilder.append(s"$line\n"))
             val status = process ! processLoggger
             val output = outputBuilder.result()
             logger.info(output)
@@ -112,8 +111,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)
             val (res, output) = runPipeline(
-                s"$clang $clangargs"
-            )
+                s"$clang $clangargs")
             if (res == 0) {
                 logfile("Clang output", clangllfile)
                 logger.info(s"\nbuildIRFromFile: preparing LLVM code succeeded\n")

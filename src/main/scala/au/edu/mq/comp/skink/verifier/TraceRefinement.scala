@@ -54,8 +54,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def runSolver(
         selectedSolver : SMTSolver,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[SortedQId, Value])] =
+        terms : Seq[TypedTerm[BoolTerm, Term]]) : Try[(SatResponses, Map[SortedQId, Value])] =
         using(selectedSolver) {
             implicit solver =>
                 isSat(terms : _*) map {
@@ -188,25 +187,23 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             if (iteration < config.maxIterations()) {
                                 refineRec(
                                     toDetNFA(r +
-                                    (
-                                        config.usePredicateAbstraction.toOption match {
-                                            case Some(b) =>
-                                                if (b) {
-                                                    println("using predicates abs")
-                                                    psksvp.PredicatesAbstraction(function, choices, iteration)
-                                                } else {
+                                        (
+                                            config.usePredicateAbstraction.toOption match {
+                                                case Some(b) =>
+                                                    if (b) {
+                                                        println("using predicates abs")
+                                                        psksvp.PredicatesAbstraction(function, choices, iteration)
+                                                    } else {
+                                                        println("using interpolant")
+                                                        import interpolant.InterpolantAuto.buildInterpolantAuto
+                                                        buildInterpolantAuto(function, choices, iteration)
+                                                    }
+                                                case _ =>
                                                     println("using interpolant")
                                                     import interpolant.InterpolantAuto.buildInterpolantAuto
                                                     buildInterpolantAuto(function, choices, iteration)
-                                                }
-                                            case _ =>
-                                                println("using interpolant")
-                                                import interpolant.InterpolantAuto.buildInterpolantAuto
-                                                buildInterpolantAuto(function, choices, iteration)
-                                        }
-                                    ))._1,
-                                    iteration + 1
-                                )
+                                            }))._1,
+                                    iteration + 1)
                             } else {
                                 Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
                             }

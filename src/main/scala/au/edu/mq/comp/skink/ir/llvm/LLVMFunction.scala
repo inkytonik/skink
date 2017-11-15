@@ -14,7 +14,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
  * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction {
+    config : SkinkConfig) extends Attribution with IRFunction {
 
     import au.edu.mq.comp.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, Step}
@@ -331,8 +331,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 Block(block.optBlockLabel, Vector(), None, before,
                     MetaTerminatorInstruction(
                         Branch(Label(Local(errorLabel))),
-                        Metadata(Vector())
-                    ))
+                        Metadata(Vector())))
             }
         }
 
@@ -504,11 +503,9 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
         trace : Trace,
         index : Int,
         choice : Int,
-        post : TypedTerm[BoolTerm, Term]
-    )(
+        post : TypedTerm[BoolTerm, Term])(
         implicit
-        solver : SMTSolver
-    ) : Try[Boolean] = {
+        solver : SMTSolver) : Try[Boolean] = {
 
         import org.bitbucket.franck44.scalasmt.theories.Core
         import org.bitbucket.franck44.scalasmt.typedterms.{Commands}

@@ -119,15 +119,12 @@ class Witnesses(config : SkinkConfig) {
             Seq(
                 mkNode(
                     0,
-                    mkData(Some("true"), "entry")
-                ),
+                    mkData(Some("true"), "entry")),
                 mkEdge(0),
                 mkNode(
                     1,
                     mkData(Some("1"), "invariant") +
-                        mkData(Some("main"), "invariant.scope")
-                )
-            )
+                        mkData(Some("main"), "invariant.scope")))
         outputWitness(CorrectnessWitness(nodesAndEdges))
     }
 
@@ -167,8 +164,7 @@ class Witnesses(config : SkinkConfig) {
                             entry +
                                 violation +
                                 mkData(step.optBlockName, "block") +
-                                mkData(step.optBlockCode, "node.src")
-                        )
+                                mkData(step.optBlockCode, "node.src"))
                     val edge =
                         if (index == numsteps - 1)
                             ""
@@ -178,8 +174,7 @@ class Witnesses(config : SkinkConfig) {
                                     index,
                                     mkData(step.optTermCode, "edge.src") +
                                         mkData(step.optTermLine, "startline") +
-                                        mkData(step.optTermLine, "endline")
-                                )
+                                        mkData(step.optTermLine, "endline"))
                     s"$node$edge"
             }
 
