@@ -63,7 +63,7 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
                     val edge =
                         mkEdge(
                             index,
-                            mkData(Some(s"\\result == $value"), "assumption") +
+                            mkData(Some(s"\\result == $value;"), "assumption") +
                                 mkData(Some("main"), "assumption.scope") +
                                 mkData(Some(s"__VERIFIER_nondet_${call.tipe}"), "assumption.resultfunction") +
                                 mkData(call.optCode, "edge.src") +
