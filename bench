@@ -8,13 +8,26 @@
 BENCHMARK_SPEC=/skink/skink.xml
 VERIFIER_OUTPUT_PATH=/skink/results-verified
 
+rm -rf $VERIFIER_OUTPUT_PATH
+mkdir $VERIFIER_OUTPUT_PATH
+
 ORIG_CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-violation-witnesses.xml
 ORIG_CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-correctness-witnesses.xml
-CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-violation-witnesses.xml
-CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-correctness-witnesses.xml
-CPA_VIOLATION_OUTPUT_PATH=/skink/results-violation-cpa
-CPA_CORRECTNESS_OUTPUT_PATH=/skink/results-correctness-cpa
+CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-seq-violation-witnesses.xml
+CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-seq-correctness-witnesses.xml
+CPA_VIOLATION_OUTPUT_PATH=/skink/results-violation-cpa-seq
+CPA_CORRECTNESS_OUTPUT_PATH=/skink/results-correctness-cpa-seq
 PATH_TO_CPACHECKER=/usr/local/bin/CPAchecker
+
+rm -rf $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
+mkdir $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
+
+ORIG_FSHELLW2T_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/fshell-witness2test-validate-violation-witnesses.xml
+FSHELLW2T_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-fshell-witness2test-validate-violation-witnesses.xml
+FSHELLW2T_VIOLATION_OUTPUT_PATH=/skink/results-violation-fshell-witness2test
+
+rm -rf $FSHELLW2T_VIOLATION_OUTPUT_PATH
+mkdir $FSHELLW2T_VIOLATION_OUTPUT_PATH
 
 BENCHEXEC=/usr/local/bin/benchexec
 BENCHEXEC_ARGS="--no-container"
@@ -23,7 +36,7 @@ TABLEGENERATOR=/usr/local/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
 
 # Massage the witness validation specifications:
-# - add a section for Test.set 
+# - add a section for Test.set
 # - fix pathnames so they work in our image
 function addspec() {
   j=`basename $1 .xml`
@@ -34,20 +47,23 @@ function addspec() {
     >$2
   echo '</benchmark>' >>$2
 }
-addspec $ORIG_CPA_VIOLATION_WITNESS_SPEC $CPA_VIOLATION_WITNESS_SPEC /skink/Test-violation.xml
-addspec $ORIG_CPA_CORRECTNESS_WITNESS_SPEC $CPA_CORRECTNESS_WITNESS_SPEC /skink/Test-correctness.xml
-
-rm -rf $VERIFIER_OUTPUT_PATH $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
-mkdir $VERIFIER_OUTPUT_PATH $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
+addspec $ORIG_CPA_VIOLATION_WITNESS_SPEC $CPA_VIOLATION_WITNESS_SPEC /skink/bench-config/Test-cpa-seq-violation.xml
+addspec $ORIG_CPA_CORRECTNESS_WITNESS_SPEC $CPA_CORRECTNESS_WITNESS_SPEC /skink/bench-config/Test-cpa-seq-correctness.xml
+addspec $ORIG_FSHELLW2T_VIOLATION_WITNESS_SPEC $FSHELLW2T_VIOLATION_WITNESS_SPEC /skink/bench-config/Test-fshell-witness2test-violation.xml
 
 # Run verifier on benchmarks
 $BENCHEXEC $BENCHEXEC_ARGS -o $VERIFIER_OUTPUT_PATH $BENCHMARK_SPEC $*
 result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
 
 # Run CPAchecker to validate the violation witnesses
-cd $PATH_TO_CPACHECKER
-$BENCHEXEC $BENCHEXEC_ARGS -o $CPA_VIOLATION_OUTPUT_PATH $CPA_VIOLATION_WITNESS_SPEC $*
-cpa_violation_xml=`echo $CPA_VIOLATION_OUTPUT_PATH/*.xml.bz2`
+#cd $PATH_TO_CPACHECKER
+#$BENCHEXEC $BENCHEXEC_ARGS -o $CPA_VIOLATION_OUTPUT_PATH $CPA_VIOLATION_WITNESS_SPEC $*
+#cpa_violation_xml=`echo $CPA_VIOLATION_OUTPUT_PATH/*.xml.bz2`
+
+# Run fshell-witness2test to validate the violation witnesses
+cd /usr/local/bin
+$BENCHEXEC $BENCHEXEC_ARGS -o $FSHELLW2T_VIOLATION_OUTPUT_PATH $FSHELLW2T_VIOLATION_WITNESS_SPEC $*
+fshell_witness2test_violation_xml=`echo $FSHELLW2T_VIOLATION_OUTPUT_PATH/*.xml.bz2`
 
 # Run CPAchecker to validate the correctness witnesses
 cd $PATH_TO_CPACHECKER
@@ -55,7 +71,8 @@ $BENCHEXEC $BENCHEXEC_ARGS -o $CPA_CORRECTNESS_OUTPUT_PATH $CPA_CORRECTNESS_WITN
 cpa_correctness_xml=`echo $CPA_CORRECTNESS_OUTPUT_PATH/*.xml.bz2`
 
 # Merge verifier results and witness validation results
-python3 $MERGEBENCHMARKSETS $result_xml $cpa_violation_xml $cpa_correctness_xml
+python3 $MERGEBENCHMARKSETS $result_xml $fshell_witness2test_violation_xml $cpa_correctness_xml
+# python3 $MERGEBENCHMARKSETS $result_xml $cpa_violation_xml $fshell_witness2test_violation_xml $cpa_correctness_xml
 
 # Format merged results
 merged=`echo $VERIFIER_OUTPUT_PATH/*.merged.xml.bz2`
