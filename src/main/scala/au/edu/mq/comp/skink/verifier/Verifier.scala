@@ -9,7 +9,7 @@ import au.edu.mq.comp.skink.ir.IR
  */
 class Verifier(ir : IR, config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.{NonDetWitnessFormat, TraceWitnessFormat}
+    import au.edu.mq.comp.skink.{Driver, NonDetWitnessFormat, TraceWitnessFormat}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
     import au.edu.mq.comp.skink.Skink.getLogger
     import scala.util.{Failure, Success}
@@ -19,7 +19,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
     /**
      * Verify a function and output the result in SV-COMP format.
      */
-    def verify(function : IRFunction) {
+    def verify(driver : Driver, function : IRFunction) {
 
         logger.info(s"verify: ${function.name}")
 
@@ -37,33 +37,71 @@ class Verifier(ir : IR, config : SkinkConfig) {
             witnesses.printCorrectnessWitness(function)
         }
 
-        def reportException(e : Exception) {
-            logger.debug(s"""$e\n${e.getStackTrace().mkString("\n at ")}""")
-            reportUnknown(s"refinement failure due to exception: ${e.getMessage()}")
-        }
-
         def reportIncorrect(failureTrace : FailureTrace) {
             logger.info(s"verify: ${function.name} is incorrect")
             config.output().emitln("FALSE")
             witnesses.printViolationWitness(function, failureTrace)
         }
 
-        def reportUnknown(message : String) {
+        def reportUnknown(reasons : String) {
             logger.info(s"verify: correctness of ${function.name} is unknown")
-            logger.info(s"verify: $message")
-            config.output().emitln(s"UNKNOWN\n$message")
+            config.output().emitln(s"UNKNOWN\n$reasons")
         }
 
-        def runVerification() {
-            val refiner = new TraceRefinement(ir, config)
-            refiner.traceRefinement(function) match {
-                case Success(None) =>
-                    reportCorrect()
-                case Success(Some(witnessTrace)) =>
-                    reportIncorrect(witnessTrace)
-                case Failure(e) =>
-                    reportUnknown(s"refinement failure: ${e.getMessage}")
+        /**
+         * Run the verification using diffferent sets of configurations.
+         * At the moment this means that the actual command-line arguments
+         * are augmented by the arguments here.
+         */
+        def runVerifications() {
+            import au.edu.mq.comp.skink.ir.llvm.LLVMFunction
+            import scala.collection.mutable.StringBuilder
+
+            val argSets = List(
+                List("-e", "Z3", "-i", "bit"),
+                List("-e", "Z3"),
+                List("-e", "Yices-nonIncr")
+            )
+
+            val unknownReasons = new StringBuilder()
+
+            def addReason(desc : String, reason : String) {
+                unknownReasons.append(s"\nconfig: $desc\n$reason\n")
             }
+
+            for (args <- argSets) {
+                val fullConfig = driver.createAndInitConfig(args ++ config.args)
+                val fullConfigDesc = fullConfig.args.mkString(" ")
+                logger.info(s"verify: trying configuration args: $fullConfigDesc")
+                val refiner = new TraceRefinement(ir, fullConfig)
+                function match {
+                    case llvmFunction : LLVMFunction =>
+                        val function = new LLVMFunction(llvmFunction.program, llvmFunction.function, fullConfig)
+                        try {
+                            refiner.traceRefinement(function) match {
+                                case Success(None) =>
+                                    logger.info("verify: CORRECT")
+                                    reportCorrect()
+                                    return
+                                case Success(Some(witnessTrace)) =>
+                                    logger.info("verify: INCORRECT")
+                                    reportIncorrect(witnessTrace)
+                                    return
+                                case Failure(e) =>
+                                    val reason = e.getMessage
+                                    logger.info(s"verify: UNKNOWN $reason")
+                                    addReason(fullConfigDesc, reason)
+                            }
+                        } catch {
+                            case e : java.lang.Exception =>
+                                logger.debug(s"""$e\n${e.getStackTrace().mkString("\n at ")}""")
+                                addReason(fullConfigDesc, e.getMessage())
+                        }
+                    case _ =>
+                        sys.error("verify: got non-LLVM function")
+                }
+            }
+            reportUnknown(unknownReasons.result())
         }
 
         try {
@@ -74,11 +112,11 @@ class Verifier(ir : IR, config : SkinkConfig) {
                     sys.error(s"${function.name} is not verifiable, $reason")
                 case _ =>
                     // Function is ok, go for verification
-                    runVerification()
+                    runVerifications()
             }
         } catch {
             case e : java.lang.Exception =>
-                reportException(e)
+                reportUnknown(e.getMessage())
         }
 
     }
