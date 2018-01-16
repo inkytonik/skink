@@ -15,7 +15,7 @@ import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Progr
 case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
 
 class LLVMMultiThread(ir : IR, config : SkinkConfig)
-        extends Attribution with IRMultiThread {
+        extends Attribution with Verifiable {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -77,7 +77,7 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
      * verifiable. Currently, the only reason is that some function
      * calls have not been inlined.
      */
-    def isVerifiable() : Option[String] = {
+    override def isVerifiable() : Option[String] = {
 
         //  nonInlinedCall except IgnoredFunction
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
@@ -554,4 +554,6 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
     def getErrorTrace(r : NFA[_, Choice]) = {
         None
     }
+
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = List()
 }

@@ -23,8 +23,8 @@ trait IRFunction {
      * message is returned that can be displayed to the user. By default
      * this method always returns `None`.
      */
-    def isVerifiable() : Option[String] =
-        None
+    // def isVerifiable() : Option[String] =
+    //     None
 
     /**
      * An NFA that represents the possible control flow of executions of
@@ -42,7 +42,7 @@ trait IRFunction {
      * sequences collect terms that express the effect of each block
      * that appears in the trace.
      */
-    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
+    // def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
 
     /**
      * Given a trace, return one list element for each block in that trace
@@ -67,7 +67,7 @@ trait IRFunction {
      * Return descriptions of the steps taken by a failure trace for use
      * in witness generation.
      */
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step]
+    // def traceToSteps(failTrace : FailureTrace) : Seq[Step]
 
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.Try
@@ -79,16 +79,16 @@ trait IRFunction {
      *                        sequence of instructions
      * @param     post        the postcondition over a set of program variables `v`
      */
-    def checkPost(
-        pre : TypedTerm[BoolTerm, Term],
-        trace : Trace,
-        index : Int,
-        choice : Int,
-        post : TypedTerm[BoolTerm, Term]
-    )(
-        implicit
-        solver : SMTSolver
-    ) : Try[Boolean]
+    // def checkPost(
+    //     pre : TypedTerm[BoolTerm, Term],
+    //     trace : Trace,
+    //     index : Int,
+    //     choice : Int,
+    //     post : TypedTerm[BoolTerm, Term]
+    // )(
+    //     implicit
+    //     solver : SMTSolver
+    // ) : Try[Boolean]
 
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions in
@@ -97,6 +97,33 @@ trait IRFunction {
      * The order reflects the order in which the trace performs these calls. A
      * value returned or `None` indicates that the value is unknown.
      */
-    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
+    // def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
 
+    /**
+     * Return an error trace if any.
+     *
+     * @param   r   A refinement
+     * @return      An error trace not in the refinement.
+     */
+    // def getErrorTrace(r : NFA[_, Choice]) = {
+    //     import org.bitbucket.franck44.automat.lang.Lang
+    //
+    //     (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
+    // }
+
+    /**
+     * Build a refinement automaton from an infeasible error trace.
+     *
+     * @param   trace   A trace that is not feasible
+     * @param   info    Some text that can be used for logging
+     *
+     * @return          An automaton that accepts trace and other traces
+     *                  that are infeasible.
+     */
+    // def buildRefinement(
+    //     trace : Trace,
+    //     info : Option[String] = None
+    // ) : NFA[_, Choice] = {
+    //     verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
+    // }
 }

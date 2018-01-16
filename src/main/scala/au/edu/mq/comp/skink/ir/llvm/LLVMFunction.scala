@@ -3,10 +3,10 @@ package au.edu.mq.comp.skink
 package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.verifier.{Verifiable}
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import au.edu.mq.comp.skink.verifier.{Verifiable}
 
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
@@ -16,8 +16,11 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction {
+class LLVMFunction(
+        program : Program,
+        val function : FunctionDefinition,
+        config : SkinkConfig
+) extends Attribution with IRFunction with Verifiable {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -70,7 +73,7 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
      * Return `None` if this function is verifiable. Otherwise, return a
      * reason that can be displayed to the user for why it is not
      * verifiable. Currently, the only reason is that some function
-     * calls have not been inlined.
+     * calls have not been inlined in function.
      */
     override def isVerifiable() : Option[String] = {
 
@@ -586,6 +589,34 @@ class LLVMFunction(program : Program, val function : FunctionDefinition,
                 NonDetCall(tipe, value, optLine, optCode)
         }(blockTrace.blocks)
 
+    }
+
+    /**
+     * Return an error trace if any.
+     *
+     * @param   r   A refinement
+     * @return      An error trace not in the refinement.
+     */
+    def getErrorTrace(r : NFA[_, Choice]) = {
+        import org.bitbucket.franck44.automat.lang.Lang
+
+        (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
+    }
+
+    /**
+     * Build a refinement automaton from an infeasible error trace.
+     *
+     * @param   trace   A trace that is not feasible
+     * @param   info    Some text that can be used for logging
+     *
+     * @return          An automaton that accepts trace and other traces
+     *                  that are infeasible.
+     */
+    def buildRefinement(
+        trace : Trace,
+        info : Option[String] = None
+    ) : NFA[_, Choice] = {
+        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
     }
 
 }

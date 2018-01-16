@@ -202,6 +202,8 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         map.get(s).getOrElse(defaultIndexOf(s))
     }
 
+    def nameOf(name : Name) : String = s"${show(name)}"
+
     /**
      * The enclosing phi instruction of a node in a block, if there is one
      * and the node is in a phi predecessor specification.

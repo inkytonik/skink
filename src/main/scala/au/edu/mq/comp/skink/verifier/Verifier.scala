@@ -1,13 +1,13 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.{IR, STVerifiable, MTVerifiable}
+import au.edu.mq.comp.skink.ir.{IR}
 
 /**
  * The main verifier which wraps the trace refinement process with
  * output that is suitable for the SV-COMP.
  */
-class Verifier(ir : IR, config : SkinkConfig) {
+class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.{NonDetWitnessFormat, TraceWitnessFormat}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
@@ -23,9 +23,12 @@ class Verifier(ir : IR, config : SkinkConfig) {
 
         //  Create a verifiable according to the config
         //  TODO: add config flag and set mtFlag accordingly
-        val mtFlag = false
+        // val mtFlag = false
 
-        val verifiable = if (mtFlag) new STVerifiable(ir) else new MTVerifiable(ir)
+        val main = ir.functions.find(_.name == "main")
+
+        // val verifiable = new LLVMFunction(ir.program, main.get, config)
+        // if (mtFlag) new STVerifiable(ir) else new MTVerifiable(ir)
 
         logger.info(s"verify: ${verifiable.name}")
 
