@@ -20,7 +20,7 @@ class LLVMFunction(
         program : Program,
         val function : FunctionDefinition,
         config : SkinkConfig
-) extends Attribution with IRFunction with Verifiable {
+) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}

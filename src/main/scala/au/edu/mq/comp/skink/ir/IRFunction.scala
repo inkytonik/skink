@@ -1,9 +1,11 @@
 package au.edu.mq.comp.skink.ir
 
+import au.edu.mq.comp.skink.verifier.{Verifiable}
+
 /**
  * Interface for an Intermediate Representation function.
  */
-trait IRFunction {
+trait IRFunction extends Verifiable {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.FailureTrace
