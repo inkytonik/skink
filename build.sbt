@@ -100,3 +100,45 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
     .setPreference (SpacesAroundMultiImports, false)
+
+// headers
+import de.heikoseeberger.sbtheader.HeaderPattern
+import de.heikoseeberger.sbtheader.license.LGPLv3
+import de.heikoseeberger.sbtheader.license.Apache2_0
+
+headers := Map(
+    // "scala" -> LGPLv3("2016", "Franck Cassez"),
+    "syntax" -> LGPLv3("2016", "Franck Cassez"), // this one ie not working
+    "scala"  -> (
+    HeaderPattern.cStyleBlockComment,
+    """|/*
+     | * This file is part of Skink.
+     | *
+     | * Copyright (C) 2015-2018
+     | * Franck Cassez, Anthony M. Sloane, Matthew Roberts.
+     | *
+     | * Skink is free software: you can redistribute it and/or modify it  under
+     | * the terms of the  GNU Lesser General Public License as published by the
+     | * Free Software Foundation,  either version 3 of the License, or (at your
+     | * option) any later version.
+     | *
+     | * Skink is distributed  in the hope  that it will  be useful, but WITHOUT
+     | * ANY WARRANTY;  without  even the implied   warranty  of MERCHANTABILITY
+     | * or FITNESS FOR A PARTICULAR PURPOSE.
+     | *
+     | * See the GNU Lesser General Public License for more details.
+     | *
+     | * You should have received a copy of the GNU Lesser General Public License
+     | * along with Skink.  (See files COPYING and  COPYING.LESSER.)  If not, see
+     | * <http://www.gnu.org/licenses/>.
+     | */
+     |
+     |""".stripMargin
+     )
+)
+
+excludes := Seq("src/generated/**")
+
+//  note: use createHeaders in sbt to generate the headers
+//  checkHeaders to check which files need new headers
+//  headers generations can also be automated at compile time
