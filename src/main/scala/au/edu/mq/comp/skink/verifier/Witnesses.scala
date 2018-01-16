@@ -1,6 +1,7 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.ir.Verifiable
 
 /**
  * Common support for SV-COMP witness generation.

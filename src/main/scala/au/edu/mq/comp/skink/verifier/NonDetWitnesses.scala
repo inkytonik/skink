@@ -10,7 +10,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
 
     import au.edu.mq.comp.skink.ir.{FailureTrace}
-    import au.edu.mq.comp.skink.verifier.Verifiable
+    import au.edu.mq.comp.skink.ir.Verifiable
 
     def printViolationWitness(function : Verifiable, failTrace : FailureTrace) {
         val returnedValues = function.traceToNonDetValues(failTrace)

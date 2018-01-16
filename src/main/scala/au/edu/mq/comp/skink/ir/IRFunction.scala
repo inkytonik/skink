@@ -1,7 +1,5 @@
 package au.edu.mq.comp.skink.ir
 
-import au.edu.mq.comp.skink.verifier.{Verifiable}
-
 /**
  * Interface for an Intermediate Representation function.
  */

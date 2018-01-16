@@ -4,7 +4,7 @@ package llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 
-import au.edu.mq.comp.skink.verifier.Verifiable
+import au.edu.mq.comp.skink.ir.Verifiable
 import org.bitbucket.franck44.automat.auto.DetAuto
 import org.scalallvm.assembly.AssemblySyntax.Block
 import scala.collection.immutable.Map

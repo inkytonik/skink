@@ -1,6 +1,7 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.ir.Verifiable
 
 /**
  * Support for SV-COMP GraphML witness generation in the trace format,

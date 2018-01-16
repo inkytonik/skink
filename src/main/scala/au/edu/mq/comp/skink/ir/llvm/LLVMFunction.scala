@@ -6,7 +6,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
-import au.edu.mq.comp.skink.verifier.{Verifiable}
+import au.edu.mq.comp.skink.ir.{Verifiable}
 
 /**
  * A block trace is a sequence of blocks that comprise an error trace.

@@ -7,7 +7,7 @@ import org.bitbucket.franck44.scalasmt.interpreters.Resources
 import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
 import org.bitbucket.franck44.scalasmt.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
-import au.edu.mq.comp.skink.ir.{Trace, State, Choice}
+import au.edu.mq.comp.skink.ir.{Verifiable, Trace, State, Choice}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 
 trait AddBackEdges extends Core with Resources {

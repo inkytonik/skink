@@ -1,8 +1,7 @@
 package au.edu.mq.comp.skink.verifier
 
-import au.edu.mq.comp.skink.ir.IR
+import au.edu.mq.comp.skink.ir.{IR, Verifiable}
 import au.edu.mq.comp.skink.SkinkConfig
-// import au.edu.mq.comp.skink.verifier.Verifiable
 
 /**
  * Implementation of the trace refinement process.
