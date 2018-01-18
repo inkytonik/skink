@@ -101,6 +101,9 @@ object LLVMHelper {
      * generating effect terms. Currently:
      *   - any LLVM intrinsic, such as llvm.stacksave
      *   - special verifier fns
+     *   - memory alloc function
+     *   - output functions
+     *   - thread functions
      * Returns the function name if it is to be ignored.
      */
     object IgnoredFunction {

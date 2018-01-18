@@ -12,9 +12,15 @@ import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
 
+/**
+ * A state of the program
+ *
+ * @param   threadLocs
+ * @param   syncTokens  Current state of mutexes (locked/unlocked)
+ */
 case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
 
-class LLVMMultiThread(ir : IR, config : SkinkConfig)
+class LLVMMultiThread(ir : LLVMIR, config : SkinkConfig)
         extends Attribution with Verifiable {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
@@ -42,15 +48,16 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
 
     // An analyser for the verifiable version of this function and its associated tree
 
+    //  get main from ir.functions
+    //  FIXME remove InstanceOf
+    val main = ir.functions.find(_.name == "main").get.asInstanceOf[LLVMFunction]
+
     //
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
+    lazy val funTree = new Tree[ASTNode, FunctionDefinition](makeVerifiable(main.function))
     lazy val funAnalyser = new Analyser(funTree)
 
     def blockName(block : Block) =
         funAnalyser.blockName(block)
-
-    //  get main from ir.functions
-    val main = ir.functions.find(_.name == "main").get.asInstanceOf[LLVMFunction]
 
     /**
      * Index of each function
@@ -63,54 +70,57 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
 
     // Implementation of IRFunction interface
 
-    lazy val name : String = "name" //ir.program.name
-    // nameToString(function.global)
+    lazy val name : String = main.name
 
     /**
      * The verification ready NFA
      */
-    lazy val nfa = new LLVMConcurrentAuto(ir, main)
+    // lazy val nfa = new LLVMConcurrentAuto(ir, makeVerifiable(main.function))
+    lazy val nfa = new LLVMConcurrentAuto(ir.functions, main)
+
+    // ir has a Program component which is an Item+. Some of the items are FunctionDef
+    //  that we have to make ThreadVerifiable
+    lazy val irThreadVerifiable : Program =
+        ir.program match {
+            case Program(items) => Program(items.map {
+                case f : FunctionDefinition => makeVerifiable(f)
+                case x                      => x
+            })
+        }
 
     /**
-     * Return `None` if this function is verifiable. Otherwise, return a
+     * A multi-thread program is verifiable if and only if:
+     *    1. main isVerifiable
+     *    2. each function called in a pthread_create from main is verifiable
+     * Return `None` if this program is verifiable. Otherwise, return a
      * reason that can be displayed to the user for why it is not
-     * verifiable. Currently, the only reason is that some function
-     * calls have not been inlined.
+     * verifiable (not 1 or not 2 above).
      */
     override def isVerifiable() : Option[String] = {
 
-        //  nonInlinedCall except IgnoredFunction
-        def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
-            val insn = metaInsn.instruction
-            insn match {
-                case Call(_, _, _, _, _, IgnoredFunction(s), _, _) if !isAssertFunction(s) =>
+        main.isVerifiable match {
+            case None =>
+                //  Check that each function called in pthread_create in main is verifiable
+                val pthreadCalls : Vector[IRFunction] = main.function.functionBody
+                    .blocks
+                    .flatMap(
+                        //  For each (meta) instruction, collect the name of pthread create
+                        b => b.optMetaInstructions.collect({ case PThreadCreate(_, t) => t })
+                    )
+                    .flatMap(ir.getFunctionByName)
+                logger.debug(s"Arguments of pthread_create in main: ${(pthreadCalls.map(_.name)).mkString(",")}")
+
+                // Retrieve each function in the args of pthread_create calls and check it is verifiable
+                val pthreadCallsVerifiableStatus : Vector[String] = pthreadCalls.flatMap(_.isVerifiable)
+                if (pthreadCallsVerifiableStatus.isEmpty)
                     None
-                case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
-                    logger.info(s"isVerifiable: non-inlined call ${longshow(insn)}")
-                    Some(s)
-                case _ =>
-                    None
-            }
+                else
+                    Some(s"""calls to the following functions were not inlined: ${pthreadCallsVerifiableStatus.mkString(", ")}""")
+
+            case Some(s) =>
+                Some(s"""Some calls in the main function were not inlined: $s}""")
+
         }
-
-        //  Set of entry point functions ie. argument of pthread_create
-        //  TODO: test it!!
-        def entryPointFunctions : Set[LLVMFunction] = Set()
-
-        //  nonInlinedCall in a block
-        def nonInlinedCalls(block : Block) : Vector[String] =
-            block.optMetaInstructions.flatMap(nonInlinedCall)
-
-        //  Names of the non properly inlined calls
-        def nonInlinedCallNames : Set[String] =
-            entryPointFunctions.flatMap(_.function.functionBody.blocks.map(nonInlinedCalls).flatten.toSet)
-
-        //  If one entry point is not inlined, not verifiable
-        if (nonInlinedCallNames.isEmpty)
-            None
-        else
-            Some(s"""calls to the following functions were not inlined: ${nonInlinedCallNames.mkString(", ")}""")
-
     }
 
     /**
@@ -195,11 +205,11 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
     def makeVerifiable(functionDef : FunctionDefinition) : FunctionDefinition = {
         logger.debug(s"makeVerifiable: $name")
 
-        // val processedBody = function.makeVerifiable(makeThreadVerifiable(functionDef.functionBody))
+        val processedBody = makeThreadVerifiable(functionDef.functionBody)
         // val processedBody = function.makeErrorsVerifiable(makeThreadVerifiable(functionDef.functionBody))
 
-        // Return the new function
-        val ret = functionDef //.copy(functionBody = processedBody)
+        // Return the new function by modifying only the body and keeping all other fields
+        val ret = functionDef.copy(functionBody = processedBody)
         programLogger.info(s"* Function $name for verification [include make Thread verifiable]:\n")
         programLogger.info(show(ret))
         programLogger.debug(s"\n* AST of function $name for verification:\n\n")
@@ -207,6 +217,11 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
         ret
     }
 
+    /**
+     * Check whether, in a trace, two blocks of index i and j are independent
+     * FIXME: could be cached as this is a property of (trace,i,j) ? not obvious because
+     * of phi functions
+     */
     def independent(trace : Seq[Choice])(i : Int, j : Int) : Boolean = {
         val blocks = blockTrace(Trace(trace)).blocks
         !areDependent(blocks(i), blocks(j)) && trace(i).threadId != trace(j).threadId
@@ -552,7 +567,9 @@ class LLVMMultiThread(ir : IR, config : SkinkConfig)
      * @return      An error trace not in the refinement.
      */
     def getErrorTrace(r : NFA[_, Choice]) = {
-        None
+        import org.bitbucket.franck44.automat.lang.Lang
+        //
+        (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] = List()

@@ -15,8 +15,10 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 
 /**
  * Representation of an LLVM IR function from the given program.
+ *
+ * @param   program     Used only to generate failure trace
  */
-class LLVMFunction(
+case class LLVMFunction(
         program : Program,
         val function : FunctionDefinition,
         config : SkinkConfig
@@ -46,7 +48,7 @@ class LLVMFunction(
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
     // val program = ir.program
-    // An analyser for the verifiable version of this function and its associated tree
+    // An analyser for the verifiable version of this fuction and its associated tree
 
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)

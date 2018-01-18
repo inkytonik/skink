@@ -25,7 +25,7 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
         //  TODO: add config flag and set mtFlag accordingly
         // val mtFlag = false
 
-        val main = ir.functions.find(_.name == "main")
+        // val main = ir.functions.find(_.name == "main")
 
         // val verifiable = new LLVMFunction(ir.program, main.get, config)
         // if (mtFlag) new STVerifiable(ir) else new MTVerifiable(ir)
@@ -83,6 +83,7 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
                     sys.error(s"${verifiable.name} is not verifiable, $reason")
                 case _ =>
                     // Function is ok, go for verification
+                    logger.info(s"verify: ${verifiable.name} is verifiable, running verification")
                     runVerification()
             }
         } catch {

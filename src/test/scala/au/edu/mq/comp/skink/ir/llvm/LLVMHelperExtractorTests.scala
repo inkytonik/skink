@@ -7,9 +7,9 @@ import org.scalatest.{
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 /**
- * Test LLVM Helper extractors
+ * Test LLVM MultiThread Helper extractors
  */
-class LLVMHelperExtractorTests extends FunSuite with TableDrivenPropertyChecks with Matchers {
+class LLVMMultiThreadHelperTests extends FunSuite with TableDrivenPropertyChecks with Matchers {
 
     import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
     import org.scalallvm.assembly.{Analyser, Assembly}

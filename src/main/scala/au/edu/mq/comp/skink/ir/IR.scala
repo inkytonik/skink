@@ -3,7 +3,7 @@ package au.edu.mq.comp.skink.ir
 /**
  * Interface for an Intermediate Representation.
  */
-trait IR {
+trait IR extends Verifiable {
 
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
 
@@ -19,6 +19,11 @@ trait IR {
     def functions : Vector[IRFunction]
 
     /**
+     * Return a function from a name
+     */
+    def getFunctionByName(n : String) : Option[IRFunction] = functions.find(_.name == n)
+
+    /**
      * Return a pretty-printed version of this IR instance.
      */
     def show : String
@@ -28,8 +33,8 @@ trait IR {
      */
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
 
-    import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
+    // import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
 
-    def program : Program
+    // def program : Program
 
 }

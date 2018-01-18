@@ -222,17 +222,18 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier
-        import au.edu.mq.comp.skink.ir.llvm.LLVMMultiThread
+        import au.edu.mq.comp.skink.ir.llvm.LLVMIR
 
         if (config.verifyTarget()) {
             if (config.multiThreadMode()) {
-                val verifier = new Verifier(new LLVMMultiThread(ir, config), ir, config)
+                logger.info(s"processIR multi-thread mode: processing")
+                val verifier = new Verifier(ir, ir, config)
                 verifier.verify()
             } else {
 
                 for (function <- ir.functions) {
                     if (function.name == "main") {
-                        logger.info(s"processIR: processing ${function.name}")
+                        logger.info(s"processIR single-thread mode: processing ${function.name}")
                         val verifier = new Verifier(function, ir, config)
                         verifier.verify()
                     } else {

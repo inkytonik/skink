@@ -10,7 +10,7 @@ import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition}
 
-case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
+case class LLVMConcurrentAuto(irfunctions : Vector[IRFunction], main : LLVMFunction)
         extends Attribution
         with DetAuto[LLVMState, Choice] {
 
@@ -27,7 +27,10 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
     val name : String = main.name
 
     /**
-     * Index of each function
+     * For each thread the function executed by the thread.
+     *
+     * Should be only one as we enforce inlining and check isVerifiable for each target
+     * of pthread_create
      */
     var functionIds = MutableMap[Int, LLVMFunction](0 -> main)
 
@@ -36,8 +39,15 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
      * @param    threadId   The thread number
      * @param    blockName  The name of the block
      */
-    def getBlockByName(threadId : Int, blockName : String) : Block =
-        functionIds.get(threadId).get.blockMap.get(blockName).get
+    def getBlockByName(threadId : Int, blockName : String) : Block = {
+        functionIds.get(threadId).get.blockMap.get(blockName) match {
+            case Some(x) =>
+                logger.debug(s"Found block $blockName in threadId $threadId ")
+                x
+            case None => sys.error(s"Could not find block $blockName in thread $threadId")
+        }
+    }
+    // functionIds.get(threadId).get.blockMap.get(blockName).get
 
     /**
      * The entry point function (main) in this program
@@ -51,17 +61,20 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
 
-    lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
-    lazy val funAnalyser = new Analyser(funTree)
+    // lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
+    // lazy val funAnalyser = new Analyser(funTree)
 
     //  Get the name of a block
-    def blockName(block : Block) =
-        funAnalyser.blockName(block)
+    // def blockName(block : Block) =
+    //     funAnalyser.blockName(block)
 
     def getFunctionById(threadId : Int) : Option[LLVMFunction] = functionIds.get(threadId)
 
     //  Implementation of DetAuto interface
-    def getInit = LLVMState(Map(0 -> blockName(main.function.functionBody.blocks.head)), Map())
+    def getInit = {
+        logger.debug(s"getInit used blockName ${main.blockName(main.function.functionBody.blocks.head)}")
+        LLVMState(Map(0 -> main.blockName(main.function.functionBody.blocks.head)), Map())
+    }
 
     def isFinal(state : LLVMState) : Boolean = state.threadLocs.values.filter(_.contains("__error")).toVector.length != 0
 
@@ -75,7 +88,7 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
      * Whether a block is a return (function call) or a pthread_exit
      */
     def isExitBlock(block : Block) : Boolean = {
-        logger.debug(s"checking if ${blockName(block)} is an exit block")
+        logger.debug(s"checking if $block} is an exit block")
         block.metaTerminatorInstruction.terminatorInstruction match {
             case _ : Ret | _ : RetVoid => return true
             case _                     => // Do nothing
@@ -93,6 +106,7 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
     def isBlocked(block : Block, state : LLVMState) : Boolean = {
         //  Thread instructions in the block
         val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
+        logger.debug(s"threadsInsns: ${threadInsns.map(x => show(x._1))}")
 
         if (threadInsns.length != 0) {
             // We should have at most one thread primitive per block
@@ -217,8 +231,9 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
             val (threadName, threadFn) = threadInfo.head
             logger.debug(s"Discovered a new thread with id $threadName and function $threadFn")
             //  FIX that ugly asInstanceOf
-            val threadIRFn : LLVMFunction = ir.functions.filter(_.name == threadFn).head.asInstanceOf[LLVMFunction]
+            val threadIRFn : LLVMFunction = irfunctions.filter(_.name == threadFn).head.asInstanceOf[LLVMFunction]
             val threadStartBlock = threadIRFn.function.functionBody.blocks.head
+            val threadStartBlockName = threadIRFn.blockName(threadStartBlock)
             val newThreadId = if (!seenThreads.isDefinedAt(threadName)) {
                 logger.debug(s"Discovered a new thread with name $threadName and function $threadFn")
                 threadCount += 1
@@ -229,7 +244,7 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
                 logger.debug(s"Re-discovered a new thread with name $threadName and function $threadFn")
                 seenThreads.get(threadName).get
             }
-            Some((newThreadId -> blockName(threadStartBlock)))
+            Some((newThreadId -> threadStartBlockName))
         } else
             None
     }
@@ -262,7 +277,7 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
             }
         }
 
-        logger.debug(s"outSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        logger.debug(s"outSyncEffects: syncTokens after processing block ${block}: $syncTokens")
         newSyncTokens
     }
 
@@ -287,7 +302,7 @@ case class LLVMConcurrentAuto(ir : IR, main : LLVMFunction)
             }
         }
 
-        logger.debug(s"inSyncEffects: syncTokens after processing block ${blockName(block)}: $syncTokens")
+        logger.debug(s"inSyncEffects: syncTokens after processing block $block: $syncTokens")
         newSyncTokens
     }
 

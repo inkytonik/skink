@@ -38,7 +38,7 @@
         <file>logs/LLVM.log</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${DEFAULT_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -74,7 +74,7 @@
         </encoder>
     </appender>
 
-    <root level="OFF">
+    <root level="ON">
         <appender-ref ref="SKINKFILE"/>
     </root>
 
@@ -101,7 +101,8 @@
         <appender-ref ref="CFGFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level=""/>
 
     <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
 
@@ -110,20 +111,23 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMMultiThread" level="INHERITED">
+      <appender-ref ref="LLVMFILE"/>
+  </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkpost" level="OFF" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkpost" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="OFF" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="OFF" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="INHERITED" additivity="false">
         <appender-ref ref="ITPFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="OFF" additivity="false">
+    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="INHERITED" additivity="false">
         <appender-ref ref="ITPAUTOFILE"/>
     </logger>
 
