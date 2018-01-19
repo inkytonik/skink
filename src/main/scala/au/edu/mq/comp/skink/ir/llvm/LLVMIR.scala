@@ -35,39 +35,53 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         Executor.execute(program, config.lli())
 
     /**
-     *  Make the functions verifiable
+     *  Make the functions in the IR verifiable.
+     *  This results in making sure that each block contains at most
+     *  thread primitive ir shared variable.
      */
     def functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
+                //  Same program with a new functionDefinition
                 new LLVMFunction(program, makeVerifiable(fd), config)
         }
 
-    // functions.map(f => f.copy(function = makeVerifiable(f.function))),
-
+    /**
+     * Pretty print the program
+     */
     def show : String =
         org.scalallvm.assembly.AssemblyPrettyPrinter.show(program, 5)
 
+    /**
+     * ???
+     */
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
         ids.sorted
 
+    /**
+     * The name of the file for this program.
+     */
     def name : String = "FIXME: get the program name"
 
+    /**
+     * The main function extracted from the verifiable variants
+     */
     lazy val main : LLVMFunction = functions.find(_.name == "main").get
 
     /**
      * A multi-thread program is verifiable if and only if:
      *    1. main isVerifiable
      *    2. each function called in a pthread_create from main is verifiable
-     * Return `None` if this program is verifiable. Otherwise, return a
-     * reason that can be displayed to the user for why it is not
-     * verifiable (not 1 or not 2 above).
+     *
+     *  @return     `None` if and only if this program is verifiable. Otherwise, return a
+     *              reason that can be displayed to the user for why it is not
+     *              verifiable (not 1 or not 2 above).
      */
-    override def isVerifiable() : Option[String] = {
-
+    override def isVerifiable() : Option[String] =
         main.isVerifiable match {
             case None =>
-                //  Check that each function called in pthread_create in main is verifiable
+                //  Main is verifiable
+                //  Check that each function called in pthread_create from main is verifiable
                 val pthreadCalls : Vector[IRFunction] = main.function.functionBody
                     .blocks
                     .flatMap(
@@ -77,46 +91,30 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                     .flatMap(getFunctionByName)
                 logger.debug(s"Arguments of pthread_create in main: ${(pthreadCalls.map(_.name)).mkString(",")}")
 
-                // Retrieve each function in the args of pthread_create calls and check it is verifiable
+                //  Retrieve each function in the args of pthread_create calls and
+                //  check it is verifiable
                 val pthreadCallsVerifiableStatus : Vector[String] = pthreadCalls.flatMap(_.isVerifiable)
+                //  If some functions are not verifiable, collect the reasons and abort
                 if (pthreadCallsVerifiableStatus.isEmpty)
                     None
                 else
                     Some(s"""calls to the following functions were not inlined: ${pthreadCallsVerifiableStatus.mkString(", ")}""")
 
             case Some(s) =>
+                //  Main is not Verifiable
                 Some(s"""Some calls in the main function were not inlined: $s}""")
-
         }
-    }
 
-    // FIXME: shold have makeverifiable somewhere
-    import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    import org.scalallvm.assembly.AssemblySyntax._
-
-    import org.scalallvm.assembly.Analyser
-    import org.scalallvm.assembly.Analyser.defaultBlockName
-    import scala.collection.mutable.{Map => MutableMap}
-
-    // lazy val verifiableIR : Vector[LLVMFunction] = functions.map(f => f.copy(function = makeVerifiable(f.function)))
-
-    // lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.function)
-    // lazy val funAnalyser = new Analyser(funTree)
-    //
-    // def blockName(block : Block) =
-    //     funAnalyser.blockName(block)
     /**
-     * Index of each function
+     *  Given a threadId, provide the function run by the thread.
+     *  @note   At the moment, because we require that all functions used in
+     *          pthread_create are inlined, each thread can only executes a
+     *          single function. At the beginning, thread 0 is executing main.
      */
     var functionIds = MutableMap(0 -> main)
 
     /**
-     * The verification ready NFA
+     * The verification ready NFA. Uses the verifiable functions.
      */
     lazy val nfa = new LLVMConcurrentAuto(
         functions, main
@@ -124,11 +122,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     //  FIXME: should have makeVerifiable
     // lazy val nfa = new LLVMConcurrentAuto(functions, main)
 
+    /**
+     *  Given a functionDefinition split the blocks to make sure only
+     *  a single non local instruction is in each block.
+     *
+     *  @param  functionDef     The function to rewrite
+     *
+     *  @return                 Equivalent in semantics to functionDef
+     *                          with blocks containing at most one non
+     *                          local instruction.
+     *
+     */
     def makeVerifiable(functionDef : FunctionDefinition) : FunctionDefinition = {
         logger.debug(s"makeVerifiable: $name")
 
         val processedBody = makeThreadVerifiable(functionDef.functionBody)
-        // val processedBody = function.makeErrorsVerifiable(makeThreadVerifiable(functionDef.functionBody))
 
         // Return the new function by modifying only the body and keeping all other fields
         val ret = functionDef.copy(functionBody = processedBody)
