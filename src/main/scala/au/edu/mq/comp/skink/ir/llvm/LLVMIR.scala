@@ -24,6 +24,17 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     import org.scalallvm.assembly.AssemblySyntax.{FunctionDefinition}
     import org.scalallvm.assembly.Executor
     import au.edu.mq.comp.skink.Skink.getLogger
+    import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.scalallvm.assembly.AssemblySyntax._
+
+    import org.scalallvm.assembly.Analyser
+    import org.scalallvm.assembly.Analyser.defaultBlockName
+    import scala.collection.mutable.{Map => MutableMap}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
