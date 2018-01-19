@@ -168,19 +168,33 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * TODO: Add all types of memory mutation
      */
     def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
+
         logger.debug(s"makeThreadVerifiable: $name")
 
+        //  new blocks created after splitting original blocks
         val insertedBlocks = new scala.collection.mutable.ListBuffer[Block]()
 
+        import scala.annotation.tailrec
+        /**
+         *
+         *
+         */
+        // @tailrec
         def splitOnPredicate(
             insns : List[MetaInstruction],
             pred : MetaInstruction => Boolean
         ) : List[List[MetaInstruction]] =
-            insns.span(pred) match {
+            // insns span pred match {
+            //     case (Nil , Nil ) => List()
+            //     case (r, Nil) => List(r)
+            //     case (r, xr) => List(r) :: splitOnPredicate(xr, pred)
+            // }
+
+            insns span pred match {
                 case (Nil, Nil) => Nil
                 case (Nil, access :: remains) => splitOnPredicate(remains, pred) match {
-                    case start :: end => List(access) :: start :: end
-                    case Nil          => List(List(access))
+                    case Nil => List(List(access))
+                    case xl  => List(access) :: xl
                 }
                 case (remains, Nil)                => List(remains)
                 case (previous, access :: remains) => (previous :+ access) :: splitOnPredicate(remains, pred)
