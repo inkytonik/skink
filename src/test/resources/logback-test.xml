@@ -78,7 +78,7 @@
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink" level="OFF"/>
 
     <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
@@ -111,7 +111,7 @@
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMMultiThread" level="INHERITED">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMIR" level="INFO">
       <appender-ref ref="LLVMFILE"/>
   </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
