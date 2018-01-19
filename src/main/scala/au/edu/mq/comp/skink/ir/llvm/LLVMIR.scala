@@ -184,17 +184,19 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * ; <label>:14
      *   <insns1>
      *   %7 = call i32 @pthread_create(...) #6     //  pthread primitive
-     *   br label __threading.14.1
+     *   br label __threading.1.14
      *
-     *   __threading.14.1:
+     *   __threading.1.14:
      *   <insns2>
      *   %10 = load i32, i32* @j, align 4          //  access to global variable @j
-     *   br label __threading.14.2
+     *   br label __threading.2.14
      *
-     *   __threading.14.2
+     *   __threading.2.14:
      *   <insn3>
      *   <terminator>
      *
+     *  If <insn3> is empty, __threading.2.14 is not created but the <terminator> is
+     *  pushed to block __threading.1.14
      * TODO: The metadata from the call is transferred to the new branch so it can
      * recovered later during reporting.
      *
@@ -202,18 +204,20 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      */
     def splitBlock(b : Block) : Unit = {
 
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => ppllvm}
+
+        //  Defines split instructions
         def isSplit(i : MetaInstruction) = isThreadPrimitive(i.instruction) || isGlobalAccess(i.instruction)
 
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => ppBlock}
-        /*
-         * Process each instruction and add it to current list of instructions.
-         * When a boundary instruction is encountered, build a block with the list
-         * of instructions and reset parameters for next block
-         * In foldLeft tuple is (n,xl, xb, bLab) with:
-         *  n is the number of sub blocks already created
-         *  xl is the current list of instructions collected from start or last split location
-         *  xb is the list of sub-blocks already created in reverse
-         *  bLab is last source labal
+        /* Generation of sub-blocks work as follows:
+         * Process each instruction in b and add it to current list of instructions.
+         * When a boundary instruction is encountered, build a block with the current list
+         * of instructions and reset other parameters.
+         * In foldLeft, tuple is (n,xl, xb, bLab) with:
+         *      n is the number of sub-blocks already created
+         *      xl is the current list of instructions collected from start or last split location
+         *      xb is the reversed list of sub-blocks already created
+         *      bLab is last source labal
          */
         val (k, x, lb, lab) = b.optMetaInstructions.toList.
             foldLeft((0, List[MetaInstruction](), List[Block](), b.optBlockLabel))(
@@ -241,10 +245,10 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 //  If the last list of instructions x is not empty create a new last block
                 Block(lab, Vector(), None, x.toVector, b.metaTerminatorInstruction) :: lb
         }).reverse
-        logger.info(s"The last list of instructions is: :\n${x.map(l => ppBlock(l)).mkString("\n")}")
+        logger.info(s"The last list of instructions is: :\n${x.map(l => ppllvm(l)).mkString("\n")}")
 
-        logger.info(s"block: ${ppBlock(b)} has $k split instructions and will be split into ${k + 1} blocks")
-        logger.info(s"This block becomes:\n${split.map(b => ppBlock(b)).mkString("\n")}")
+        logger.info(s"block: ${ppllvm(b)} has $k split instructions and will be split into ${k + 1} blocks")
+        logger.info(s"This block becomes:\n${split.map(b => ppllvm(b)).mkString("\n")}")
 
     }
 
