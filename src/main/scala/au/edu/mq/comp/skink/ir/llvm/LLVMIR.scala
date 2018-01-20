@@ -328,11 +328,11 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                             None
                         else
                             prevBlocks.get(choice.threadId)
-                    prevBlocks = prevBlocks + (choice.threadId -> functionIds(choice.threadId).blockName(block))
+                    prevBlocks = prevBlocks + (choice.threadId -> nfa.functionIds(choice.threadId).blockName(block))
                     if (block.optMetaPhiInstructions.isEmpty)
-                        (None, choice.threadId + functionIds(choice.threadId).blockName(block))
+                        (None, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
                     else
-                        (optPrevBlock, choice.threadId + functionIds(choice.threadId).blockName(block))
+                        (optPrevBlock, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
             }
         }
 
@@ -347,7 +347,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     }
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
-    // import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
 
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
@@ -409,6 +408,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
             terms.reduceLeft((l, r) => if (r == True()) l else l & r)
     }
 
+    val initTerm = new LLVMTermBuilder(main.blockName, new LLVMInitNamer, config).initTerm(program)
+
     /**
      * Construct the sequence of logical terms for a given trace
      *
@@ -431,14 +432,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         val globalBuilder = new LLVMTermBuilder(main.blockName, globalNamer, config)
 
         // Construct a block trace of only the relevant blocks for each function and build
-        // a map of builders to be u    sed for each unique function
-        val funBlockTraces = functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
-        val funBuilders = functionIds.map(
+        // a map of builders to be used for each unique function
+        val funBlockTraces = nfa.functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
+        val funBuilders = nfa.functionIds.map(
             f =>
                 (
                     f._1,
                     new LLVMTermBuilder(
-                        functionIds(f._1).blockName,
+                        nfa.functionIds(f._1).blockName,
                         new LLVMMTFunctionNamer(
                             f._2.funAnalyser,
                             f._2.funTree,
@@ -463,18 +464,19 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
+                logger.debug(s"ThreadId is ${choice.threadId}, choice is $choice")
+                logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
+                logger.debug(s"generating term for block ${nfa.functionIds(choice.threadId).blockName(block)} with choice $choice")
                 val namer = funBuilders.get(choice.threadId).get
-                logger.debug(s"generating term for block ${functionIds(choice.threadId).blockName(block)} with choice $choice with namer $namer")
+                logger.debug(s"Namer is $namer")
                 namer.blockTerms(block, optPrevBlock, choice.branchId)
         }.map(combineTerms)
 
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
-            // Seq(initTerm)
-            Seq()
+            Seq(initTerm)
         else
-            blockTerms
-        // combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+            combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
     }
 
     /**
@@ -522,7 +524,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Get a function-specifc namer and term builder
         val threadId = trace.choices(index).threadId
-        val function = functionIds.get(threadId).get
+        val function = nfa.functionIds.get(threadId).get
         val globalNamer = new LLVMGlobalNamer(blockTree)
         val namer = new LLVMMTFunctionNamer(function.funAnalyser, function.funTree, blockTree, threadId, globalNamer)
         val termBuilder = new LLVMTermBuilder(function.blockName, namer, config)
