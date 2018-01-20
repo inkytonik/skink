@@ -54,7 +54,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         program.items.collect {
             case fd : FunctionDefinition =>
                 //  Same program with a new functionDefinition
-                new LLVMFunction(program, makeVerifiable(fd), config)
+                new LLVMFunction(program, splitGlobalMemAccess(fd), config)
+
         }
 
     /**
@@ -130,31 +131,35 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     lazy val nfa = new LLVMConcurrentAuto(
         functions, main
     )
-    //  FIXME: should have makeVerifiable
-    // lazy val nfa = new LLVMConcurrentAuto(functions, main)
 
     /**
      *  Given a functionDefinition split the blocks to make sure only
-     *  a single non local instruction is in each block.
+     *  a single global memory access instruction is in each block.
      *
-     *  @param  functionDef     The function to rewrite
+     *  @param  function        The function to rewrite
      *
      *  @return                 Equivalent in semantics to functionDef
-     *                          with blocks containing at most one non
-     *                          local instruction.
+     *                          with blocks containing at most one global
+     *                          memory access instruction.
      *
      */
-    def makeVerifiable(functionDef : FunctionDefinition) : FunctionDefinition = {
-        logger.debug(s"makeVerifiable: $name")
+    def splitGlobalMemAccess(f : FunctionDefinition) : FunctionDefinition = {
 
-        val processedBody = makeThreadVerifiable(functionDef.functionBody)
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showFunDef}
+
+        val fname : String = nameToString(f.global)
+        programLogger.debug(s"Splitting global memory accesses for function: ${fname}")
+
+        //  Original blocks in function
+        val blocks = f.functionBody.blocks
+        //  Split blocks
+        val newBlocks = blocks.flatMap(splitBlock)
 
         // Return the new function by modifying only the body and keeping all other fields
-        val ret = functionDef.copy(functionBody = processedBody)
-        programLogger.info(s"* Function $name for verification [include make Thread verifiable]:\n")
-        programLogger.info(org.scalallvm.assembly.AssemblyPrettyPrinter.show(ret))
-        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
-        programLogger.debug(org.scalallvm.assembly.AssemblyPrettyPrinter.layout(org.scalallvm.assembly.AssemblyPrettyPrinter.any(ret)))
+        val ret = f.copy(functionBody = FunctionBody(newBlocks))
+
+        programLogger.debug(s"Initial function $fname:\n${showFunDef(f)}")
+        programLogger.debug(s"Split on global access function $fname:\n${showFunDef(ret)}")
         ret
     }
 
@@ -197,14 +202,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      *
      *  If <insn3> is empty, __threading.2.14 is not created but the <terminator> is
      *  pushed to block __threading.1.14
-     * TODO: The metadata from the call is transferred to the new branch so it can
-     * recovered later during reporting.
+     * FIXME: The metadata from the call is transferred to the new branch so it can
+     * recovered later during reporting. Is it true?
      *
      * Blocks that don't contain global accesses are left alone.
      */
-    def splitBlock(b : Block) : Unit = {
+    def splitBlock(b : Block) : List[Block] = {
 
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => ppllvm}
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
 
         //  Defines split instructions
         def isSplit(i : MetaInstruction) = isThreadPrimitive(i.instruction) || isGlobalAccess(i.instruction)
@@ -219,6 +224,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
          *      xb is the reversed list of sub-blocks already created
          *      bLab is last source labal
          */
+        logger.debug(s"Start split block labelled: ${showBlock(b.optBlockLabel)} :\n${showBlock(b)}")
+
         val (k, x, lb, lab) = b.optMetaInstructions.toList.
             foldLeft((0, List[MetaInstruction](), List[Block](), b.optBlockLabel))(
                 {
@@ -245,103 +252,12 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 //  If the last list of instructions x is not empty create a new last block
                 Block(lab, Vector(), None, x.toVector, b.metaTerminatorInstruction) :: lb
         }).reverse
-        logger.info(s"The last list of instructions is: :\n${x.map(l => ppllvm(l)).mkString("\n")}")
+        logger.debug(s"The last list of instructions is: :\n${x.map(l => showBlock(l)).mkString("\n")}")
 
-        logger.info(s"block: ${ppllvm(b)} has $k split instructions and will be split into ${k + 1} blocks")
-        logger.info(s"This block becomes:\n${split.map(b => ppllvm(b)).mkString("\n")}")
+        logger.debug(s"block has $k split instructions and will be split into ${k + 1} blocks as follows\n")
+        logger.debug(s"${split.map(b => showBlock(b)).mkString("\n")}")
 
-    }
-
-    /**
-     * Split blocks on global variable access to allow permutations of dependent
-     * instructions to be generated between thread functions.
-     *
-     * Only necessary for functions which are expected to be used in a concurrent
-     * program.
-     *
-     * TODO: Add all types of memory mutation
-     */
-    def makeThreadVerifiable(functionBody : FunctionBody) : FunctionBody = {
-
-        logger.debug(s"makeThreadVerifiable: $name")
-
-        //  new blocks created after splitting original blocks
-        val insertedBlocks = new scala.collection.mutable.ListBuffer[Block]()
-
-        import scala.annotation.tailrec
-        /**
-         *
-         *
-         */
-        // @tailrec
-        def splitOnPredicate(
-            insns : List[MetaInstruction],
-            pred : MetaInstruction => Boolean
-        ) : List[List[MetaInstruction]] =
-            // insns span pred match {
-            //     case (Nil , Nil ) => List()
-            //     case (r, Nil) => List(r)
-            //     case (r, xr) => List(r) :: splitOnPredicate(xr, pred)
-            // }
-
-            insns span pred match {
-                case (Nil, Nil) => Nil
-                case (Nil, access :: remains) => splitOnPredicate(remains, pred) match {
-                    case Nil => List(List(access))
-                    case xl  => List(access) :: xl
-                }
-                case (remains, Nil)                => List(remains)
-                case (previous, access :: remains) => (previous :+ access) :: splitOnPredicate(remains, pred)
-            }
-
-        def insertBranchOnGlobalAccess(block : Block) : Block = {
-            // Get a list of blocks which contain a global memory access as their last
-            // instruction.
-            splitBlock(block)
-            val splitBlocks = splitOnPredicate(
-                block.optMetaInstructions.toList,
-                i => !isThreadPrimitive(i.instruction) && !isGlobalAccess(i.instruction)
-            )
-
-            if (splitBlocks.length <= 1) {
-                logger.debug(s"makeThreadVerifiable: No concurrent operations encountered")
-                block
-            } else {
-                logger.debug(s"makeThreadVerifiable: Concurrent operations encountered, inserting new blocks")
-                val first = splitBlocks.head
-                val rest = splitBlocks.drop(1).dropRight(1)
-                val last = splitBlocks.last
-                var label = makeLabelFromPrefix(block.optBlockLabel, "__threading")
-                // Generate the final block in the function and add it to the list
-                insertedBlocks += Block(BlockLabel(label), Vector(), None, last.toVector,
-                    block.metaTerminatorInstruction)
-                // Working backwards over the list so that we can keep around the label for the next
-                // block in the function. This is fine as the actual order of the blocks in the list
-                // has no relation to the structure of the function.
-                var blockCount = 0
-                for (b <- rest.reverse) {
-                    val newLabel = makeLabelFromPrefix(block.optBlockLabel, s"__threading.$blockCount")
-                    logger.debug(s"makeThreadVerifiable: Inserted new block with label $newLabel")
-                    insertedBlocks += Block(BlockLabel(newLabel), Vector(), None, b.toVector,
-                        MetaTerminatorInstruction(
-                            Branch(Label(Local(label))),
-                            Metadata(Vector())
-                        ))
-                    label = newLabel
-                    blockCount += 1
-                }
-                val startBlock = Block(block.optBlockLabel, Vector(), None, first.toVector,
-                    MetaTerminatorInstruction(
-                        Branch(Label(Local(label))),
-                        Metadata(Vector())
-                    ))
-                startBlock
-            }
-        }
-
-        val startingBlocks = functionBody.blocks.map(insertBranchOnGlobalAccess)
-        val functionBodyWithSplitBlocks = FunctionBody(startingBlocks ++ insertedBlocks)
-        functionBodyWithSplitBlocks
+        split
     }
 
     /**
