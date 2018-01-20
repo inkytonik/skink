@@ -48,7 +48,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     /**
      *  Make the functions in the IR verifiable.
      *  This results in making sure that each block contains at most
-     *  thread primitive ir shared variable.
+     *  one global memory access instruction, and in this case, it is the last one
+     *  in the block.
      */
     def functions : Vector[LLVMFunction] =
         program.items.collect {
@@ -72,11 +73,15 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     /**
      * The name of the file for this program.
+     * @note this is required by the Verifiable trait. Ity is the function name for
+     * for LLVMFunction but for program we need to define it.
+     * FIXME: find a way to display a meaningful name
      */
     def name : String = "FIXME: get the program name"
 
     /**
-     * The main function extracted from the verifiable variants
+     * The main function extracted from the verifiable variants.
+     *  FIXME: should return an Option[LLVMFunction] as main may not be defined
      */
     lazy val main : LLVMFunction = functions.find(_.name == "main").get
 
@@ -106,24 +111,25 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 //  Retrieve each function in the args of pthread_create calls and
                 //  check it is verifiable
                 val pthreadCallsVerifiableStatus : Vector[String] = pthreadCalls.flatMap(_.isVerifiable)
-                //  If some functions are not verifiable, collect the reasons and abort
                 if (pthreadCallsVerifiableStatus.isEmpty)
+                    //  Every function called in pthread_create is verifiable
                     None
                 else
+                    //  Some functions are not verifiable, collect the reasons and abort
                     Some(s"""calls to the following functions were not inlined: ${pthreadCallsVerifiableStatus.mkString(", ")}""")
 
             case Some(s) =>
-                //  Main is not Verifiable
+                //  Main itself is not Verifiable
                 Some(s"""Some calls in the main function were not inlined: $s}""")
         }
 
-    /**
-     *  Given a threadId, provide the function run by the thread.
-     *  @note   At the moment, because we require that all functions used in
-     *          pthread_create are inlined, each thread can only executes a
-     *          single function. At the beginning, thread 0 is executing main.
-     */
-    var functionIds = MutableMap(0 -> main)
+    // /**
+    //  *  Given a threadId, provide the function run by the thread.
+    //  *  @note   At the moment, because we require that all functions used in
+    //  *          pthread_create are inlined, each thread can only executes a
+    //  *          single function. At the beginning, thread 0 is executing main.
+    //  */
+    // var functionIds = MutableMap(0 -> main)
 
     /**
      * The verification ready NFA. Uses the verifiable functions.
