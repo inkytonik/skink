@@ -23,77 +23,14 @@ object LLVMHelper {
             case Local(s)  => s
         }
 
-    // Useful predicates
-
-    /**
-     * Return whether or not the named function is an absolute value
-     * function.
-     */
-    def isAbsoluteValueFunction(name : String) : Boolean =
-        name.startsWith("llvm.fabs.")
-
-    /**
-     * Return whether or not the named function is the special verifier
-     * assertion function.
-     */
-    def isAssertFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER_assert")
-
-    /**
-     * Return whether or not the named function is a function that terminates
-     * program execution.
-     */
-    def isExitFunction(name : String) : Boolean =
-        name == "abort" || name == "exit"
-
-    /**
-     * Return whether or not the named function is an LLVM intrinsic.
-     */
-    def isLLVMIntrinsic(name : String) : Boolean =
-        name.startsWith("llvm.")
-
-    /**
-     * Return whether or not the named function is a memory allocation function.
-     */
-    def isMemoryAllocFunction(name : String) : Boolean =
-        List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
-
-    /**
-     * Return whether or not the named function is an output function.
-     */
-    def isOutputFunction(name : String) : Boolean =
-        List("fprintf", "printf") contains name
-
-    /**
-     * Return whether or not the named function is a special verifier
-     * function.
-     */
-    def isVerifierFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER")
-
     // Extractors to make matching more convenient
-
-    /**
-     * Matcher for absolute value calls. Successful matches return the
-     * optional binding and the argument.
-     */
-    object AbsoluteValueFunctionCall {
-        def unapply(insn : Instruction) : Option[(OptBinding, Value)] = {
-            insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(ValueArg(_, _, arg)), _) if isAbsoluteValueFunction(name) =>
-                    Some((to, arg))
-                case _ =>
-                    None
-            }
-        }
-    }
 
     /**
      * Matcher for assumption function names.
      */
-    object AssumeName {
-        def unapply(name : Name) : Boolean =
-            name == Global("__VERIFIER_assume")
+    object Assume {
+        def unapply(name : String) : Boolean =
+            name == "__VERIFIER_assume"
     }
 
     /**
@@ -124,21 +61,83 @@ object LLVMHelper {
     }
 
     /**
-     * Extractor that recognises functions whose calls we want to ignore when
-     * generating effect terms. Currently:
-     *   - any LLVM intrinsic, such as llvm.stacksave
-     *   - special verifier fns
-     * Returns the function name if it is to be ignored.
+     * Matcher for "copysign" function names.
      */
-    object IgnoredFunction {
-        def unapply(fn : Function) : Option[String] =
-            fn match {
-                case Function(Named(Global(s))) if isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
-                    isOutputFunction(s) || isExitFunction(s) =>
-                    Some(s)
-                case _ =>
-                    None
-            }
+    object CopySign {
+        def unapply(name : String) : Boolean =
+            List("copysign", "copysignf", "copysignl") contains name
+    }
+
+    /**
+     * Matcher for assumption function names.
+     */
+    object Exit {
+        def unapply(name : String) : Boolean =
+            name == "abort" || name == "exit"
+    }
+
+    /**
+     * Matcher for `fabs` function names.
+     */
+    object FAbs {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.fabs.")
+    }
+
+    /**
+     * Matcher for "fdim" function names.
+     */
+    object FDim {
+        def unapply(name : String) : Boolean =
+            List("fdim", "fdimf", "fdiml") contains name
+    }
+
+    /**
+     * Matcher for "fegetround" function names.
+     */
+    object FEGetRound {
+        def unapply(name : String) : Boolean =
+            name == "fegetround"
+    }
+
+    /**
+     * Matcher for "fesetround" function names.
+     */
+    object FESetRound {
+        def unapply(name : String) : Boolean =
+            name == "fesetround"
+    }
+
+    /**
+     * Matcher for "fmax" function names.
+     */
+    object FMax {
+        def unapply(name : String) : Boolean =
+            List("fmax", "fmaxf", "fmaxl") contains name
+    }
+
+    /**
+     * Matcher for "fmin" function names.
+     */
+    object FMin {
+        def unapply(name : String) : Boolean =
+            List("fmin", "fminf", "fminl") contains name
+    }
+
+    /**
+     * Matcher for "fmod" function names.
+     */
+    object FMod {
+        def unapply(name : String) : Boolean =
+            List("fmod", "fmodf", "fmodl") contains name
+    }
+
+    /**
+     * Matcher for "fpclassfiy" function names.
+     */
+    object FPClassify {
+        def unapply(name : String) : Boolean =
+            List("__fpclassify", "__fpclassifyf", "__fpclassifyl") contains name
     }
 
     /**
@@ -172,14 +171,31 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for memory allocation calls. Successful matches return the
-     * optional binding and the name of the function.
+     * Matcher for "isnan" function names.
      */
-    object MemoryAllocFunctionCall {
-        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
+    object IsInf {
+        def unapply(name : String) : Boolean =
+            List("__isinf", "__isinff") contains name
+    }
+
+    /**
+     * Matcher for "isnan" function names.
+     */
+    object IsNan {
+        def unapply(name : String) : Boolean =
+            List("__isnan", "__isnanf") contains name
+    }
+
+    /**
+     * Matcher for global library function calls with a single argument. Successful
+     * matches return the optional binding, return type, string function name, argument
+     * and argument type.
+     */
+    object LibFunctionCall1 {
+        def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type)] = {
             insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(name))), _, _) if isMemoryAllocFunction(name) =>
-                    Some((to, name))
+                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1)), _) =>
+                    Some((to, tipe, name, arg1, tipe1))
                 case _ =>
                     None
             }
@@ -187,19 +203,75 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for nondet function names. Successful matches return the
-     * identifier of the type that is returned by the matched function.
+     * Matcher for global library function calls with zero arguments. Successful
+     * matches return the optional binding, return type, string function name.
      */
-    object NondetFunctionName {
-        def unapply(name : Name) : Option[String] = {
-            val NondetName = "__VERIFIER_nondet_(.+)$".r
-            name match {
-                case Global(NondetName(tipe)) =>
-                    Some(tipe)
+    object LibFunctionCall0 {
+        def unapply(insn : Instruction) : Option[(OptBinding, Type, String)] = {
+            insn match {
+                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(), _) =>
+                    Some((to, tipe, name))
                 case _ =>
                     None
             }
         }
+    }
+
+    /**
+     * Matcher for global library function calls with two arguments. Successful
+     * matches return the optional binding, return type, string function name,
+     * arguments and argument types.
+     */
+    object LibFunctionCall2 {
+        def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type, Value, Type)] = {
+            insn match {
+                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2)), _) =>
+                    Some((to, tipe, name, arg1, tipe1, arg2, tipe2))
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
+     * Extractor that recognises names of functions that we support as library
+     * functions, i.e. we cope if calls of these remain in the program to be
+     * verified.
+     */
+    object LibFunctionName {
+        def unapply(name : String) : Boolean =
+            name match {
+                case CopySign() | Exit() | FAbs() | FDim() | FEGetRound() | FESetRound() |
+                    FMax() | FMin() | FMod() | FPClassify() | IsInf() | IsNan() |
+                    MemoryAlloc() | OutputFunctionName() | Remainder() | RInt() | SignBit() |
+                    Trunc() | VerifierFunctionName() =>
+                    true
+                case _ =>
+                    false
+            }
+    }
+
+    /**
+     * Matcher for memory allocation calls. Successful matches return the
+     * optional binding and the name of the function.
+     */
+    object MemoryAllocFunctionCall {
+        def unapply(insn : Instruction) : Option[OptBinding] = {
+            insn match {
+                case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc()))), _, _) =>
+                    Some(to)
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
+     * Matcher for memory allocation function names.
+     */
+    object MemoryAlloc {
+        def unapply(name : String) : Boolean =
+            List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
     }
 
     /**
@@ -219,16 +291,75 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for nondet function names. Successful matches return the
+     * identifier of the type that is returned by the matched function.
+     */
+    object NondetFunctionName {
+        def unapply(name : String) : Option[String] = {
+            val NondetName = "__VERIFIER_nondet_(.+)$".r
+            name match {
+                case NondetName(tipe) =>
+                    Some(tipe)
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
+     * Matcher for output function names.
+     */
+    object OutputFunctionName {
+        def unapply(name : String) : Boolean =
+            List("fprintf", "printf") contains name
+    }
+
+    /**
      * Matcher for LLVM real (floating-point) types. Just standard float and double for now.
      * Returns the bit size of the type.
      */
     object RealT {
         def unapply(tipe : Type) : Option[Int] =
             tipe match {
-                case FloatT()  => Some(32)
-                case DoubleT() => Some(64)
-                case _         => None
+                case HalfT()                 => Some(16)
+                case FloatT()                => Some(32)
+                case DoubleT()               => Some(64)
+                case X86_FP80()              => Some(80)
+                case FP128T() | PPC_FP128T() => Some(128)
+                case _                       => None
             }
+    }
+
+    /**
+     * Matcher for "remainder" function names.
+     */
+    object Remainder {
+        def unapply(name : String) : Boolean =
+            List("remainder", "remainderf", "remainderl") contains name
+    }
+
+    /**
+     * Matcher for `rint` function names.
+     */
+    object RInt {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.rint")
+    }
+
+    /**
+     * Matcher for "signbit" function names.
+     */
+    object SignBit {
+        def unapply(name : String) : Boolean =
+            List("__signbit", "__signbitf") contains name
+    }
+
+    /**
+     * Matcher for `trunc` function names.
+     */
+    object Trunc {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.trunc")
     }
 
     /**
@@ -247,6 +378,14 @@ object LLVMHelper {
                 case _          => None
             }
 
+    }
+
+    /**
+     * Matcher for SV-COMP verifier function names.
+     */
+    object VerifierFunctionName {
+        def unapply(name : String) : Boolean =
+            name.startsWith("__VERIFIER")
     }
 
     /**
@@ -297,11 +436,11 @@ object LLVMHelper {
      * these multiple forms.
      */
     object VerifierFunction {
-        def unapply(v : CalledValue) : Option[Name] =
+        def unapply(v : CalledValue) : Option[String] =
             v match {
-                case Function(Named(name)) =>
+                case Function(Named(Global(name))) =>
                     Some(name)
-                case Function(Const(ConvertC(Bitcast(), _, NameC(name), _))) =>
+                case Function(Const(ConvertC(Bitcast(), _, NameC(Global(name)), _))) =>
                     Some(name)
                 case _ =>
                     None

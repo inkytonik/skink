@@ -20,21 +20,30 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         with BitVectors with Core with FPBitVectors with IntegerArithmetics
         with QuantifiedTerm with RealArithmetics {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.{BitIntegerMode, BitRealMode, MathIntegerMode, MathRealMode}
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
+        BoolSort,
         EqualTerm,
+        FPBitVectorSort,
         FPFloat16,
         FPFloat32,
         FPFloat64,
         FPFloat128,
+        FPBVToSBV,
+        FPBVToUBV,
         IntSort,
-        BoolSort,
+        QIdTerm,
         RealSort,
         RNE,
+        RTZ,
+        SimpleQId,
+        Sort,
+        SortId,
         SSymbol,
+        SymbolId,
         Term
     }
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
@@ -52,15 +61,23 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     val realMode = config.realMode()
     val architecture = config.architecture()
 
+    // FIXME: hack
+    def fprmodeSort(index : Int) : Sort =
+        SortId(SymbolId(SSymbol(s"@_fprmode@$index")))
+
     // Rounding mode for floating-point bit vectors
-    implicit val FPBVRoundingMode = RNE()
+    implicit var FPBVRoundingMode : Sort =
+        fprmodeSort(0)
+
+    // FIXME: should ScalaSMT have this?
+    trait RoundingModeTerm
 
     /**
      * Return a term that expresses the effects of the global variable
      * initialisers of a program.
      */
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
-        val term = combineTerms(program.items.map(itemTerm))
+        val term = combineTerms(program.items.map(itemTerm)) & fpmodeInitTerm()
         logger.info(s"initTerm: ${showTerm(term.termDef)}")
         term
     }
@@ -242,15 +259,180 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
         sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
-    /*
-     * Cast a bitvector term to a given number of bits.
+    /**
+     * Return a term for the constant name `id`.
      */
-    def fpbvcast(term : TypedTerm[FPBVTerm, Term], bits : Int) : TypedTerm[FPBVTerm, Term] =
-        bits match {
-            case 32 => term.toFPBV(8, 24)
-            case 64 => term.toFPBV(11, 53)
-            case _  => sys.error(s"fpbvcast: unsupported bit size $bits")
+    def rmConstTerm(id : String) : TypedTerm[RoundingModeTerm, Term] =
+        TypedTerm[RoundingModeTerm, Term](Set(), QIdTerm(SimpleQId(SymbolId(SSymbol(id)))))
+
+    /**
+     * Return a term that expresses initialising the floating-point
+     * rounding mode.
+     */
+    def fpmodeInitTerm() : TypedTerm[BoolTerm, Term] =
+        varTermRM("@_fprmode", 0) === rmConstTerm("RNE")
+
+    // FIXME other modes for both get and set
+    // smtlib modes: RNE, RNA, RTP, RTN, RTZ
+    // C library:
+    // FE_DOWNWARD = 0x400?
+    // FE_UPWARD = 0x800?
+
+    /**
+     * The global varible in which we track the rounding mode.
+     */
+    def fprmodeVar : Name =
+        Global("_fprmode")
+
+    /**
+     * Generate a term that gets the integer value of the current rounding mode.
+     */
+    def fegetround(bits : Int) : TypedTerm[BVTerm, Term] = {
+        val mode = ntermRM(fprmodeVar)
+        (mode === rmConstTerm("RNE")).ite(
+            0.withBits(bits), // FE_TONEAREST
+            (mode === rmConstTerm("RTZ")).ite(
+                0xc00.withBits(bits), // FE_TOWARDZERO
+                -1.withBits(bits) // no correspondence or indeterminable
+            )
+        )
+    }
+
+    /**
+     * Generate a term that sets the value of the current rounding mode based on
+     * the integer argument. See `fegetround` for the correspondence. As per the
+     * library spec, if the new mode is not recognised then no change is made.
+     */
+    def fesetround(insn : Instruction, arg : TypedTerm[BVTerm, Term], bits : Int) : TypedTerm[BoolTerm, Term] = {
+        val modeVar = ntermAtRM(insn, fprmodeVar)
+        val mode =
+            (arg === 0.withBits(bits)).ite( // FE_TONEAREST
+                rmConstTerm("RNE"),
+                (arg === 0xc00.withBits(bits)).ite( // FE_TOWARDZERO
+                    rmConstTerm("RTZ"),
+                    prevNtermAtRM(insn, fprmodeVar) // use previous value
+                )
+            )
+        // FIXME Hack 
+        FPBVRoundingMode = fprmodeSort(indexOf(insn, "@_fprmode"))
+        modeVar === mode
+    }
+
+    /**
+     * The copysign() function returns x with its sign changed to y's.
+     * copysign(x, y) returns a NaN (with y's sign) if x is a NaN.
+     * if (isNaN x) then NaN else if (isNegative x) -1 * y else y.
+     * Assumes that the result and the two terms are of the same type
+     * (hence size).
+     */
+    def copysign(term1 : TypedTerm[FPBVTerm, Term], term2 : TypedTerm[FPBVTerm, Term],
+        bits : Int) : TypedTerm[FPBVTerm, Term] = {
+        val (exp, sig) = fpexpsig(bits)
+        let {
+            val x = BoundedVar("x", term1)
+            val y = BoundedVar("y", term2)
+            x.isNaN.ite(
+                y.isNegative.ite(
+                    -NaN(exp, sig),
+                    NaN(exp, sig)
+                ),
+                x.isNegative.ite(
+                    y.isNegative.ite(x, -x),
+                    y.isNegative.ite(-x, x)
+                )
+            )
         }
+    }
+
+    /**
+     * Convert a floating-point size to exponent and significand sizes (in that order).
+     */
+    def fpexpsig(bits : Int) : (Int, Int) = {
+        bits match {
+            case 16  => (5, 11)
+            case 32  => (8, 24)
+            case 64  => (11, 53)
+            case 80  => (15, 65)
+            case 128 => (15, 113)
+            case _   => sys.error(s"fpexpsig: unsupported bit size $bits")
+        }
+    }
+
+    /*
+     * Cast a floating-point bitvector term to a given number of bits.
+     */
+    def fpbvcast(term : TypedTerm[FPBVTerm, Term], bits : Int) : TypedTerm[FPBVTerm, Term] = {
+        val (exp, sig) = fpexpsig(bits)
+        term.toFPBV(exp, sig)
+    }
+
+    /*
+     * Return a term for a given sized floating-point decimal constant.
+     */
+    def fpdecconst(f : String, bits : Int) : TypedTerm[FPBVTerm, Term] =
+        bits match {
+            case 32 => f.toFloat.asFloat32
+            case 64 => f.toDouble.asFloat64
+            case _  => sys.error(s"fpconst: unsupported bit size $bits")
+        }
+
+    /**
+     * Pad a string with '0' characters on the left up to length. If `s` is
+     * already longer than the length, it is returned.
+     */
+    def padLeftTo(s : String, length : Int) : String =
+        "0" * (length - s.length) + s
+
+    /**
+     * Make a floating-point bitvector representation of a hexadecimal literal
+     * string. The literal is first left-padded to the length given by srcbits
+     * divided by four. It is an error if it is already longer than that. The
+     * literal is then converted into a srcbits long number, then cast to
+     * tgtbits.
+     */
+    def fphexconst(s : String, srcbits : Int, tgtbits : Int) : TypedTerm[FPBVTerm, Term] = {
+        val length = srcbits / 4
+        if (s.length <= length) {
+            val num = padLeftTo(s, length)
+            val (exp, sig) = fpexpsig(srcbits)
+            fpbvcast(BVs("#x" + num).toFPBV(exp, sig), tgtbits)
+        } else
+            sys.error(s"fpliteral: literal $s is larger than expected $length characters")
+    }
+
+    /*
+     * Return a term equivalent to running "fpclassify" on an argument.
+     */
+    def fpclassify(aterm : TypedTerm[FPBVTerm, Term], bits : Int) : TypedTerm[BVTerm, Term] =
+        let {
+            val x = BoundedVar("x", aterm)
+            x.isNaN.ite(
+                0.withBits(bits), // FP_NAN
+                x.isInfinite.ite(
+                    1.withBits(bits), // FP_INFINITE,
+                    x.isZero.ite(
+                        2.withBits(bits), // FP_ZERO,
+                        x.isSubNormal.ite(
+                            3.withBits(bits), // FP_SUBNORMAL,
+                            x.isNormal.ite(
+                                4.withBits(bits), // FP_NORMAL,
+                                -1.withBits(bits) // Should never happen??
+                            )
+                        )
+                    )
+                )
+            )
+        }
+
+    /**
+     * Convert a floating-point bitvector into a signed integer bitvector.
+     * FIXME: should be in Scala SMT?
+     */
+    def fpToSignedInt(op1 : TypedTerm[FPBVTerm, Term], bits : Int)(implicit rm : Sort) =
+        TypedTerm[BVTerm, FPBVToSBV](
+            op1.typeDefs,
+            FPBVToSBV(bits.toString, rm, op1.termDef)
+        )
 
     /*
      * Return a term that expresses the effect of a regular LLVM instruction.
@@ -413,7 +595,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     }
 
                 // Call to `assume`
-                case Call(_, _, _, _, _, VerifierFunction(AssumeName()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
+                case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                     tipe match {
                         case BoolT() => vtermB(arg)
                         case IntT(size) =>
@@ -441,16 +623,104 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case NondetFunctionCall(_, _) =>
                     True()
 
-                // Absolute value calls convert to the op
-                case AbsoluteValueFunctionCall(Binding(to), arg) =>
-                    ntermR(to) === absR(vtermR(arg))
-
                 // Memory allocations can't fail
-                case MemoryAllocFunctionCall(Binding(to), _) =>
+                case MemoryAllocFunctionCall(Binding(to)) =>
                     !(ntermI(to) === 0)
 
-                case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
-                    True()
+                // Handle library function calls if possible, ignoring by default
+                // Only ones that we can handle should make it here. The rest are 
+                // trapped when we see if inlining worked
+
+                case LibFunctionCall0(Binding(to), IntT(size), name) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            name match {
+                                case FEGetRound() =>
+                                    val bits = size.toInt
+                                    ntermIBV(to, bits) === fegetround(bits)
+                                case _ =>
+                                    True()
+                            }
+                        case _ =>
+                            True()
+                    }
+
+                case LibFunctionCall1(Binding(to), IntT(size), name, arg1, IntT(size1)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            name match {
+                                case FESetRound() =>
+                                    val bits = size.toInt
+                                    val bits1 = size1.toInt
+                                    fesetround(insn, vtermIBV(arg1, bits1), bits1)
+                                case _ =>
+                                    True()
+                            }
+                        case _ =>
+                            True()
+                    }
+
+                case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(bits1)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            val aterm1 = vtermRBV(arg1, bits1)
+                            val bits =
+                                tipe match {
+                                    case IntegerT(bits) => bits
+                                    case RealT(bits)    => bits
+                                    case _ =>
+                                        sys.error(s"insnTerm: LibFunctionCall1 unsupported return type $tipe")
+                                }
+                            name match {
+                                case FAbs() =>
+                                    ntermRBV(to, bits) === aterm1.abs
+                                case FPClassify() =>
+                                    ntermIBV(to, bits) === fpclassify(aterm1, bits)
+                                case IsInf() =>
+                                    ntermIBV(to, bits) === aterm1.isInfinite.ite(1.withBits(bits), 0.withBits(bits))
+                                case IsNan() =>
+                                    ntermIBV(to, bits) === aterm1.isNaN.ite(1.withBits(bits), 0.withBits(bits))
+                                case RInt() =>
+                                    ntermRBV(to, bits) === aterm1.roundToI
+                                case SignBit() =>
+                                    ntermIBV(to, bits) === aterm1.isNegative.ite(1.withBits(bits), 0.withBits(bits))
+                                case TruncName() =>
+                                    ntermRBV(to, bits) === aterm1.roundToI(RTZ())
+                                case _ =>
+                                    True()
+                            }
+                        case MathRealMode() =>
+                            name match {
+                                case FAbs() =>
+                                    ntermR(to) === absR(vtermR(arg1))
+                                case _ =>
+                                    True()
+                            }
+                    }
+
+                case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1),
+                    arg2, RealT(bits2)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            val aterm1 = vtermRBV(arg1, bits1)
+                            val aterm2 = vtermRBV(arg2, bits2)
+                            name match {
+                                case CopySign() =>
+                                    ntermRBV(to, bits) === copysign(aterm1, aterm2, bits)
+                                case FDim() =>
+                                    ntermRBV(to, bits) === (aterm1 > aterm2).ite(aterm1 - aterm2, fpdecconst("0", bits))
+                                case FMax() =>
+                                    ntermRBV(to, bits) === aterm1.max(aterm2)
+                                case FMin() =>
+                                    ntermRBV(to, bits) === aterm1.min(aterm2)
+                                case FMod() | Remainder() =>
+                                    ntermRBV(to, bits) === aterm1 % aterm2
+                                case _ =>
+                                    True()
+                            }
+                        case MathRealMode() =>
+                            True()
+                    }
 
                 // Compare two Boolean values
 
@@ -527,18 +797,27 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case Compare(Binding(to), FCmp(fcond), ComparisonType(bits), left, right) =>
                     realMode match {
                         case BitRealMode() =>
-                            val lterm = vtermRBV(left, bits).toFPBV(11, 53)
-                            val rterm = vtermRBV(right, bits).toFPBV(11, 53)
+                            val lterm = fpbvcast(vtermRBV(left, bits), 64)
+                            val rterm = fpbvcast(vtermRBV(right, bits), 64)
+                            val unordered = lterm.isNaN | rterm.isNaN
+                            val ordered = !unordered
                             val exp =
                                 fcond match {
                                     case FFalse() => False()
-                                    case FOEQ()   => lterm.fpeq(rterm)
-                                    case FOGT()   => lterm > rterm
-                                    case FOGE()   => lterm >= rterm
-                                    case FOLT()   => lterm < rterm
-                                    case FOLE()   => lterm <= rterm
-                                    case FONE()   => !(lterm.fpeq(rterm))
-                                    case FORD()   => True()
+                                    case FOEQ()   => ordered & lterm.fpeq(rterm)
+                                    case FOGT()   => ordered & lterm > rterm
+                                    case FOGE()   => ordered & lterm >= rterm
+                                    case FOLT()   => ordered & lterm < rterm
+                                    case FOLE()   => ordered & lterm <= rterm
+                                    case FONE()   => ordered & !(lterm.fpeq(rterm))
+                                    case FORD()   => ordered
+                                    case FUEQ()   => unordered | lterm.fpeq(rterm)
+                                    case FUGT()   => unordered | lterm > rterm
+                                    case FUGE()   => unordered | lterm >= rterm
+                                    case FULT()   => unordered | lterm < rterm
+                                    case FULE()   => unordered | lterm <= rterm
+                                    case FUNE()   => unordered | !(lterm.fpeq(rterm))
+                                    case FUNO()   => unordered
                                     case FTrue()  => True()
                                     case _ =>
                                         opError[BoolTerm]("bitvector real comparison", left, fcond, right)
@@ -612,6 +891,35 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             equality(to, toType, from, fromType)
                     }
 
+                case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ IntT(toSize)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            val toBits = toSize.toInt
+                            op match {
+                                case Bitcast() | FPToSI() =>
+                                    ntermIBV(to, toBits) === fpToSignedInt(vtermRBV(from, fromBits), toBits)
+                                case _ =>
+                                    equality(to, toType, from, fromType)
+                            }
+                        case MathRealMode() =>
+                            equality(to, toType, from, fromType)
+                    }
+
+                case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ RealT(toBits)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            val fromBits = fromSize.toInt
+                            op match {
+                                // FIXME: need Scala SMT support
+                                // case SIToFP() =>
+                                //     ntermRBV(to, toBits) === signedIntToFP(vtermRBV(from, fromBits), toBits)
+                                case _ =>
+                                    equality(to, toType, from, fromType)
+                            }
+                        case MathRealMode() =>
+                            equality(to, toType, from, fromType)
+                    }
+
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ RealT(toBits)) =>
                     realMode match {
                         case BitRealMode() =>
@@ -622,6 +930,11 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                 val toTerm = ntermRBV(to, toBits)
                                 val fromTerm = vtermRBV(from, fromBits)
                                 op match {
+                                    case FPExt() =>
+                                        if (bitsDiff > 0)
+                                            toTerm === fpbvcast(fromTerm, toBits)
+                                        else
+                                            sys.error(s"insnTerm: shrinking fpext insn ${longshow(insn)}")
                                     case FPTrunc() =>
                                         if (bitsDiff > 0)
                                             sys.error(s"insnTerm: growing fptrunc insn ${longshow(insn)}")
@@ -662,6 +975,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             ntermIBV(to, bits) === vtermB(from).ite(vtermIBV(value1, bits), vtermIBV(value2, bits))
                         case MathIntegerMode() =>
                             ntermI(to) === vtermB(from).ite(vtermI(value1), vtermI(value2))
+                    }
+
+                case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
+                    realMode match {
+                        case BitRealMode() =>
+                            ntermRBV(to, bits1) === vtermB(from).ite(vtermRBV(value1, bits1), vtermRBV(value2, bits1))
+                        case MathRealMode() =>
+                            ntermR(to) === vtermB(from).ite(vtermR(value1), vtermR(value2))
                     }
 
                 // Array loads and stores, just non-Boolean, integer and float elements for now
@@ -798,15 +1119,25 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         new VarTerm(termid(id), IntSort(), Some(index))
 
     /**
+     * Make a floating-point rounding-mode term for the named variable where `id` is
+     * the base name identifier and index it.
+     */
+    def varTermRM(id : String, index : Int) : TypedTerm[RoundingModeTerm, Term] =
+        new VarTerm(termid(id), SortId(SymbolId(SSymbol("RoundingMode"))), Some(index))
+
+    /**
      * Make a bit vector term for the named variable where `id` is the base name
      * identifier and index it.
      */
     def varTermRBV(id : String, bits : Int, index : Int) : TypedTerm[FPBVTerm, Term] = {
         val sort =
             bits match {
-                case 16  => FPFloat16()
-                case 32  => FPFloat32()
-                case 64  => FPFloat64()
+                case 16 => FPFloat16()
+                case 32 => FPFloat32()
+                case 64 => FPFloat64()
+                case 80 =>
+                    val (exp, sig) = fpexpsig(80)
+                    FPBitVectorSort(exp.toString, sig.toString)
                 case 128 => FPFloat128()
                 case _   => sys.error(s"valTermRBV: unsupported bit size $bits")
             }
@@ -837,6 +1168,19 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
         varTermI(show(name), indexOf(node, show(name)))
+
+    /**
+     * Return an rounding mode term that expresses the previous name when referenced
+     * from node.
+     */
+    def prevNtermAtRM(node : Product, name : Name) : TypedTerm[RoundingModeTerm, Term] =
+        varTermRM(show(name), indexOf(node, show(name)) - 1)
+
+    /**
+     * Return a rounding mode term that expresses a name when referenced from node.
+     */
+    def ntermAtRM(node : ASTNode, name : Name) : TypedTerm[RoundingModeTerm, Term] =
+        varTermRM(show(name), indexOf(node, show(name)))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
@@ -870,6 +1214,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ntermI(name : Name) : TypedTerm[IntTerm, Term] =
         ntermAtI(name, name)
+
+    /**
+     * Return an rounding mode term that expresses a name when referenced from node.
+     */
+    def ntermRM(name : Name) : TypedTerm[RoundingModeTerm, Term] =
+        ntermAtRM(name, name)
 
     /**
      * Return a bit vector term that expresses an LLVM name when referenced
@@ -1047,23 +1397,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     def ctermRBV(constantValue : ConstantValue, bits : Int) : TypedTerm[FPBVTerm, Term] =
         constantValue match {
             case FloatC(f) =>
-                if (f.startsWith("0x"))
-                    if (f.length == 18)
-                        BVs("#" + f.tail).toFPBV(11, 53) // FIXME
-                    else
-                        sys.error(s"ctermRBV: hexadecimal number that is not 18 chars long $f")
+                if (f.startsWith("0xK"))
+                    fphexconst(f.drop(3), 80, bits)
+                else if (f.startsWith("0x"))
+                    fphexconst(f.drop(2), 64, bits)
                 else
-                    bits match {
-                        case 32 => f.toFloat.asFloat32
-                        case 64 => f.toDouble.asFloat64
-                        case _  => sys.error(s"ctermRBV: unsupported bit size $bits for FloatC")
-                    }
+                    fpdecconst(f, bits)
             case UndefC() =>
-                bits match {
-                    case 32 => 0.toFloat.asFloat32
-                    case 64 => 0.toDouble.asFloat64
-                    case _  => sys.error(s"ctermRBV: unsupported bit size $bits for UndefC")
-                }
+                fpdecconst("0", bits)
             case value =>
                 sys.error(s"ctermRBV: unexpected constant value $constantValue")
         }
@@ -1087,7 +1428,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     /**
      * Make an equality term between an LLVM name and an LLVM value. The
      * kind of equality depends on the type of the name. We mostly handle
-     * integer and Boolean equalities, but also pointers as integers.
+     * integer, real and Boolean equalities, but also pointers as integers.
      */
     def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, EqualTerm] =
         if (from == Const(UndefC()))
@@ -1096,8 +1437,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
-                case (RealT(_), RealT(_)) =>
-                    ntermR(to) === vtermR(from)
+                case (RealT(bits), RealT(_)) =>
+                    realMode match {
+                        case BitRealMode() =>
+                            ntermRBV(to, bits) === vtermRBV(from, bits)
+                        case MathRealMode() =>
+                            ntermR(to) === vtermR(from)
+                    }
                 case _ =>
                     integerMode match {
                         case BitIntegerMode() =>
