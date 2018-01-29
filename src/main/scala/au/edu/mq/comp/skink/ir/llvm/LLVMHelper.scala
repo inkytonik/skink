@@ -53,6 +53,14 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for `ceil` function names.
+     */
+    object Ceil {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.ceil.")
+    }
+
+    /**
      * Matcher for types that we support comparisons between. Returns the bit size
      * of the compared type.
      */
@@ -112,6 +120,14 @@ object LLVMHelper {
     object FESetRound {
         def unapply(name : String) : Boolean =
             name == "fesetround"
+    }
+
+    /**
+     * Matcher for "floor" function names.
+     */
+    object Floor {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.floor.")
     }
 
     /**
@@ -177,7 +193,7 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for "isnan" function names.
+     * Matcher for "isinf" function names.
      */
     object IsInf {
         def unapply(name : String) : Boolean =
@@ -247,10 +263,10 @@ object LLVMHelper {
     object LibFunctionName {
         def unapply(name : String) : Boolean =
             name match {
-                case CopySign() | Exit() | FAbs() | FDim() | FEGetRound() | FESetRound() |
-                    FMax() | FMin() | FMod() | FPClassify() | IsInf() | IsNan() |
-                    MemoryAlloc() | OutputFunctionName() | Remainder() | RInt() | SignBit() |
-                    Trunc() | VerifierFunctionName() =>
+                case Ceil() | CopySign() | Exit() | FAbs() | FDim() | FEGetRound() |
+                    FESetRound() | Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
+                    IsNan() | MemoryAlloc() | OutputFunctionName() | Remainder() |
+                    RInt() | Round() | SignBit() | Trunc() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
@@ -349,7 +365,15 @@ object LLVMHelper {
      */
     object RInt {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.rint")
+            name.startsWith("llvm.rint.")
+    }
+
+    /**
+     * Matcher for `round` function names.
+     */
+    object Round {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.round.")
     }
 
     /**
@@ -365,7 +389,7 @@ object LLVMHelper {
      */
     object Trunc {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.trunc")
+            name.startsWith("llvm.trunc.")
     }
 
     /**

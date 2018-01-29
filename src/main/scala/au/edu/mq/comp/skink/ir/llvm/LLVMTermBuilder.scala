@@ -37,7 +37,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         IntSort,
         QIdTerm,
         RealSort,
+        RNA,
         RNE,
+        RTN,
+        RTP,
         RTZ,
         SimpleQId,
         Sort,
@@ -285,9 +288,15 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         val mode = ntermRM(fprmodeName)
         (mode === rmConstTerm("RNE")).ite(
             0.withBits(bits), // FE_TONEAREST
-            (mode === rmConstTerm("RTZ")).ite(
-                0xc00.withBits(bits), // FE_TOWARDZERO
-                -1.withBits(bits) // no correspondence or indeterminable
+            (mode === rmConstTerm("RTN")).ite(
+                0x400.withBits(bits), // FE_DOWNWARD
+                (mode === rmConstTerm("RTP")).ite(
+                    0x800.withBits(bits), // FE_UPWARD
+                    (mode === rmConstTerm("RTZ")).ite(
+                        0xc00.withBits(bits), // FE_TOWARDZERO
+                        -1.withBits(bits) // no correspondence or indeterminable
+                    )
+                )
             )
         )
     }
@@ -296,17 +305,37 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Generate a term that sets the value of the current rounding mode based on
      * the integer argument. See `fegetround` for the correspondence. As per the
      * library spec, if the new mode is not recognised then no change is made.
+     * If the argument is a constant, short-circuit the dynamic check.
      */
-    def fesetround(insn : Instruction, arg : TypedTerm[BVTerm, Term], bits : Int) : TypedTerm[BoolTerm, Term] = {
+    def fesetround(insn : Instruction, bits : Int, arg1 : Value, bits1 : Int) : TypedTerm[BoolTerm, Term] = {
         val modeVar = ntermAtRM(insn, fprmodeName)
+        val prevModeVar = prevNtermAtRM(insn, fprmodeName)
         val mode =
-            (arg === 0.withBits(bits)).ite( // FE_TONEAREST
-                rmConstTerm("RNE"),
-                (arg === 0xc00.withBits(bits)).ite( // FE_TOWARDZERO
-                    rmConstTerm("RTZ"),
-                    prevNtermAtRM(insn, fprmodeName) // use previous value
-                )
-            )
+            arg1 match {
+                case Const(IntC(i)) =>
+                    i.toInt match {
+                        case 0     => rmConstTerm("RNE") // FE_TONEAREST
+                        case 0x400 => rmConstTerm("RTN") // FE_DOWNWARD
+                        case 0x800 => rmConstTerm("RTP") // FE_UPWARD
+                        case 0xc00 => rmConstTerm("RTZ") // FE_TOWARDZERO
+                        case _     => prevModeVar
+                    }
+                case _ =>
+                    val aterm = vtermIBV(arg1, bits1)
+                    (aterm === 0.withBits(bits)).ite( // FE_TONEAREST
+                        rmConstTerm("RNE"),
+                        (aterm === 0x400.withBits(bits)).ite( // FE_DOWNWARD
+                            rmConstTerm("RTN"),
+                            (aterm === 0x800.withBits(bits)).ite( // FE_UPWARD
+                                rmConstTerm("RTP"),
+                                (aterm === 0xc00.withBits(bits)).ite( // FE_TOWARDZERO
+                                    rmConstTerm("RTZ"),
+                                    prevModeVar
+                                )
+                            )
+                        )
+                    )
+            }
         // FIXME Hack 
         FPBVRoundingMode = fprmodeSort(indexOf(insn, show(fprmodeName)))
         modeVar === mode
@@ -646,7 +675,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                 case FESetRound() =>
                                     val bits = size.toInt
                                     val bits1 = size1.toInt
-                                    fesetround(insn, vtermIBV(arg1, bits1), bits1)
+                                    fesetround(insn, bits, arg1, bits1)
                                 case _ =>
                                     True()
                             }
@@ -666,8 +695,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                         sys.error(s"insnTerm: LibFunctionCall1 unsupported return type $tipe")
                                 }
                             name match {
+                                case Ceil() =>
+                                    ntermRBV(to, bits) === aterm1.roundToI(RTP())
                                 case FAbs() =>
                                     ntermRBV(to, bits) === aterm1.abs
+                                case Floor() =>
+                                    ntermRBV(to, bits) === aterm1.roundToI(RTN())
                                 case FPClassify() =>
                                     ntermIBV(to, bits) === fpclassify(aterm1, bits)
                                 case IsInf() =>
@@ -676,6 +709,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                     ntermIBV(to, bits) === aterm1.isNaN.ite(1.withBits(bits), 0.withBits(bits))
                                 case RInt() =>
                                     ntermRBV(to, bits) === aterm1.roundToI
+                                case Round() =>
+                                    ntermRBV(to, bits) === aterm1.roundToI(RNA())
                                 case SignBit() =>
                                     ntermIBV(to, bits) === aterm1.isNegative.ite(1.withBits(bits), 0.withBits(bits))
                                 case TruncName() =>
