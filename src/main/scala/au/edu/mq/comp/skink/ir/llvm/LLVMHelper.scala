@@ -9,6 +9,12 @@ object LLVMHelper {
     // Property helpers
 
     /**
+     * The global variable name in which we track the rounding mode.
+     */
+    def fprmodeName : Name =
+        Global("_fprmode")
+
+    /**
      * Version of LLVM PP show that avoids line-wrapping.
      */
     def longshow(n : ASTNode) : String =

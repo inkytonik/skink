@@ -79,7 +79,7 @@ trait LLVMNamer {
 class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
         nametree : Tree[Product, Product]) extends LLVMNamer {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.LibFunctionCall1
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{fprmodeName, LibFunctionCall1}
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.NodeNotInTreeException
     import org.bitbucket.inkytonik.kiama.util.Comparison.same
@@ -158,7 +158,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         case n @ Store(_, _, _, _, Named(name), _) =>
             bumpcount(in(n), name)
         case n @ LibFunctionCall1(_, _, "fesetround", _, _) =>
-            bumpcount(in(n), Global("_fprmode"))
+            bumpcount(in(n), fprmodeName)
     }
 
     def defaultIndexOf(s : String) : Int =

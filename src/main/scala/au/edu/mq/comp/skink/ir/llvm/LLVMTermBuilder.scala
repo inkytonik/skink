@@ -63,7 +63,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
     // FIXME: hack
     def fprmodeSort(index : Int) : Sort =
-        SortId(SymbolId(SSymbol(s"@_fprmode@$index")))
+        SortId(SymbolId(SSymbol(s"${show(fprmodeName)}@$index")))
 
     // Rounding mode for floating-point bit vectors
     implicit var FPBVRoundingMode : Sort =
@@ -270,7 +270,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * rounding mode.
      */
     def fpmodeInitTerm() : TypedTerm[BoolTerm, Term] =
-        varTermRM("@_fprmode", 0) === rmConstTerm("RNE")
+        varTermRM(show(fprmodeName), 0) === rmConstTerm("RNE")
 
     // FIXME other modes for both get and set
     // smtlib modes: RNE, RNA, RTP, RTN, RTZ
@@ -279,16 +279,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     // FE_UPWARD = 0x800?
 
     /**
-     * The global varible in which we track the rounding mode.
-     */
-    def fprmodeVar : Name =
-        Global("_fprmode")
-
-    /**
      * Generate a term that gets the integer value of the current rounding mode.
      */
     def fegetround(bits : Int) : TypedTerm[BVTerm, Term] = {
-        val mode = ntermRM(fprmodeVar)
+        val mode = ntermRM(fprmodeName)
         (mode === rmConstTerm("RNE")).ite(
             0.withBits(bits), // FE_TONEAREST
             (mode === rmConstTerm("RTZ")).ite(
@@ -304,17 +298,17 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * library spec, if the new mode is not recognised then no change is made.
      */
     def fesetround(insn : Instruction, arg : TypedTerm[BVTerm, Term], bits : Int) : TypedTerm[BoolTerm, Term] = {
-        val modeVar = ntermAtRM(insn, fprmodeVar)
+        val modeVar = ntermAtRM(insn, fprmodeName)
         val mode =
             (arg === 0.withBits(bits)).ite( // FE_TONEAREST
                 rmConstTerm("RNE"),
                 (arg === 0xc00.withBits(bits)).ite( // FE_TOWARDZERO
                     rmConstTerm("RTZ"),
-                    prevNtermAtRM(insn, fprmodeVar) // use previous value
+                    prevNtermAtRM(insn, fprmodeName) // use previous value
                 )
             )
         // FIXME Hack 
-        FPBVRoundingMode = fprmodeSort(indexOf(insn, "@_fprmode"))
+        FPBVRoundingMode = fprmodeSort(indexOf(insn, show(fprmodeName)))
         modeVar === mode
     }
 
