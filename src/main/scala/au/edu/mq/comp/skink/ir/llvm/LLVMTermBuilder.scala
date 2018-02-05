@@ -39,6 +39,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         RealSort,
         RNA,
         RNE,
+        RoundingMode,
+        RoundingModeSort,
         RTN,
         RTP,
         RTZ,
@@ -50,7 +52,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         Term
     }
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, IndexTerm, IntTerm, RealTerm}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, IndexTerm, IntTerm, RealTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import namer.{ArrayElement, ArrayElementC, indexOf, termid}
     import org.scalallvm.assembly.Analyser.{defaultBlockName, unescape}
@@ -64,16 +66,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     val realMode = config.realMode()
     val architecture = config.architecture()
 
-    // FIXME: hack
-    def fprmodeSort(index : Int) : Sort =
-        SortId(SymbolId(SSymbol(s"${show(fprmodeName)}@$index")))
-
-    // Rounding mode for floating-point bit vectors
-    implicit var FPBVRoundingMode : Sort =
-        fprmodeSort(0)
-
-    // FIXME: should ScalaSMT have this?
-    trait RoundingModeTerm
+    // Rounding mode variable term for floating-point bit vector operations
+    implicit var FPBVRoundingMode : TypedTerm[RMFPBVTerm, Term] =
+        varTermRM(show(fprmodeName), 0)
 
     /**
      * Return a term that expresses the effects of the global variable
@@ -263,36 +258,24 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
     /**
-     * Return a term for the constant name `id`.
-     */
-    def rmConstTerm(id : String) : TypedTerm[RoundingModeTerm, Term] =
-        TypedTerm[RoundingModeTerm, Term](Set(), QIdTerm(SimpleQId(SymbolId(SSymbol(id)))))
-
-    /**
      * Return a term that expresses initialising the floating-point
      * rounding mode.
      */
     def fpmodeInitTerm() : TypedTerm[BoolTerm, Term] =
-        varTermRM(show(fprmodeName), 0) === rmConstTerm("RNE")
-
-    // FIXME other modes for both get and set
-    // smtlib modes: RNE, RNA, RTP, RTN, RTZ
-    // C library:
-    // FE_DOWNWARD = 0x400?
-    // FE_UPWARD = 0x800?
+        varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
 
     /**
      * Generate a term that gets the integer value of the current rounding mode.
      */
     def fegetround(bits : Int) : TypedTerm[BVTerm, Term] = {
         val mode = ntermRM(fprmodeName)
-        (mode === rmConstTerm("RNE")).ite(
+        (mode === ctermRM(RNE())).ite(
             0.withBits(bits), // FE_TONEAREST
-            (mode === rmConstTerm("RTN")).ite(
+            (mode === ctermRM(RTN())).ite(
                 0x400.withBits(bits), // FE_DOWNWARD
-                (mode === rmConstTerm("RTP")).ite(
+                (mode === ctermRM(RTP())).ite(
                     0x800.withBits(bits), // FE_UPWARD
-                    (mode === rmConstTerm("RTZ")).ite(
+                    (mode === ctermRM(RTZ())).ite(
                         0xc00.withBits(bits), // FE_TOWARDZERO
                         -1.withBits(bits) // no correspondence or indeterminable
                     )
@@ -314,30 +297,29 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             arg1 match {
                 case Const(IntC(i)) =>
                     i.toInt match {
-                        case 0     => rmConstTerm("RNE") // FE_TONEAREST
-                        case 0x400 => rmConstTerm("RTN") // FE_DOWNWARD
-                        case 0x800 => rmConstTerm("RTP") // FE_UPWARD
-                        case 0xc00 => rmConstTerm("RTZ") // FE_TOWARDZERO
+                        case 0     => ctermRM(RNE()) // FE_TONEAREST
+                        case 0x400 => ctermRM(RTN()) // FE_DOWNWARD
+                        case 0x800 => ctermRM(RTP()) // FE_UPWARD
+                        case 0xc00 => ctermRM(RTZ()) // FE_TOWARDZERO
                         case _     => prevModeVar
                     }
                 case _ =>
                     val aterm = vtermIBV(arg1, bits1)
                     (aterm === 0.withBits(bits)).ite( // FE_TONEAREST
-                        rmConstTerm("RNE"),
+                        ctermRM(RNE()),
                         (aterm === 0x400.withBits(bits)).ite( // FE_DOWNWARD
-                            rmConstTerm("RTN"),
+                            ctermRM(RTN()),
                             (aterm === 0x800.withBits(bits)).ite( // FE_UPWARD
-                                rmConstTerm("RTP"),
+                                ctermRM(RTP()),
                                 (aterm === 0xc00.withBits(bits)).ite( // FE_TOWARDZERO
-                                    rmConstTerm("RTZ"),
+                                    ctermRM(RTZ()),
                                     prevModeVar
                                 )
                             )
                         )
                     )
             }
-        // FIXME Hack 
-        FPBVRoundingMode = fprmodeSort(indexOf(insn, show(fprmodeName)))
+        FPBVRoundingMode = ntermAtRM(insn, fprmodeName)
         modeVar === mode
     }
 
@@ -451,10 +433,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Convert a floating-point bitvector into a signed integer bitvector.
      * FIXME: should be in Scala SMT?
      */
-    def fpToSignedInt(op1 : TypedTerm[FPBVTerm, Term], bits : Int)(implicit rm : Sort) =
+    def fpToSignedInt(op1 : TypedTerm[FPBVTerm, Term], bits : Int)(implicit rm : TypedTerm[RMFPBVTerm, Term]) : TypedTerm[BVTerm, FPBVToSBV] =
         TypedTerm[BVTerm, FPBVToSBV](
             op1.typeDefs,
-            FPBVToSBV(bits.toString, rm, op1.termDef)
+            FPBVToSBV(bits.toString, rm.termDef, op1.termDef)
         )
 
     /*
@@ -696,11 +678,11 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                 }
                             name match {
                                 case Ceil() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(RTP())
+                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTP()))
                                 case FAbs() =>
                                     ntermRBV(to, bits) === aterm1.abs
                                 case Floor() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(RTN())
+                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTN()))
                                 case FPClassify() =>
                                     ntermIBV(to, bits) === fpclassify(aterm1, bits)
                                 case IsInf() =>
@@ -710,11 +692,11 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                 case RInt() =>
                                     ntermRBV(to, bits) === aterm1.roundToI
                                 case Round() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(RNA())
+                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RNA()))
                                 case SignBit() =>
                                     ntermIBV(to, bits) === aterm1.isNegative.ite(1.withBits(bits), 0.withBits(bits))
                                 case TruncName() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(RTZ())
+                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
                                 case _ =>
                                     True()
                             }
@@ -1151,8 +1133,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Make a floating-point rounding-mode term for the named variable where `id` is
      * the base name identifier and index it.
      */
-    def varTermRM(id : String, index : Int) : TypedTerm[RoundingModeTerm, Term] =
-        new VarTerm(termid(id), SortId(SymbolId(SSymbol("RoundingMode"))), Some(index))
+    def varTermRM(id : String, index : Int) : TypedTerm[RMFPBVTerm, Term] =
+        new VarTerm(termid(id), RoundingModeSort(), Some(index))
 
     /**
      * Make a bit vector term for the named variable where `id` is the base name
@@ -1202,13 +1184,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Return an rounding mode term that expresses the previous name when referenced
      * from node.
      */
-    def prevNtermAtRM(node : Product, name : Name) : TypedTerm[RoundingModeTerm, Term] =
+    def prevNtermAtRM(node : Product, name : Name) : TypedTerm[RMFPBVTerm, Term] =
         varTermRM(show(name), indexOf(node, show(name)) - 1)
 
     /**
      * Return a rounding mode term that expresses a name when referenced from node.
      */
-    def ntermAtRM(node : ASTNode, name : Name) : TypedTerm[RoundingModeTerm, Term] =
+    def ntermAtRM(node : ASTNode, name : Name) : TypedTerm[RMFPBVTerm, Term] =
         varTermRM(show(name), indexOf(node, show(name)))
 
     /**
@@ -1247,7 +1229,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     /**
      * Return an rounding mode term that expresses a name when referenced from node.
      */
-    def ntermRM(name : Name) : TypedTerm[RoundingModeTerm, Term] =
+    def ntermRM(name : Name) : TypedTerm[RMFPBVTerm, Term] =
         ntermAtRM(name, name)
 
     /**
@@ -1439,7 +1421,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         }
 
     /**
-     * Return a real term that exprinsesses an LLVM floating-point constant value.
+     * Return a rounding mode term that exprinsesses a constant rounding mode.
+     */
+    def ctermRM(mode : RoundingMode) : TypedTerm[RMFPBVTerm, Term] =
+        RMs(mode)
+
+    /**
+     * Return a real term that expresses an LLVM floating-point constant value.
      */
     def ctermR(constantValue : ConstantValue) : TypedTerm[RealTerm, Term] =
         constantValue match {
