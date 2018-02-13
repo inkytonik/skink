@@ -41,8 +41,8 @@ trait LLVMNamer {
      * Return the id that should be used in the term for a variable with
      * a given base id. Default: return `baseid`.
      */
-    def termid(baseid : String) : String =
-        baseid
+    // def termid(baseid : String) : String =
+    //     baseid
 
     /**
      * Extractor to match stores to array elements. By default, we don't
@@ -122,10 +122,17 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
     import org.scalallvm.assembly.ElementProperty
+    import LLVMHelper.nameToString
+    import au.edu.mq.comp.skink.Skink.getLogger
+
+    val logger = getLogger(this.getClass)
 
     // Properties and decoration of function tree
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
+
+    val functionName : String = nameToString(funtree.root.global)
+
     val decorators = new Decorators(nametree)
     import decorators._
 
@@ -205,7 +212,18 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         map.get(s).getOrElse(defaultIndexOf(s))
     }
 
-    def nameOf(name : Name) : String = s"${show(name)}"
+    // def nameOf(name : Name) : String = s"${show(name)}"
+
+    def nameOf(name : Name) : String = {
+        name match {
+            case Global(_) =>
+                logger.info(s"Naming a global variable for thread threadId")
+                show(name)
+            case Local(_) =>
+                logger.info(s"Naming a local variable for thread threadId")
+                s"$functionName.${show(name)}"
+        }
+    }
 
     /**
      * The enclosing phi instruction of a node in a block, if there is one
@@ -307,7 +325,7 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
         }
     }
 
-    override def termid(s : String) = s"ll$s"
+    // override def termid(s : String) = s"ll$s"
 
     /**
      * The enclosing phi instruction of a node in a block, if there is one

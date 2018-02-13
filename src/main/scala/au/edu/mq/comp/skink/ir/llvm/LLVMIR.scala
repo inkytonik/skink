@@ -491,14 +491,12 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                     threadId,
                     new LLVMTermBuilder(
                         nfa.functionIds(threadId).blockName,
-                        new LLVMMTFunctionNamer(
+                        new LLVMFunctionNamer(
                             function.funAnalyser,
                             function.funTree,
                             new Tree[Product, BlockTrace](
                                 funBlockTraces.get(threadId).get
-                            ),
-                            threadId,
-                            globalNamer
+                            )
                         ),
                         config
                     )

@@ -20,7 +20,7 @@ class LLVMTermBuilder(
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import namer.{ArrayElement, indexOf, termid}
+    import namer.{ArrayElement, nameOf, indexOf}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
@@ -48,7 +48,7 @@ class LLVMTermBuilder(
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
-                val id = show(name)
+                val id = nameOf(name)
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
                     case (IntT(size), _) =>
@@ -556,92 +556,92 @@ class LLVMTermBuilder(
      * identifier and include an optional index.
      */
     def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayBV1(termid(id), 64, bits).indexed(index)
+        ArrayBV1(id, 64, bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name
      * identifier and include an optional index.
      */
     def arrayTermI(id : String, index : Int) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        ArrayInt1(termid(id)).indexed(index)
+        ArrayInt1(id).indexed(index)
 
     /**
      * Return a bit vector array term that expresses a name when referenced from node.
      */
     def arrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), bits, indexOf(node, show(name)))
+        arrayTermBV(nameOf(name), bits, indexOf(node, nameOf(name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
      */
     def arrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), indexOf(node, show(name)))
+        arrayTermI(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), bits, scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermBV(nameOf(name), bits, scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermI(nameOf(name), scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
      * identifier and index it.
      */
     def varTermB(id : String, index : Int) : TypedTerm[BoolTerm, Term] =
-        new VarTerm(termid(id), BoolSort(), Some(index))
+        new VarTerm(id, BoolSort(), Some(index))
 
     /**
      * Make a bit vector term for the named variable where `id` is the base name
      * identifier and index it.
      */
     def varTermBV(id : String, bits : Int, index : Int) : TypedTerm[BVTerm, Term] =
-        new VarTerm(termid(id), BitVectorSort(bits.toString), Some(index))
+        new VarTerm(id, BitVectorSort(bits.toString), Some(index))
 
     /**
      * Make an integer term for the named variable where `id` is the base name
      * identifier and index it.
      */
     def varTermI(id : String, index : Int) : TypedTerm[IntTerm, Term] =
-        new VarTerm(termid(id), IntSort(), Some(index))
+        new VarTerm(id, IntSort(), Some(index))
 
     /**
      * Make a real term for the named variable where `id` is the base name
      * identifier and index it.
      */
     def varTermR(id : String, index : Int) : TypedTerm[RealTerm, Term] =
-        new VarTerm(termid(id), RealSort(), Some(index))
+        new VarTerm(id, RealSort(), Some(index))
 
     /**
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(show(name), indexOf(node, show(name)))
+        varTermB(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtBV(node : ASTNode, bits : Int, name : Name) : TypedTerm[BVTerm, Term] =
-        varTermBV(show(name), bits, indexOf(node, show(name)))
+        varTermBV(nameOf(name), bits, indexOf(node, nameOf(name)))
 
     /**
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(show(name), indexOf(node, show(name)))
+        varTermI(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return a real term that expresses a name when referenced from node.
      */
     def ntermAtR(node : ASTNode, name : Name) : TypedTerm[RealTerm, Term] =
-        varTermR(show(name), indexOf(node, show(name)))
+        varTermR(nameOf(name), indexOf(node, nameOf(name)))
 
     /**
      * Return a Boolean term that expresses an LLVM name when referenced
