@@ -101,6 +101,9 @@ class LLVMInitNamer extends LLVMNamer {
     def nameOf(name : Name) : String = s"global${show(name)}"
 }
 
+/**
+ * A namer for global variables
+ */
 class LLVMGlobalNamer(nametree : Tree[Product, Product]) extends LLVMStoreIndexer(nametree) {
 
     def defaultIndexOf(s : String) : Int = 0
@@ -295,10 +298,16 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
 
     def nameOf(name : Name) : String = {
         name match {
-            case Global(_) => globalNamer.nameOf(name)
-            case Local(_)  => s"thread$threadId${show(name)}"
+            case Global(_) =>
+                logger.info(s"Naming a global variable for thread $threadId")
+                globalNamer.nameOf(name)
+            case Local(_) =>
+                logger.info(s"Naming a local variable for thread $threadId")
+                s"thread$threadId${show(name)}"
         }
     }
+
+    override def termid(s : String) = s"ll$s"
 
     /**
      * The enclosing phi instruction of a node in a block, if there is one

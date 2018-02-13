@@ -69,7 +69,7 @@ case class LLVMFunction(
     /**
      * The verification ready NFA. Built fron the verifiableForm of the function
      */
-    lazy val nfa : NFA[State, Choice] = buildNFA(verifiableForm)
+    lazy val nfa : NFA[String, Choice] = buildNFA(verifiableForm)
 
     /**
      * Return `None` if this function is verifiable. Otherwise, return a
@@ -103,6 +103,50 @@ case class LLVMFunction(
         else
             Some(s"""calls to the following functions were not inlined: ${nonInlinedCallNames.mkString(", ")}""")
 
+    }
+
+    /**
+     * Utility method to convert an automta into DOT format.
+     */
+    def toDot[S, L](caption : Option[String] = None) : String = {
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showFunDef}
+        import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
+        import org.bitbucket.franck44.automat.util.DotConverter
+        import org.bitbucket.franck44.dot.DOTPrettyPrinter
+
+        DOTPrettyPrinter.show(
+            DotConverter.toDot(
+                nfa.copy(name = caption.getOrElse(name)),
+                //  map for node labels
+                (b : String) => {
+                    val label = Attribute("label", StringLit(b))
+                    val style =
+                        Attribute("shape", if (nfa.getInit.contains(b))
+                            Ident("rectangle")
+                        else if (nfa.accepting.contains(b))
+                            Ident("doublecircle")
+                        else
+                            Ident("rectangle"))
+                    val tooltip =
+                        Attribute("tooltip", StringLit(showFunDef(blockMap(b))))
+                    val fontsize = Attribute("fontsize", Ident("10"))
+                    val font = Attribute("fontname", Ident("Verdana"))
+                    List(label, style, fontsize, font, tooltip)
+                },
+                //  Map for creating node Id
+                (b : String) => '"' + b + '"',
+                //  Map for edge labels
+                (i : Choice) => i.toString,
+                //  Map for graph attributes
+                graphProp = {
+                    () =>
+                        List(
+                            Attribute("fontname", Ident("Verdana")),
+                            Attribute("fontsize", Ident("9"))
+                        )
+                }
+            )
+        )
     }
 
     /**
@@ -191,7 +235,7 @@ case class LLVMFunction(
     /**
      * Build the Control Flow Graph NFA for the function.
      */
-    def buildNFA(function : FunctionDefinition) : NFA[State, Choice] = {
+    def buildNFA(function : FunctionDefinition) : NFA[String, Choice] = {
 
         import org.bitbucket.franck44.automat.edge.LabDiEdge
         import org.bitbucket.franck44.automat.edge.Implicits._
@@ -203,38 +247,34 @@ case class LLVMFunction(
         // Shouldn't get LLVM function with no blocks
         assert(!blocks.isEmpty)
 
-        //  FIXME: when threads are used this should be dynamically set?
+        val initial = Set(blockName(blocks.head))
+        val accepting = blocks.map(blockName).filter(_.startsWith("__error")).toSet
+
+        //  Use a dummy threadId for each function.
         val threadId = 0
 
-        val initial = Set(State(Map(threadId -> blockName(blocks.head))))
-        val accepting = blocks.
-            map(blockName).
-            filter(_.startsWith("__error")).
-            map({ b => State(Map(threadId -> b)) }).
-            toSet
-
         val transitions = {
-            val buf = new ListBuffer[LabDiEdge[State, Choice]]
+            val buf = new ListBuffer[LabDiEdge[String, Choice]]
             for (srcBlock <- blocks) {
-                val src = State(Map(threadId -> blockName(srcBlock)))
+                val src = blockName(srcBlock)
                 srcBlock.metaTerminatorInstruction.terminatorInstruction match {
 
                     // Unconditional branch
                     case Branch(Label(Local(tgt))) =>
-                        buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, 0))
+                        buf += (src ~> tgt)(Choice(threadId, 0))
 
                     // Two-sided conditional branch
                     case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                        buf += (src ~> State(Map(threadId -> trueTgt)))(Choice(threadId, 0))
-                        buf += (src ~> State(Map(threadId -> falseTgt)))(Choice(threadId, 1))
+                        buf += (src ~> trueTgt)(Choice(threadId, 0))
+                        buf += (src ~> falseTgt)(Choice(threadId, 1))
 
                     // Multi-way branch
                     case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
                         cases.zipWithIndex.foreach {
                             case (Case(_, _, Label(Local(tgt))), i) =>
-                                buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, i))
+                                buf += (src ~> tgt)(Choice(threadId, i))
                         }
-                        buf += (src ~> State(Map(threadId -> dfltTgt)))(Choice(threadId, cases.length))
+                        buf += (src ~> dfltTgt)(Choice(threadId, cases.length))
 
                     // Return
                     case _ : Ret | _ : RetVoid | _ : Unreachable =>
@@ -251,6 +291,66 @@ case class LLVMFunction(
         NFA(initial, transitions, accepting)
 
     }
+    // def buildNFA(function : FunctionDefinition) : NFA[State, Choice] = {
+    //
+    //     import org.bitbucket.franck44.automat.edge.LabDiEdge
+    //     import org.bitbucket.franck44.automat.edge.Implicits._
+    //
+    //     logger.info(s"buildNFA: $name")
+    //
+    //     val blocks = function.functionBody.blocks
+    //
+    //     // Shouldn't get LLVM function with no blocks
+    //     assert(!blocks.isEmpty)
+    //
+    //     //  FIXME: when threads are used this should be dynamically set?
+    //     val threadId = 0
+    //
+    //     val initial = Set(State(Map(threadId -> blockName(blocks.head))))
+    //     val accepting = blocks.
+    //         map(blockName).
+    //         filter(_.startsWith("__error")).
+    //         map({ b => State(Map(threadId -> b)) }).
+    //         toSet
+    //
+    //     val transitions = {
+    //         val buf = new ListBuffer[LabDiEdge[State, Choice]]
+    //         for (srcBlock <- blocks) {
+    //             val src = State(Map(threadId -> blockName(srcBlock)))
+    //             srcBlock.metaTerminatorInstruction.terminatorInstruction match {
+    //
+    //                 // Unconditional branch
+    //                 case Branch(Label(Local(tgt))) =>
+    //                     buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, 0))
+    //
+    //                 // Two-sided conditional branch
+    //                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
+    //                     buf += (src ~> State(Map(threadId -> trueTgt)))(Choice(threadId, 0))
+    //                     buf += (src ~> State(Map(threadId -> falseTgt)))(Choice(threadId, 1))
+    //
+    //                 // Multi-way branch
+    //                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
+    //                     cases.zipWithIndex.foreach {
+    //                         case (Case(_, _, Label(Local(tgt))), i) =>
+    //                             buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, i))
+    //                     }
+    //                     buf += (src ~> State(Map(threadId -> dfltTgt)))(Choice(threadId, cases.length))
+    //
+    //                 // Return
+    //                 case _ : Ret | _ : RetVoid | _ : Unreachable =>
+    //                 // Do nothing
+    //
+    //                 case i =>
+    //                     sys.error(s"nfa: unexpected form of terminator insn: $i")
+    //
+    //             }
+    //         }
+    //         buf.toSet
+    //     }
+    //
+    //     NFA(initial, transitions, accepting)
+    //
+    // }
 
     /**
      * Prepare the IR of a function for verification and return the
@@ -363,7 +463,7 @@ case class LLVMFunction(
 
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
 
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
 
         // Build the steps between optional previous block and next block, but
         // only include a previous block if the current block has phi insns
@@ -398,7 +498,7 @@ case class LLVMFunction(
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
 
         // Get a tree for the relevant block
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
         if ((index < 0) || (index >= blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
         val blockTree = new Tree[Product, Block](blocks(index))
@@ -421,17 +521,17 @@ case class LLVMFunction(
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
      */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        val entryBlock = function.functionBody.blocks(0)
-        val (finalBlock, blocks) =
-            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-                case ((Some(block), blocks), choice) =>
-                    (nextBlock(block, choice.branchId), blocks :+ block)
-                case ((None, blocks), choice) =>
-                    (None, blocks)
-            }
-        BlockTrace(blocks, trace)
-    }
+    // def traceToBlockTrace(trace : Trace) : BlockTrace = {
+    //     val entryBlock = function.functionBody.blocks(0)
+    //     val (finalBlock, blocks) =
+    //         trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
+    //             case ((Some(block), blocks), choice) =>
+    //                 (nextBlock(block, choice.branchId), blocks :+ block)
+    //             case ((None, blocks), choice) =>
+    //                 (None, blocks)
+    //         }
+    //     BlockTrace(blocks, trace)
+    // }
 
     /**
      * Follow the choices given by a trace to construct the trace of blocks
@@ -439,7 +539,7 @@ case class LLVMFunction(
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
      */
-    lazy val blockTrace : Trace => BlockTrace =
+    lazy val traceToBlockTrace : Trace => BlockTrace =
         attr {
             case trace =>
                 val entryBlock = function.functionBody.blocks(0)

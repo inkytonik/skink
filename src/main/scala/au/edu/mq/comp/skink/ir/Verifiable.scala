@@ -6,7 +6,7 @@ package au.edu.mq.comp.skink.ir
  */
 trait Verifiable {
     import au.edu.mq.comp.skink.ir.{Choice, Trace, FailureTrace, Step, NonDetCall}
-    import org.bitbucket.franck44.automat.auto.{NFA}
+    import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term

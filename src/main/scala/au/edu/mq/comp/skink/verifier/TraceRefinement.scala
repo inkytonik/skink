@@ -70,9 +70,11 @@ class TraceRefinement(config : SkinkConfig) {
                 }
         }
 
-    // Get a solver specification as per configuration options. This
-    // object creation does not spawn any process merely declare a solver
-    // type we want to use
+    /**
+     * Get a solver specification as per configuration options. This
+     * object creation does not spawn any process merely declare a solver
+     * type we want to use
+     */
     private def selectedSolver =
         config.solverMode() match {
             case Z3SolverMode() =>
@@ -123,13 +125,15 @@ class TraceRefinement(config : SkinkConfig) {
                     logger.info(s"${function.name} has no failure traces")
                     Success(None)
 
-                // Found a potential failure trace given by trace. We
-                // need to check if it's feasible. If so, it's a real failure.
-                // If not, refine and try again.
+                /*
+                 * Found a potential failure trace given by trace. We
+                 * need to check if it's feasible. If so, it's a real failure.
+                 * If not, refine and try again.
+                 */
                 case Some(trace) =>
 
-                    logger.info(s"${function.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${trace}")
+                    logger.info(s"${function.name} has a candidate failure trace")
+                    logger.debug(s"failure trace is (Thread,Branch): ${trace}")
 
                     /*
                      * Get the ScalaSMT terms that describe the meaning of the operations
@@ -149,9 +153,11 @@ class TraceRefinement(config : SkinkConfig) {
                     // Check to see if the trace is feasible.
                     result match {
 
-                        // Yes, feasible. We've found a way in which the program
-                        // can fail. Build the failure trace and return.
                         case Success((Sat(), values)) =>
+                            /*
+                             * Yes, sat <=> feasible. We've found a way in which the program
+                             * can fail. Build the failure trace and return.
+                             */
                             // logger.info(s"failure trace is feasible, program is incorrect")
                             // for (x <- ir.sortIds(values.keys.toVector)) {
                             //     logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
@@ -159,11 +165,13 @@ class TraceRefinement(config : SkinkConfig) {
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
 
-                        // No, infeasible. That trace can't occur in a program
-                        // execution. If we've got iterations to spare, try
-                        // again after removing the infeasible trace (and perhaps
-                        // other traces that fail for related reasons).
                         case Success((UnSat(), _)) =>
+                            /*
+                             * No, infeasible. That trace can't occur in a program
+                             * execution. If we've got iterations to spare, try
+                             * again after removing the infeasible trace (and perhaps
+                             * other traces that fail for related reasons).
+                             */
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 refineRec(

@@ -1,4 +1,5 @@
-package au.edu.mq.comp.skink.verifier
+package au.edu.mq.comp.skink
+package verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{Verifiable, IR}

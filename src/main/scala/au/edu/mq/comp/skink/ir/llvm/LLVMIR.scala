@@ -1,4 +1,5 @@
-package au.edu.mq.comp.skink.ir.llvm
+package au.edu.mq.comp.skink
+package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.IR
@@ -37,6 +38,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     import scala.collection.mutable.{Map => MutableMap}
 
     val logger = getLogger(this.getClass)
+    val cfgLogger = getLogger(this.getClass, ".cfg")
     val programLogger = getLogger(this.getClass, ".program")
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
 
@@ -51,7 +53,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      *  one global memory access instruction, and in this case, it is the last one
      *  in the block.
      */
-    def functions : Vector[LLVMFunction] =
+    val functions : Vector[LLVMFunction] =
         program.items.collect {
             case fd : FunctionDefinition =>
                 //  Same program with a new functionDefinition
@@ -77,7 +79,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * for LLVMFunction but for program we need to define it.
      * FIXME: find a way to display a meaningful name
      */
-    def name : String = "FIXME: get the program name"
+    def name : String = "FIXME: get the actual program name"
 
     /**
      * The main function extracted from the verifiable variants.
@@ -106,7 +108,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         b => b.optMetaInstructions.collect({ case PThreadCreate(_, t) => t })
                     )
                     .flatMap(getFunctionByName)
-                logger.debug(s"Arguments of pthread_create in main: ${(pthreadCalls.map(_.name)).mkString(",")}")
+                programLogger.debug(s"Arguments of pthread_create in main: ${(pthreadCalls.map(_.name)).mkString(",")}")
 
                 //  Retrieve each function in the args of pthread_create calls and
                 //  check it is verifiable
@@ -138,6 +140,26 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         functions, main
     )
 
+    val (printNFA, nodeInfo) = org.bitbucket.franck44.automat.util.Determiniser.toDetNFA(
+        nfa,
+        { x : LLVMState ⇒ x.threadLocs.mkString(",") }
+    )
+
+    import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
+
+    val toPrint = org.bitbucket.franck44.dot.DOTPrettyPrinter.show(
+        org.bitbucket.franck44.automat.util.DotConverter.toDot(
+            printNFA,
+            (b : Int) => {
+                val tooltip =
+                    Attribute("tooltip", StringLit(nodeInfo(b)))
+                List(tooltip)
+            }
+        )
+    )
+
+    cfgLogger.info(s"${toPrint}")
+
     /**
      *  Given a functionDefinition split the blocks to make sure only
      *  a single global memory access instruction is in each block.
@@ -152,6 +174,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     def splitGlobalMemAccess(f : FunctionDefinition) : FunctionDefinition = {
 
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showFunDef}
+        import au.edu.mq.comp.skink.Skink.toDot
 
         val fname : String = nameToString(f.global)
         programLogger.debug(s"Splitting global memory accesses for function: ${fname}")
@@ -165,6 +188,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         val ret = f.copy(functionBody = FunctionBody(newBlocks))
 
         programLogger.debug(s"Initial function $fname:\n${showFunDef(f)}")
+        cfgLogger.info(LLVMFunction(program, ret, config).toDot(Some(s"Split $fname")))
         programLogger.debug(s"Split on global access function $fname:\n${showFunDef(ret)}")
         ret
     }
@@ -230,7 +254,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
          *      xb is the reversed list of sub-blocks already created
          *      bLab is last source labal
          */
-        logger.debug(s"Start split block labelled: ${showBlock(b.optBlockLabel)} :\n${showBlock(b)}")
+        programLogger.debug(s"Start split block labelled: ${showBlock(b.optBlockLabel)} :\n${showBlock(b)}")
 
         val (k, x, lb, lab) = b.optMetaInstructions.toList.
             foldLeft((0, List[MetaInstruction](), List[Block](), b.optBlockLabel))(
@@ -258,12 +282,23 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 //  If the last list of instructions x is not empty create a new last block
                 Block(lab, Vector(), None, x.toVector, b.metaTerminatorInstruction) :: lb
         }).reverse
-        logger.debug(s"The last list of instructions is: :\n${x.map(l => showBlock(l)).mkString("\n")}")
+        programLogger.debug(s"The last list of instructions is: :\n${x.map(l => showBlock(l)).mkString("\n")}")
 
-        logger.debug(s"block has $k split instructions and will be split into ${k + 1} blocks as follows\n")
-        logger.debug(s"${split.map(b => showBlock(b)).mkString("\n")}")
+        programLogger.debug(s"block has $k split instructions and will be split into ${k + 1} blocks as follows\n")
+        programLogger.debug(s"${split.map(b => showBlock(b)).mkString("\n")}")
 
         split
+    }
+
+    /**
+     *  Retrieve the LLVMFunction executed in a thread.
+     *
+     *  @param      threadId    The thread to look up.
+     *  @return                 The LLVMFunction executed by the thread `threadId`.
+     */
+    def functionInThread(threadId : Int) : LLVMFunction = nfa.getFunctionById(threadId) match {
+        case Some(f) => f
+        case None    => sys.error(s"Could not find function in thread $threadId")
     }
 
     /**
@@ -271,25 +306,39 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * that are executed by the trace. It's useful for this to be an attribute
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
+     * A BlockTrace is a Seq[Block], so even if two blocks have the same name
+     * there are two different blocks in the AST.
+     *  FIXME: write it as a foldLeft
      */
-    lazy val blockTrace : Trace => BlockTrace =
+    lazy val traceToBlockTrace : Trace => BlockTrace =
         attr {
             case trace =>
                 import scala.collection.mutable.ListBuffer
-                logger.debug(s"doing blocktrace for ${trace.choices}")
+                logger.debug(s"Computing the blocktrace for ${trace.choices}")
+                //  Last block in a thread (if any)
                 var threadBlocks = Map[Int, Block]()
+                //  Current sequence of computed blocks
                 val blocks = new ListBuffer[Block]()
-                for (c <- trace.choices) {
-                    val threadFn = nfa.getFunctionById(c.threadId).get
-                    logger.debug(s"doing choice $c with blocks ${blocks.map(threadFn.blockName(_))}")
-                    val currBlock = threadBlocks.get(c.threadId) match {
+
+                //  Process each choice and deternine next block
+                for (Choice(threadId, branchId) <- trace.choices) {
+                    val threadFn : LLVMFunction = functionInThread(threadId)
+                    logger.debug(s"Current blockTrace (using blockNames) is ${blocks.map(threadFn.blockName(_))}")
+
+                    /* Get current block of function executed in threadId */
+                    val currBlock = threadBlocks.get(threadId) match {
                         case Some(block) => block
                         case None        => threadFn.function.functionBody.blocks(0)
                     }
-                    threadBlocks = threadBlocks - c.threadId
-                    threadFn.nextBlock(currBlock, c.branchId) match {
-                        case Some(block) => threadBlocks = threadBlocks + (c.threadId -> block)
-                        case None        => threadBlocks = threadBlocks - (c.threadId)
+                    logger.debug(s"Current block for theard $threadId is ${threadFn.blockName(currBlock)}")
+
+                    logger.debug(s"Processing choice ${(threadId, branchId)} from current block")
+                    threadBlocks = threadBlocks - threadId
+
+                    //
+                    threadFn.nextBlock(currBlock, branchId) match {
+                        case Some(block) => threadBlocks = threadBlocks + (threadId -> block)
+                        case None        => threadBlocks = threadBlocks - (threadId)
                     }
                     //assert(threadBlocks.get(c.threadId).get != currBlock)
                     blocks += currBlock
@@ -311,7 +360,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
 
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
 
         // Build the steps between optional previous block and next block, but
         // only include a previous block if the current block has phi insns
@@ -419,7 +468,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        val blocks = blockTrace(trace)
+        val blocks = traceToBlockTrace(trace)
         val traceTree = new Tree[Product, BlockTrace](blocks)
 
         // If blocks occur more than once in the block trace they will be
@@ -429,30 +478,32 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Get a global namer and term builder
         val globalNamer = new LLVMGlobalNamer(traceTree)
-        val globalBuilder = new LLVMTermBuilder(main.blockName, globalNamer, config)
+        // val globalBuilder = new LLVMTermBuilder(main.blockName, globalNamer, config)
 
         // Construct a block trace of only the relevant blocks for each function and build
-        // a map of builders to be used for each unique function
+        // a map of term builders to be used for each unique function
         val funBlockTraces = nfa.functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
-        val funBuilders = nfa.functionIds.map(
-            f =>
+
+        //  Build a map of term builders for each threadId/functionId
+        val funBuilders = nfa.functionIds.map({
+            case (threadId, function) =>
                 (
-                    f._1,
+                    threadId,
                     new LLVMTermBuilder(
-                        nfa.functionIds(f._1).blockName,
+                        nfa.functionIds(threadId).blockName,
                         new LLVMMTFunctionNamer(
-                            f._2.funAnalyser,
-                            f._2.funTree,
+                            function.funAnalyser,
+                            function.funTree,
                             new Tree[Product, BlockTrace](
-                                funBlockTraces.get(f._1).get
+                                funBlockTraces.get(threadId).get
                             ),
-                            f._1,
+                            threadId,
                             globalNamer
                         ),
                         config
                     )
                 )
-        )
+        })
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -468,8 +519,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
                 logger.debug(s"generating term for block ${nfa.functionIds(choice.threadId).blockName(block)} with choice $choice")
                 val namer = funBuilders.get(choice.threadId).get
-                logger.debug(s"Namer is $namer")
-                namer.blockTerms(block, optPrevBlock, choice.branchId)
+                val res = namer.blockTerms(block, optPrevBlock, choice.branchId)
+                logger.debug(s"Term is ${res.map(x => showTerm(x.termDef))}")
+                res
         }.map(combineTerms)
 
         // Prepend the global initialisation terms to the terms of the first block
@@ -483,20 +535,20 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace.
      */
-    def traceToBlockTrace(trace : Trace) : BlockTrace = {
-        //  FIXME: fix this one for the MT case
-        // val entryBlock = function.functionBody.blocks(0)
-        val entryBlock = main.function.functionBody.blocks(0)
-        val (finalBlock, blocks) =
-            trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-                case ((Some(block), blocks), choice) =>
-                    //  FIXME: use of main is not OK
-                    (main.nextBlock(block, choice.branchId), blocks :+ block)
-                case ((None, blocks), choice) =>
-                    (None, blocks)
-            }
-        BlockTrace(blocks, trace)
-    }
+    // def traceToBlockTrace(trace : Trace) : BlockTrace = {
+    //     //  FIXME: fix this one for the MT case
+    //     // val entryBlock = function.functionBody.blocks(0)
+    //     val entryBlock = main.function.functionBody.blocks(0)
+    //     val (finalBlock, blocks) =
+    //         trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
+    //             case ((Some(block), blocks), choice) =>
+    //                 //  FIXME: use of main is not OK
+    //                 (main.nextBlock(block, choice.branchId), blocks :+ block)
+    //             case ((None, blocks), choice) =>
+    //                 (None, blocks)
+    //         }
+    //     BlockTrace(blocks, trace)
+    // }
 
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
 
@@ -516,7 +568,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Get a tree for the relevant block
 
-        val blocks = blockTrace(trace).blocks
+        val blocks = traceToBlockTrace(trace).blocks
         if ((index < 0) || (index >= blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
         val blockTree = new Tree[Product, Block](blocks(index))
@@ -607,7 +659,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         trace : Trace,
         info : Option[String] = None
     ) : NFA[_, Choice] = {
-        NFA[Int, Choice](Set(), Set(), Set())
+        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
+
+        // NFA[Int, Choice](Set(), Set(), Set())
     }
 
     /**
@@ -618,7 +672,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      */
     def getErrorTrace(r : NFA[_, Choice]) = {
         import org.bitbucket.franck44.automat.lang.Lang
-        //
         (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
     }
 
