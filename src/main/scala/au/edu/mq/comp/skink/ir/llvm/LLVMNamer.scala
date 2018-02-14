@@ -38,13 +38,6 @@ trait LLVMNamer {
     def nameOf(name : Name) : String
 
     /**
-     * Return the id that should be used in the term for a variable with
-     * a given base id. Default: return `baseid`.
-     */
-    // def termid(baseid : String) : String =
-    //     baseid
-
-    /**
      * Extractor to match stores to array elements. By default, we don't
      * know if anything is an array, so we always fail.
      */
