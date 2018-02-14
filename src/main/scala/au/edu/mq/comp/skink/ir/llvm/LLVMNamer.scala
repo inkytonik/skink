@@ -242,15 +242,24 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 /**
  * Naming for a given function which names uniquely over the given name tree.
  */
-class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
-        nametree : Tree[Product, Product], threadId : Int, globalNamer : LLVMGlobalNamer) extends LLVMStoreIndexer(nametree) {
+class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
+        nametree : Tree[Product, Product]) extends LLVMNamer {
 
-    import org.scalallvm.assembly.{Analyser, ElementProperty}
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+    import org.bitbucket.inkytonik.kiama.attribution.Decorators
+    import org.bitbucket.inkytonik.kiama.==>
+    import org.scalallvm.assembly.ElementProperty
+    import LLVMHelper.nameToString
+    import au.edu.mq.comp.skink.Skink.getLogger
 
-    // Properties of function tree
+    val logger = getLogger(this.getClass)
+
+    // Properties and decoration of function tree
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
+
+    val functionName : String = nameToString(funtree.root.global)
+
+    val decorators = new Decorators(nametree)
     import decorators._
 
     /**
@@ -263,7 +272,7 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
         new ArrayElementExtractor {
             def unapply(value : Value) : Option[(Name, Value)] =
                 value match {
-                    case Named(name) if isLocalName(name) =>
+                    case Named(name) =>
                         elementProperty(name)
                     case _ =>
                         None
@@ -281,7 +290,44 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
                 (array, index)
         }
 
-    def defaultIndexOf(s : String) : Int = 0
+    // Chain keeping track of stores to memory. Each assignment to a
+    // local variable or store to memory location is counted so that
+    // we can treat each such occurrence in SSA form.
+
+    type StoreMap = Map[String, Int]
+
+    lazy val stores : Chain[StoreMap] =
+        chain(storesin)
+
+    def bumpcount(m : StoreMap, name : Name) : StoreMap = {
+        val s = show(name)
+        val count = m.getOrElse(s, 0)
+        m.updated(s, count + 1)
+    }
+
+    def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
+        case n if nametree.isRoot(n) =>
+            Map[String, Int]()
+        case n @ Binding(name) =>
+            bumpcount(in(n), name)
+        case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
+            bumpcount(in(n), name)
+        case n @ Store(_, _, _, _, Named(name), _) =>
+            bumpcount(in(n), name)
+    }
+
+    // type ThreadId = Int
+
+    lazy val thread : Chain[Int] = chain(threadidsout)
+
+    def threadidsout(out : Product => Int) : Product ==> Int = {
+
+        case n if nametree.isRoot(n) => 0
+        case ThreadId(k)             => k
+    }
+
+    def defaultIndexOf(s : String) : Int =
+        0
 
     /**
      * Normally we just access the chain at `use` but nodes that appear
@@ -292,33 +338,29 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
      * its incoming map.
      */
     def indexOf(use : Product, s : String) : Int = {
-        logger.debug(s"indexOf: use $use")
-        if (!isLocalName(use)) {
-            globalNamer.indexOf(use, s)
-        } else {
-            val map =
-                enclosingPhi(use) match {
-                    case Some(phi) =>
-                        stores.in(enclosingBlock(phi))
-                    case _ =>
-                        stores(use)
-                }
-            map.get(s).getOrElse(defaultIndexOf(s))
-        }
+        val map =
+            enclosingPhi(use) match {
+                case Some(phi) =>
+                    stores.in(enclosingBlock(phi))
+                case _ =>
+                    stores(use)
+            }
+        map.get(s).getOrElse(defaultIndexOf(s))
     }
+
+    def threadIdOf(use : Product) : Int = thread.in(use)
+    // def nameOf(name : Name) : String = s"${show(name)}"
 
     def nameOf(name : Name) : String = {
         name match {
             case Global(_) =>
-                logger.info(s"Naming a global variable for thread $threadId")
-                globalNamer.nameOf(name)
+                logger.info(s"Naming a global variable for thread threadId")
+                s"t${threadIdOf(name)}.${show(name)}"
             case Local(_) =>
-                logger.info(s"Naming a local variable for thread $threadId")
-                s"thread$threadId${show(name)}"
+                logger.info(s"Naming a local variable for thread threadId")
+                s"t${threadIdOf(name)}.$functionName.${show(name)}"
         }
     }
-
-    // override def termid(s : String) = s"ll$s"
 
     /**
      * The enclosing phi instruction of a node in a block, if there is one
@@ -338,4 +380,5 @@ class LLVMMTFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Functi
             case block : Block =>
                 block
         }
+
 }
