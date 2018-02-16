@@ -18,7 +18,7 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
             "-m10", //  max iteration
             "-eZ3" //  solver
         )
-    )
+    ).right.get
 
     val srcFileName = "src/test/resources/citests/math/simple-loop_true-unreach-call.c"
 
