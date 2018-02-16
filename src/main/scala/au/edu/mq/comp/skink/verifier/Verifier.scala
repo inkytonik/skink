@@ -107,7 +107,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
                 val fullConfigDesc = fullArgs.mkString(" ")
                 logger.info(s"verify: trying configuration args: $fullConfigDesc")
                 val fullConfig = getFullConfig(fullArgs)
-                val refiner = new TraceRefinement(ir, fullConfig)
+                val refiner = new TraceRefinement(fullConfig)
                 function match {
                     case llvmFunction : LLVMFunction =>
                         val function = new LLVMFunction(llvmFunction.program, llvmFunction.function, fullConfig)
