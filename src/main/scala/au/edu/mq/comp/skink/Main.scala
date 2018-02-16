@@ -1,11 +1,36 @@
+/*
+ * This file is part of Skink.
+ *
+ * Copyright (C) 2015-2018
+ * Franck Cassez, Anthony M. Sloane, Matthew Roberts.
+ *
+ * Skink is free software: you can redistribute it and/or modify it  under
+ * the terms of the  GNU Lesser General Public License as published by the
+ * Free Software Foundation,  either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Skink is distributed  in the hope  that it will  be useful, but WITHOUT
+ * ANY WARRANTY;  without  even the implied   warranty  of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Skink.  (See files COPYING and  COPYING.LESSER.)  If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
 package au.edu.mq.comp.skink
 
 import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
 sealed abstract class SolverMode
+case class BoolectorSolverMode() extends SolverMode
 case class CVC4SolverMode() extends SolverMode
 case class SMTInterpolSolverMode() extends SolverMode
+case class YicesSolverMode() extends SolverMode
+case class YicesNonIncrSolverMode() extends SolverMode
 case class Z3SolverMode() extends SolverMode
 
 sealed abstract class IntegerMode
@@ -23,7 +48,12 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import au.edu.mq.comp.skink.c.CFrontend
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import org.rogach.scallop.{ArgType, ValueConverter}
+    import scala.concurrent.duration.Duration
     import scala.reflect.runtime.universe.TypeTag
+
+    lazy val architecture = opt[Int]("architecture", short = 'a',
+        descr = "Architecture specified by bits (default: 32)",
+        default = Some(32))
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
@@ -79,10 +109,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Integer representation: bit, math (default)",
         default = Some(new MathIntegerMode))(integerModeConverter)
 
-    lazy val integerSize = opt[Int]("intsize", short = 's',
-        descr = "Size of integers in bits when using bit representation (default: 32)",
-        default = Some(32))
-
     lazy val lli = opt[String]("lli", noshort = true,
         descr = "Program to use to execute target code (default: lli)",
         default = Some("lli"))
@@ -106,14 +132,20 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
             def parse(s : List[(String, List[String])]) : Either[String, Option[SolverMode]] =
                 s match {
+                    case List((_, List("Boolector"))) =>
+                        Right(Some(BoolectorSolverMode()))
                     case List((_, List("CVC4"))) =>
                         Right(Some(CVC4SolverMode()))
                     case List((_, List("SMTInterpol"))) =>
                         Right(Some(SMTInterpolSolverMode()))
+                    case List((_, List("Yices"))) =>
+                        Right(Some(YicesSolverMode()))
+                    case List((_, List("Yices-nonIncr"))) =>
+                        Right(Some(YicesNonIncrSolverMode()))
                     case List((_, List("Z3"))) =>
                         Right(Some(Z3SolverMode()))
                     case List((_, _)) =>
-                        Left("expected CVC4, SMTInterpol or Z3")
+                        Left("expected Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3")
                     case _ =>
                         Right(None)
                 }
@@ -123,12 +155,34 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val solverMode = opt[SolverMode]("solver", short = 'e',
-        descr = "SMT solver: Z3 (default), SMTInterpol, CVC4",
+        descr = "SMT solver: Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3 (default)",
         default = Some(Z3SolverMode()))(solverModeConverter)
 
-    lazy val solverTimeOut = opt[Int]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers in seconds (default : 200)",
-        default = Some(200))
+    val solverTimeOutConverter =
+        new ValueConverter[Duration] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[Duration]] =
+                s match {
+                    case List((_, List(s))) =>
+                        if (s.forall(_.isDigit))
+                            Right(Some(Duration(s.toLong, "second")))
+                        else
+                            Left("expected numeric duration in seconds")
+                    case List((_, _)) =>
+                        Left("expected numeric duration in seconds")
+                    case _ =>
+                        Right(None)
+                }
+
+            val tag = implicitly[TypeTag[Duration]]
+
+        }
+
+    lazy val solverTimeOut = opt[Duration]("timeout", short = 'o',
+        descr = "Timeout for SMT solvers in seconds (default : 10s)",
+        default = Some(Duration(10, "second")))(solverTimeOutConverter)
 
     lazy val trackValues = opt[Boolean]("track", short = 'k',
         descr = "Track values (default: false)",
@@ -167,10 +221,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Format of witnesses (nondet or trace, default: trace)",
         default = Some(TraceWitnessFormat()))(witnessFormatConverter)
 
-    lazy val multiThreadMode = opt[Boolean]("multi", short = 'M',
-        descr = "Multi-thread analysis mode (default: off)",
-        default = Some(false))
-
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
@@ -192,7 +242,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
 
-    override def createAndInitConfig(args : Seq[String]) : SkinkConfig =
+    override def createAndInitConfig(args : Seq[String]) : Either[String, SkinkConfig] =
         try {
             super.createAndInitConfig(args)
         } catch {
@@ -222,25 +272,19 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier
-        import au.edu.mq.comp.skink.ir.llvm.LLVMIR
 
-        if (config.verifyTarget()) {
-            if (config.multiThreadMode()) {
-                logger.info(s"processIR multi-thread mode: processing")
-                val verifier = new Verifier(ir, ir, config)
-                verifier.verify()
-            } else {
+        for (function <- ir.functions) {
 
-                for (function <- ir.functions) {
-                    if (function.name == "main") {
-                        logger.info(s"processIR single-thread mode: processing ${function.name}")
-                        val verifier = new Verifier(function, ir, config)
-                        verifier.verify()
-                    } else {
-                        logger.info(s"processIR: skipping ${function.name}")
-                    }
+            if (config.verifyTarget()) {
+                if (function.name == "main") {
+                    logger.info(s"processIR: processing ${function.name}")
+                    val verifier = new Verifier(ir, config)
+                    verifier.verify(this, function)
+                } else {
+                    logger.info(s"processIR: skipping ${function.name}")
                 }
             }
+
         }
 
         if (config.execute()) {
