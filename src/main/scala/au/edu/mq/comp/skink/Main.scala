@@ -242,7 +242,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
 
-    override def createAndInitConfig(args : Seq[String]) : SkinkConfig =
+    override def createAndInitConfig(args : Seq[String]) : Either[String, SkinkConfig] =
         try {
             super.createAndInitConfig(args)
         } catch {

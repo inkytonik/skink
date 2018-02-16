@@ -91,10 +91,22 @@ class Verifier(ir : IR, config : SkinkConfig) {
                 unknownReasons.append(s"\nconfig: $desc\n$reason\n")
             }
 
+            def getFullConfig(args : Seq[String]) : SkinkConfig = {
+                driver.createAndInitConfig(args) match {
+                    case Left(message) =>
+                        val msg = s"verify: bad command line: $message"
+                        logger.info(msg)
+                        sys.error(msg)
+                    case Right(config) =>
+                        config
+                }
+            }
+
             for (args <- argSets) {
-                val fullConfig = driver.createAndInitConfig(args ++ config.args)
-                val fullConfigDesc = fullConfig.args.mkString(" ")
+                val fullArgs = args ++ config.args
+                val fullConfigDesc = fullArgs.mkString(" ")
                 logger.info(s"verify: trying configuration args: $fullConfigDesc")
+                val fullConfig = getFullConfig(fullArgs)
                 val refiner = new TraceRefinement(ir, fullConfig)
                 function match {
                     case llvmFunction : LLVMFunction =>
