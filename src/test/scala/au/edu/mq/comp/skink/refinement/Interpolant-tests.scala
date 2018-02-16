@@ -1,3 +1,25 @@
+/*
+ * This file is part of Skink.
+ *
+ * Copyright (C) 2015-2018
+ * Franck Cassez, Anthony M. Sloane, Matthew Roberts.
+ *
+ * Skink is free software: you can redistribute it and/or modify it  under
+ * the terms of the  GNU Lesser General Public License as published by the
+ * Free Software Foundation,  either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Skink is distributed  in the hope  that it will  be useful, but WITHOUT
+ * ANY WARRANTY;  without  even the implied   warranty  of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Skink.  (See files COPYING and  COPYING.LESSER.)  If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
 package au.edu.mq.comp.skink
 
 package verifier
@@ -18,7 +40,7 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
             "-m10", //  max iteration
             "-eZ3" //  solver
         )
-    )
+    ).right.get
 
     val srcFileName = "src/test/resources/citests/math/simple-loop_true-unreach-call.c"
 
@@ -31,7 +53,7 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers with Driver {
                 fun match {
                     case Some(main) =>
                         logger.info(s"verifying ${main.name}")
-                        val refiner = new TraceRefinement(config)
+                        val refiner = new TraceRefinement(prog, config)
                         refiner.traceRefinement(main) shouldBe Success(None)
                     case None =>
                         logger.error(s"no main found")
