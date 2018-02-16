@@ -242,8 +242,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
 /**
  * Naming for a given function which names uniquely over the given name tree.
  */
-class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
-        nametree : Tree[Product, Product]) extends LLVMNamer {
+class LLVMTraceNamer(program : Program, tracetree : Tree[Product, Product]) extends LLVMNamer {
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.==>
@@ -255,11 +254,13 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
 
     // Properties and decoration of function tree
 
-    val properties = funanalyser.propertiesOfFunction(funtree.root)
+    // val progTree = new Tree[ASTNode, Program](program)
 
-    val functionName : String = nameToString(funtree.root.global)
-
-    val decorators = new Decorators(nametree)
+    // val properties = funanalyser.propertiesOfFunction(funtree.root)
+    //
+    // val functionName : String = nameToString(funtree.root.global)
+    //
+    val decorators = new Decorators(tracetree)
     import decorators._
 
     /**
@@ -268,27 +269,27 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
      * pointer), followed by the actual index.
      * FIXME: there may well be other cases we should detect.
      */
-    override val ArrayElement =
-        new ArrayElementExtractor {
-            def unapply(value : Value) : Option[(Name, Value)] =
-                value match {
-                    case Named(name) =>
-                        elementProperty(name)
-                    case _ =>
-                        None
-                }
-        }
+    // override val ArrayElement =
+    //     new ArrayElementExtractor {
+    //         def unapply(value : Value) : Option[(Name, Value)] =
+    //             value match {
+    //                 case Named(name) =>
+    //                     elementProperty(name)
+    //                 case _ =>
+    //                     None
+    //             }
+    //     }
 
     /*
      * Get the array element property for name, if there is one.
      */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
-        properties(name).collectFirst {
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-        }
+    // def elementProperty(name : Name) : Option[(Name, Value)] =
+    //     properties(name).collectFirst {
+    //         case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+    //             (array, index)
+    //         case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
+    //             (array, index)
+    //     }
 
     // Chain keeping track of stores to memory. Each assignment to a
     // local variable or store to memory location is counted so that
@@ -306,7 +307,7 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
     }
 
     def storesin(in : Product => StoreMap) : Product ==> StoreMap = {
-        case n if nametree.isRoot(n) =>
+        case n if tracetree.isRoot(n) =>
             Map[String, Int]()
         case n @ Binding(name) =>
             bumpcount(in(n), name)
@@ -322,8 +323,8 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
 
     def threadidsout(out : Product => Int) : Product ==> Int = {
 
-        case n if nametree.isRoot(n) => 0
-        case ThreadId(k)             => k
+        case n if tracetree.isRoot(n) => 0
+        case ThreadId(k)              => k
     }
 
     def defaultIndexOf(s : String) : Int =
@@ -351,6 +352,9 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
     def threadIdOf(use : Product) : Int = thread.in(use)
     // def nameOf(name : Name) : String = s"${show(name)}"
 
+    //  FIXME: extract function name for current instruction/Name
+    def functionName = "f"
+
     def nameOf(name : Name) : String = {
         name match {
             case Global(_) =>
@@ -368,7 +372,7 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
      */
     val enclosingPhi : Product => Option[Phi] =
         downOpt {
-            case nametree.parent.pair(_ : PhiPredecessor, phi : Phi) =>
+            case tracetree.parent.pair(_ : PhiPredecessor, phi : Phi) =>
                 phi
         }
 
@@ -380,5 +384,13 @@ class LLVMTraceNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDef
             case block : Block =>
                 block
         }
+
+    /**
+     * The enclosing function of a node
+     */
+    // val enclosingFun : Product => Option[FunctionDefinition] =
+    //     downOpt {
+    //         case fun : FunctionDefinition => fun
+    //     }
 
 }

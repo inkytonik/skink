@@ -2,9 +2,13 @@ package au.edu.mq.comp.skink
 package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.IR
-import org.scalallvm.assembly.AssemblySyntax.Program
+import au.edu.mq.comp.skink.ir.{IR, Trace}
+import org.scalallvm.assembly.AssemblySyntax.{Program, Block}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
+
+case class ThreadId(k : Int)
+
+case class BlockTrace2(blocks : Seq[(ThreadId, LLVMFunction, Block)], trace : Trace)
 
 /**
  * A state of the program
@@ -19,6 +23,7 @@ case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boo
  */
 class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution with IR {
 
+    import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State, FailureTrace, NonDetCall, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
@@ -48,20 +53,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         Executor.execute(program, config.lli())
 
     /**
-     *  Make the functions in the IR verifiable.
-     *  This results in making sure that each block contains at most
-     *  one global memory access instruction, and in this case, it is the last one
-     *  in the block.
-     */
-    val functions : Vector[LLVMFunction] =
-        program.items.collect {
-            case fd : FunctionDefinition =>
-                //  Same program with a new functionDefinition
-                new LLVMFunction(program, splitGlobalMemAccess(fd), config)
-
-        }
-
-    /**
      * Pretty print the program
      */
     def show : String =
@@ -80,6 +71,73 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * FIXME: find a way to display a meaningful name
      */
     def name : String = "FIXME: get the actual program name"
+
+    /**
+     *  Make the functions in the IR verifiable.
+     *  This results in making sure that each block contains at most
+     *  one global memory access instruction, and in this case, it is the last one
+     *  in the block.
+     */
+    lazy val functions : Vector[LLVMFunction] =
+        program.items.collect {
+            case fd : FunctionDefinition =>
+                //  Same program with a new functionDefinition
+                new LLVMFunction(program, splitGlobalMemAccess(fd), config)
+
+        }
+
+    lazy val verifiableProgram = Program(program.items.map({
+        case fd : FunctionDefinition =>
+            funNameToLLVMFun(nameToString(fd.global)).verifiableForm
+        case other => other
+    }))
+
+    /**
+     * Analysers for each FunctionDefinition
+     */
+    lazy val funNameToLLVMFun : Map[String, LLVMFunction] = (functions map {
+        case f => (f.name, f)
+    }).toMap
+
+    val progTree = new Tree[Product, Product](verifiableProgram)
+
+    //
+    val decorators = new Decorators(progTree)
+    import decorators.downErr
+
+    //  Retrieve the enclosing function of a block
+    private val enclosingFunDecorator : ASTNode => LLVMFunction =
+        downErr {
+            case fun : FunctionDefinition => funNameToLLVMFun(nameToString(fun.global))
+        }
+
+    /**
+     *  Find the enclosing LLVMfunction of a given block.
+     *
+     *  @param      b   The block.
+     *  @return         The LLVMFunction the block is in.
+     */
+    def enclosingFun(b : Block) : LLVMFunction = {
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
+
+        logger.debug(s"Looking up enclosing function for block ${showBlock(b)}")
+
+        logger.debug(s"Call")
+        val r = enclosingFunDecorator(b)
+
+        logger.debug(s"End Call")
+        r
+
+    }
+
+    /**
+     * Find the name of a block. The name may depend on the enclosing function
+     * for the first block.
+     * @note We retrieve the enclosing function and use the function blockName
+     */
+    def blockName(b : Block) : String = {
+        enclosingFun(b).blockName(b)
+    }
 
     /**
      * The main function extracted from the verifiable variants.
@@ -125,14 +183,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 Some(s"""Some calls in the main function were not inlined: $s}""")
         }
 
-    // /**
-    //  *  Given a threadId, provide the function run by the thread.
-    //  *  @note   At the moment, because we require that all functions used in
-    //  *          pthread_create are inlined, each thread can only executes a
-    //  *          single function. At the beginning, thread 0 is executing main.
-    //  */
-    // var functionIds = MutableMap(0 -> main)
-
     /**
      * The verification ready NFA. Uses the verifiable functions.
      */
@@ -140,6 +190,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         functions, main
     )
 
+    //  Some helpers to debug
     val (printNFA, nodeInfo) = org.bitbucket.franck44.automat.util.Determiniser.toDetNFA(
         nfa,
         { x : LLVMState ⇒ x.threadLocs.mkString(",") }
@@ -160,9 +211,11 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     cfgLogger.info(s"${toPrint}")
 
+    //
+
     /**
-     *  Given a functionDefinition split the blocks to make sure only
-     *  a single global memory access instruction is in each block.
+     *  Given a functionDefinition split the blocks to make sure there
+     *  is at most one global memory access instruction in each block.
      *
      *  @param  function        The function to rewrite
      *
@@ -184,7 +237,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         //  Split blocks
         val newBlocks = blocks.flatMap(splitBlock)
 
-        // Return the new function by modifying only the body and keeping all other fields
+        // Make a copy of f with a new Body consisting of the newBlocks
         val ret = f.copy(functionBody = FunctionBody(newBlocks))
 
         programLogger.debug(s"Initial function $fname:\n${showFunDef(f)}")
@@ -230,8 +283,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      *   <insn3>
      *   <terminator>
      *
-     *  If <insn3> is empty, __threading.2.14 is not created but the <terminator> is
-     *  pushed to block __threading.1.14
+     * If <insn3> is empty, __threading.2.14 is not created but the <terminator> is
+     * pushed to block __threading.1.14
      * FIXME: The metadata from the call is transferred to the new branch so it can
      * recovered later during reporting. Is it true?
      *
@@ -241,25 +294,25 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
 
-        //  Defines split instructions
+        //  Defines split instructions i.e. global memroiy access instructions
         def isSplit(i : MetaInstruction) = isThreadPrimitive(i.instruction) || isGlobalAccess(i.instruction)
 
         /* Generation of sub-blocks work as follows:
-         * Process each instruction in b and add it to current list of instructions.
-         * When a boundary instruction is encountered, build a block with the current list
-         * of instructions and reset other parameters.
-         * In foldLeft, tuple is (n,xl, xb, bLab) with:
+         * Walk through the instructions in b from first to last.
+         * When a global memory access instruction is encountered, split the block.
+         *
+         * This is implemented in a foldLeft, where the tuple is (n,xl, xb, bLab) with:
          *      n is the number of sub-blocks already created
          *      xl is the current list of instructions collected from start or last split location
          *      xb is the reversed list of sub-blocks already created
-         *      bLab is last source labal
+         *      bLab is last source block label
          */
         programLogger.debug(s"Start split block labelled: ${showBlock(b.optBlockLabel)} :\n${showBlock(b)}")
 
         val (k, x, lb, lab) = b.optMetaInstructions.toList.
             foldLeft((0, List[MetaInstruction](), List[Block](), b.optBlockLabel))(
                 {
-                    //  i is a split. Build a new block with xl::i and reset components
+                    //  i is a split. Build a new block with xl::i and reset xl
                     case ((n, xl, xb, bLab), i) if isSplit(i) =>
                         val label = makeLabelFromPrefix(b.optBlockLabel, s"__threading.$n")
                         val newBlock = Block(bLab, Vector(), None, (xl :+ i).toVector,
@@ -269,17 +322,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                             ))
                         (n + 1, List(), newBlock :: xb, BlockLabel(label))
 
-                    //  i is not a split. Grow the current list of instructions
+                    //  i is not a split. Add it to the current list of instructions
                     case ((n, xl, xb, bLab), i) => (n, xl :+ i, xb, bLab)
                 }
             )
-        //  Compute the final block split
-        val split = (lb match {
-            case Block(lab, v, z, xi, _) :: r if x.isEmpty =>
-                //  Replace the metaTerminator of last block by the metaterminator of b
+
+        //  Compute the final block split.
+        val split = ((lb, x) match {
+
+            case (Block(lab, v, z, xi, _) :: r, List()) =>
+                //  If last list of instructions is empty, Replace the metaTerminator
+                //  of last block (first element in lb)by the metaterminator of b
                 Block(lab, v, z, xi, b.metaTerminatorInstruction) :: r
             case _ =>
-                //  If the last list of instructions x is not empty create a new last block
+                //  If the last list of instructions x is not empty create
+                //  a new last block with x with the metaterminator of b
                 Block(lab, Vector(), None, x.toVector, b.metaTerminatorInstruction) :: lb
         }).reverse
         programLogger.debug(s"The last list of instructions is: :\n${x.map(l => showBlock(l)).mkString("\n")}")
@@ -346,6 +403,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 }
                 BlockTrace(blocks.toList, trace)
         }
+
+    lazy val traceToBlockTrace2 : BlockTrace => BlockTrace2 = {
+        case b =>
+            //  BlockTrace is case class BlockTrace(blocks : Seq[Block], trace : Trace)
+            //  Make a blockTrace with ThreadId
+            BlockTrace2(
+                (b.trace.choices.map(
+                    t => ThreadId(t.threadId)
+                ) zip b.blocks).map({
+                        case (threadId, block) => (threadId, enclosingFun(block), block)
+                    }),
+                b.trace
+            )
+
+    }
 
     /**
      * Projection of a block trace on a thread
@@ -468,40 +540,54 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        val blocks = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blocks)
+        val blocks : BlockTrace = traceToBlockTrace(trace)
+
+        //  BlockTrace is case class BlockTrace(blocks : Seq[Block], trace : Trace)
+        //  Make a blockTrace with ThreadId
+        // val b = BlockTrace2(blocks.blocks.map(b => (ThreadId(0), b)), blocks.trace)
+        val b1 = traceToBlockTrace2(blocks)
+        // val traceTree = new Tree[Product, BlockTrace](blocks, EnsureTree)
+        val traceTree2 = new Tree[Product, BlockTrace2](b1, EnsureTree)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
         // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree.root
+        val treeBlockTrace = traceTree2.root
 
         // Get a global namer and term builder
-        val globalNamer = new LLVMGlobalNamer(traceTree)
+        // val globalNamer = new LLVMGlobalNamer(traceTree)
         // val globalBuilder = new LLVMTermBuilder(main.blockName, globalNamer, config)
 
         // Construct a block trace of only the relevant blocks for each function and build
         // a map of term builders to be used for each unique function
-        val funBlockTraces = nfa.functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
+        // val funBlockTraces = nfa.functionIds.map(f => (f._1, filterThreadBlocks(f._1, treeBlockTrace)))
+        // val funBlockTraces = nfa.functionIds.map(f => (f._1, treeBlockTrace.blocks.filter(_._2 == f._1)))
 
-        //  Build a map of term builders for each threadId/functionId
-        val funBuilders = nfa.functionIds.map({
-            case (threadId, function) =>
-                (
-                    threadId,
-                    new LLVMTermBuilder(
-                        nfa.functionIds(threadId).blockName,
-                        new LLVMFunctionNamer(
-                            function.funAnalyser,
-                            function.funTree,
-                            new Tree[Product, BlockTrace](
-                                funBlockTraces.get(threadId).get
-                            )
-                        ),
-                        config
-                    )
-                )
-        })
+        // Build a map of term builders for each threadId/functionId
+        // val funBuilders = nfa.functionIds.map({
+        //     case (threadId, function) =>
+        //         (
+        //             threadId,
+        //             new LLVMTermBuilder(
+        //                 nfa.functionIds(threadId).blockName,
+        //                 new LLVMTraceNamer(
+        //                     function.funAnalyser,
+        //                     function.funTree,
+        //                     new Tree[Product, BlockTrace](
+        //                         funBlockTraces.get(threadId).get
+        //                     )
+        //                 ),
+        //                 config
+        //             )
+        //         )
+        // })
+
+        // val progTree = new Tree[ASTNode, Program](program)
+        val namer = new LLVMTraceNamer(verifiableProgram, traceTree2)
+
+        //  make an analyser for the program
+        // val progAnalyser = new Analyser(progTree)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -515,9 +601,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         Some(treeBlockTrace.blocks(count - 1))
                 logger.debug(s"ThreadId is ${choice.threadId}, choice is $choice")
                 logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
-                logger.debug(s"generating term for block ${nfa.functionIds(choice.threadId).blockName(block)} with choice $choice")
-                val namer = funBuilders.get(choice.threadId).get
-                val res = namer.blockTerms(block, optPrevBlock, choice.branchId)
+                logger.debug(s"generating term for block ${blockName(block._3)} with choice $choice")
+                // val namer = funBuilders.get(choice.threadId).get
+                val res = termBuilder.blockTerms(block._3, optPrevBlock.map(_._3), choice.branchId)
                 logger.debug(s"Term is ${res.map(x => showTerm(x.termDef))}")
                 res
         }.map(combineTerms)
@@ -566,21 +652,25 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         // Get a tree for the relevant block
 
-        val blocks = traceToBlockTrace(trace).blocks
-        if ((index < 0) || (index >= blocks.length))
-            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
-        val blockTree = new Tree[Product, Block](blocks(index))
+        val blocks = traceToBlockTrace(trace)
+        if ((index < 0) || (index >= blocks.blocks.length))
+            sys.error(s"traceBlockEffect: trace length is ${blocks.blocks.length} so index ${index} is out of range")
+
+        val b1 = traceToBlockTrace2(blocks)
+
+        // val blockTree = new Tree[Product, Block](blocks(index))
+        val blockTree = new Tree[Product, (ThreadId, LLVMFunction, Block)](b1.blocks(index))
         val block = blockTree.root
 
         // Get a function-specifc namer and term builder
-        val threadId = trace.choices(index).threadId
-        val function = nfa.functionIds.get(threadId).get
-        val globalNamer = new LLVMGlobalNamer(blockTree)
-        val namer = new LLVMMTFunctionNamer(function.funAnalyser, function.funTree, blockTree, threadId, globalNamer)
-        val termBuilder = new LLVMTermBuilder(function.blockName, namer, config)
+        // val threadId = trace.choices(index).threadId
+        // val function = nfa.functionIds.get(threadId).get
+        // val globalNamer = new LLVMGlobalNamer(blockTree)
+        val namer = new LLVMTraceNamer(verifiableProgram, blockTree)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // Make a single term for this block and branch
-        val term = combineTerms(termBuilder.blockTerms(block, None, branch))
+        val term = combineTerms(termBuilder.blockTerms(block._3, None, branch))
 
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))

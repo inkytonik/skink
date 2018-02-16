@@ -166,43 +166,10 @@ case class LLVMFunction(
     }
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
-
-        // Make the block trace that corresponds to this trace and set it
-        // up so we can do context-dependent computations on it.
-        val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
-
-        // The term for the effects of program initialisation
-        val initTerm = termBuilder.initTerm(program)
-
-        // If blocks occur more than once in the block trace they will be
-        // shared. We need each instance to be treated separately so we use
-        // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree.root
-
-        // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block.
-        val blockTerms =
-            trace.choices.init.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = treeBlockTrace.blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            Some(treeBlockTrace.blocks(count - 1))
-                    termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
-            }.map(termBuilder.combineTerms)
-
-        // Prepend the global initialisation terms to the terms of the first block
-        if (blockTerms.isEmpty)
-            Seq(initTerm)
-        else
-            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+        import org.bitbucket.franck44.scalasmt.theories.Core
+        object BoolOps extends Core
+        import BoolOps._
+        Seq(True())
 
     }
 
