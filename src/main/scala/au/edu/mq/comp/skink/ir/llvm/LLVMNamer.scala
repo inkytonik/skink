@@ -330,6 +330,14 @@ class LLVMTraceNamer(program : Program, tracetree : Tree[Product, Product]) exte
     def defaultIndexOf(s : String) : Int =
         0
 
+    lazy val functionNames : Chain[String] = chain(fnamesout)
+
+    def fnamesout(out : Product => String) : Product ==> String = {
+
+        case n if tracetree.isRoot(n) => ""
+        case f : LLVMFunction         => f.name
+    }
+
     /**
      * Normally we just access the chain at `use` but nodes that appear
      * in the predecessor specifications of `Phi` nodes are special
@@ -353,16 +361,16 @@ class LLVMTraceNamer(program : Program, tracetree : Tree[Product, Product]) exte
     // def nameOf(name : Name) : String = s"${show(name)}"
 
     //  FIXME: extract function name for current instruction/Name
-    def functionName = "f"
+    def functionNameOf(use : Product) : String = functionNames.in(use)
 
     def nameOf(name : Name) : String = {
         name match {
             case Global(_) =>
-                logger.info(s"Naming a global variable for thread threadId")
-                s"t${threadIdOf(name)}.${show(name)}"
+                logger.info(s"Naming a global variable")
+                s"${show(name)}"
             case Local(_) =>
                 logger.info(s"Naming a local variable for thread threadId")
-                s"t${threadIdOf(name)}.$functionName.${show(name)}"
+                s"t${threadIdOf(name)}.${functionNameOf(name)}.${show(name)}"
         }
     }
 

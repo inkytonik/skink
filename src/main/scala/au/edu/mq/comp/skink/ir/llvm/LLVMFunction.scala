@@ -4,7 +4,7 @@ package ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State}
-import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
+import org.scalallvm.assembly.AssemblySyntax.{ASTNode, Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import au.edu.mq.comp.skink.ir.{Verifiable}
 
@@ -12,6 +12,8 @@ import au.edu.mq.comp.skink.ir.{Verifiable}
  * A block trace is a sequence of blocks that comprise an error trace.
  */
 case class BlockTrace(blocks : Seq[Block], trace : Trace)
+
+import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
 
 /**
  * Representation of an LLVM IR function from the given program.
@@ -21,7 +23,8 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 case class LLVMFunction(
         program : Program,
         val function : FunctionDefinition,
-        config : SkinkConfig
+        config : SkinkConfig,
+        val ffuntree : Option[Tree[ASTNode, FunctionDefinition]] = None
 ) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
@@ -53,6 +56,7 @@ case class LLVMFunction(
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
 
+    //  assume Analyser is in program.analyser
     //  Get the name of a block
     def blockName(block : Block) =
         funAnalyser.blockName(block)
@@ -166,10 +170,43 @@ case class LLVMFunction(
     }
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
-        import org.bitbucket.franck44.scalasmt.theories.Core
-        object BoolOps extends Core
-        import BoolOps._
-        Seq(True())
+
+        // Make the block trace that corresponds to this trace and set it
+        // up so we can do context-dependent computations on it.
+        val blockTrace = traceToBlockTrace(trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
+
+        // The term for the effects of program initialisation
+        val initTerm = termBuilder.initTerm(program)
+
+        // If blocks occur more than once in the block trace they will be
+        // shared. We need each instance to be treated separately so we use
+        // the block trace after it has been made into a proper tree.
+        val treeBlockTrace = traceTree.root
+
+        // Return the terms corresponding to the traced blocks, not including
+        // the last step since that is to the error block.
+        val blockTerms =
+            trace.choices.init.zipWithIndex.map {
+                case (choice, count) =>
+                    val block = treeBlockTrace.blocks(count)
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            Some(treeBlockTrace.blocks(count - 1))
+                    termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
+            }.map(termBuilder.combineTerms)
+
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            Seq(initTerm)
+        else
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
 
     }
 

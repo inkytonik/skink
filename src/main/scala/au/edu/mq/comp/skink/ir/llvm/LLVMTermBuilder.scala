@@ -28,7 +28,7 @@ class LLVMTermBuilder(
 
     // Cached integer mode and size
     val integerMode = config.integerMode()
-    val integerSize = config.integerSize()
+    val integerSize = config.architecture()
 
     /**
      * Return a term that expresses the effects of the global variable
@@ -764,7 +764,8 @@ class LLVMTermBuilder(
     def ctermBV(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
         constantValue match {
             case IntC(i) =>
-                BVs.fromString(i.toString, bits)
+                // BVs.fromString(i.toString, bits)
+                BVs(i.toInt, bits)
             case NullC() | ZeroC() =>
                 BVs("#b0", bits)
             case value =>

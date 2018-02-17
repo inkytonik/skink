@@ -221,6 +221,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Format of witnesses (nondet or trace, default: trace)",
         default = Some(TraceWitnessFormat()))(witnessFormatConverter)
 
+    lazy val multiThreadMode = opt[Boolean]("multi", short = 'M',
+        descr = "Multi-thread analysis mode (default: off)",
+        default = Some(false))
+
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {
@@ -272,19 +276,25 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     def process(source : Source, ir : IR, config : SkinkConfig) {
 
         import au.edu.mq.comp.skink.verifier.Verifier
+        import au.edu.mq.comp.skink.ir.llvm.LLVMIR
 
-        for (function <- ir.functions) {
+        if (config.verifyTarget()) {
+            if (config.multiThreadMode()) {
+                logger.info(s"processIR multi-thread mode: processing")
+                val verifier = new Verifier(ir, ir, config)
+                verifier.verify()
+            } else {
 
-            if (config.verifyTarget()) {
-                if (function.name == "main") {
-                    logger.info(s"processIR: processing ${function.name}")
-                    val verifier = new Verifier(ir, config)
-                    verifier.verify(this, function)
-                } else {
-                    logger.info(s"processIR: skipping ${function.name}")
+                for (function <- ir.functions) {
+                    if (function.name == "main") {
+                        logger.info(s"processIR single-thread mode: processing ${function.name}")
+                        val verifier = new Verifier(function, ir, config)
+                        verifier.verify()
+                    } else {
+                        logger.info(s"processIR: skipping ${function.name}")
+                    }
                 }
             }
-
         }
 
         if (config.execute()) {

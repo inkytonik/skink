@@ -1,7 +1,28 @@
+/*
+ * This file is part of Skink.
+ *
+ * Copyright (C) 2015-2018
+ * Franck Cassez, Anthony M. Sloane, Matthew Roberts.
+ *
+ * Skink is free software: you can redistribute it and/or modify it  under
+ * the terms of the  GNU Lesser General Public License as published by the
+ * Free Software Foundation,  either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * Skink is distributed  in the hope  that it will  be useful, but WITHOUT
+ * ANY WARRANTY;  without  even the implied   warranty  of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ * See the GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Skink.  (See files COPYING and  COPYING.LESSER.)  If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
-import au.edu.mq.comp.skink.ir.Verifiable
 
 /**
  * Common support for SV-COMP witness generation.
@@ -9,7 +30,7 @@ import au.edu.mq.comp.skink.ir.Verifiable
 abstract class Witnesses(config : SkinkConfig) {
 
     import au.edu.mq.comp.skink.Skink.getLogger
-    import au.edu.mq.comp.skink.ir.{FailureTrace}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Verifiable}
     import org.bitbucket.inkytonik.kiama.util.FileEmitter
 
     val logger = getLogger(this.getClass)
@@ -82,7 +103,7 @@ abstract class Witnesses(config : SkinkConfig) {
            |  <data key="programfile"   >${config.filenames.getOrElse(List[String]("unknown")).head}</data>
            |  <data key="programhash"   >${config.filenames.map(_.head).map(digestOfFile(_)).getOrElse("0000000000000000000000000000000000000000")}</data>
            |  <data key="memorymodel"   >simple</data>
-           |  <data key="architecture"  >${config.integerSize.map(_.toString).getOrElse("32")}bit</data>
+           |  <data key="architecture"  >${config.architecture()}bit</data>
            |
            |${witness.nodesAndEdges.mkString("\n")}
            |</graph>

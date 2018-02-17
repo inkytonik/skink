@@ -70,7 +70,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * for LLVMFunction but for program we need to define it.
      * FIXME: find a way to display a meaningful name
      */
-    def name : String = "FIXME: get the actual program name"
+    def name : String = "FIXME:!get the actual program name!"
 
     /**
      *  Make the functions in the IR verifiable.
@@ -99,36 +99,12 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         case f => (f.name, f)
     }).toMap
 
-    val progTree = new Tree[Product, Product](verifiableProgram)
+    val progTree = new Tree[ASTNode, Program](verifiableProgram)
 
-    //
-    val decorators = new Decorators(progTree)
-    import decorators.downErr
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter
 
-    //  Retrieve the enclosing function of a block
-    private val enclosingFunDecorator : ASTNode => LLVMFunction =
-        downErr {
-            case fun : FunctionDefinition => funNameToLLVMFun(nameToString(fun.global))
-        }
-
-    /**
-     *  Find the enclosing LLVMfunction of a given block.
-     *
-     *  @param      b   The block.
-     *  @return         The LLVMFunction the block is in.
-     */
-    def enclosingFun(b : Block) : LLVMFunction = {
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
-
-        logger.debug(s"Looking up enclosing function for block ${showBlock(b)}")
-
-        logger.debug(s"Call")
-        val r = enclosingFunDecorator(b)
-
-        logger.debug(s"End Call")
-        r
-
-    }
+    // lazy val analyser = new IRAnalyser(program, progTree, funNameToLLVMFun)
+    lazy val analyser = new IRAnalyser2(progTree)
 
     /**
      * Find the name of a block. The name may depend on the enclosing function
@@ -136,8 +112,10 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * @note We retrieve the enclosing function and use the function blockName
      */
     def blockName(b : Block) : String = {
-        enclosingFun(b).blockName(b)
+        analyser.blockName(b)
     }
+
+    def enclosingFun(b : Block) = funNameToLLVMFun(nameToString(analyser.enclosingFun(b).global))
 
     /**
      * The main function extracted from the verifiable variants.
@@ -473,6 +451,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
+
         val blockTrace = traceToBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
@@ -518,16 +497,16 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * terms so effect is "true". Any true terms in the sequence are removed.
      * FIXME: same as one in LLVMFunction. Share or move to another place
      */
-    def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-        import org.bitbucket.franck44.scalasmt.theories.Core
-        import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-        object SMTCore extends Core
-        import SMTCore._
-        if (terms.isEmpty)
-            True()
-        else
-            terms.reduceLeft((l, r) => if (r == True()) l else l & r)
-    }
+    // def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
+    //     import org.bitbucket.franck44.scalasmt.theories.Core
+    //     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    //     object SMTCore extends Core
+    //     import SMTCore._
+    //     if (terms.isEmpty)
+    //         True()
+    //     else
+    //         terms.reduceLeft((l, r) => if (r == True()) l else l & r)
+    // }
 
     val initTerm = new LLVMTermBuilder(main.blockName, new LLVMInitNamer, config).initTerm(program)
 
@@ -599,20 +578,20 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
-                logger.debug(s"ThreadId is ${choice.threadId}, choice is $choice")
-                logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
-                logger.debug(s"generating term for block ${blockName(block._3)} with choice $choice")
+                // logger.debug(s"ThreadId is ${choice.threadId}, choice is $choice")
+                // logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
+                // logger.debug(s"generating term for block ${blockName(block._3)} with choice $choice")
                 // val namer = funBuilders.get(choice.threadId).get
                 val res = termBuilder.blockTerms(block._3, optPrevBlock.map(_._3), choice.branchId)
                 logger.debug(s"Term is ${res.map(x => showTerm(x.termDef))}")
                 res
-        }.map(combineTerms)
+        }.map(termBuilder.combineTerms)
 
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
             Seq(initTerm)
         else
-            combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
     }
 
     /**
@@ -670,7 +649,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // Make a single term for this block and branch
-        val term = combineTerms(termBuilder.blockTerms(block._3, None, branch))
+        val term = termBuilder.combineTerms(termBuilder.blockTerms(block._3, None, branch))
 
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))
