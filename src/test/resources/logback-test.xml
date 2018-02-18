@@ -3,6 +3,7 @@
     <contextName>Skink</contextName>
 
     <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{70} - %msg%n"/>
+    <property name="RAW_PATTERN" value="%msg%n"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -74,11 +75,28 @@
         </encoder>
     </appender>
 
+
+    <appender name="CFGSPLITFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/SplitCFG.dot</file>
+        <append>false</append>
+        <encoder>
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
     <appender name="EXPECTFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/expect.log</file>
         <append>false</append>
         <encoder>
             <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SMT2FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/smt2.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -115,7 +133,7 @@
 
     <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder" level="DEBUG"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMMTFunctionNamer" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTraceNamer" level="DEBUG"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
@@ -149,6 +167,10 @@
 
     <logger name="org.bitbucket.franck44.scalasmt.typedterms" level="INHERITED" additivity="false">
         <appender-ref ref="SKINKFILE"/>
+    </logger>
+
+    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="ON" additivity="false">
+        <appender-ref ref="SMT2FILE"/>
     </logger>
 
 </configuration>

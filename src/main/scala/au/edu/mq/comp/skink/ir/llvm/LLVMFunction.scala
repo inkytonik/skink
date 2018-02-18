@@ -171,42 +171,43 @@ case class LLVMFunction(
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
+        List()
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
-
-        // The term for the effects of program initialisation
-        val initTerm = termBuilder.initTerm(program)
-
-        // If blocks occur more than once in the block trace they will be
-        // shared. We need each instance to be treated separately so we use
-        // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree.root
-
-        // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block.
-        val blockTerms =
-            trace.choices.init.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = treeBlockTrace.blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            Some(treeBlockTrace.blocks(count - 1))
-                    termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
-            }.map(termBuilder.combineTerms)
-
-        // Prepend the global initialisation terms to the terms of the first block
-        if (blockTerms.isEmpty)
-            Seq(initTerm)
-        else
-            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+        // val blockTrace = traceToBlockTrace(trace)
+        // val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        //
+        // // Get a function-specifc namer and term builder
+        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        // val termBuilder = new LLVMTermBuilder(blockName, namer, config)
+        //
+        // // The term for the effects of program initialisation
+        // val initTerm = termBuilder.initTerm(program)
+        //
+        // // If blocks occur more than once in the block trace they will be
+        // // shared. We need each instance to be treated separately so we use
+        // // the block trace after it has been made into a proper tree.
+        // val treeBlockTrace = traceTree.root
+        //
+        // // Return the terms corresponding to the traced blocks, not including
+        // // the last step since that is to the error block.
+        // val blockTerms =
+        //     trace.choices.init.zipWithIndex.map {
+        //         case (choice, count) =>
+        //             val block = treeBlockTrace.blocks(count)
+        //             val optPrevBlock =
+        //                 if (count == 0)
+        //                     None
+        //                 else
+        //                     Some(treeBlockTrace.blocks(count - 1))
+        //             termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
+        //     }.map(termBuilder.combineTerms)
+        //
+        // // Prepend the global initialisation terms to the terms of the first block
+        // if (blockTerms.isEmpty)
+        //     Seq(initTerm)
+        // else
+        //     termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
 
     }
 
@@ -500,24 +501,27 @@ case class LLVMFunction(
     }
 
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
+        import org.bitbucket.franck44.scalasmt.theories.Core
+        object Foo extends Core
+        (Foo.True(), Map())
 
         // Get a tree for the relevant block
-        val blocks = traceToBlockTrace(trace).blocks
-        if ((index < 0) || (index >= blocks.length))
-            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
-        val blockTree = new Tree[Product, Block](blocks(index))
-        val block = blockTree.root
-
-        // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(blockName, namer, config)
-
-        // Make a single term for this block and choice
-        val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
-        val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
-
-        // Return the term and the name mapping that applies after the block
-        (term, namer.stores(block))
+        // val blocks = traceToBlockTrace(trace).blocks
+        // if ((index < 0) || (index >= blocks.length))
+        //     sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
+        // val blockTree = new Tree[Product, Block](blocks(index))
+        // val block = blockTree.root
+        //
+        // // Get a function-specifc namer and term builder
+        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
+        // val termBuilder = new LLVMTermBuilder(blockName, namer, config)
+        //
+        // // Make a single term for this block and choice
+        // val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
+        // val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
+        //
+        // // Return the term and the name mapping that applies after the block
+        // (term, namer.stores(block))
 
     }
 
@@ -658,42 +662,43 @@ case class LLVMFunction(
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
-        val blockTrace = traceToBlockTrace(failTrace.trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-
-        def termToCValue(term : Term) : Int =
-            term match {
-                case ConstantTerm(NumLit(i))                        => i.toInt
-                case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
-                case _ =>
-                    sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
-            }
-
-        def getValue(to : Name, tipe : String) : Option[Int] = {
-            val varName = show(to)
-            val sort = if (tipe == "bool") BoolSort() else IntSort()
-            val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
-            failTrace.values.get(qid) match {
-                case Some(value) =>
-                    Some(termToCValue(value.t))
-                case None =>
-                    logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
-                    None
-            }
-        }
-
-        collectl {
-            case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
-                val value = binding match {
-                    case Binding(to) => getValue(to, tipe)
-                    case NoBinding() => None
-                }
-                val (optCode, optLine) = getCodeLine(call, metadata)
-                NonDetCall(tipe, value, optLine, optCode)
-        }(blockTrace.blocks)
+        List()
+        // val blockTrace = traceToBlockTrace(failTrace.trace)
+        // val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        //
+        // def termToCValue(term : Term) : Int =
+        //     term match {
+        //         case ConstantTerm(NumLit(i))                        => i.toInt
+        //         case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
+        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
+        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
+        //         case _ =>
+        //             sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
+        //     }
+        //
+        // def getValue(to : Name, tipe : String) : Option[Int] = {
+        //     val varName = show(to)
+        //     val sort = if (tipe == "bool") BoolSort() else IntSort()
+        //     val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
+        //     failTrace.values.get(qid) match {
+        //         case Some(value) =>
+        //             Some(termToCValue(value.t))
+        //         case None =>
+        //             logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
+        //             None
+        //     }
+        // }
+        //
+        // collectl {
+        //     case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
+        //         val value = binding match {
+        //             case Binding(to) => getValue(to, tipe)
+        //             case NoBinding() => None
+        //         }
+        //         val (optCode, optLine) = getCodeLine(call, metadata)
+        //         NonDetCall(tipe, value, optLine, optCode)
+        // }(blockTrace.blocks)
 
     }
 
