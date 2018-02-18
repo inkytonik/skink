@@ -9,13 +9,6 @@ import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import au.edu.mq.comp.skink.ir.{Verifiable}
 
 /**
- * A block trace is a sequence of blocks that comprise an error trace.
- */
-case class BlockTrace(blocks : Seq[Block], trace : Trace)
-
-import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
-
-/**
  * Representation of an LLVM IR function from the given program.
  *
  * @param   program     Used only to generate failure trace
@@ -23,8 +16,7 @@ import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
 case class LLVMFunction(
         program : Program,
         val function : FunctionDefinition,
-        config : SkinkConfig,
-        val ffuntree : Option[Tree[ASTNode, FunctionDefinition]] = None
+        config : SkinkConfig
 ) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
@@ -49,9 +41,6 @@ case class LLVMFunction(
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
-
-    // val program = ir.program
-    // An analyser for the verifiable version of this fuction and its associated tree
 
     lazy val funTree = new Tree[ASTNode, FunctionDefinition](verifiableForm)
     lazy val funAnalyser = new Analyser(funTree)
@@ -81,7 +70,7 @@ case class LLVMFunction(
      * verifiable. Currently, the only reason is that some function
      * calls have not been inlined in function.
      */
-    override def isVerifiable() : Option[String] = {
+    def isVerifiable() : Option[String] = {
 
         def nonInlinedCall(metaInsn : MetaInstruction) : Option[String] = {
             val insn = metaInsn.instruction
@@ -151,22 +140,6 @@ case class LLVMFunction(
                 }
             )
         )
-    }
-
-    /**
-     * Combine terms via conjunction, dealing with teh case where there are no
-     * terms so effect is "true". THe namer is used to access the underlying
-     * term operations.
-     */
-    def combineTerms(namer : LLVMNamer, terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-        import org.bitbucket.franck44.scalasmt.theories.Core
-        object BoolOps extends Core
-        import BoolOps._
-
-        if (terms.isEmpty)
-            True()
-        else
-            terms.reduceLeft(_ & _)
     }
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
