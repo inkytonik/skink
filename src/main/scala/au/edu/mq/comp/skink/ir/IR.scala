@@ -33,8 +33,4 @@ trait IR extends Verifiable {
      */
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId]
 
-    // import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition, Program}
-
-    // def program : Program
-
 }
