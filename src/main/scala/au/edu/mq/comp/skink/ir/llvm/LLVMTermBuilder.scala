@@ -20,7 +20,7 @@ class LLVMTermBuilder(
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import namer.{ArrayElement, nameOf, indexOf}
+    import namer.{ArrayElement, indexOf, nameOf}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
@@ -48,7 +48,7 @@ class LLVMTermBuilder(
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
-                val id = nameOf(name)
+                val id = show(name)
                 val index = namer.defaultIndexOf(id)
                 (tipe, constantValue) match {
                     case (IntT(size), _) =>
@@ -577,27 +577,27 @@ class LLVMTermBuilder(
      * Return a bit vector array term that expresses a name when referenced from node.
      */
     def arrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), bits, indexOf(node, nameOf(name)))
+        arrayTermBV(nameOf(node, name), bits, indexOf(node, nameOf(node, name)))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
      */
     def arrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(nameOf(name), indexOf(node, nameOf(name)))
+        arrayTermI(nameOf(node, name), indexOf(node, nameOf(node, name)))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(nameOf(name), bits, scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
+        arrayTermBV(nameOf(node, name), bits, scala.math.max(indexOf(node, nameOf(node, name)) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(nameOf(name), scala.math.max(indexOf(node, nameOf(name)) - 1, 0))
+        arrayTermI(nameOf(node, name), scala.math.max(indexOf(node, nameOf(node, name)) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
@@ -631,25 +631,25 @@ class LLVMTermBuilder(
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(nameOf(name), indexOf(node, nameOf(name)))
+        varTermB(nameOf(node, name), indexOf(node, nameOf(node, name)))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtBV(node : ASTNode, bits : Int, name : Name) : TypedTerm[BVTerm, Term] =
-        varTermBV(nameOf(name), bits, indexOf(node, nameOf(name)))
+        varTermBV(nameOf(node, name), bits, indexOf(node, nameOf(node, name)))
 
     /**
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(nameOf(name), indexOf(node, nameOf(name)))
+        varTermI(nameOf(node, name), indexOf(node, nameOf(node, name)))
 
     /**
      * Return a real term that expresses a name when referenced from node.
      */
     def ntermAtR(node : ASTNode, name : Name) : TypedTerm[RealTerm, Term] =
-        varTermR(nameOf(name), indexOf(node, nameOf(name)))
+        varTermR(nameOf(node, name), indexOf(node, nameOf(node, name)))
 
     /**
      * Return a Boolean term that expresses an LLVM name when referenced
