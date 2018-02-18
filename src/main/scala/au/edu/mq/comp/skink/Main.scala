@@ -262,7 +262,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
                 val verifier = new Verifier(ir, ir, config)
                 verifier.verify()
             } else {
-
+                //  Look for a main and analyse it
                 for (function <- ir.functions) {
                     if (function.name == "main") {
                         logger.info(s"processIR single-thread mode: processing ${function.name}")
