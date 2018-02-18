@@ -100,6 +100,14 @@ class LLVMTermBuilder(
         allEffects.filter(_ != True())
     }
 
+    def blockTerms(block : RichBlock, optPrevBlock : Option[RichBlock], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
+        val phiEffects = block.block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock.map(_.block)))
+        val effects = block.block.optMetaInstructions.map(insnTerm)
+        val exitEffect = exitTerm(block.block.metaTerminatorInstruction, choice)
+        val allEffects = phiEffects ++ effects :+ exitEffect
+        allEffects.filter(_ != True())
+    }
+
     /*
      * Return a term that expresses the effect of an LLVM phi instruction
      * given that control comes from a particular previous block (if any).
