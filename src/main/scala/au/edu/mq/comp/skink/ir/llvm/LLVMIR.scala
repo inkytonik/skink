@@ -7,6 +7,11 @@ import org.scalallvm.assembly.AssemblySyntax.{Program, Block}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
 /**
+ * A block trace is a sequence of blocks that comprise an error trace.
+ */
+case class BlockTrace(blocks : Seq[Block], trace : Trace)
+
+/**
  * A Thread Identifier.
  */
 case class ThreadId(k : Int)
