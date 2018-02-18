@@ -92,7 +92,7 @@ class LLVMTermBuilder(
      * (if there is one), and exit from this block using a particular choice.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(s"blockTerblockName(block)}")
+        logger.info(s"blockTermblockName(show(block))}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
