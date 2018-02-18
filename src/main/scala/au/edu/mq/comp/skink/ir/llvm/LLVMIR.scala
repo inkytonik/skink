@@ -6,11 +6,32 @@ import au.edu.mq.comp.skink.ir.{IR, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Program, Block}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
+/**
+ * A Thread Identifier.
+ */
 case class ThreadId(k : Int)
 
-case class RichBlock(threadId : ThreadId, fun : LLVMFunction, block : Block)
+/**
+ * Information about a function.
+ */
+case class FunAnalyser(name : String)
 
-case class BlockTrace2(blocks : Seq[RichBlock], trace : Trace)
+/**
+ * A fully-qualified block.
+ *
+ * @param   threadId        The thread identifier for this block.
+ * @param   funAnalyser     The enclosing function analyser.
+ * @param   block           An LLVM block.
+ */
+case class RichBlock(threadId : ThreadId, funAnalyser : FunAnalyser, block : Block)
+
+/**
+ * A sequence of rich blocks.
+ *
+ * @param   blocks  The sequence of (rich) blocks that correspind to `trace`
+ * @param   trace   A trace in the program.
+ */
+case class BlockTrace2(val blocks : Seq[RichBlock], trace : Trace)
 
 /**
  * A state of the program
@@ -88,6 +109,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         }
 
+    /**
+     * The program in verifiable form.
+     */
     lazy val verifiableProgram = Program(program.items.map({
         case fd : FunctionDefinition =>
             funNameToLLVMFun(nameToString(fd.global)).verifiableForm
@@ -95,29 +119,36 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     }))
 
     /**
-     * Analysers for each FunctionDefinition
+     * Retrieve LLVM function from names.
      */
     lazy val funNameToLLVMFun : Map[String, LLVMFunction] = (functions map {
         case f => (f.name, f)
     }).toMap
 
+    /**
+     * A Tree for the verifiable program.
+     */
     val progTree = new Tree[ASTNode, Program](verifiableProgram)
 
-    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter
-
-    // lazy val analyser = new IRAnalyser(program, progTree, funNameToLLVMFun)
+    /**
+     * An analyser for the program Tree.
+     */
     lazy val analyser = new IRAnalyser2(progTree)
 
     /**
      * Find the name of a block. The name may depend on the enclosing function
      * for the first block.
-     * @note We retrieve the enclosing function and use the function blockName
+     * @note We use the program analyser to perform thjis task.
      */
     def blockName(b : Block) : String = {
         analyser.blockName(b)
     }
 
-    def enclosingFun(b : Block) = funNameToLLVMFun(nameToString(analyser.enclosingFun(b).global))
+    /**
+     *  Retrieve the LLVM function of a block.
+     */
+    def enclosingFun(b : Block) : LLVMFunction =
+        funNameToLLVMFun(nameToString(analyser.enclosingFun(b).global))
 
     /**
      * The main function extracted from the verifiable variants.
@@ -384,7 +415,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 BlockTrace(blocks.toList, trace)
         }
 
-    lazy val traceToBlockTrace2 : BlockTrace => BlockTrace2 = {
+    lazy val traceToRichBlockTrace : BlockTrace => BlockTrace2 = {
         case b =>
             //  BlockTrace is case class BlockTrace(blocks : Seq[Block], trace : Trace)
             //  Make a blockTrace with ThreadId
@@ -392,7 +423,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 (b.trace.choices.map(
                     t => ThreadId(t.threadId)
                 ) zip b.blocks).map({
-                        case (threadId, block) => RichBlock(threadId, enclosingFun(block), block)
+                        case (threadId, block) => RichBlock(threadId, FunAnalyser(enclosingFun(block).name), block)
                     }),
                 b.trace
             )
@@ -523,13 +554,10 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         // up so we can do context-dependent computations on it.
         val blocks : BlockTrace = traceToBlockTrace(trace)
 
-        //  BlockTrace is case class BlockTrace(blocks : Seq[Block], trace : Trace)
-        //  Make a blockTrace with ThreadId
-        // val b = BlockTrace2(blocks.blocks.map(b => (ThreadId(0), b)), blocks.trace)
-        val b1 = traceToBlockTrace2(blocks)
-        logger.info("Annotated blocktrace is")
-        logger.info(s"${b1.blocks.map({ case RichBlock(t, f, b) => showBlock(b) + "p(" + f.name + ") t" + t })}.mkString(", ")")
-        // val traceTree = new Tree[Product, BlockTrace](blocks, EnsureTree)
+        //  Make a blockTrace with ThreadId and enclosing function
+        val b1 = traceToRichBlockTrace(blocks)
+
+        //  A tree for the block trace
         val traceTree2 = new Tree[Product, BlockTrace2](b1, EnsureTree)
 
         // If blocks occur more than once in the block trace they will be
@@ -537,14 +565,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = traceTree2.root
 
-        // val progTree = new Tree[ASTNode, Program](program)
+        // A namer for the program and the trace
         val namer = new LLVMTraceNamer(verifiableProgram, traceTree2)
 
-        //  make an analyser for the program
-        // val progAnalyser = new Analyser(progTree)
+        // A term builder for this namer
         val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
-        // val initTerm = new LLVMTermBuilder(blockName, new LLVMInitNamer, config).initTerm(program)
+        // First term with global vars and initialisations
+        val initTerm = termBuilder.initTerm(verifiableProgram)
 
         // Return the terms corresponding to the traced blocks, not including
         // the last step since that is to the error block.
@@ -556,13 +584,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         None
                     else
                         Some(treeBlockTrace.blocks(count - 1))
-                // logger.debug(s"ThreadId is ${choice.threadId}, choice is $choice")
-                // logger.debug(s"nfa.functionIds is ${nfa.functionIds.keys}")
-                // logger.debug(s"generating term for block ${blockName(block._3)} with choice $choice")
-                // val namer = funBuilders.get(choice.threadId).get
-                val res = termBuilder.blockTerms(block.block, optPrevBlock.map(_.block), choice.branchId)
-                logger.debug(s"Term is ${res.map(x => showTerm(x.termDef))}")
-                res
+                termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
         }.map(termBuilder.combineTerms)
 
         // Prepend the global initialisation terms to the terms of the first block
@@ -572,57 +594,33 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
             termBuilder.combineTerms(Seq(termBuilder.initTerm(verifiableProgram), blockTerms.head)) +: blockTerms.tail
     }
 
-    /**
-     * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace.
-     */
-    // def traceToBlockTrace(trace : Trace) : BlockTrace = {
-    //     //  FIXME: fix this one for the MT case
-    //     // val entryBlock = function.functionBody.blocks(0)
-    //     val entryBlock = main.function.functionBody.blocks(0)
-    //     val (finalBlock, blocks) =
-    //         trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-    //             case ((Some(block), blocks), choice) =>
-    //                 //  FIXME: use of main is not OK
-    //                 (main.nextBlock(block, choice.branchId), blocks :+ block)
-    //             case ((None, blocks), choice) =>
-    //                 (None, blocks)
-    //         }
-    //     BlockTrace(blocks, trace)
-    // }
-
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
 
     def getSourceLineText(source : Source, line : Int) : String =
         source.optLineContents(line).getOrElse("").trim
 
-    def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) = (None, None)
-    // funAnalyser.instructionPosition(program, node, metadata) match {
-    //     case Some(Position(termLine, _, termSource)) =>
-    //         val termCode = getSourceLineText(termSource, termLine)
-    //         (Some(termLine), Some(termCode))
-    //     case _ =>
-    //         (None, None)
-    // }
+    //  Uses the program analyser instead of previous funAnalyser
+    def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) =
+        analyser.instructionPosition(program, node, metadata) match {
+            case Some(Position(termLine, _, termSource)) =>
+                val termCode = getSourceLineText(termSource, termLine)
+                (Some(termLine), Some(termCode))
+            case _ =>
+                (None, None)
+        }
 
     def traceBlockEffect(trace : Trace, index : Int, branch : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
-
-        // Get a tree for the relevant block
 
         val blocks = traceToBlockTrace(trace)
         if ((index < 0) || (index >= blocks.blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.blocks.length} so index ${index} is out of range")
 
-        val b1 = traceToBlockTrace2(blocks)
+        val b1 = traceToRichBlockTrace(blocks)
 
-        // val blockTree = new Tree[Product, Block](blocks(index))
+        // Get a tree for the relevant block
         val blockTree = new Tree[Product, RichBlock](b1.blocks(index))
         val block = blockTree.root
 
-        // Get a function-specifc namer and term builder
-        // val threadId = trace.choices(index).threadId
-        // val function = nfa.functionIds.get(threadId).get
-        // val globalNamer = new LLVMGlobalNamer(blockTree)
         val namer = new LLVMTraceNamer(verifiableProgram, blockTree)
         val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
@@ -705,8 +703,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         info : Option[String] = None
     ) : NFA[_, Choice] = {
         verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
-
-        // NFA[Int, Choice](Set(), Set(), Set())
     }
 
     /**
