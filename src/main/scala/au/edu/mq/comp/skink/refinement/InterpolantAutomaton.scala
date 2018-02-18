@@ -1,4 +1,3 @@
-
 package au.edu.mq.comp.skink.verifier
 
 package interpolant
