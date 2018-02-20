@@ -292,29 +292,6 @@ object LLVMHelper {
     }
 
     /**
-     * Ordering for qualified Ids that keeps ids like %1@1 ahead of
-     * things ids like %1@2 and %11@1.
-     */
-    implicit object SortedQIdOrdering extends math.Ordering[SortedQId] {
-        def compare(a : SortedQId, b : SortedQId) : Int = {
-            (showTerm(a.id), showTerm(b.id)) match {
-                case (UserLevelVarName(x, i), UserLevelVarName(y, j)) =>
-                    if (x == y)
-                        i - j
-                    else
-                        (x, y) match {
-                            case (TempVarBaseName(xn), TempVarBaseName(yn)) =>
-                                xn - yn
-                            case _ =>
-                                x compare y
-                        }
-                case (aStr, bStr) =>
-                    aStr compare bStr
-            }
-        }
-    }
-
-    /**
      * Extractor to match various forms of calls to verifier functions,
      * returning the function name. The main reason for the differences
      * between the forms seems to be whether a correct prototype is
@@ -445,6 +422,20 @@ object LLVMHelper {
                     _) if callName contains "pthread_create" => Some((threadName, threadFn))
                 case _ =>
                     None
+            }
+    }
+
+    /**
+     * Whether a block has a PThreadCreate and in this case, the ThreadId and the Function
+     * @note: not used
+     */
+    object PThreadCreateBlock {
+        def unapply(block : Block) : Option[(String, String)] =
+            block.optMetaInstructions.filter({ case PThreadCreate(_, _) => true; case _ => false }).toList match {
+                case List(PThreadCreate(threadName, threadFun)) => Some((threadName, threadFun))
+
+                case List(_)                                    => sys.error(s"Encountered block with more than one PThreadCreate")
+                case List()                                     => None
             }
     }
 
