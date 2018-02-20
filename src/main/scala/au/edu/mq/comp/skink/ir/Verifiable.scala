@@ -25,8 +25,6 @@ trait Verifiable {
      */
     def isVerifiable() : Option[String]
 
-    // def makeVerifiable() : Verifiable
-
     /**
      * Return SMTlib terms that express the effect of the given trace for
      * this verifiable. Each element of the outer sequence contains the terms
