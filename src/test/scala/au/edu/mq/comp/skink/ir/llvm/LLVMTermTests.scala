@@ -9,6 +9,7 @@ import org.bitbucket.franck44.scalasmt.theories.Core
 trait LLVMTermTests extends Tests with Core {
 
     import au.edu.mq.comp.skink.SkinkConfig
+    import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, Term}
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
@@ -60,8 +61,8 @@ trait LLVMTermTests extends Tests with Core {
     val by = makeVarTermB("%y")
     val bz = makeVarTermB("%z")
 
-    def makeCall(id : String, args : Vector[CallArgument]) =
-        Call(NoBinding(), NotTail(), DefaultCC(), Vector(), VoidT(),
+    def makeCall(binding : OptBinding, id : String, args : Vector[CallArgument]) =
+        Call(binding, NotTail(), DefaultCC(), Vector(), VoidT(),
             Function(Named(Global(id))), args, Vector())
 
     def makeLabel(name : String) =
@@ -127,5 +128,34 @@ trait LLVMTermTests extends Tests with Core {
         } else
             fail(s"parse error: ${pr.parseError.msg}")
     }
+
+    /**
+     * The effect of a trace of a given program.
+     */
+    def traceEffect(prog : String, trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+        val Vector(func) = parseProgram(prog)
+        func.traceToTerms(trace)
+    }
+
+    // Support for testing phi insns
+
+    def makeDummyBlock(name : String) =
+        Block(BlockLabel(name), Vector(), None, Vector(),
+            MetaTerminatorInstruction(Unreachable(), noMetadata))
+
+    val fooBlock = makeDummyBlock("foo")
+    val barBlock = makeDummyBlock("bar")
+    val bleBlock = makeDummyBlock("ble")
+
+    // Support for testing global variable initialisation
+
+    def makeGlobalInitVar(id : String, tipe : Type, constantValue : ConstantValue) : GlobalVariableDefinition =
+        GlobalVariableDefinition(
+            GlobalBinding(Global(id)), Common(), DefaultVisibility(),
+            DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
+            DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
+            tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4),
+            Metadata(Vector())
+        )
 
 }

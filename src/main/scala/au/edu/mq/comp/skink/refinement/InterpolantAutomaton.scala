@@ -54,17 +54,7 @@ trait AddBackEdges extends Core with Resources {
 
         itpLogger.info(s"candidate pairs $candidatePairs")
 
-        // FIXME: remove
-        def solverFromName(name : String) : SolverConfig = {
-            org.bitbucket.franck44.scalasmt.configurations.AppConfig.config.find(_.name == name) match {
-                case Some(sc) =>
-                    sc
-                case None =>
-                    sys.error(s"TraceRefinement: can't find solver called $name in config file")
-            }
-        }
-
-        /*
+        /**
          * Check if backedges can be added to the linear automaton
          * If there is a repetition of a block at index i and j, we
          * can try to add a backedge j -- choices(i) -> i + 1
@@ -84,7 +74,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
-                res = using(new SMTSolver(solverFromName("Z3"))) {
+                res = using(new SMTSolver("Z3")) {
                     implicit solver =>
                         function.checkPost(
                             x1,
@@ -139,7 +129,7 @@ case class Interpolant(function : Verifiable, choices : Seq[Choice], fromEnd : B
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
         itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
-        /*
+        /**
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */

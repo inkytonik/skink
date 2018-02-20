@@ -28,49 +28,25 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/count-up-down_false-unreach-call.c</data>
-  <data key="programhash"   >2467c30a0fbd0f3a244bee8525eab688d112c7a1</data>
+  <data key="programfile"   >src/test/resources/citests/math/float_false-unreach-call.c</data>
+  <data key="programhash"   >16cf737f8edd74277b52951d95a555027e299d17</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-  <data key="block">0</data>
-  <data key="node.src">unsigned int n = __VERIFIER_nondet_uint();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">while(x&gt;0)</data>
-  <data key="startline">9</data>
-  <data key="endline">9</data>
+  <data key="assumption">\result == 77.3;</data>
+  <data key="assumption.scope">main</data>
+  <data key="assumption.resultfunction">__VERIFIER_nondet_float</data>
+  <data key="edge.src">float f = __VERIFIER_nondet_float();</data>
+  <data key="startline">7</data>
 </edge>
 
 <node id="N1">
-  <data key="block">7</data>
-  <data key="node.src">while(x&gt;0)</data>
-</node>
-
-<edge id="E1" source="N1" target="N2">
-  <data key="edge.src">while(x&gt;0)</data>
-  <data key="startline">9</data>
-  <data key="endline">9</data>
-</edge>
-
-<node id="N2">
-  <data key="block">15</data>
-  <data key="node.src">if (y == n) __VERIFIER_error();</data>
-</node>
-
-<edge id="E2" source="N2" target="N3">
-  <data key="edge.src">if (y == n) __VERIFIER_error();</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
-</edge>
-
-<node id="N3">
   <data key="violation">true</data>
-  <data key="block">19</data>
-  <data key="node.src">if (y == n) __VERIFIER_error();</data>
 </node>
 
 </graph>

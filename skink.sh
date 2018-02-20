@@ -1,13 +1,10 @@
 #!/bin/bash
 
-if test $# -lt 2
+if test $# -lt 1
 then
-  echo "usage: skink.sh cmd file.c"
-  echo "where cmd is cmp, dev or exp"
+  echo "usage: skink.sh file.c"
   exit 1
 fi
-
-cmd=$1; shift
 
 # Witness file for competititon, benchexec etc
 WTNFILE=witness.graphml
@@ -22,31 +19,21 @@ export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=./include/:$C_INCLUDE_PATH
 
 ARGS=""
-case $cmd in
-    cmp) JAR=skink.jar
-         ARGS="-m 300 $ARGS"
-         ;;
-    dev) JAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
-         ;;
-    loc) JAR=target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
-         ;;
-    exp) JAR=skink_exp.jar
-         ARGS="-m 300 $ARGS"
-         GREPRES=`egrep "while[ ]*\([ ]*1[ ]*\)|pthread_[^\[;]*\[" $file`
-         if [[ ! -z $GREPRES ]]; then
-           echo "UNKNOWN"
-           exit 0
-         fi
-         ;;
-    *) echo "skink.sh: unexpected command $cmd"
-       exit 1
-esac
 
-java -Xmx1400m -Xss5m \
+DEVJAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
+if test -f $DEVJAR 
+then 
+    JAR=$DEVJAR 
+else 
+    JAR=skink.jar 
+fi    
+
+java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
   au.edu.mq.comp.skink.Main \
   --verify \
   --witness-file $WTNFILE \
+  --witness-format nondet \
   $ARGS \
   $*
 

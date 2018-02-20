@@ -99,6 +99,7 @@ FALSE
 <node id="N6">
   <data key="violation">true</data>
   <data key="block">23</data>
+  <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
 </graph>

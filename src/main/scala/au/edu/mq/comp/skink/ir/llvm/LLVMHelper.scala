@@ -4,8 +4,6 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 object LLVMHelper {
 
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     // Property helpers
@@ -28,6 +26,13 @@ object LLVMHelper {
     // Useful predicates
 
     /**
+     * Return whether or not the named function is an absolute value
+     * function.
+     */
+    def isAbsoluteValueFunction(name : String) : Boolean =
+        name.startsWith("llvm.fabs.")
+
+    /**
      * Return whether or not the named function is the special verifier
      * assertion function.
      */
@@ -35,17 +40,11 @@ object LLVMHelper {
         name.startsWith("__VERIFIER_assert")
 
     /**
-     * Return whether or not the named function is a special verifier
-     * function.
+     * Return whether or not the named function is a function that terminates
+     * program execution.
      */
-    def isVerifierFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER")
-
-    /**
-     * Return whether or not the named function is an output function.
-     */
-    def isOutputFunction(name : String) : Boolean =
-        List("fprintf", "printf") contains name
+    def isExitFunction(name : String) : Boolean =
+        name == "abort" || name == "exit"
 
     /**
      * Return whether or not the named function is an LLVM intrinsic.
@@ -54,12 +53,40 @@ object LLVMHelper {
         name.startsWith("llvm.")
 
     /**
-     * Return whether or not the named function is a memory allcoation function.
+     * Return whether or not the named function is a memory allocation function.
      */
     def isMemoryAllocFunction(name : String) : Boolean =
-        List("alloca", "calloc", "free", "malloc") contains name
+        List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
+
+    /**
+     * Return whether or not the named function is an output function.
+     */
+    def isOutputFunction(name : String) : Boolean =
+        List("fprintf", "printf") contains name
+
+    /**
+     * Return whether or not the named function is a special verifier
+     * function.
+     */
+    def isVerifierFunction(name : String) : Boolean =
+        name.startsWith("__VERIFIER")
 
     // Extractors to make matching more convenient
+
+    /**
+     * Matcher for absolute value calls. Successful matches return the
+     * optional binding and the argument.
+     */
+    object AbsoluteValueFunctionCall {
+        def unapply(insn : Instruction) : Option[(OptBinding, Value)] = {
+            insn match {
+                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(ValueArg(_, _, arg)), _) if isAbsoluteValueFunction(name) =>
+                    Some((to, arg))
+                case _ =>
+                    None
+            }
+        }
+    }
 
     /**
      * Matcher for assumption function names.
@@ -110,7 +137,7 @@ object LLVMHelper {
         def unapply(fn : Function) : Option[String] =
             fn match {
                 case Function(Named(Global(s))) if isLLVMIntrinsic(s) || isVerifierFunction(s) || isMemoryAllocFunction(s) ||
-                    isOutputFunction(s) || isThreadFunction(s) =>
+                    isExitFunction(s) | isThreadFunction(s) =>
                     Some(s)
                 case _ =>
                     None
@@ -145,6 +172,21 @@ object LLVMHelper {
                 case _ =>
                     None
             }
+    }
+
+    /**
+     * Matcher for memory allocation calls. Successful matches return the
+     * optional binding and the name of the function.
+     */
+    object MemoryAllocFunctionCall {
+        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
+            insn match {
+                case Call(to, _, _, _, _, Function(Named(Global(name))), _, _) if isMemoryAllocFunction(name) =>
+                    Some((to, name))
+                case _ =>
+                    None
+            }
+        }
     }
 
     /**
@@ -210,12 +252,16 @@ object LLVMHelper {
 
     }
 
-    /*
-     * Extractor for variable names that matches if the variable is a
-     * user-level variable (i.e., one defined in the source code) as
-     * opposed to a compiler-defined temporary. If a match is found,
-     * the basename of the variable and the index are returned (e.g.,
-     * `%i@1` returns `i` and 1).
+    /**
+     * Make an indexed variable name. Inverse of `UserLevelVarName`.
+     */
+    def makeIndexedVarName(varName : String, index : Int) : String =
+        s"${varName}@${index}"
+
+    /**
+     * Extractor for indexed variable names. If a match is found,
+     * the name of the variable and the index are returned (e.g.,
+     * `%i@1` returns `i` and 1). Inverse of `makeIndexedVarName`.
      */
     object UserLevelVarName {
         def unapply(name : String) : Option[(String, Int)] = {
@@ -228,6 +274,7 @@ object LLVMHelper {
             }
         }
     }
+
     /*
      * Extractor for base variable names that identifies numeric names,
      * i.e., LLVM temporaries.

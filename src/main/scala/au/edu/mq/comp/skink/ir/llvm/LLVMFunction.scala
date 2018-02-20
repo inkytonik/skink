@@ -13,11 +13,8 @@ import au.edu.mq.comp.skink.ir.{Verifiable}
  *
  * @param   program     Used only to generate failure trace
  */
-case class LLVMFunction(
-        program : Program,
-        val function : FunctionDefinition,
-        config : SkinkConfig
-) extends Attribution with IRFunction {
+class LLVMFunction(val program : Program, val function : FunctionDefinition,
+        config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
@@ -26,17 +23,19 @@ case class LLVMFunction(
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.franck44.scalasmt.theories.{BoolTerm, Core}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-    import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.AssemblySyntax.{True => _, Value => LLVMValue, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
-    import org.scalallvm.assembly.Analyser.defaultBlockName
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success, Try}
+
+    object BoolOps extends Core
+    import BoolOps._
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -147,48 +146,54 @@ case class LLVMFunction(
         List()
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        // val blockTrace = traceToBlockTrace(trace)
-        // val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-        //
-        // // Get a function-specifc namer and term builder
-        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        // val termBuilder = new LLVMTermBuilder(blockName, namer, config)
-        //
-        // // The term for the effects of program initialisation
-        // val initTerm = termBuilder.initTerm(program)
-        //
-        // // If blocks occur more than once in the block trace they will be
-        // // shared. We need each instance to be treated separately so we use
-        // // the block trace after it has been made into a proper tree.
-        // val treeBlockTrace = traceTree.root
-        //
-        // // Return the terms corresponding to the traced blocks, not including
-        // // the last step since that is to the error block.
-        // val blockTerms =
-        //     trace.choices.init.zipWithIndex.map {
-        //         case (choice, count) =>
-        //             val block = treeBlockTrace.blocks(count)
-        //             val optPrevBlock =
-        //                 if (count == 0)
-        //                     None
-        //                 else
-        //                     Some(treeBlockTrace.blocks(count - 1))
-        //             termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
-        //     }.map(termBuilder.combineTerms)
-        //
-        // // Prepend the global initialisation terms to the terms of the first block
-        // if (blockTerms.isEmpty)
-        //     Seq(initTerm)
-        // else
-        //     termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
+        val blockTrace = traceToBlockTrace(trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+
+        // The term for the effects of program initialisation
+        val initTerm = termBuilder.initTerm(program)
+
+        // If blocks occur more than once in the block trace they will be
+        // shared. We need each instance to be treated separately so we use
+        // the block trace after it has been made into a proper tree.
+        val treeBlockTrace = traceTree.root
+
+        // Return the terms corresponding to the traced blocks, not including
+        // the last step since that is to the error block. A trace with a
+        // single choice doesn't have an error block. This can't occur during
+        // verification but is useful for testing.
+        val blockTerms =
+            trace.choices.size match {
+                case 0 =>
+                    sys.error("traceToTerms: unexpected empty trace")
+                case 1 =>
+                    val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
+                    Seq(termBuilder.combineTerms(terms))
+                case _ =>
+                    trace.choices.init.zipWithIndex.map {
+                        case (choice, count) =>
+                            val block = treeBlockTrace.blocks(count)
+                            val optPrevBlock =
+                                if (count == 0)
+                                    None
+                                else
+                                    Some(treeBlockTrace.blocks(count - 1))
+                            termBuilder.blockTerms(block, optPrevBlock, choice)
+                    }.map(termBuilder.combineTerms)
+            }
+
+        // Prepend the global initialisation terms to the terms of the first block
+        if (blockTerms.isEmpty)
+            Seq(initTerm)
+        else
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
 
     }
 
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = {
-
-        def blockName(block : Block) : String =
-            defaultBlockName(block, funAnalyser.anonArgCount.toString)
-
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
         traceToBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
@@ -206,7 +211,6 @@ case class LLVMFunction(
                     }
                 Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
         }
-    }
 
     // Helper methods
 
@@ -331,9 +335,13 @@ case class LLVMFunction(
     // }
 
     /**
-     * Prepare the IR of a function for verification and return the
-     * new IR form. The transformation is:
-     *
+     * Prepare the IR of a function for verification by transforming it
+     * and return the new IR form.
+     */
+    lazy val makeVerifiable : FunctionDefinition =
+        fixErrorCalls(function)
+
+    /**
      * Replace blocks that contain a call to the __VERIFIER_error
      * function after an assertion has failed to a branch to a
      * __error block. In detail, look for a block of this form
@@ -362,9 +370,9 @@ case class LLVMFunction(
      *
      * Blocks that don't contain a call to __VERIFIER_error are left alone.
      */
-    lazy val verifiableForm : FunctionDefinition = {
+    def fixErrorCalls(function : FunctionDefinition) : FunctionDefinition = {
 
-        logger.info(s"verifiableForm: $name")
+        logger.info(s"fixErrorCalls: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 
@@ -403,10 +411,11 @@ case class LLVMFunction(
                     Block(BlockLabel(errorLabel), Vector(), None, after,
                         block.metaTerminatorInstruction)
                 errorBlocks += errorBlock
-                Block(block.optBlockLabel, Vector(), None, before,
+                Block(block.optBlockLabel, block.optMetaPhiInstructions,
+                    block.optMetaLandingPadInstruction, before,
                     MetaTerminatorInstruction(
                         Branch(Label(Local(errorLabel))),
-                        Metadata(Vector())
+                        after(0).metadata
                     ))
             }
         }
@@ -419,10 +428,11 @@ case class LLVMFunction(
 
         // Return the new function
         val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-        programLogger.debug(s"* Function $name for verification:\n")
+        programLogger.debug(s"* Function $name after fixErrorCalls:\n")
         programLogger.debug(show(ret))
-        programLogger.debug(s"\n* AST of function $name for verification:\n\n")
+        programLogger.debug(s"\n* AST of function $name after fixErrorCalls:\n\n")
         programLogger.debug(layout(any(ret)))
+        programLogger.debug("\n\n")
         ret
 
     }
@@ -479,22 +489,22 @@ case class LLVMFunction(
         (Foo.True(), Map())
 
         // Get a tree for the relevant block
-        // val blocks = traceToBlockTrace(trace).blocks
-        // if ((index < 0) || (index >= blocks.length))
-        //     sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
-        // val blockTree = new Tree[Product, Block](blocks(index))
-        // val block = blockTree.root
-        //
-        // // Get a function-specifc namer and term builder
-        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        // val termBuilder = new LLVMTermBuilder(blockName, namer, config)
-        //
-        // // Make a single term for this block and choice
-        // val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
-        // val term = combineTerms(namer, termBuilder.blockTerms(block, optPrevBlock, choice))
-        //
-        // // Return the term and the name mapping that applies after the block
-        // (term, namer.stores(block))
+        val blocks = traceToBlockTrace(trace).blocks
+        if ((index < 0) || (index >= blocks.length))
+            sys.error(s"traceBlockEffect: trace length is ${blocks.length} so index ${index} is out of range")
+        val blockTree = new Tree[Product, Block](blocks(index))
+        val block = blockTree.root
+
+        // Get a function-specifc namer and term builder
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
+        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+
+        // Make a single term for this block and choice
+        val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
+        val term = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
+
+        // Return the term and the name mapping that applies after the block
+        (term, namer.stores(block))
 
     }
 
@@ -523,7 +533,7 @@ case class LLVMFunction(
     lazy val traceToBlockTrace : Trace => BlockTrace =
         attr {
             case trace =>
-                val entryBlock = function.functionBody.blocks(0)
+                val entryBlock = makeVerifiable.functionBody.blocks(0)
                 val (finalBlock, blocks) =
                     trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                         case ((Some(block), blocks), choice) =>
@@ -554,6 +564,8 @@ case class LLVMFunction(
                         Some(dfltLabel)
                     else
                         Some(cases(choice).label)
+                case _ : Ret | RetVoid() if choice == 0 =>
+                    None
                 case Unreachable() =>
                     None
                 case insn =>
@@ -635,57 +647,26 @@ case class LLVMFunction(
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
-        List()
-        // val blockTrace = traceToBlockTrace(failTrace.trace)
-        // val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-        // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        //
-        // def termToCValue(term : Term) : Int =
-        //     term match {
-        //         case ConstantTerm(NumLit(i))                        => i.toInt
-        //         case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
-        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
-        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
-        //         case _ =>
-        //             sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
-        //     }
-        //
-        // def getValue(to : Name, tipe : String) : Option[Int] = {
-        //     val varName = show(to)
-        //     val sort = if (tipe == "bool") BoolSort() else IntSort()
-        //     val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
-        //     failTrace.values.get(qid) match {
-        //         case Some(value) =>
-        //             Some(termToCValue(value.t))
-        //         case None =>
-        //             logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
-        //             None
-        //     }
-        // }
-        //
-        // collectl {
-        //     case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
-        //         val value = binding match {
-        //             case Binding(to) => getValue(to, tipe)
-        //             case NoBinding() => None
-        //         }
-        //         val (optCode, optLine) = getCodeLine(call, metadata)
-        //         NonDetCall(tipe, value, optLine, optCode)
-        // }(blockTrace.blocks)
+        val blockTrace = traceToBlockTrace(failTrace.trace)
+        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
 
-    }
+        def getIndexedVarName(to : Name) : String = {
+            val varName = show(to)
+            makeIndexedVarName(varName, namer.indexOf(to, varName))
+        }
 
-    /**
-     * Return an error trace if any.
-     *
-     * @param   r   A refinement
-     * @return      An error trace not in the refinement.
-     */
-    def getErrorTrace(r : NFA[_, Choice]) = {
-        import org.bitbucket.franck44.automat.lang.Lang
-
-        (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
-    }
+        collectl {
+            case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
+                val value = binding match {
+                    case Binding(to) =>
+                        failTrace.values.get(getIndexedVarName(to))
+                    case NoBinding() =>
+                        None
+                }
+                val (optCode, optLine) = getCodeLine(call, metadata)
+                NonDetCall(tipe, value, optLine, optCode)
+        }(blockTrace.blocks)
 
     /**
      * Build a refinement automaton from an infeasible error trace.

@@ -96,10 +96,14 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val programs = List(clang)
 
         // Setup command arguments
-        val optarg = s"-O${config.optLevel()}"
-        val clangwargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration $filename"
+        val archargs = s"-target i386-pc-linux-gnu -m${config.architecture()}"
+        val optargs = s"-O${config.optLevel()} "
+        val wargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
+        val fargs = "-fno-vectorize -fno-slp-vectorize"
+        val otherargs = "-gline-tables-only -Xclang -disable-lifetime-markers -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
+        val llvmargs = "-mllvm -inline-threshold=15000"
         val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -S -emit-llvm -gline-tables-only $optarg -mllvm -inline-threshold=15000 -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.* -o $clangllfile -x c $clangdefs $clangwargs"
+        val clangargs = s"-c -S -emit-llvm $archargs $optargs $wargs $fargs $otherargs $llvmargs -o $clangllfile $clangdefs -x c $filename"
 
         def run() : Either[IR, Messages] = {
             deleteFile(clangllfile)

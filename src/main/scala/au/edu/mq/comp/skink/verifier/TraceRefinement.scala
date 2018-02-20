@@ -11,9 +11,9 @@ class TraceRefinement(config : SkinkConfig) {
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
-    import au.edu.mq.comp.skink.{BitIntegerMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, Z3SolverMode}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, State, Trace, Choice}
-    import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode, BoolectorSolverMode, YicesSolverMode, YicesNonIncrSolverMode}
+    import au.edu.mq.comp.skink.{BitIntegerMode, BoolectorSolverMode, CVC4SolverMode, MathIntegerMode, SMTInterpolSolverMode, YicesSolverMode, YicesNonIncrSolverMode, Z3SolverMode}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
+    import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
@@ -48,18 +48,18 @@ class TraceRefinement(config : SkinkConfig) {
     def runSolver(
         selectedSolver : SMTSolver,
         terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[SortedQId, Value])] =
+    ) : Try[(SatResponses, Map[String, Value])] =
         using(selectedSolver) {
             implicit solver =>
-                isSat(terms : _*) map {
+                isSat(config.solverTimeOut())(terms : _*) map {
                     case Sat() =>
                         getDeclCmd() match {
                             case Success(xs) =>
                                 val map = xs.map {
-                                    x => (x, getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                    x => (showTerm(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
                                 }.collect {
-                                    case (x, Success(v)) =>
-                                        (x, v)
+                                    case (s, Success(v)) =>
+                                        (s, v)
                                 }.toMap
                                 (Sat(), map)
                             case _ =>
@@ -129,7 +129,59 @@ class TraceRefinement(config : SkinkConfig) {
      */
     def traceRefinement(function : Verifiable) : Try[Option[FailureTrace]] = {
 
-        // cfgLogger.debug(toDot(toDetNFA(function.nfa)._1, s"${function.name} initial"))
+        val functionLang = Lang(function.nfa)
+
+        // Get a solver specification as per configuration options. This
+        // object creation does not spawn any process merely declare a solver
+        // type we want to use
+        def selectedSolver = {
+            config.solverMode() match {
+                case BoolectorSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            sys.error(s"TraceRefinement: Boolector not supported in math integer mode")
+                        case BitIntegerMode() =>
+                            new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
+                    }
+                case CVC4SolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
+                    }
+                case SMTInterpolSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: SMTInterpol not supported in bit integer mode")
+                    }
+                case YicesSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: Yices not supported in bit integer mode")
+                    }
+                case YicesNonIncrSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            sys.error(s"TraceRefinement: Yices-nonIncr not supported in bit integer mode")
+                    }
+                case Z3SolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                        case BitIntegerMode() =>
+                            new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                    }
+            }
+        }
+
+        cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         /*
          *  The recursive definition of the trace refinement algorithm
@@ -166,7 +218,9 @@ class TraceRefinement(config : SkinkConfig) {
                     val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        logger.debug(s"trace effect $i: ${showTerm(traceTerms(i).termDef)}")
+                        val term = traceTerms(i)
+                        logger.debug(s"trace effect $i: ${showTerm(term.termDef)}")
+                        logger.debug(s"trace vars $i: ${term.typeDefs.map(showTerm(_))}")
                     }
 
                     // Check satisfiability and if Sat, get model values
@@ -176,14 +230,10 @@ class TraceRefinement(config : SkinkConfig) {
                     result match {
 
                         case Success((Sat(), values)) =>
-                            /*
-                             * Yes, sat <=> feasible. We've found a way in which the program
-                             * can fail. Build the failure trace and return.
-                             */
-                            // logger.info(s"failure trace is feasible, program is incorrect")
-                            // for (x <- ir.sortIds(values.keys.toVector)) {
-                            //     logger.debug(s"value: ${showTerm(x.id)} = ${values(x).show}")
-                            // }
+                            logger.info(s"failure trace is feasible, program is incorrect")
+                            for (x <- ir.sortIds(values.keys.toVector)) {
+                                logger.debug(s"value: $x = ${values(x).show}")
+                            }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
 

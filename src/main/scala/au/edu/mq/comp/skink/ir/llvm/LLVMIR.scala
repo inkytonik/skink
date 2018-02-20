@@ -51,9 +51,13 @@ case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boo
  */
 class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution with IR {
 
+<<<<<<< HEAD
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State, FailureTrace, NonDetCall, Step}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+=======
+    import au.edu.mq.comp.skink.ir.IRFunction
+>>>>>>> master
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblySyntax.{FunctionDefinition}
     import org.scalallvm.assembly.Executor
@@ -86,10 +90,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     def show : String =
         org.scalallvm.assembly.AssemblyPrettyPrinter.show(program, 5)
 
+<<<<<<< HEAD
     /**
      * ???
      */
     def sortIds(ids : Vector[SortedQId]) : Vector[SortedQId] =
+=======
+    def sortIds(ids : Vector[String]) : Vector[String] =
+>>>>>>> master
         ids.sorted
 
     /**

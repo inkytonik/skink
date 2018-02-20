@@ -21,14 +21,15 @@ class MathCITests extends CITests {
         for (optLevel <- optLevels) {
             makeTests("math", optLevel, witnessFormat)
         }
-        makeTests("math/function", 2, witnessFormat)
+        makeTests(s"math/function-Yices-nonIncr", 2, witnessFormat)
+        makeTests(s"math/function-Z3", 2, witnessFormat)
     }
 }
 
 class BitCITests extends CITests {
     for (witnessFormat <- witnessFormats) {
         for (optLevel <- optLevels) {
-            makeTests("bit", optLevel, witnessFormat, List("-i", "bit"))
+            makeTests("bit", optLevel, witnessFormat)
         }
     }
 }
