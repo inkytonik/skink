@@ -1,6 +1,6 @@
 package au.edu.mq.comp.skink.verifier
 
-import au.edu.mq.comp.skink.ir.{IR, Verifiable}
+import au.edu.mq.comp.skink.ir.{IR, Verifiable, Choice}
 import au.edu.mq.comp.skink.SkinkConfig
 
 /**
@@ -127,9 +127,9 @@ class TraceRefinement(config : SkinkConfig) {
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
      */
-    def traceRefinement(function : Verifiable) : Try[Option[FailureTrace]] = {
+    def traceRefinement(ir : Verifiable) : Try[Option[FailureTrace]] = {
 
-        val functionLang = Lang(function.nfa)
+        // val functionLang = Lang(function.nfa)
 
         // Get a solver specification as per configuration options. This
         // object creation does not spawn any process merely declare a solver
@@ -181,7 +181,7 @@ class TraceRefinement(config : SkinkConfig) {
             }
         }
 
-        cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
+        // cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
         /*
          *  The recursive definition of the trace refinement algorithm
@@ -189,14 +189,14 @@ class TraceRefinement(config : SkinkConfig) {
         @tailrec
         def refineRec(r : NFA[Int, Choice], iteration : Int) : Try[Option[FailureTrace]] = {
 
-            logger.info(s"${function.name} iteration $iteration")
+            logger.info(s"${ir.name} iteration $iteration")
             // cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
 
-            function.getErrorTrace(r) match {
+            ir.getErrorTrace(r) match {
 
                 // No failure trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"${function.name} has no failure traces")
+                    logger.info(s"${ir.name} has no failure traces")
                     Success(None)
 
                 /*
@@ -206,7 +206,7 @@ class TraceRefinement(config : SkinkConfig) {
                  */
                 case Some(trace) =>
 
-                    logger.info(s"${function.name} has a candidate failure trace")
+                    logger.info(s"${ir.name} has a candidate failure trace")
                     logger.debug(s"failure trace is (Thread,Branch): ${trace}")
 
                     /*
@@ -215,7 +215,7 @@ class TraceRefinement(config : SkinkConfig) {
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
-                    val traceTerms = function.traceToTerms(trace)
+                    val traceTerms = ir.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         val term = traceTerms(i)
@@ -231,9 +231,9 @@ class TraceRefinement(config : SkinkConfig) {
 
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- ir.sortIds(values.keys.toVector)) {
-                                logger.debug(s"value: $x = ${values(x).show}")
-                            }
+                            // for (x <- ir.sortIds(values.keys.toVector)) {
+                            //     logger.debug(s"value: $x = ${values(x).show}")
+                            // }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
 
@@ -247,7 +247,7 @@ class TraceRefinement(config : SkinkConfig) {
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 refineRec(
-                                    toDetNFA(r + function.buildRefinement(trace, Some(iteration.toString)))._1,
+                                    toDetNFA(r + ir.buildRefinement(trace, Some(iteration.toString)))._1,
                                     iteration + 1
                                 )
                             } else {

@@ -260,14 +260,14 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
             if (config.multiThreadMode()) {
                 logger.info(s"processIR multi-thread mode: processing")
                 val verifier = new Verifier(ir, ir, config)
-                verifier.verify()
+                verifier.verify(this, ir)
             } else {
                 //  Look for a main and analyse it
                 for (function <- ir.functions) {
                     if (function.name == "main") {
                         logger.info(s"processIR single-thread mode: processing ${function.name}")
                         val verifier = new Verifier(function, ir, config)
-                        verifier.verify()
+                        verifier.verify(this, function)
                     } else {
                         logger.info(s"processIR: skipping ${function.name}")
                     }

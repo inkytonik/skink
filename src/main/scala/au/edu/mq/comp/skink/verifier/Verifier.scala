@@ -20,7 +20,7 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
     /**
      * Verify a function and output the result in SV-COMP format.
      */
-    def verify(driver : Driver, function : IRFunction) {
+    def verify(driver : Driver, function : Verifiable) {
 
         //  Create a verifiable according to the config
         //  TODO: add config flag and set mtFlag accordingly
@@ -95,7 +95,7 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
                 val fullConfigDesc = fullArgs.mkString(" ")
                 logger.info(s"verify: trying configuration args: $fullConfigDesc")
                 val fullConfig = getFullConfig(fullArgs)
-                val refiner = new TraceRefinement(ir, fullConfig)
+                val refiner = new TraceRefinement(fullConfig)
                 function match {
                     case llvmFunction : LLVMFunction =>
                         val function = new LLVMFunction(llvmFunction.program, llvmFunction.function, fullConfig)
@@ -126,6 +126,18 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
             reportUnknown(unknownReasons.result())
         }
 
+        def runVerification() {
+            val refiner = new TraceRefinement(config)
+            refiner.traceRefinement(verifiable) match {
+                case Success(None) =>
+                    reportCorrect()
+                case Success(Some(witnessTrace)) =>
+                    reportIncorrect(witnessTrace)
+                case Failure(e) =>
+                    reportUnknown(s"refinement failure: ${e.getMessage}")
+            }
+        }
+
         try {
             // Detect if the verifiable is not in a form for verification and abort
             verifiable.isVerifiable() match {
@@ -133,8 +145,14 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
                     logger.info(s"verify: ${verifiable.name} is not verifiable, aborting")
                     sys.error(s"${verifiable.name} is not verifiable, $reason")
                 case _ =>
-                    // Function is ok, go for verification
-                    runVerifications()
+                    // verifiable is ok, go for verification
+                    if (config.multiThreadMode()) {
+                        logger.warn("Multi-thread mode uses runVerification() ")
+                        runVerification()
+                    } else {
+                        logger.warn("Single-thread mode uses runVerifications()")
+                        runVerifications()
+                    }
             }
         } catch {
             case e : java.lang.Exception =>
