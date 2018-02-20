@@ -7,11 +7,6 @@ import org.scalallvm.assembly.AssemblySyntax.{Program, Block}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 
 /**
- * A block trace is a sequence of blocks that comprise an error trace.
- */
-case class BlockTrace(blocks : Seq[Block], trace : Trace)
-
-/**
  * A Thread Identifier.
  */
 case class ThreadId(k : Int)
@@ -22,7 +17,7 @@ case class ThreadId(k : Int)
 case class FunAnalyser(name : String)
 
 /**
- * A fully-qualified block.
+ * A fully-qualified block in a trace.
  *
  * @param   threadId        The thread identifier for this block.
  * @param   funAnalyser     The enclosing function analyser.
@@ -43,7 +38,7 @@ case class RichBlock(threadId : ThreadId, funAnalyser : FunAnalyser, block : Blo
  * @param   blocks  The sequence of (rich) blocks that correspind to `trace`
  * @param   trace   A trace in the program.
  */
-case class BlockTrace2(val blocks : Seq[RichBlock], trace : Trace)
+case class RichBlockTrace(val blocks : Seq[RichBlock], trace : Trace)
 
 /**
  * A state of the program
@@ -210,7 +205,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         functions, main
     )
 
-    //  Some helpers to debug
+    //  ----- Some helpers to debug
+
     val (printNFA, nodeInfo) = org.bitbucket.franck44.automat.util.Determiniser.toDetNFA(
         nfa,
         { x : LLVMState ⇒ x.threadLocs.mkString(",") }
@@ -231,7 +227,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     cfgLogger.info(s"${toPrint}")
 
-    //
+    // -----
 
     /**
      *  Given a functionDefinition split the blocks to make sure there
