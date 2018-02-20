@@ -594,6 +594,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         // Make a single term for this block and branch
         val term = termBuilder.combineTerms(termBuilder.blockTerms(block.block, None, branch))
 
+        logger.debug(s"Term is $term")
+
         // Return the term and the name mapping that applies after the block
         (term, namer.stores(block))
 
