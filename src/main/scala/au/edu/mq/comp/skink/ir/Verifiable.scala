@@ -104,4 +104,8 @@ trait Verifiable {
      */
     def getErrorTrace(r : NFA[_, Choice]) : Option[Trace]
 
+    /**
+     * Sort IR ids into a useful order of display to the user.
+     */
+    def sortIds(ids : Vector[String]) : Vector[String] = ids.sorted
 }

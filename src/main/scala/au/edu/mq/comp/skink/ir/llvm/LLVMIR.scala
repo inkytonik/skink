@@ -88,9 +88,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     def show : String =
         org.scalallvm.assembly.AssemblyPrettyPrinter.show(program, 5)
 
-    def sortIds(ids : Vector[String]) : Vector[String] =
-        ids.sorted
-
     /**
      * The name of the file for this program.
      * @note this is required by the Verifiable trait. Ity is the function name for
@@ -174,13 +171,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
             case None =>
                 //  Main is verifiable
                 //  Check that each function called in pthread_create from main is verifiable
-                val pthreadCalls : Vector[IRFunction] = main.function.functionBody
+                val pthreadCalls : Vector[LLVMFunction] = main.function.functionBody
                     .blocks
                     .flatMap(
                         //  For each (meta) instruction, collect the name of pthread create
                         b => b.optMetaInstructions.collect({ case PThreadCreate(_, t) => t })
                     )
-                    .flatMap(getFunctionByName)
+                    .flatMap(fname => funNameToLLVMFun.get(fname))
                 programLogger.debug(s"Arguments of pthread_create in main: ${(pthreadCalls.map(_.name)).mkString(",")}")
 
                 //  Retrieve each function in the args of pthread_create calls and
