@@ -142,7 +142,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     /**
      * An analyser for the program Tree.
      */
-    lazy val analyser = new IRAnalyser2(progTree)
+    lazy val analyser = new IRAnalyser(progTree)
 
     /**
      * Find the name of a block. The name may depend on the enclosing function
