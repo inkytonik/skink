@@ -220,7 +220,7 @@ class TraceRefinement(config : SkinkConfig) {
                     for (i <- 0 until traceTerms.length) {
                         val term = traceTerms(i)
                         logger.debug(s"trace effect $i: ${showTerm(term.termDef)}")
-                        logger.debug(s"trace vars $i: ${term.typeDefs.map(showTerm(_))}")
+                        // logger.debug(s"trace vars $i: ${term.typeDefs.map(showTerm(_))}")
                     }
 
                     // Check satisfiability and if Sat, get model values
