@@ -388,7 +388,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                                 logger.debug(s"-- processing choice $choice")
                                 import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
 
-                                //  Determine last block for choice.threadId
+                                //  Determine last block in thread choice.threadId
                                 val srcBlock : RichBlock = lastInThread(choice.threadId)
                                 logger.debug(s"srcBlock is ${showllvm(srcBlock.block)}")
                                 //  Next block in enclosing function of srcBlock
@@ -528,8 +528,6 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                         Some(treeBlockTrace.blocks(count - 1))
                 termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
         }.map(termBuilder.combineTerms)
-
-        // logger.debug(s"BlockTerms term is ${(blockTerms.zipWithIndex.map(showTerm)}")
 
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
