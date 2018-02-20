@@ -13,7 +13,7 @@ import au.edu.mq.comp.skink.ir.{Verifiable}
  *
  * @param   program     Used only to generate failure trace
  */
-class LLVMFunction(val program : Program, val function : FunctionDefinition,
+case class LLVMFunction(val program : Program, val function : FunctionDefinition,
         config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.{NFA, DetAuto}
@@ -151,7 +151,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(funAnalyser.blockName, namer, config)
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
@@ -170,7 +170,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 case 0 =>
                     sys.error("traceToTerms: unexpected empty trace")
                 case 1 =>
-                    val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
+                    val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0).branchId)
                     Seq(termBuilder.combineTerms(terms))
                 case _ =>
                     trace.choices.init.zipWithIndex.map {
@@ -181,7 +181,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                                     None
                                 else
                                     Some(treeBlockTrace.blocks(count - 1))
-                            termBuilder.blockTerms(block, optPrevBlock, choice)
+                            termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
                     }.map(termBuilder.combineTerms)
             }
 
@@ -334,6 +334,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     //
     // }
 
+    lazy val verifiableForm = makeVerifiable
     /**
      * Prepare the IR of a function for verification by transforming it
      * and return the new IR form.
@@ -497,7 +498,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(funAnalyser.blockName, namer, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
@@ -668,6 +669,8 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 NonDetCall(tipe, value, optLine, optCode)
         }(blockTrace.blocks)
 
+    }
+
     /**
      * Build a refinement automaton from an infeasible error trace.
      *
@@ -684,4 +687,15 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
     }
 
+    /**
+     * Return an error trace if any.
+     *
+     * @param   r   A refinement
+     * @return      An error trace not in the refinement.
+     */
+    def getErrorTrace(r : NFA[_, Choice]) = {
+        import org.bitbucket.franck44.automat.lang.Lang
+
+        (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
+    }
 }
