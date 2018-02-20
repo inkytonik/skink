@@ -455,22 +455,6 @@ case class LLVMFunction(val program : Program, val function : FunctionDefinition
 
     /**
      * Follow the choices given by a trace to construct the trace of blocks
-     * that are executed by the trace.
-     */
-    // def traceToBlockTrace(trace : Trace) : BlockTrace = {
-    //     val entryBlock = function.functionBody.blocks(0)
-    //     val (finalBlock, blocks) =
-    //         trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
-    //             case ((Some(block), blocks), choice) =>
-    //                 (nextBlock(block, choice.branchId), blocks :+ block)
-    //             case ((None, blocks), choice) =>
-    //                 (None, blocks)
-    //         }
-    //     BlockTrace(blocks, trace)
-    // }
-
-    /**
-     * Follow the choices given by a trace to construct the trace of blocks
      * that are executed by the trace. It's useful for this to be an attribute
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
