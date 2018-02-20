@@ -9,6 +9,11 @@ import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import au.edu.mq.comp.skink.ir.{Verifiable}
 
 /**
+ * A block trace is a sequence of blocks that comprise an error trace.
+ */
+case class BlockTrace(blocks : Seq[Block], trace : Trace)
+
+/**
  * Representation of an LLVM IR function from the given program.
  *
  * @param   program     Used only to generate failure trace
