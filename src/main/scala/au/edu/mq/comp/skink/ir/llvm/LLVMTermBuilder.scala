@@ -43,6 +43,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * initialisers of a program.
      */
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
+        logger.debug(s"Processing initTerm")
         val term = combineTerms(program.items.map(itemTerm))
         logger.info(s"initTerm: ${showTerm(term.termDef)}")
         term
@@ -54,6 +55,8 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * integer variables and zero-initialised global integer arrays.
      */
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
+        logger.debug(s"Processing itemTerm:${longshow(item)}")
+
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
                 val id = show(name)
@@ -238,6 +241,8 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      */
     def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
         val insn = metaInsn.instruction
+        logger.debug(s"insnTerm: processing  ${longshow(insn)}")
+
         val term =
             insn match {
 
