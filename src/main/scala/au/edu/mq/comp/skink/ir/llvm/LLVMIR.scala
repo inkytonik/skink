@@ -552,11 +552,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
         }.map(termBuilder.combineTerms)
 
+        logger.debug(s"BlockTerms term is $blockTerms")
+
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
-            Seq(termBuilder.initTerm(verifiableProgram))
+            Seq(initTerm)
         else
-            termBuilder.combineTerms(Seq(termBuilder.initTerm(verifiableProgram), blockTerms.head)) +: blockTerms.tail
+            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
     }
 
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
