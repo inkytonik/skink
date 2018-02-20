@@ -318,8 +318,8 @@ case class LLVMConcurrentAuto(irfunctions : Vector[IRFunction], main : LLVMFunct
         // Get thread creation info for this block
         val block = getBlockByName(threadId, state.threadLocs.get(threadId).get)
         threadCreationEffects(block) match {
-            case Some((newThreadId, blockName)) => newThreadLocs = newThreadLocs + (newThreadId -> blockName)
-            case _                              =>
+            case Some((newThreadId, funName)) => newThreadLocs = newThreadLocs + (newThreadId -> funName)
+            case _                            =>
         }
 
         var newSyncTokens = outSyncEffects(block, state.syncTokens)
