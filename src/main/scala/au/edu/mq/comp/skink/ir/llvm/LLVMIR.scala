@@ -439,19 +439,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     }
 
-    /**
-     * Projection of a block trace on a thread
-     *
-     * @param   threadId        The thread identifier
-     * @param   globalBlocks    The block trace to project
-     */
-    def filterThreadBlocks(threadId : Int, globalBlocks : BlockTrace) : BlockTrace = {
-        val blocks = globalBlocks.blocks.zip(globalBlocks.trace.choices.map(_.threadId)).filter(_._2 == threadId).map(_._1)
-        BlockTrace(blocks, new Trace(globalBlocks.trace.choices.filter(_.threadId == threadId)))
-    }
-
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
-
         val blocks = traceToBlockTrace(trace).blocks
 
         // Build the steps between optional previous block and next block, but
