@@ -148,7 +148,6 @@ case class LLVMFunction(val program : Program, val function : FunctionDefinition
 
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
 
-        List()
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
