@@ -647,7 +647,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * identifier and include an index.
      */
     def arrayTermBV(id : String, bits : Int, index : Int) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        ArrayBV1(termid(id), architecture, bits).indexed(index)
+        ArrayBV1(id, architecture, bits).indexed(index)
 
     /**
      * Make an integer ArrayTerm for the named variable where `id` is the base name
@@ -661,7 +661,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * identifier and include an index.
      */
     def arrayTermR(id : String, index : Int) : TypedTerm[ArrayTerm[RealTerm], Term] =
-        ArrayReal1(termid(id)).indexed(index)
+        ArrayReal1(id).indexed(index)
 
     /**
      * Return a bit vector array term that expresses a name when referenced from node.
@@ -679,7 +679,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * Return a real array term that expresses a name when referenced from node.
      */
     def arrayTermAtR(node : Product, name : Name) : TypedTerm[ArrayTerm[RealTerm], Term] =
-        arrayTermR(show(name), indexOf(node, show(name)))
+        arrayTermR(nameOf(node, name), indexOf(node, nameOf(node, name)))
 
     /**
      * Return an integer term that expresses the previous version of a name when
@@ -700,7 +700,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * referenced from node.
      */
     def prevArrayTermAtR(node : Product, name : Name) : TypedTerm[ArrayTerm[RealTerm], Term] =
-        arrayTermR(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermR(nameOf(node, name), scala.math.max(indexOf(node, nameOf(node, name)) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
