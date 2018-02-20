@@ -364,111 +364,95 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     }
 
     /**
-     *  Retrieve the LLVMFunction executed in a thread.
-     *
-     *  @param      threadId    The thread to look up.
-     *  @return                 The LLVMFunction executed by the thread `threadId`.
-     */
-    def functionInThread(threadId : Int) : LLVMFunction = nfa.getFunctionById(threadId) match {
-        case Some(f) => f
-        case None    => sys.error(s"Could not find function in thread $threadId")
-    }
-
-    /**
-     * Follow the choices given by a trace to construct the trace of blocks
+     * Follow the choices given by a trace to construct the trace of RichBlocks
      * that are executed by the trace. It's useful for this to be an attribute
      * since we may need it more than once if we are doing different things
      * with the trace which mostly required the actual blocks.
-     * A BlockTrace is a Seq[Block], so even if two blocks have the same name
+     * A RichBlockTrace is a Seq[RichBlock], so even if two blocks have the same name
      * there are two different blocks in the AST.
-     *  FIXME: write it as a foldLeft
      */
-    lazy val traceToBlockTrace : Trace => BlockTrace =
+    lazy val traceToRichBlockTrace : Trace => RichBlockTrace =
         attr {
             case trace =>
-                import scala.collection.mutable.ListBuffer
-                logger.debug(s"Computing the blocktrace for ${trace.choices}")
-                //  Last block in a thread (if any)
-                var threadBlocks = Map[Int, Block]()
-                //  Current sequence of computed blocks
-                val blocks = new ListBuffer[Block]()
+                //  Start at first block in main
+                val entryBlock : RichBlock = RichBlock(ThreadId(0), FunAnalyser(main.name), main.verifiableForm.functionBody.blocks(0))
+                //  Compute sequence of blocks that corresponds to trace
+                val (blocks, _) =
+                    trace.choices.foldLeft(
+                        (
+                            Vector[RichBlock](),
+                            Map[Int, RichBlock](0 -> entryBlock)
+                        )
+                    ) {
+                            case ((blocks, lastInThread), choice) =>
+                                logger.debug(s"-- processing choice $choice")
+                                import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
 
-                //  Process each choice and deternine next block
-                for (Choice(threadId, branchId) <- trace.choices) {
-                    val threadFn : LLVMFunction = functionInThread(threadId)
-                    logger.debug(s"Current blockTrace (using blockNames) is ${blocks.map(threadFn.blockName(_))}")
+                                //  Determine last block for choice.threadId
+                                val srcBlock : RichBlock = lastInThread(choice.threadId)
+                                logger.debug(s"srcBlock is ${showllvm(srcBlock.block)}")
+                                //  Next block in enclosing function of srcBlock
+                                val nextBlock : Option[RichBlock] = enclosingFun(srcBlock.block).nextBlock(
+                                    srcBlock.block, choice.branchId
+                                ) map { b => RichBlock(ThreadId(choice.threadId), FunAnalyser(enclosingFun(srcBlock.block).name), b) }
 
-                    /* Get current block of function executed in threadId */
-                    val currBlock = threadBlocks.get(threadId) match {
-                        case Some(block) => block
-                        case None        => threadFn.function.functionBody.blocks(0)
-                    }
-                    logger.debug(s"Current block for theard $threadId is ${threadFn.blockName(currBlock)}")
+                                //  Update the threadMap. If no next block set map to previous block.
+                                val nextThreadMap = lastInThread.updated(choice.threadId, nextBlock.getOrElse(lastInThread(choice.threadId)))
 
-                    logger.debug(s"Processing choice ${(threadId, branchId)} from current block")
-                    threadBlocks = threadBlocks - threadId
+                                //  Add side effect of thread creation to threadMap
+                                val threadCreationMap = srcBlock.block match {
 
-                    //
-                    threadFn.nextBlock(currBlock, branchId) match {
-                        case Some(block) => threadBlocks = threadBlocks + (threadId -> block)
-                        case None        => threadBlocks = threadBlocks - (threadId)
-                    }
-                    //assert(threadBlocks.get(c.threadId).get != currBlock)
-                    blocks += currBlock
-                    logger.debug(s"blocks ${blocks.map(threadFn.blockName(_))}")
-                }
-                BlockTrace(blocks.toList, trace)
+                                    case PThreadCreateBlock((threadName, threadFunName)) =>
+                                        //  New thread created calling funName created
+                                        logger.debug(s"Creating thread ${lastInThread.keys.max + 1}")
+                                        val first = funNameToLLVMFun(threadFunName).verifiableForm.functionBody.blocks(0)
+                                        val newThreadId = nextThreadMap.keys.max + 1
+                                        (nextThreadMap updated (newThreadId, RichBlock(ThreadId(newThreadId), FunAnalyser(threadFunName), first)))
+
+                                    case _ => nextThreadMap
+                                }
+
+                                (blocks :+ srcBlock, threadCreationMap)
+                        }
+                RichBlockTrace(blocks, trace)
         }
-
-    lazy val traceToRichBlockTrace : BlockTrace => BlockTrace2 = {
-        case b =>
-            //  BlockTrace is case class BlockTrace(blocks : Seq[Block], trace : Trace)
-            //  Make a blockTrace with ThreadId
-            BlockTrace2(
-                (b.trace.choices.map(
-                    t => ThreadId(t.threadId)
-                ) zip b.blocks).map({
-                        case (threadId, block) => RichBlock(threadId, FunAnalyser(enclosingFun(block).name), block)
-                    }),
-                b.trace
-            )
-
-    }
 
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
-        val blocks = traceToBlockTrace(trace).blocks
+        List()
 
-        // Build the steps between optional previous block and next block, but
-        // only include a previous block if the current block has phi insns
-        // (and hence the previous block can affect the behaviour of the current
-        // block). We do this with block name strings since the full block data
-        // is not needed and it's easier for debugging
-        val steps = {
-            var prevBlocks = Map[Int, String]()
-            trace.choices.zipWithIndex.map {
-                case (choice, count) =>
-                    val block = blocks(count)
-                    val optPrevBlock =
-                        if (count == 0)
-                            None
-                        else
-                            prevBlocks.get(choice.threadId)
-                    prevBlocks = prevBlocks + (choice.threadId -> nfa.functionIds(choice.threadId).blockName(block))
-                    if (block.optMetaPhiInstructions.isEmpty)
-                        (None, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
-                    else
-                        (optPrevBlock, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
-            }
-        }
-
-        logger.debug(s"steps for $trace: $steps")
-        // Combine steps with their indices, accumulate indices for same step,
-        // throw away steps, turn into Seq
-        steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
-            case (m, (k, i)) =>
-                val s = m.getOrElse(k, Vector())
-                m.updated(k, s :+ i)
-        }.values.toIndexedSeq
+        // val blocks = traceToRichBlockTrace(trace).blocks
+        //
+        // // Build the steps between optional previous block and next block, but
+        // // only include a previous block if the current block has phi insns
+        // // (and hence the previous block can affect the behaviour of the current
+        // // block). We do this with block name strings since the full block data
+        // // is not needed and it's easier for debugging
+        // val steps = {
+        //     var prevBlocks = Map[Int, String]()
+        //     trace.choices.zipWithIndex.map {
+        //         case (choice, count) =>
+        //             val block = blocks(count)
+        //             val optPrevBlock =
+        //                 if (count == 0)
+        //                     None
+        //                 else
+        //                     prevBlocks.get(choice.threadId)
+        //             prevBlocks = prevBlocks + (choice.threadId -> nfa.functionIds(choice.threadId).blockName(block))
+        //             if (block.optMetaPhiInstructions.isEmpty)
+        //                 (None, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
+        //             else
+        //                 (optPrevBlock, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
+        //     }
+        // }
+        //
+        // logger.debug(s"steps for $trace: $steps")
+        // // Combine steps with their indices, accumulate indices for same step,
+        // // throw away steps, turn into Seq
+        // steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
+        //     case (m, (k, i)) =>
+        //         val s = m.getOrElse(k, Vector())
+        //         m.updated(k, s :+ i)
+        // }.values.toIndexedSeq
 
     }
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
@@ -479,8 +463,8 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
 
-        val blockTrace = traceToRichBlockTrace(traceToBlockTrace(failTrace.trace))
-        val traceTree = new Tree[Product, BlockTrace2](blockTrace, EnsureTree)
+        val blockTrace = traceToRichBlockTrace(failTrace.trace)
+        val traceTree = new Tree[Product, RichBlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMTraceNamer(program, traceTree)
 
         //  FIXME: probably won't work when tested. The name should be nameOf() ?
@@ -510,26 +494,23 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      */
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
+        logger.debug(s"traceToTerms for trace $trace")
 
-        // Make the block trace that corresponds to this trace and set it
+        // Make the block trace with ThreadId and enclosing function
+        // that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
-        val blocks : BlockTrace = traceToBlockTrace(trace)
-
-        //  Make a blockTrace with ThreadId and enclosing function
-        val b1 = traceToRichBlockTrace(blocks)
-
-        //  A tree for the block trace
-        val traceTree2 = new Tree[Product, BlockTrace2](b1, EnsureTree)
+        val traceTree = new Tree[Product, RichBlockTrace](
+            traceToRichBlockTrace(trace),
+            EnsureTree
+        )
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
-        // the block trace after it has been made into a proper tree.
-        val treeBlockTrace = traceTree2.root
+        // the block trace after it has been made into a proper tree (EnsureTree).
+        val treeBlockTrace = traceTree.root
 
-        // A namer for the program and the trace
-        val namer = new LLVMTraceNamer(verifiableProgram, traceTree2)
-
-        // A term builder for this namer
+        // A namer and termBuilder for the program and the trace
+        val namer = new LLVMTraceNamer(verifiableProgram, traceTree)
         val termBuilder = new LLVMTermBuilder(blockName, namer, config)
 
         // First term with global vars and initialisations
@@ -548,7 +529,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 termBuilder.blockTerms(block, optPrevBlock, choice.branchId)
         }.map(termBuilder.combineTerms)
 
-        logger.debug(s"BlockTerms term is $blockTerms")
+        // logger.debug(s"BlockTerms term is ${(blockTerms.zipWithIndex.map(showTerm)}")
 
         // Prepend the global initialisation terms to the terms of the first block
         if (blockTerms.isEmpty)
@@ -576,7 +557,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
         logger.debug(s"traceBlockEffect for $trace at $index and branch $branch")
 
-        val blocks = traceToRichBlockTrace(traceToBlockTrace(trace))
+        val blocks = traceToRichBlockTrace(trace)
         if ((index < 0) || (index >= blocks.blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.blocks.length} so index ${index} is out of range")
 
@@ -682,18 +663,18 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
-        traceToBlockTrace(failTrace.trace).blocks.map {
+        traceToRichBlockTrace(failTrace.trace).blocks.map {
             block =>
                 val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(program, block) match {
+                    Analyser.blockPosition(program, block.block) match {
                         case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
                             (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
                         case _ =>
                             (None, None)
                     }
-                val optBlockName = Some(blockName(block))
+                val optBlockName = Some(blockName(block.block))
                 val (optTermLine, optTermCode) =
-                    block.metaTerminatorInstruction match {
+                    block.block.metaTerminatorInstruction match {
                         case MetaTerminatorInstruction(insn, metadata) =>
                             getCodeLine(insn, metadata)
                     }
