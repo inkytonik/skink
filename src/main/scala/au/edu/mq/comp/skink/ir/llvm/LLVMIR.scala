@@ -481,63 +481,31 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
+        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
 
-        List()
-        // val blockTrace = traceToBlockTrace(failTrace.trace)
-        // val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-        // // val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        // // FIXME: use the correctnamer
-        // val namer = new LLVMFunctionNamer(main.funAnalyser, main.funTree, traceTree)
-        //
-        // def termToCValue(term : Term) : Int =
-        //     term match {
-        //         case ConstantTerm(NumLit(i))                        => i.toInt
-        //         case NegTerm(ConstantTerm(NumLit(i)))               => -1 * i.toInt
-        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => 1
-        //         case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => 0
-        //         case _ =>
-        //             sys.error(s"traceToNonDetValues: unexpected value ${showTerm(term)}")
-        //     }
-        //
-        // def getValue(to : Name, tipe : String) : Option[Int] = {
-        //     val varName = org.scalallvm.assembly.AssemblyPrettyPrinter.show(to)
-        //     val sort = if (tipe == "bool") BoolSort() else IntSort()
-        //     val qid = SortedQId(SymbolId(ISymbol(varName, namer.indexOf(to, varName))), sort)
-        //     failTrace.values.get(qid) match {
-        //         case Some(value) =>
-        //             Some(termToCValue(value.t))
-        //         case None =>
-        //             logger.info(s"traceToNonDetValues: can't find witness value for ${showTerm(qid.id)}, using default")
-        //             None
-        //     }
-        // }
-        //
-        // collectl {
-        //     case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
-        //         val value = binding match {
-        //             case Binding(to) => getValue(to, tipe)
-        //             case NoBinding() => None
-        //         }
-        //         val (optCode, optLine) = getCodeLine(call, metadata)
-        //         NonDetCall(tipe, value, optLine, optCode)
-        // }(blockTrace.blocks)
+        val blockTrace = traceToRichBlockTrace(traceToBlockTrace(failTrace.trace))
+        val traceTree = new Tree[Product, BlockTrace2](blockTrace, EnsureTree)
+        val namer = new LLVMTraceNamer(program, traceTree)
+
+        //  FIXME: probably won't work when tested. The name should be nameOf() ?
+        def getIndexedVarName(to : Name) : String = {
+            val varName = showllvm(to)
+            makeIndexedVarName(varName, namer.indexOf(to, varName))
+        }
+
+        collectl {
+            case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
+                val value = binding match {
+                    case Binding(to) =>
+                        failTrace.values.get(getIndexedVarName(to))
+                    case NoBinding() =>
+                        None
+                }
+                val (optCode, optLine) = getCodeLine(call, metadata)
+                NonDetCall(tipe, value, optLine, optCode)
+        }(blockTrace.blocks)
+
     }
-
-    /**
-     * Combine terms via conjunction, dealing with case where there are no
-     * terms so effect is "true". Any true terms in the sequence are removed.
-     * FIXME: same as one in LLVMFunction. Share or move to another place
-     */
-    // def combineTerms(terms : Seq[TypedTerm[BoolTerm, Term]]) : TypedTerm[BoolTerm, Term] = {
-    //     import org.bitbucket.franck44.scalasmt.theories.Core
-    //     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    //     object SMTCore extends Core
-    //     import SMTCore._
-    //     if (terms.isEmpty)
-    //         True()
-    //     else
-    //         terms.reduceLeft((l, r) => if (r == True()) l else l & r)
-    // }
 
     /**
      * Construct the sequence of logical terms for a given trace
