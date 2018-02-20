@@ -154,7 +154,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
     }
 
     /**
-     *  Retrieve the LLVM function of a block.
+     *  Retrieve the LLVM function of a given block.
      */
     def enclosingFun(b : Block) : LLVMFunction =
         funNameToLLVMFun(nameToString(analyser.enclosingFun(b).global))
