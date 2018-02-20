@@ -45,7 +45,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
         logger.debug(s"Processing initTerm")
         val term = combineTerms(program.items.map(itemTerm))
-        logger.info(s"initTerm: ${showTerm(term.termDef)}")
+        logger.debug(s"initTerm: ${showTerm(term.termDef)}")
         term
     }
 
@@ -125,7 +125,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
                 True()
         }
         if (term != True())
-            logger.info(s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
+            logger.debug(s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
         term
     }
 
@@ -135,7 +135,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
      * (if there is one), and exit from this block using a particular choice.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(s"blockTermblockName(show(block))}")
+        logger.debug(s"blockTerms for block ${show(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
@@ -144,6 +144,7 @@ class LLVMTermBuilder(blockName : Block => String, namer : LLVMNamer, config : S
     }
 
     def blockTerms(block : RichBlock, optPrevBlock : Option[RichBlock], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
+        logger.debug(s"blockTerms for Rich block ${block.show}")
         val phiEffects = block.block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock.map(_.block)))
         val effects = block.block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.block.metaTerminatorInstruction, choice)
