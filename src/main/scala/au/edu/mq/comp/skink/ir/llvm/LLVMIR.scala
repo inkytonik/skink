@@ -576,14 +576,14 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     def traceBlockEffect(trace : Trace, index : Int, branch : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int]) = {
 
-        val blocks = traceToBlockTrace(trace)
+        logger.debug(s"traceBlockEffect for $trace at $index and branch $branch")
+
+        val blocks = traceToRichBlockTrace(traceToBlockTrace(trace))
         if ((index < 0) || (index >= blocks.blocks.length))
             sys.error(s"traceBlockEffect: trace length is ${blocks.blocks.length} so index ${index} is out of range")
 
-        val b1 = traceToRichBlockTrace(blocks)
-
         // Get a tree for the relevant block
-        val blockTree = new Tree[Product, RichBlock](b1.blocks(index))
+        val blockTree = new Tree[Product, RichBlock](blocks.blocks(index))
         val block = blockTree.root
 
         val namer = new LLVMTraceNamer(verifiableProgram, blockTree)
