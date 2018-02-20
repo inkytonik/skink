@@ -90,7 +90,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     /**
      * The name of the file for this program.
-     * @note this is required by the Verifiable trait. Ity is the function name for
+     * @note this is required by the Verifiable trait. It is the function name for
      * for LLVMFunction but for program we need to define it.
      * FIXME: find a way to display a meaningful name
      */
@@ -199,7 +199,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      * The verification ready NFA. Uses the verifiable functions.
      */
     lazy val nfa = new LLVMConcurrentAuto(
-        functions, main
+        analyser, functions, main
     )
 
     //  ----- Some helpers to debug

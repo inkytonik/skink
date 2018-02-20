@@ -10,7 +10,12 @@ import scala.collection.mutable.{Map => MutableMap}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition}
 
-case class LLVMConcurrentAuto(irfunctions : Vector[IRFunction], main : LLVMFunction)
+/**
+ * An automaton which unfolds main and creates threads.
+ * @param   irfunctions     The known functions.
+ * @param   main            The entry point function.
+ */
+case class LLVMConcurrentAuto(progAnalyser : IRAnalyser, irfunctions : Vector[LLVMFunction], main : LLVMFunction)
         extends Attribution
         with DetAuto[LLVMState, Choice] {
 
@@ -24,6 +29,9 @@ case class LLVMConcurrentAuto(irfunctions : Vector[IRFunction], main : LLVMFunct
     private var threadCount = 0
     private var seenThreads = MutableMap[String, Int]()
 
+    /**
+     * Name of this automaton
+     */
     val name : String = main.name
 
     /**
