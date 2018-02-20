@@ -417,51 +417,64 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
                 RichBlockTrace(blocks, trace)
         }
 
+    /**
+     * Compute repeated blocks.
+     *
+     * A repetition of a rich block b at indices i and j iff:
+     *
+     * - the richblocks b(i) and b(j) are the same (same threadId, function, block)
+     * - the Phi instructions at b(i) and b(j) are the same i.e.:
+     *      - either b(i) does not have Phi instructions
+     *      - or b(i-1) and b(j-1) are the same
+     *
+     * @param   trace   The trace to compute repetitions in.
+     * @return          A list of repetitions
+     * @example         List(List(1,3), List(2,4,5)) means that the same block
+     *                  occurs at indices 1 and 3 and another block occurs at 2, 4, 5.
+     */
     def traceToRepetitions(trace : Trace) : Seq[Seq[Int]] = {
-        List()
 
-        // val blocks = traceToRichBlockTrace(trace).blocks
-        //
-        // // Build the steps between optional previous block and next block, but
-        // // only include a previous block if the current block has phi insns
-        // // (and hence the previous block can affect the behaviour of the current
-        // // block). We do this with block name strings since the full block data
-        // // is not needed and it's easier for debugging
-        // val steps = {
-        //     var prevBlocks = Map[Int, String]()
-        //     trace.choices.zipWithIndex.map {
-        //         case (choice, count) =>
-        //             val block = blocks(count)
-        //             val optPrevBlock =
-        //                 if (count == 0)
-        //                     None
-        //                 else
-        //                     prevBlocks.get(choice.threadId)
-        //             prevBlocks = prevBlocks + (choice.threadId -> nfa.functionIds(choice.threadId).blockName(block))
-        //             if (block.optMetaPhiInstructions.isEmpty)
-        //                 (None, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
-        //             else
-        //                 (optPrevBlock, choice.threadId + nfa.functionIds(choice.threadId).blockName(block))
-        //     }
-        // }
-        //
-        // logger.debug(s"steps for $trace: $steps")
-        // // Combine steps with their indices, accumulate indices for same step,
-        // // throw away steps, turn into Seq
-        // steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
-        //     case (m, (k, i)) =>
-        //         val s = m.getOrElse(k, Vector())
-        //         m.updated(k, s :+ i)
-        // }.values.toIndexedSeq
+        //  RichBlock trace for trace
+        val richBlockTrace = traceToRichBlockTrace(trace)
 
+        // Build the steps between optional previous richblock and next richblock,
+        // but only include a previous block if the current block has phi insns
+        // (and hence the previous block can affect the behaviour of the current
+        // block). We do this with richblocks.
+        val (_, steps) = richBlockTrace.blocks.foldLeft(
+            //  thread a Map giving the last block in a thread and the result list
+            //  of pairs (prevBlock, block)
+            (Map[ThreadId, RichBlock](), List[(Option[RichBlock], RichBlock)]())
+        ) {
+                case ((lastBlockInThread, blockPairs), richBlock) =>
+
+                    val prevBlock = if (richBlock.block.optMetaPhiInstructions.isEmpty)
+                        None
+                    else {
+                        // retrieve previous block in this thread (or None if none)
+                        lastBlockInThread.get(richBlock.threadId)
+                    }
+                    //  Add the pair of RichBlocks (prev, current) to the result
+                    (lastBlockInThread.updated(richBlock.threadId, richBlock),
+                        blockPairs :+ ((prevBlock, richBlock)))
+            }
+        logger.debug(s"steps for $trace: $steps")
+
+        // Combine steps with their indices, accumulate indices for same step,
+        // throw away steps, turn into Seq
+        steps.zipWithIndex.foldLeft(Map[(Option[RichBlock], RichBlock), Vector[Int]]()) {
+            case (m, (k, i)) =>
+                val s = m.getOrElse(k, Vector())
+                m.updated(k, s :+ i)
+        }.values.toIndexedSeq
     }
-    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
 
     /**
      * Return the values that are returned by `__VERIFIER_nondet_T` functions.
      */
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
         import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
+        import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
 
         val blockTrace = traceToRichBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, RichBlockTrace](blockTrace, EnsureTree)
