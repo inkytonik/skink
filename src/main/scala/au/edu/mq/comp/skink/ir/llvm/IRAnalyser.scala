@@ -5,114 +5,14 @@ package ir.llvm
 import au.edu.mq.comp.skink.ir.IR
 import org.scalallvm.assembly.AssemblySyntax.Program
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
-
 import org.bitbucket.inkytonik.kiama.relation.Tree
-
-/**
- * An analyser for LLVM IR.
- */
-class IRAnalyser(program : Program, val progTree : Tree[Product, Product],
-        funNameToLLVMFun : Map[String, LLVMFunction]) extends Attribution {
-
-    import org.bitbucket.inkytonik.kiama.attribution.Decorators
-    import org.bitbucket.inkytonik.kiama.relation.Tree
-    // import org.scalallvm.assembly.Analyser
-    // import org.scalallvm.assembly.AssemblySyntax._
-    // import org.scalallvm.assembly.AssemblyPrettyPrinter.show
-    import au.edu.mq.comp.skink.Skink.getLogger
-
-    // import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State, FailureTrace, NonDetCall, Step}
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.nameToString
-    // import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
-    import org.scalallvm.assembly.AssemblySyntax.{ASTNode, Block, FunctionDefinition}
-    // import org.scalallvm.assembly.Executor
-    // import au.edu.mq.comp.skink.Skink.getLogger
-    // import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
-    // import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    // import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
-    // import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
-    // import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    // import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    // import org.scalallvm.assembly.AssemblySyntax._
-    //
-    // import org.scalallvm.assembly.Analyser
-    // import org.scalallvm.assembly.Analyser.defaultBlockName
-    // import scala.collection.mutable.{Map => MutableMap}
-
-    val logger = getLogger(this.getClass)
-
-    // lazy val progTree = new Tree[Product, Product](ir.program)
-
-    val decorators = new Decorators(progTree)
-    import decorators.downErr
-
-    //  Retrieve the enclosing function of a block
-    private val enclosingFunDecorator : ASTNode => LLVMFunction =
-        downErr {
-            case fun : FunctionDefinition => funNameToLLVMFun(nameToString(fun.global))
-        }
-
-    /**
-     *  Find the enclosing LLVMfunction of a given block.
-     *
-     *  @param      b   The block.
-     *  @return         The LLVMFunction the block is in.
-     */
-    def enclosingFun(b : Block) : LLVMFunction = {
-        import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showBlock}
-
-        logger.debug(s"Looking up enclosing function for block ${showBlock(b)}")
-
-        logger.debug(s"Call")
-        val r = enclosingFunDecorator(b)
-
-        logger.debug(s"End Call")
-        r
-
-    }
-
-    /**
-     * Find the name of a block. The name may depend on the enclosing function
-     * for the first block.
-     * @note We retrieve the enclosing function and use the function blockName
-     */
-    def blockName(b : Block) : String = {
-        enclosingFun(b).blockName(b)
-    }
-
-    /**
-     * Analysers for each FunctionDefinition
-     */
-    // lazy val funAnalyser : Map[String, LLVMFunction] = (ir.functions map {
-    //     case f => (f.name, f)
-    // }).toMap
-
-    /**
-     * The enclosing function name of a node in the program AST
-     */
-    // FIXME make it private somehow and force use with Block
-    // val enclosingFun : ASTNode => String =
-    //     downErr {
-    //         case fun : FunctionDefinition => nameToString(fun.global)
-    //     }
-
-    /**
-     * Find the name of a block. The name may depend on the enclosing FunDef
-     * for the first block if a function.
-     * @note We retrieve the enclosing function and use the funAnalyser for thjis function
-     * to generate the block name
-     */
-    // def blockName(b : Block) : String = funAnalyser(enclosingFun(b)).blockName(b)
-
-}
-
 import org.scalallvm.assembly.AssemblySyntax._
 
 /**
  * Support for analysing LLVM assembly programs. The support in this class
  * is dependent on access to the function's tree context.
  */
-class IRAnalyser2(tree : Tree[ASTNode, Program]) extends Attribution {
+class IRAnalyser(tree : Tree[ASTNode, Program]) extends Attribution {
     import org.scalallvm.assembly._
     import org.scalallvm.assembly.Analyser._
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collect
@@ -123,18 +23,6 @@ class IRAnalyser2(tree : Tree[ASTNode, Program]) extends Attribution {
 
     import au.edu.mq.comp.skink.Skink.getLogger
     val logger = getLogger(this.getClass)
-
-    /**
-     * The number of anonymous arguments that this function has.
-     */
-    // def anonArgCount  : Int = {
-    //     val args =
-    //         tree.root.arguments match {
-    //             case VarArgs(args) => args
-    //             case Args(args)    => args
-    //         }
-    //     args.count(_.optLocal.isEmpty)
-    // }
 
     val decorators = new Decorators(tree)
     import decorators.downErr
@@ -165,23 +53,17 @@ class IRAnalyser2(tree : Tree[ASTNode, Program]) extends Attribution {
     }
 
     /**
-     * The anonArgCount of a function.
-     *
-     * @param   name    The name of the function
+     * The number of anonymous arguments that this function has.
      */
-    val anonArgCount : FunctionDefinition => ASTNode => Int =
-        paramAttr {
-            fun =>
-                {
-                    case f : FunctionDefinition if f == fun =>
-                        val args =
-                            f.arguments match {
-                                case VarArgs(args) => args
-                                case Args(args)    => args
-                            }
-                        args.count(_.optLocal.isEmpty)
+    def anonArgCount : FunctionDefinition => Int = attr {
+        f =>
+            val args =
+                f.arguments match {
+                    case VarArgs(args) => args
+                    case Args(args)    => args
                 }
-        }
+            args.count(_.optLocal.isEmpty)
+    }
 
     /**
      * Get the name of a block. Blocks that have labels get those as their
