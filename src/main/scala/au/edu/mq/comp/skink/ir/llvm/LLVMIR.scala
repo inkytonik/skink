@@ -713,6 +713,22 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
     }
 
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] = List()
-
+    def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
+        traceToBlockTrace(failTrace.trace).blocks.map {
+            block =>
+                val (optFileName, optBlockCode) =
+                    Analyser.blockPosition(program, block) match {
+                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
+                            (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
+                        case _ =>
+                            (None, None)
+                    }
+                val optBlockName = Some(blockName(block))
+                val (optTermLine, optTermCode) =
+                    block.metaTerminatorInstruction match {
+                        case MetaTerminatorInstruction(insn, metadata) =>
+                            getCodeLine(insn, metadata)
+                    }
+                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
+        }
 }
