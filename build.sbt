@@ -28,6 +28,7 @@ scalacOptions := {
         "-unchecked",
         "-Xfatal-warnings",
         "-Xcheckinit",
+        "-Ypatmat-exhaust-depth", "40",
         lintOption
     )
 
