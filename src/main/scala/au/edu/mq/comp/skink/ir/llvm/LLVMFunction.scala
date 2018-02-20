@@ -277,66 +277,6 @@ case class LLVMFunction(val program : Program, val function : FunctionDefinition
         NFA(initial, transitions, accepting)
 
     }
-    // def buildNFA(function : FunctionDefinition) : NFA[State, Choice] = {
-    //
-    //     import org.bitbucket.franck44.automat.edge.LabDiEdge
-    //     import org.bitbucket.franck44.automat.edge.Implicits._
-    //
-    //     logger.info(s"buildNFA: $name")
-    //
-    //     val blocks = function.functionBody.blocks
-    //
-    //     // Shouldn't get LLVM function with no blocks
-    //     assert(!blocks.isEmpty)
-    //
-    //     //  FIXME: when threads are used this should be dynamically set?
-    //     val threadId = 0
-    //
-    //     val initial = Set(State(Map(threadId -> blockName(blocks.head))))
-    //     val accepting = blocks.
-    //         map(blockName).
-    //         filter(_.startsWith("__error")).
-    //         map({ b => State(Map(threadId -> b)) }).
-    //         toSet
-    //
-    //     val transitions = {
-    //         val buf = new ListBuffer[LabDiEdge[State, Choice]]
-    //         for (srcBlock <- blocks) {
-    //             val src = State(Map(threadId -> blockName(srcBlock)))
-    //             srcBlock.metaTerminatorInstruction.terminatorInstruction match {
-    //
-    //                 // Unconditional branch
-    //                 case Branch(Label(Local(tgt))) =>
-    //                     buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, 0))
-    //
-    //                 // Two-sided conditional branch
-    //                 case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-    //                     buf += (src ~> State(Map(threadId -> trueTgt)))(Choice(threadId, 0))
-    //                     buf += (src ~> State(Map(threadId -> falseTgt)))(Choice(threadId, 1))
-    //
-    //                 // Multi-way branch
-    //                 case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-    //                     cases.zipWithIndex.foreach {
-    //                         case (Case(_, _, Label(Local(tgt))), i) =>
-    //                             buf += (src ~> State(Map(threadId -> tgt)))(Choice(threadId, i))
-    //                     }
-    //                     buf += (src ~> State(Map(threadId -> dfltTgt)))(Choice(threadId, cases.length))
-    //
-    //                 // Return
-    //                 case _ : Ret | _ : RetVoid | _ : Unreachable =>
-    //                 // Do nothing
-    //
-    //                 case i =>
-    //                     sys.error(s"nfa: unexpected form of terminator insn: $i")
-    //
-    //             }
-    //         }
-    //         buf.toSet
-    //     }
-    //
-    //     NFA(initial, transitions, accepting)
-    //
-    // }
 
     lazy val verifiableForm = makeVerifiable
     /**
