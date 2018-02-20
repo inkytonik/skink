@@ -28,7 +28,14 @@ case class FunAnalyser(name : String)
  * @param   funAnalyser     The enclosing function analyser.
  * @param   block           An LLVM block.
  */
-case class RichBlock(threadId : ThreadId, funAnalyser : FunAnalyser, block : Block)
+case class RichBlock(threadId : ThreadId, funAnalyser : FunAnalyser, block : Block) {
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.{show => showllvm}
+
+    def show = {
+        s"($threadId, ${funAnalyser.name}) \n${showllvm(block)}"
+
+    }
+}
 
 /**
  * A sequence of rich blocks.
