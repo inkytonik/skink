@@ -29,11 +29,11 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
         ArrayBV1(id, ibits, vbits).indexed(index)
 
     def makeArrayLoadTermBV(id : String, ibits : Int, vbits : Int, elem : Int,
-                            index : Int = 0) : TypedTerm[BVTerm, Term] =
+        index : Int = 0) : TypedTerm[BVTerm, Term] =
         makeArrayTermBV(id, ibits, vbits, index).at(elem)
 
     def makeArrayStoreTermBV(id : String, ibits : Int, vbits : Int,
-                             from : TypedTerm[BVTerm, Term], elem : Int, index : Int = 0) : TypedTerm[ArrayTerm[BVTerm], Term] =
+        from : TypedTerm[BVTerm, Term], elem : Int, index : Int = 0) : TypedTerm[ArrayTerm[BVTerm], Term] =
         makeArrayTermBV(id, ibits, vbits, index).store(elem, from)
 
     implicit def BVs32(i : Int) : TypedTerm[BVTerm, Term] =
@@ -73,7 +73,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
 
     implicit val rm : TypedTerm[RMFPBVTerm, Term] =
         new VarTerm("@_fprmode", RoundingModeSort(), Some(0))
-        
+
     val fprminit = rm === RMs(RNE())
 
     // Binary operations
@@ -216,7 +216,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
             (FUGT(), bz === (unordered | (fx > fy))),
             (FUGE(), bz === (unordered | (fx >= fy))),
             (FULT(), bz === (unordered | (fx < fy))),
-            (FULE(), bz === (unordered | (fx <= fy))),
+            (FULE(), bz === (unordered | (fx <= fy)))
         )
         for ((cond, term) <- floatCompares) {
             test(s"compare ${show(tipe)} real with ${show(cond)} is encoded correctly") {
@@ -238,7 +238,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     }
 
     // Conversions
-    
+
     val convOps = Vector(
         AddrSpaceCast(), Bitcast(), FPExt(), FPToSI(), FPToUI(), FPTrunc(), IntToPTR(),
         PTRToInt(), SIToFP(), UIToFP()
@@ -341,7 +341,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
             test(s"load of ${show(tipe)} is encoded correctly") {
                 hasEffect(
                     Load(Binding(x), NotVolatile(), tipe,
-                         PointerT(tipe, DefaultAddrSpace()), yexp, DefaultAlign()),
+                        PointerT(tipe, DefaultAddrSpace()), yexp, DefaultAlign()),
                     term
                 )
             }
@@ -368,7 +368,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                 )
         }
     }
-    
+
     // Stores
 
     for (bits <- intSizes) {
@@ -452,14 +452,14 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
             gbx === True()
         )
     }
-    
+
     test("a global zero initialised Boolean variable generates the correct term") {
         hasItemEffect(
             makeGlobalInitVar("x", IntT(1), ZeroC()),
             gbx === False()
         )
     }
-        
+
     val gixs = makeIntVars("@x")
     val giys = makeIntVars("@y")
     val gizs = makeIntVars("@z")
@@ -509,17 +509,16 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                     )
                 )),
                 (ArrayBV1("@z", 32, bits).indexed(0).at(0) === 10.withUBits(bits)) &
-                (ArrayBV1("@z", 32, bits).indexed(0).at(1) === 42.withUBits(bits))
+                    (ArrayBV1("@z", 32, bits).indexed(0).at(1) === 42.withUBits(bits))
             )
         }
         test(s"a global string initialised $bits bit integer array variable generates the correct term") {
             hasItemEffect(
                 makeGlobalInitVar("z", ArrayT(2, IntT(bits)), StringC(""""Hi"""")),
                 (ArrayBV1("@z", 32, bits).indexed(0).at(0) === 72.withUBits(bits)) &
-                (ArrayBV1("@z", 32, bits).indexed(0).at(1) === 105.withUBits(bits))
+                    (ArrayBV1("@z", 32, bits).indexed(0).at(1) === 105.withUBits(bits))
             )
         }
     }
-
 
 }
