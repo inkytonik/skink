@@ -378,6 +378,42 @@ object LLVMHelper {
     }
 
     /**
+     * Whether a block is an error block
+     */
+    def isErrorBlock(b : Block) : Boolean = {
+        b.optBlockLabel match {
+            case BlockLabel(s) if s.startsWith("__error") => true
+            case _                                        => false
+        }
+    }
+
+    def hasPthreadExit(b : Block) : Boolean = {
+        b.optMetaInstructions.exists {
+            case PThreadExit() => true
+        }
+    }
+
+    /**
+     * Whether a block is a return or a pthread_exit
+     */
+    def isExitBlock(b : Block) : Boolean = b match {
+        case ReturnBlock(_)         => true
+        case x if hasPthreadExit(x) => true
+        case _                      => false
+    }
+
+    /**
+     * Whether a block is a return
+     */
+    object ReturnBlock {
+        def unapply(b : Block) : Option[Boolean] =
+            b.metaTerminatorInstruction.terminatorInstruction match {
+                case _ : Ret | _ : RetVoid => Some(true)
+                case _                     => None
+            }
+    }
+
+    /**
      *
      */
     object PThreadType {
@@ -403,6 +439,13 @@ object LLVMHelper {
             case _ =>
                 false
         }
+    }
+
+    /**
+     * The ThreadPrimitives instructions in a block
+     */
+    def threadInstructions(b : Block) = {
+        b.optMetaInstructions.filter(i => isThreadPrimitive(i))
     }
 
     /**

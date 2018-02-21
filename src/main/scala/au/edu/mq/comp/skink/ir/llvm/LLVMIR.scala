@@ -41,14 +41,6 @@ case class RichBlock(threadId : ThreadId, funAnalyser : FunAnalyser, block : Blo
 case class RichBlockTrace(val blocks : Seq[RichBlock], trace : Trace)
 
 /**
- * A state of the program
- *
- * @param   threadLocs
- * @param   syncTokens  Current state of mutexes (locked/unlocked)
- */
-case class LLVMState(threadLocs : Map[Int, String], syncTokens : Map[String, Boolean])
-
-/**
  * Representation of LLVM IR.
  */
 class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution with IR {

@@ -11,6 +11,19 @@ import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.AssemblySyntax.{ASTNode, FunctionDefinition}
 
 /**
+ * A state of the program
+ *
+ * @param   threadLocs
+ * @param   syncTokens  Current state of mutexes (locked/unlocked)
+ */
+case class LLVMState(threadLocs : Map[ThreadId, RichBlock], syncTokens : Map[String, Boolean]) {
+
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+
+    def isError = threadLocs.values.exists(x => isErrorBlock(x.block))
+}
+
+/**
  * An automaton which unfolds main and creates threads.
  * @param   irfunctions     The known functions.
  * @param   main            The entry point function.
@@ -79,15 +92,31 @@ case class LLVMConcurrentAuto(progAnalyser : IRAnalyser, irfunctions : Vector[LL
     def getFunctionById(threadId : Int) : Option[LLVMFunction] = functionIds.get(threadId)
 
     //  Implementation of DetAuto interface
+
+    /**
+     * Initial state is the first block of main
+     */
     def getInit = {
         logger.debug(s"getInit used blockName ${main.blockName(main.function.functionBody.blocks.head)}")
-        LLVMState(Map(0 -> main.blockName(main.function.functionBody.blocks.head)), Map())
+        LLVMState(
+            Map(ThreadId(0) -> RichBlock(ThreadId(0), FunAnalyser(main.name), main.entryBlock)),
+            Map()
+        )
     }
 
-    def isFinal(state : LLVMState) : Boolean = state.threadLocs.values.filter(_.contains("__error")).toVector.length != 0
+    /**
+     * Final states are error states i.e. one thread has reached an error block
+     */
+    def isFinal(state : LLVMState) : Boolean = state.isError
 
+    /**
+     * No state is acceptsAll
+     */
     def acceptsAll(state : LLVMState) : Boolean = false
 
+    /**
+     * No state is acceptsNone
+     */
     def acceptsNone(state : LLVMState) : Boolean = false
 
     //  Properties of blocks
@@ -95,23 +124,57 @@ case class LLVMConcurrentAuto(progAnalyser : IRAnalyser, irfunctions : Vector[LL
     /**
      * Whether a block is a return (function call) or a pthread_exit
      */
-    def isExitBlock(block : Block) : Boolean = {
-        logger.debug(s"checking if $block} is an exit block")
-        block.metaTerminatorInstruction.terminatorInstruction match {
-            case _ : Ret | _ : RetVoid => return true
-            case _                     => // Do nothing
-        }
-        val exitInsns = block.optMetaInstructions.collect {
-            case PThreadExit() => true
-            // case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
-        }
-        false
-    }
+    // now in Helper
+    // def isExitBlock(block : Block) : Boolean = {
+    //     logger.debug(s"checking if $block} is an exit block")
+    //     block.metaTerminatorInstruction.terminatorInstruction match {
+    //         case _ : Ret | _ : RetVoid => return true
+    //         case _                     => // Do nothing
+    //     }
+    //     val exitInsns = block.optMetaInstructions.collect {
+    //         case PThreadExit() => true
+    //         // case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
+    //     }
+    //     false
+    // }
 
     /**
      *  FIXME: Whether what??
      */
     def isBlocked(block : Block, state : LLVMState) : Boolean = {
+
+        threadInstructions(block) match {
+
+            //  A block in the verifiable form after splitGlobal accesses
+            //  should have at most one thread primitive
+            case isns :: Nil =>
+                //  deternine the type of the thread primtive
+                isns match {
+                    case PThreadMutexLock(syncToken) =>
+                        //  If syncToken is not in state, we assume it is not locked i.e. not initialised to locked
+                        state.syncTokens.get(syncToken).getOrElse(false)
+
+                    case PThreadJoin(syncToken) =>
+                        //  pthread_join
+
+                    case PThreadCondWait((syncToken, mutex)) =>
+                    // If the condition we are waiting on is false or not set (shouldn't happen)
+                    // we release the mutex we were holding and block or else we're unblocked.
+                        !state.syncTokens.get(syncToken).getOrElse(false) || state.syncTokens.get(mutex).getOrElse(true)
+
+                    case _ =>
+                        false
+                 }
+
+            case isns :: x =>
+                //  More than one thread instructions. Should not happen
+                sys.error(s"Block ${show(block)} has more than 1 thread primitive.")
+
+            case Nil =>
+                //  No thread instruction, thread is not blocked.
+                false
+
+        }
         //  Thread instructions in the block
         val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
         logger.debug(s"threadsInsns: ${threadInsns.map(x => show(x._1))}")

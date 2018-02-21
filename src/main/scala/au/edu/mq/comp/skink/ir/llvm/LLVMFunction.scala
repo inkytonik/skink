@@ -58,6 +58,8 @@ case class LLVMFunction(val program : Program, val function : FunctionDefinition
 
     lazy val blockMap = Map(verifiableForm.functionBody.blocks.map(b => (blockName(b), b)) : _*)
 
+    /** Entry block uf function */
+    lazy val entryBlock = verifiableForm.functionBody.blocks(0)
     // Implementation of IRFunction interface
 
     lazy val name : String =
