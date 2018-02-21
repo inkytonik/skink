@@ -75,7 +75,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * initialisers of a program.
      */
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
-        val term = combineTerms(program.items.map(itemTerm)) & fpmodeInitTerm()
+        val fpmodeInitTerm : TypedTerm[BoolTerm, Term] =
+            if (config.realMode() == BitRealMode())
+                varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
+            else
+                true
+        val term = combineTerms(program.items.map(itemTerm)) & fpmodeInitTerm
         logger.info(s"initTerm: ${showTerm(term.termDef)}")
         term
     }
@@ -256,13 +261,6 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
         sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
-
-    /**
-     * Return a term that expresses initialising the floating-point
-     * rounding mode.
-     */
-    def fpmodeInitTerm() : TypedTerm[BoolTerm, Term] =
-        varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
 
     /**
      * Generate a term that gets the integer value of the current rounding mode.
