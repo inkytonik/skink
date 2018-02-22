@@ -21,6 +21,10 @@ case class LLVMState(threadLocs : Map[ThreadId, RichBlock], syncTokens : Map[Str
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
 
     def isError = threadLocs.values.exists(x => isErrorBlock(x.block))
+
+    def show = (threadLocs.map {
+        case (x, y) => (x, y.show)
+    }).toString
 }
 
 /**
