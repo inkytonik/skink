@@ -81,12 +81,6 @@ case class LLVMConcurrentAuto(
             case None => sys.error(s"Could not find block $blockName in thread $threadId")
         }
     }
-    // functionIds.get(threadId).get.blockMap.get(blockName).get
-
-    /**
-     * The entry point function (main) in this program
-     */
-    // val main = ir.functions.filter(_.name == "main").head
 
     // An analyser for the verifiable version of this function and its associated tree
     import org.scalallvm.assembly.Analyser.defaultBlockName
@@ -94,15 +88,6 @@ case class LLVMConcurrentAuto(
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-
-    // lazy val funTree = new Tree[ASTNode, FunctionDefinition](main.verifiableForm)
-    // lazy val funAnalyser = new Analyser(funTree)
-
-    //  Get the name of a block
-    // def blockName(block : Block) =
-    //     funAnalyser.blockName(block)
-
-    def getFunctionById(threadId : Int) : Option[LLVMFunction] = functionIds.get(threadId)
 
     //  Implementation of DetAuto interface
 
