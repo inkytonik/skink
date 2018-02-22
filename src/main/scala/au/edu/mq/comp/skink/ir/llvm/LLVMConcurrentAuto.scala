@@ -147,171 +147,67 @@ case class LLVMConcurrentAuto(
                         //  If syncToken is not in state, we assume it is not locked i.e. not initialised to locked
                         state.syncTokens.get(syncToken).getOrElse(false)
 
-                    case PThreadJoin(syncToken) =>
-                        //  pthread_join
+                    // FIXME for following case
+                    // case PThreadJoin(threadName) =>
+                    //     // pthread_join
+                    //
+                    //     // FIXME
+                    //     val threadId = seenThreads.get(threadName).getOrElse(-1)
+                    //     val syncThreadBlock = state.threadLocs.get(threadId)
+                    //     syncThreadBlock match {
+                    //         case Some(blockName) => !isExitBlock(getBlockByName(threadId, blockName))
+                    //         case None            => true
+                    //     }
 
                     case PThreadCondWait((syncToken, mutex)) =>
-                    // If the condition we are waiting on is false or not set (shouldn't happen)
-                    // we release the mutex we were holding and block or else we're unblocked.
+                        // If the condition we are waiting on is false or not set (shouldn't happen)
+                        // we release the mutex we were holding and block or else we're unblocked.
                         !state.syncTokens.get(syncToken).getOrElse(false) || state.syncTokens.get(mutex).getOrElse(true)
 
                     case _ =>
                         false
-                 }
+                }
 
             case isns :: x =>
                 //  More than one thread instructions. Should not happen
-                sys.error(s"Block ${show(block)} has more than 1 thread primitive.")
+                sys.error(s"Block ${block.show} has more than 1 thread primitive.")
 
             case Nil =>
                 //  No thread instruction, thread is not blocked.
                 false
-
-        }
-        //  Thread instructions in the block
-        val threadInsns = block.optMetaInstructions.zipWithIndex.filter(i => isThreadPrimitive(i._1.instruction))
-        logger.debug(s"threadsInsns: ${threadInsns.map(x => show(x._1))}")
-
-        if (threadInsns.length != 0) {
-            // We should have at most one thread primitive per block
-            //  FIXME franck: move this test somewhere else so that we can assume this is OK
-            assert(threadInsns.length == 1)
-
-            //  By construction first instruction in threadInsn is a thread operation
-            logger.debug(s"isBlocked: checking if ${show(threadInsns.head._1)} is blocking with tokens ${state.syncTokens}")
-            threadInsns.head match {
-                case (PThreadMutexLock(syncToken), _) => state.syncTokens.get(syncToken).getOrElse(false)
-
-                case (PThreadJoin(syncToken), i) =>
-                    //  pthread_join,
-                    val threadName = block.optMetaInstructions(i - 1).instruction match {
-                        case Load(Binding(Local(registerName)), _, _, _, Named(Local(threadName)), _) => threadName
-                        case _ => sys.error("Couldn't get threadName for join")
-                    }
-                    val threadId = seenThreads.get(threadName).getOrElse(-1)
-                    val syncThreadBlock = state.threadLocs.get(threadId)
-                    syncThreadBlock match {
-                        case Some(blockName) => !isExitBlock(getBlockByName(threadId, blockName))
-                        case None            => true
-                    }
-
-                case (PThreadCondWait((syncToken, returnMutex)), _) =>
-                    // If the condition we are waiting on is false or not set (shouldn't happen)
-                    // we release the mutex we were holding and block or else we're unblocked.
-                    !state.syncTokens.get(syncToken).getOrElse(false) ||
-                        state.syncTokens.get(returnMutex).getOrElse(true)
-
-                case _ => false
-
-            }
-        } else {
-            false
         }
     }
 
-    lazy val nextBlocks : LLVMState => Seq[(Int, String)] =
+    /**
+     * Compute the next (branchLabel, tgtblock) for unblocked threads.
+     */
+    lazy val nextBlocks : LLVMState => Seq[(ThreadId, Block)] =
         attr {
             case state =>
-                val buf = new ListBuffer[(Int, String)]
 
-                logger.debug(s"nextBlocks: filtering blocks ${state} for blocked blocks")
-                val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(getBlockByName(s._1, s._2), state))
-                //val unblockedBlocks = state.threadLocs
-                logger.debug(s"nextBlocks: got unblocked blocks ${unblockedBlocks}")
+                // val buf = new ListBuffer[(Int, String)]
 
-                for ((threadId, blockLabel) <- unblockedBlocks) {
-                    val block = getBlockByName(threadId, blockLabel)
-                    logger.debug(s"nextBlocks: Discovering available branches from block $blockLabel on thread $threadId")
-                    block.metaTerminatorInstruction.terminatorInstruction match {
+                logger.debug(s"nextBlocks: filtering blocks ${state.show} for blocked blocks")
+                // val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(getBlockByName(s._1, s._2), state))
+                //  Unblocked threads
+                val unblockedThreads = state.threadLocs.keys.filter(!isThreadBlocked(state)(_))
 
-                        // Unconditional branch
-                        case Branch(Label(Local(tgt))) =>
-                            logger.debug(s"nextBlocks: Found an unconditional branch on thread $threadId")
-                            buf += ((threadId, tgt))
+                logger.debug(s"nextBlocks: got unblocked blocks ${unblockedThreads}")
 
-                        // Two-sided conditional branch
-                        case BranchCond(cmp, Label(Local(trueTgt)), Label(Local(falseTgt))) =>
-                            logger.debug(s"nextBlocks: Found a two way branch  on thread $threadId")
-                            buf += ((threadId, trueTgt))
-                            buf += ((threadId, falseTgt))
+                //  For each unblocked threads, collect the possible successor (choice,blocks)
+                unblockedThreads.flatMap(
+                    {
+                        case thread =>
+                            val b : RichBlock = state.threadLocs(thread)
+                            val f = funNameToLLVMFun(b.funAnalyser.name)
 
-                        // Multi-way branch
-                        case Switch(IntT(_), cmp, Label(Local(dfltTgt)), cases) =>
-                            logger.debug(s"nextBlocks: Found a multiway branch on thread $threadId")
-                            cases.zipWithIndex.foreach {
-                                case (Case(_, _, Label(Local(tgt))), i) =>
-                                    buf += ((threadId, tgt))
-                            }
-                            buf += ((threadId, dfltTgt))
-
-                        // Return
-                        case _ : Ret | _ : RetVoid | _ : Unreachable =>
-                            logger.debug(s"nextBlocks: Found a block with no next branch on thread $threadId")
-                        // Do nothing
-
-                        case i =>
-                            sys.error(s"dca: unexpected form of terminator insn: $i")
-
+                            f.outBranches(b.block)
+                                .map(f.nextBlock(b.block, _))
+                                .flatten
+                                .map((thread, _))
                     }
-                }
-                buf
+                ).toList
         }
-
-    def threadCreationEffects(block : Block) : Option[(Int, String)] = {
-        def threadCreationInfo(block : Block) : Seq[(String, String)] = {
-            def isThreadCreation(insn : MetaInstruction) : Boolean = {
-                insn match {
-                    case MetaInstruction(GlobalFunctionCall("pthread_create"), _) =>
-                        true
-                    case _ =>
-                        false
-                }
-            }
-
-            def extractThreadInfo(insn : MetaInstruction) : (String, String) = {
-                insn match {
-                    case MetaInstruction(
-                        Call(
-                            _, _, _, _, _,
-                            Function(Named(Global("pthread_create"))),
-                            Vector(ValueArg(_, _, Named(Local(threadName))), _, ValueArg(_, _, Named(Global(threadFn))), _),
-                            _
-                            ),
-                        _
-                        ) =>
-                        (threadName, threadFn)
-                    case _ =>
-                        ("unknown id", "unknown thread")
-                }
-            }
-
-            block.optMetaInstructions.filter(isThreadCreation(_)).map(extractThreadInfo(_))
-        }
-
-        val threadInfo = threadCreationInfo(block)
-        if (threadInfo.length != 0) {
-            // Got a new thread, we should only have one new thread per block
-            assert(threadInfo.length == 1)
-            val (threadName, threadFn) = threadInfo.head
-            logger.debug(s"Discovered a new thread with id $threadName and function $threadFn")
-            //  FIX that ugly asInstanceOf
-            val threadIRFn : LLVMFunction = irfunctions.filter(_.name == threadFn).head.asInstanceOf[LLVMFunction]
-            val threadStartBlock = threadIRFn.function.functionBody.blocks.head
-            val threadStartBlockName = threadIRFn.blockName(threadStartBlock)
-            val newThreadId = if (!seenThreads.isDefinedAt(threadName)) {
-                logger.debug(s"Discovered a new thread with name $threadName and function $threadFn")
-                threadCount += 1
-                functionIds.update(threadCount, threadIRFn)
-                seenThreads += (threadName -> threadCount)
-                threadCount
-            } else {
-                logger.debug(s"Re-discovered a new thread with name $threadName and function $threadFn")
-                seenThreads.get(threadName).get
-            }
-            Some((newThreadId -> threadStartBlockName))
-        } else
-            None
-    }
 
     def outSyncEffects(block : Block, syncTokens : Map[String, Boolean]) : Map[String, Boolean] = {
         val threadInsns = block.optMetaInstructions.filter(i => isThreadPrimitive(i.instruction))
@@ -341,7 +237,7 @@ case class LLVMConcurrentAuto(
             }
         }
 
-        logger.debug(s"outSyncEffects: syncTokens after processing block ${block}: $syncTokens")
+        logger.debug(s"outSyncEffects: syncTokens after processing block ${show(block)}: $syncTokens")
         newSyncTokens
     }
 
@@ -353,6 +249,8 @@ case class LLVMConcurrentAuto(
             assert(threadInsns.length == 1)
             newSyncTokens = threadInsns.head match {
                 case PThreadCondWait(syncToken, returnMutex) if (!syncTokens.get(syncToken).getOrElse(true)) =>
+                    logger.debug(s"inSyncEffects: checking effecrs of ${show(threadInsns.head)}")
+
                     // When we arrive in a thread with a wait call in it, we need to decide
                     // if we should release the mutex in order to block, or hold it as
                     // we are unblocked.
@@ -366,44 +264,85 @@ case class LLVMConcurrentAuto(
             }
         }
 
-        logger.debug(s"inSyncEffects: syncTokens after processing block $block: $syncTokens")
+        logger.debug(s"inSyncEffects: syncTokens after processing block ${show(block)}: $syncTokens")
         newSyncTokens
     }
 
+    /**
+     * Successor state of a state when transitioning via label.
+     */
     def succ(state : LLVMState, label : Choice) : LLVMState = {
         logger.debug(s"succ: Finding successors for $state with $label")
-        val threadId = label.threadId
+        val currentThread = label.threadId
         val branchId = label.branchId
 
-        // Find the next block for the selected branch
-        val (_, newBlock) = nextBlocks(state).filter(_._1 == threadId)(branchId)
-        var newThreadLocs = state.threadLocs + (threadId -> newBlock)
+        // Find the next block for the selected thread and branch
+        val b : RichBlock = state.threadLocs(ThreadId(currentThread))
+        val f = funNameToLLVMFun(b.funAnalyser.name)
+        f.nextBlock(b.block, label.branchId) match {
 
-        // Get thread creation info for this block
-        val block = getBlockByName(threadId, state.threadLocs.get(threadId).get)
-        threadCreationEffects(block) match {
-            case Some((newThreadId, funName)) => newThreadLocs = newThreadLocs + (newThreadId -> funName)
-            case _                            =>
+            case Some(next) =>
+
+                val newThreadLocs = (b.block match {
+                    case PThreadCreateBlock((newThreadId, funName)) =>
+                        //  Create a new thread
+                        val newThreadId = ThreadId(state.threadLocs.keys.map(_.k).max + 1)
+                        val entryBlockInNewThread = RichBlock(
+                            newThreadId,
+                            FunAnalyser(funName),
+                            funNameToLLVMFun(funName).entryBlock
+                        )
+                        state.threadLocs.updated(
+                            newThreadId,
+                            entryBlockInNewThread
+                        )
+                    case _ =>
+                        //  No new threads
+                        state.threadLocs
+
+                }).updated(
+                    ThreadId(currentThread),
+                    b.copy(block = next)
+                )
+
+                val newSyncTokens = inSyncEffects(b.block, outSyncEffects(b.block, state.syncTokens))
+                // logger.debug(s"succ: Emitting successor ${LLVMState(newThreadLocs, newSyncTokens)} for $state with label $label")
+                LLVMState(newThreadLocs, newSyncTokens)
+
+            case None =>
+                sys.error(s"No nwxtblock for ${b.block} in ${f.name}")
         }
 
-        var newSyncTokens = outSyncEffects(block, state.syncTokens)
-        newSyncTokens = inSyncEffects(getBlockByName(threadId, newBlock), newSyncTokens)
-
-        logger.debug(s"succ: Emitting successor ${LLVMState(newThreadLocs, newSyncTokens)} for $state with label $label")
-        LLVMState(newThreadLocs, newSyncTokens)
     }
 
-    def enabledIn(state : LLVMState) : Set[Choice] = {
-        val buf = new ListBuffer[Choice]
-        if (isFinal(state))
-            return buf.toSet
-        logger.debug(s"enabledIn: Enumerating enabled labels for state $state with nextBlocks ${nextBlocks(state)}")
-        for ((threadId, branches) <- nextBlocks(state).groupBy(_._1)) {
-            for (branchId <- 0 to branches.length - 1) {
-                buf += Choice(threadId, branchId)
-            }
-        }
-        logger.debug(s"enabledIn: returning $buf for $state")
-        buf.toSet
+    /**
+     * Choices enabled in a state.
+     */
+    def enabledIn(state : LLVMState) : Set[Choice] = !isFinal(state) match {
+
+        case true =>
+            //  Unblocked threads
+            val unblockedThreads = state.threadLocs.keys.filter(!isThreadBlocked(state)(_))
+            logger.debug(s"Unblocked threads are ${unblockedThreads}")
+
+            //  For each unblocked thread, collect the possible successor (choice,blocks)
+            unblockedThreads.flatMap(
+                {
+                    case currentThread =>
+                        //  RichBlock in currentThread
+                        val b : RichBlock = state.threadLocs(currentThread)
+                        //  LLVMFunction which contains b
+                        val f = funNameToLLVMFun(b.funAnalyser.name)
+                        //  Compute pairs (choice, tgtBlock) : Int x Option[Block]
+                        f.outBranches(b.block)
+                            //  Compute pairs (choice, tgtBlock) : Int x Option[Block]
+                            .map(c => (c, f.nextBlock(b.block, c)))
+                            //  Build choices from the outBranches of the block in b
+                            //  which have a nextBlock
+                            .collect({ case (c, Some(tgt)) => Choice(currentThread.k, c) })
+                }
+            ).toSet
+
+        case false => Set()
     }
 }
