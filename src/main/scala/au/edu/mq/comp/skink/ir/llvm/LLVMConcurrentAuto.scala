@@ -64,6 +64,11 @@ case class LLVMConcurrentAuto(
     var functionIds = MutableMap[Int, LLVMFunction](0 -> main)
 
     /**
+     * Function names to LLVMFunction
+     */
+    lazy val funNameToLLVMFun : Map[String, LLVMFunction] = irfunctions.map(f => (f.name, f)).toMap
+
+    /**
      * ??
      * @param    threadId   The thread number
      * @param    blockName  The name of the block
