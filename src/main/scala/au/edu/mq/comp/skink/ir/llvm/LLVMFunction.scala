@@ -221,6 +221,32 @@ case class LLVMFunction(val program : Program, val function : FunctionDefinition
     // Helper methods
 
     /**
+     * Get the possible choices out iof a block
+     */
+    def outBranches(b : Block) : List[Int] =
+        b.metaTerminatorInstruction.terminatorInstruction match {
+
+            // Unconditional branch
+            case Branch(Label(Local(_)))                    => List(0)
+
+            // Two-sided conditional branch
+            case BranchCond(_, _, _)                        => List(0, 1)
+
+            // Multi-way branch
+            case Switch(IntT(_), _, Label(Local(_)), cases) => Range(0, cases.length + 1).toList
+
+            //  Return. FIXME: return statement not supported we assume
+            //  return is the end of the function.
+            case _ : Ret | _ : RetVoid                      => List()
+
+            case _ : Unreachable                            => List()
+
+            // Do nothing
+            case i =>
+                sys.error(s"Unexpected form of terminator in: ${show(b)}")
+        }
+
+    /**
      * Build the Control Flow Graph NFA for the function.
      */
     def buildNFA(function : FunctionDefinition) : NFA[String, Choice] = {
