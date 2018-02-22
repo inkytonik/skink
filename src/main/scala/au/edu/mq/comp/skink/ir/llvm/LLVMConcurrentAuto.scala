@@ -28,7 +28,11 @@ case class LLVMState(threadLocs : Map[ThreadId, RichBlock], syncTokens : Map[Str
  * @param   irfunctions     The known functions.
  * @param   main            The entry point function.
  */
-case class LLVMConcurrentAuto(progAnalyser : IRAnalyser, irfunctions : Vector[LLVMFunction], main : LLVMFunction)
+case class LLVMConcurrentAuto(
+    progAnalyser : IRAnalyser,
+    irfunctions : Vector[LLVMFunction],
+    main : LLVMFunction
+)
         extends Attribution
         with DetAuto[LLVMState, Choice] {
 
