@@ -470,16 +470,18 @@ object LLVMHelper {
 
     /**
      * Whether a block has a PThreadCreate and in this case, the ThreadId and the Function
-     * @note: not used
+     * to execute.
      */
     object PThreadCreateBlock {
         def unapply(block : Block) : Option[(String, String)] =
-            block.optMetaInstructions.filter({ case PThreadCreate(_, _) => true; case _ => false }).toList match {
-                case List(PThreadCreate(threadName, threadFun)) => Some((threadName, threadFun))
+            block.optMetaInstructions
+                .filter({ case PThreadCreate(_, _) => true; case _ => false })
+                .toList match {
+                    case List(PThreadCreate(threadName, threadFun)) => Some((threadName, threadFun))
 
-                case List(_)                                    => sys.error(s"Encountered block with more than one PThreadCreate")
-                case List()                                     => None
-            }
+                    case List(_)                                    => sys.error(s"Encountered block with more than one PThreadCreate")
+                    case List()                                     => None
+                }
     }
 
     /**
