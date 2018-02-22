@@ -119,29 +119,24 @@ case class LLVMConcurrentAuto(
 
     //  Properties of blocks
 
-    /**
-     * Whether a block is a return (function call) or a pthread_exit
-     */
-    // now in Helper
-    // def isExitBlock(block : Block) : Boolean = {
-    //     logger.debug(s"checking if $block} is an exit block")
-    //     block.metaTerminatorInstruction.terminatorInstruction match {
-    //         case _ : Ret | _ : RetVoid => return true
-    //         case _                     => // Do nothing
-    //     }
-    //     val exitInsns = block.optMetaInstructions.collect {
-    //         case PThreadExit() => true
-    //         // case exitInsn @ MetaInstruction(GlobalFunctionCall("pthread_exit"), _) => return true
-    //     }
-    //     false
-    // }
+    lazy val isThreadBlocked : LLVMState => ThreadId => Boolean = attr {
+        case state => {
+            case t => {
+                state.threadLocs.get(t) match {
+                    case Some(richB) => isBlocked(richB, state)
+
+                    case None        => sys.error(s"Thread $t not active in $state")
+                }
+            }
+        }
+    }
 
     /**
      *  FIXME: Whether what??
      */
-    def isBlocked(block : Block, state : LLVMState) : Boolean = {
+    def isBlocked(block : RichBlock, state : LLVMState) : Boolean = {
 
-        threadInstructions(block) match {
+        threadInstructions(block.block).toList match {
 
             //  A block in the verifiable form after splitGlobal accesses
             //  should have at most one thread primitive
