@@ -364,7 +364,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                 Trace(Seq(0))
             ) shouldBe
                 Seq(
-                    True() & fprminit & iy1 === makeArrayLoadTermBV("%x", 32, bits, 1, 1)
+                    fprminit & iy1 === makeArrayLoadTermBV("%x", 32, bits, 1, 1)
                 )
         }
     }
@@ -403,7 +403,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                 Trace(Seq(0))
             ) shouldBe
                 Seq(
-                    True() & fprminit & makeArrayTermBV("%x", 32, bits, 2) === makeArrayStoreTermBV("%x", 32, bits, iy, 1, 1)
+                    fprminit & makeArrayTermBV("%x", 32, bits, 2) === makeArrayStoreTermBV("%x", 32, bits, iy, 1, 1)
                 )
         }
     }

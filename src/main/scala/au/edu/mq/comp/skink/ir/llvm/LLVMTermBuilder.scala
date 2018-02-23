@@ -75,12 +75,13 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * initialisers of a program.
      */
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
-        val fpmodeInitTerm : TypedTerm[BoolTerm, Term] =
-            if (config.realMode() == BitRealMode())
-                varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
-            else
-                true
-        val term = combineTerms(program.items.map(itemTerm)) & fpmodeInitTerm
+        val itemTerms = combineTerms(program.items.map(itemTerm))
+        val term =
+            if (config.realMode() == BitRealMode()) {
+                val fpterm = varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
+                if (itemTerms == True()) fpterm else fpterm & itemTerms
+            } else
+                itemTerms
         logger.info(s"initTerm: ${showTerm(term.termDef)}")
         term
     }
