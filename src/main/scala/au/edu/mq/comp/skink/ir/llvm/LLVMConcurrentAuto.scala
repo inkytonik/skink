@@ -22,9 +22,9 @@ case class LLVMState(threadLocs : Map[ThreadId, RichBlock], syncTokens : Map[Str
 
     def isError = threadLocs.values.exists(x => isErrorBlock(x.block))
 
-    def show = (threadLocs.map {
-        case (x, y) => (x, y.show)
-    }).toString
+    def show(showBlock : RichBlock => String = { x => x.toString }) = (threadLocs.map {
+        case (x, y) => (x, showBlock(y))
+    }).mkString(",")
 }
 
 /**
@@ -187,7 +187,7 @@ case class LLVMConcurrentAuto(
 
                 // val buf = new ListBuffer[(Int, String)]
 
-                logger.debug(s"nextBlocks: filtering blocks ${state.show} for blocked blocks")
+                logger.debug(s"nextBlocks: filtering blocks ${state.show()} for blocked blocks")
                 // val unblockedBlocks = state.threadLocs.filter(s => !isBlocked(getBlockByName(s._1, s._2), state))
                 //  Unblocked threads
                 val unblockedThreads = state.threadLocs.keys.filter(!isThreadBlocked(state)(_))

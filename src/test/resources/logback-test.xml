@@ -59,20 +59,13 @@
         </encoder>
     </appender>
 
-    <appender name="CFGSPLITFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/SplitCFG.dot</file>
-        <append>false</append>
-        <encoder>
-            <pattern>%msg</pattern>
-        </encoder>
-    </appender>
-
+  
 
     <appender name="CFGSPLITFILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/SplitCFG.dot</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -108,7 +101,7 @@
 
     <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
         <appender-ref ref="CFGFILE"/>
     </logger>
@@ -118,16 +111,17 @@
     <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
 
     <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder" level="DEBUG"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTraceNamer" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMConcurrentAuto" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTermBuilder" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMTraceNamer" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMIR" level="DEBUG">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMIR" level="OFF">
       <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMIR.cfg" level="DEBUG" additivity="false">
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMIR.cfg" level="ON">
       <appender-ref ref="CFGSPLITFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>

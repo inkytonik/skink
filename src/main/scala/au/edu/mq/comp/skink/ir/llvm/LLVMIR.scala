@@ -198,14 +198,21 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     val (printNFA, nodeInfo) = org.bitbucket.franck44.automat.util.Determiniser.toDetNFA(
         nfa,
-        { x : LLVMState ⇒ x.threadLocs.mkString(",") }
+        { x : LLVMState ⇒
+            //  How to display a RichBlock in a LLVMState
+            val displayBlock : RichBlock => String = {
+                case RichBlock(ThreadId(k), FunAnalyser(fname), b) =>
+                    s"($k, $fname , ${funNameToLLVMFun(fname).blockName(b)})"
+            }
+            x.show(displayBlock)
+        }
     )
 
     import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
 
     val toPrint = org.bitbucket.franck44.dot.DOTPrettyPrinter.show(
         org.bitbucket.franck44.automat.util.DotConverter.toDot(
-            printNFA,
+            printNFA.copy(name = "Concurrent program"),
             (b : Int) => {
                 val tooltip =
                     Attribute("tooltip", StringLit(nodeInfo(b)))
