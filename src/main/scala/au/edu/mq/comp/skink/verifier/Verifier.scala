@@ -58,10 +58,10 @@ class Verifier(ir : IR, config : SkinkConfig) {
             import scala.collection.mutable.StringBuilder
 
             val argSets = List(
-                List("-e", "Z3", "-i", "bit", "-r", "bit") //,
-            // List("-e", "Z3", "-i", "bit"),
-            // List("-e", "Z3"),
-            // List("-e", "Yices-nonIncr")
+                List("-e", "Z3", "-i", "bit", "-r", "bit"),
+                List("-e", "Z3", "-i", "bit"),
+                List("-e", "Z3"),
+                List("-e", "Yices-nonIncr")
             )
 
             val unknownReasons = new StringBuilder()
