@@ -47,7 +47,7 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import au.edu.mq.comp.skink.ir.{IRFunction, Trace, Choice, State, FailureTrace, NonDetCall, Step}
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{areDependent => areBlockDependent, _}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblySyntax.{FunctionDefinition}
     import org.scalallvm.assembly.Executor
@@ -212,11 +212,13 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
 
     val toPrint = org.bitbucket.franck44.dot.DOTPrettyPrinter.show(
         org.bitbucket.franck44.automat.util.DotConverter.toDot(
-            printNFA.copy(name = "Concurrent program"),
+            printNFA.copy(name = s"Concurrent program [ ${nodeInfo.size} states, ${printNFA.transitions.size} transitions]"),
             (b : Int) => {
-                val tooltip =
-                    Attribute("tooltip", StringLit(nodeInfo(b)))
-                List(tooltip)
+                val tooltip = Attribute("tooltip", StringLit(nodeInfo(b)))
+                if (printNFA.accepting.contains(b))
+                    List(tooltip, Attribute("style", Ident("filled")), Attribute("fillcolor", Ident("orange")))
+                else
+                    List(tooltip)
             }
         )
     )
@@ -655,8 +657,60 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
         trace : Trace,
         info : Option[String] = None
     ) : NFA[_, Choice] = {
-        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = true)
+        verifier.interpolant.InterpolantAuto.buildInterpolantAuto(this, trace.choices, info.getOrElse("0").toInt, fromEnd = false)
     }
+
+    def areDependent(rb1 : RichBlock, rb2 : RichBlock) : Boolean = {
+        (rb1.threadId == rb2.threadId) ||
+            areBlockDependent(rb1.block, rb2.block)
+    }
+
+    /**
+     * Check if the effects of two choices in a trace are dependent
+     */
+    // def independent(choices : Seq[Choice])(i : Int, j : Int) : Boolean
+
+    def independent(trace : Seq[Choice])(i : Int, j : Int) : Boolean = {
+        val richBlockTrace : RichBlockTrace = traceToRichBlockTrace(Trace(trace))
+        !areDependent(richBlockTrace.blocks(i), richBlockTrace.blocks(j))
+    }
+
+    //  Use partial order reduction to get traces
+    import org.bitbucket.franck44.automat.dpor.DPOR
+
+    import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
+
+    val reducer = DPOR(nfa, { x : Choice => x.threadId }, independent _)
+    reducer.getTrace()
+    // val (reducedAuto, nodeInfo) = toDetNFA(reducer.getExploredGraph)._1
+
+    val (reducedAuto, nodeInfoReduced) = org.bitbucket.franck44.automat.util.Determiniser.toDetNFA(
+        reducer.getExploredGraph
+    // { x : Set[LLVMState] ⇒
+    //     //  How to display a RichBlock in a LLVMState
+    //     val displayBlock : RichBlock => String = {
+    //         case RichBlock(ThreadId(k), FunAnalyser(fname), b) =>
+    //             s"($k, $fname , ${funNameToLLVMFun(fname).blockName(b)})"
+    //     }
+    //     x.map(show(displayBlock)).mkString(",")
+    // }
+    )
+
+    val toPrintReduced = org.bitbucket.franck44.dot.DOTPrettyPrinter.show(
+        org.bitbucket.franck44.automat.util.DotConverter.toDot(
+            reducedAuto.copy(name = s"Reduced Concurrent program [ ${nodeInfoReduced.size} states, ${reducedAuto.transitions.size} transitions]"),
+            (b : Int) => {
+                val tooltip =
+                    Attribute("tooltip", StringLit(nodeInfo(b)))
+                if (reducedAuto.accepting.contains(b))
+                    List(tooltip, Attribute("style", Ident("filled")), Attribute("fillcolor", Ident("orange")))
+                else
+                    List(tooltip)
+            }
+        )
+    )
+
+    cfgLogger.info(s"${toPrintReduced}")
 
     /**
      * Return an error trace if any.
@@ -666,7 +720,9 @@ class LLVMIR(val program : Program, config : SkinkConfig) extends Attribution wi
      */
     def getErrorTrace(r : NFA[_, Choice]) = {
         import org.bitbucket.franck44.automat.lang.Lang
-        (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
+        // (Lang(nfa) \ Lang(r)).getAcceptedTrace.map(Trace(_))
+
+        (Lang(reducedAuto) \ Lang(r)).getAcceptedTrace.map(Trace(_))
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
