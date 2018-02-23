@@ -5,6 +5,8 @@ import org.scalallvm.assembly.AssemblySyntax._
 object LLVMHelper {
 
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+    import au.edu.mq.comp.skink.Skink.getLogger
+    val logger = getLogger(this.getClass)
 
     // Property helpers
 
@@ -331,6 +333,29 @@ object LLVMHelper {
     //  Threads useful helpers/extractors
 
     /**
+     * Whether two blocks have dependent variables
+     */
+    def areDependent(a : Block, b : Block) : Boolean = {
+        def globalAccessNames(block : Block) : (Set[String], Set[String]) =
+            block.optMetaInstructions.map(_.instruction).foldLeft((Set[String](), Set[String]())) {
+                case ((l, s), GlobalFunctionCall(f)) if isThreadFunction(f) => (l, s + "pthread")
+                case ((l, s), Load(_, _, _, _, Named(Global(n)), _)) => (l + n, s)
+                case ((l, s), Store(_, _, _, _, Named(Global(n)), _)) => (l, s + n)
+                case ((l, s), _) => (l, s)
+            }
+
+        logger.info(s"Checking dependence between blocks b1 and b2")
+        logger.info(s"b1 is ${show(a)}")
+        logger.info(s"b2 is ${show(b)}")
+
+        val (aLoads, aStores) = globalAccessNames(a)
+        val (bLoads, bStores) = globalAccessNames(b)
+        val res = !((aStores & bStores).isEmpty && (aStores & bLoads).isEmpty && (aLoads & bStores).isEmpty)
+        logger.info(s"b1, b2 dependent? $res")
+        res
+    }
+
+    /**
      * Generate a new label from an existing block label and a supplied prefix
      * string.
      */
@@ -361,20 +386,6 @@ object LLVMHelper {
             case _ =>
                 false
         }
-    }
-
-    def areDependent(a : Block, b : Block) : Boolean = {
-        def globalAccessNames(block : Block) : (Set[String], Set[String]) =
-            block.optMetaInstructions.map(_.instruction).foldLeft((Set[String](), Set[String]())) {
-                case ((l, s), GlobalFunctionCall(f)) if isThreadFunction(f) => (l, s + "pthread")
-                case ((l, s), Load(_, _, _, _, Named(Global(n)), _)) => (l + n, s)
-                case ((l, s), Store(_, _, _, _, Named(Global(n)), _)) => (l, s + n)
-                case ((l, s), _) => (l, s)
-            }
-
-        val (aLoads, aStores) = globalAccessNames(a)
-        val (bLoads, bStores) = globalAccessNames(b)
-        !((aStores & bStores).isEmpty && (aStores & bLoads).isEmpty && (aLoads & bStores).isEmpty)
     }
 
     /**
