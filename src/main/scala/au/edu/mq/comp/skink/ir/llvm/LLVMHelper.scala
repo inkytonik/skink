@@ -207,6 +207,20 @@ object LLVMHelper {
         def unapply(name : String) : Boolean =
             List("__isnan", "__isnanf") contains name
     }
+    /**
+     * Matcher for global library function calls with zero arguments. Successful
+     * matches return the optional binding, return type, string function name.
+     */
+    object LibFunctionCall0 {
+        def unapply(insn : Instruction) : Option[(OptBinding, Type, String)] = {
+            insn match {
+                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(), _) =>
+                    Some((to, tipe, name))
+                case _ =>
+                    None
+            }
+        }
+    }
 
     /**
      * Matcher for global library function calls with a single argument. Successful
@@ -218,21 +232,6 @@ object LLVMHelper {
             insn match {
                 case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1)), _) =>
                     Some((to, tipe, name, arg1, tipe1))
-                case _ =>
-                    None
-            }
-        }
-    }
-
-    /**
-     * Matcher for global library function calls with zero arguments. Successful
-     * matches return the optional binding, return type, string function name.
-     */
-    object LibFunctionCall0 {
-        def unapply(insn : Instruction) : Option[(OptBinding, Type, String)] = {
-            insn match {
-                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(), _) =>
-                    Some((to, tipe, name))
                 case _ =>
                     None
             }
