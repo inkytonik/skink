@@ -732,6 +732,17 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             True()
                     }
 
+                // Any other library functions are ignored
+
+                case LibFunctionCall0(_, _, _) =>
+                    True()
+
+                case LibFunctionCall1(_, _, _, _, _) =>
+                    True()
+
+                case LibFunctionCall2(_, _, _, _, _, _, _) =>
+                    True()
+
                 // Compare two Boolean values
 
                 case Compare(_, _, _, Const(UndefC()), _) =>

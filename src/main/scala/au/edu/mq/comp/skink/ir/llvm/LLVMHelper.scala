@@ -266,7 +266,7 @@ object LLVMHelper {
                 case Ceil() | CopySign() | Exit() | FAbs() | FDim() | FEGetRound() |
                     FESetRound() | Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
                     IsNan() | MemoryAlloc() | OutputFunctionName() | Remainder() |
-                    RInt() | Round() | SignBit() | Trunc() | VerifierFunctionName() =>
+                    RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
@@ -408,6 +408,14 @@ object LLVMHelper {
                 case _          => None
             }
 
+    }
+
+    /**
+     * Matcher for varargs function names.
+     */
+    object VarargsFunctionName {
+        def unapply(name : String) : Boolean =
+            List("llvm.va_copy", "llvm.va_start", "llvm.va_end") contains name
     }
 
     /**
