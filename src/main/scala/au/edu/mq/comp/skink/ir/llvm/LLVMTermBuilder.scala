@@ -103,7 +103,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                         val i =
                             integerMode match {
                                 case BitIntegerMode() =>
-                                    BVs("i", config.architecture())
+                                    BVs("i", architecture)
                                 case MathIntegerMode() =>
                                     Ints("i")
                             }
@@ -129,7 +129,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                         integerMode match {
                                             case BitIntegerMode() =>
                                                 val bits = size.toInt
-                                                arrayTermIBV(id, bits, index).at(i.withBits(config.architecture())) === ctermIBV(constantValue, bits)
+                                                arrayTermIBV(id, bits, index).at(i.withBits(architecture)) === ctermIBV(constantValue, bits)
                                             case MathIntegerMode() =>
                                                 arrayTermI(id, index).at(i) === ctermI(constantValue)
                                         }
@@ -144,7 +144,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                                 val bits = size.toInt
                                 combineTerms(chars.map {
                                     case (char, i) =>
-                                        arrayTermIBV(id, bits, index).at(i.withBits(config.architecture())) === ctermIBV(IntC(char.toInt), bits)
+                                        arrayTermIBV(id, bits, index).at(i.withBits(architecture)) === ctermIBV(IntC(char.toInt), bits)
                                 })
                             case MathIntegerMode() =>
                                 combineTerms(chars.map {
