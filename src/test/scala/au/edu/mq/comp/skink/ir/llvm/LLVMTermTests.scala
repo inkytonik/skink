@@ -32,6 +32,8 @@ trait LLVMTermTests extends Tests with Core {
 
     val noMetadata = Metadata(Vector())
 
+    val intSizes = Vector(8, 16, 32, 64)
+
     // Dummy function and analyser for standalone tests
 
     val Vector(func) = parseProgram("define i32 @main() { ret i32 0 }")
@@ -40,14 +42,14 @@ trait LLVMTermTests extends Tests with Core {
 
     // Helpers to build useful instructions and terms
 
-    def makeLocal(id : String) =
+    def makeLocal(id : String) : Name =
         Local(id)
 
     val x = makeLocal("x")
     val y = makeLocal("y")
     val z = makeLocal("z")
 
-    def makeLocalExp(id : String) =
+    def makeLocalExp(id : String) : Value =
         Named(makeLocal(id))
 
     val xexp = makeLocalExp("x")
@@ -61,11 +63,26 @@ trait LLVMTermTests extends Tests with Core {
     val by = makeVarTermB("%y")
     val bz = makeVarTermB("%z")
 
+    val v = "1"
+    val w = "2"
+
+    def makeInt(i : String) : ConstantValue =
+        IntC(i.toInt)
+
+    val ivconst = makeInt(v)
+    val iwconst = makeInt(w)
+
+    def makeFloat(f : String) : ConstantValue =
+        FloatC(f)
+
+    val fpvconst = makeFloat(v)
+    val fpwconst = makeFloat(w)
+
     def makeCall(binding : OptBinding, id : String, args : Vector[CallArgument]) =
         Call(binding, NotTail(), DefaultCC(), Vector(), VoidT(),
             Function(Named(Global(id))), args, Vector())
 
-    def makeLabel(name : String) =
+    def makeLabel(name : String) : Label =
         Label(Local(name))
 
     // Helper functions

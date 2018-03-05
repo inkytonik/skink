@@ -10,7 +10,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
 
     import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, FPBitVectorSort, FPFloat16, FPFloat32, FPFloat64, FPFloat128, RNE, RoundingModeSort, Sort, SSymbol, Term}
-    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BVTerm, FPBVTerm, RMFPBVTerm}
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
@@ -39,8 +39,6 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     implicit def BVs32(i : Int) : TypedTerm[BVTerm, Term] =
         BVs(i, 32)
 
-    val intSizes = Vector(8, 16, 32, 64)
-
     def makeIntVars(id : String, index : Int = 0) : Map[Int, VarTerm[BVTerm]] =
         Map(intSizes.map(bits => (
             bits,
@@ -52,20 +50,25 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     val izs = makeIntVars("%z")
     val iy1s = makeIntVars("%y", 1)
 
+    case class FloatSize(
+        tipe : Type,
+        sort : Sort,
+        exp : Int,
+        sig : Int,
+        asFPBV : String => TypedTerm[FPBVTerm, Term]
+    )
+
     val floatSizes = Vector(
-        (HalfT(), FPFloat16(), 5, 11),
-        (FloatT(), FPFloat32(), 8, 24),
-        (DoubleT(), FPFloat64(), 11, 53),
-        (X86_FP80(), FPBitVectorSort("15", "65"), 15, 65),
-        (FP128T(), FPFloat128(), 15, 113),
-        (PPC_FP128T(), FPFloat128(), 15, 113)
+        FloatSize(HalfT(), FPFloat16(), 5, 11, _.asFloat16),
+        FloatSize(FloatT(), FPFloat32(), 8, 24, _.asFloat32),
+        FloatSize(DoubleT(), FPFloat64(), 11, 53, _.asFloat64),
+        FloatSize(X86_FP80(), FPBitVectorSort("15", "65"), 15, 65, _.asFPBV(15, 65)),
+        FloatSize(FP128T(), FPFloat128(), 15, 113, _.asFloat128),
+        FloatSize(PPC_FP128T(), FPFloat128(), 15, 113, _.asFloat128)
     )
 
     def makeFloatVars(id : String) : Map[Type, VarTerm[FPBVTerm]] =
-        Map(floatSizes.map {
-            case (tipe, sort, _, _) =>
-                (tipe, makeVarTermRBV(id, sort))
-        } : _*)
+        Map(floatSizes.map(fs => (fs.tipe, makeVarTermRBV(id, fs.sort))) : _*)
 
     val fxs = makeFloatVars("%x")
     val fys = makeFloatVars("%y")
@@ -79,48 +82,66 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     // Binary operations
 
     for (bits <- intSizes) {
+        val iv = BVs(BigInt(v), bits)
+        val iw = BVs(BigInt(w), bits)
         val ix = ixs(bits)
         val iy = iys(bits)
         val iz = izs(bits)
-        val integerBinaryOps = Vector(
-            (Add(Vector()), iz === (ix + iy)),
-            (And(), iz === (ix and iy)),
-            (AShR(Exact()), iz === (ix ashr iy)),
-            (AShR(NotExact()), iz === (ix ashr iy)),
-            (LShR(Exact()), iz === (ix >> iy)),
-            (LShR(NotExact()), iz === (ix >> iy)),
-            (Mul(Vector()), iz === (ix * iy)),
-            (Or(), iz === (ix or iy)),
-            (SDiv(Exact()), iz === (ix sdiv iy)),
-            (SDiv(NotExact()), iz === (ix sdiv iy)),
-            (ShL(Vector()), iz === (ix << iy)),
-            (SRem(), iz === (ix srem iy)),
-            (Sub(Vector()), iz === (ix - iy)),
-            (UDiv(Exact()), iz === (ix / iy)),
-            (UDiv(NotExact()), iz === (ix / iy)),
-            (URem(), iz === (ix % iy)),
-            (XOr(), iz === (ix xor iy))
-        )
+        type ttype = TypedTerm[BVTerm, Term]
+        type ftype = (ttype, ttype) => ttype
+        val integerBinaryOps : Vector[(BinOp, ftype)] =
+            Vector(
+                (Add(Vector()), _ + _),
+                (And(), _ and _),
+                (AShR(Exact()), _ ashr _),
+                (AShR(NotExact()), _ ashr _),
+                (LShR(Exact()), _ >> _),
+                (LShR(NotExact()), _ >> _),
+                (Mul(Vector()), _ * _),
+                (Or(), _ or _),
+                (SDiv(Exact()), _ sdiv _),
+                (SDiv(NotExact()), _ sdiv _),
+                (ShL(Vector()), _ << _),
+                (SRem(), _ srem _),
+                (Sub(Vector()), _ - _),
+                (UDiv(Exact()), _ / _),
+                (UDiv(NotExact()), _ / _),
+                (URem(), _ % _),
+                (XOr(), _ xor _)
+            )
         for ((op, term) <- integerBinaryOps) {
             test(s"binary $bits bit integer ${show(op)} insn is encoded correctly") {
-                hasEffect(Binary(Binding(z), op, IntT(bits), xexp, yexp), term)
+                hasEffect(Binary(Binding(z), op, IntT(bits), xexp, yexp), iz === term(ix, iy))
+            }
+            test(s"binary $bits bit integer ${show(op)} constant is encoded correctly") {
+                termBuilder.ctermIBV(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst), bits) shouldBe term(iv, iw)
             }
         }
     }
 
-    for ((tipe, _, exp, sig) <- floatSizes) {
-        val fx = fxs(tipe).toFPBV(11, 53)
-        val fy = fys(tipe).toFPBV(11, 53)
-        val fz = fzs(tipe)
-        val floatBinaryOps = Vector(
-            (FAdd(Vector()), fz === (fx + fy).toFPBV(exp, sig)),
-            (FDiv(Vector()), fz === (fx / fy).toFPBV(exp, sig)),
-            (FMul(Vector()), fz === (fx * fy).toFPBV(exp, sig)),
-            (FSub(Vector()), fz === (fx - fy).toFPBV(exp, sig))
-        )
+    for (fs <- floatSizes) {
+        val fv = fs.asFPBV(v).toFPBV(11, 53)
+        val fw = fs.asFPBV(w).toFPBV(11, 53)
+        val vconst = makeFloat(v)
+        val wconst = makeFloat(w)
+        val fx = fxs(fs.tipe).toFPBV(11, 53)
+        val fy = fys(fs.tipe).toFPBV(11, 53)
+        val fz = fzs(fs.tipe)
+        type ttype = TypedTerm[FPBVTerm, Term]
+        type ftype = (ttype, ttype) => ttype
+        val floatBinaryOps : Vector[(BinOp, ftype)] =
+            Vector(
+                (FAdd(Vector()), _ + _),
+                (FDiv(Vector()), _ / _),
+                (FMul(Vector()), _ * _),
+                (FSub(Vector()), _ - _)
+            )
         for ((op, term) <- floatBinaryOps) {
-            test(s"binary ${show(tipe)} real ${show(op)} insn is encoded correctly") {
-                hasEffect(Binary(Binding(z), op, tipe, xexp, yexp), term)
+            test(s"binary ${show(fs.tipe)} real ${show(op)} insn is encoded correctly") {
+                hasEffect(Binary(Binding(z), op, fs.tipe, xexp, yexp), fz === term(fx, fy).toFPBV(fs.exp, fs.sig))
+            }
+            test(s"binary ${show(fs.tipe)} real ${show(op)} constant is encoded correctly") {
+                termBuilder.ctermRBV(BinaryC(op, fs.tipe, vconst, fs.tipe, wconst), fs.exp + fs.sig) shouldBe term(fv, fw).toFPBV(fs.exp, fs.sig)
             }
         }
     }
@@ -175,52 +196,70 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     }
 
     for (bits <- intSizes) {
+        val iv = BVs(BigInt(v), bits)
+        val iw = BVs(BigInt(w), bits)
         val ix = ixs(bits)
         val iy = iys(bits)
-        val integerCompares = Vector(
-            (EQ(), bz === (ix === iy)),
-            (NE(), bz === !(ix === iy)),
-            (UGT(), bz === (ix ugt iy)),
-            (UGE(), bz === (ix uge iy)),
-            (ULT(), bz === (ix ult iy)),
-            (ULE(), bz === (ix ule iy)),
-            (SGT(), bz === (ix sgt iy)),
-            (SGE(), bz === (ix sge iy)),
-            (SLT(), bz === (ix slt iy)),
-            (SLE(), bz === (ix sle iy))
-        )
+        type ttype = TypedTerm[BVTerm, Term]
+        type ftype = (ttype, ttype) => TypedTerm[BoolTerm, Term]
+        val integerCompares : Vector[(ICond, ftype)] =
+            Vector(
+                (EQ(), _ === _),
+                (NE(), (x, y) => !(x === y)),
+                (UGT(), _ ugt _),
+                (UGE(), _ uge _),
+                (ULT(), _ ult _),
+                (ULE(), _ ule _),
+                (SGT(), _ sgt _),
+                (SGE(), _ sge _),
+                (SLT(), _ slt _),
+                (SLE(), _ sle _)
+            )
         for ((cond, term) <- integerCompares) {
-            test(s"compare $bits bit integer with ${show(cond)} is encoded correctly") {
-                hasEffect(Compare(Binding(z), ICmp(cond), IntT(bits), xexp, yexp), term)
+            test(s"compare insn $bits bit integer with ${show(cond)} is encoded correctly") {
+                hasEffect(Compare(Binding(z), ICmp(cond), IntT(bits), xexp, yexp), bz === term(ix, iy))
+            }
+            test(s"compare constant $bits bit integer with ${show(cond)} is encoded correctly") {
+                termBuilder.ctermB(CompareC(ICmp(cond), IntT(bits), ivconst, IntT(bits), iwconst)) shouldBe term(iv, iw)
             }
         }
     }
 
-    for ((tipe, _, exp, sig) <- floatSizes) {
-        val fx = fxs(tipe).toFPBV(11, 53)
-        val fy = fys(tipe).toFPBV(11, 53)
-        val unordered = fx.isNaN | fy.isNaN
-        val ordered = !unordered
-        val floatCompares = Vector(
-            (FFalse(), bz === False()),
-            (FTrue(), bz === True()),
-            (FORD(), bz === ordered),
-            (FONE(), bz === (ordered & !(fx.fpeq(fy)))),
-            (FOEQ(), bz === (ordered & (fx.fpeq(fy)))),
-            (FOGT(), bz === (ordered & (fx > fy))),
-            (FOGE(), bz === (ordered & (fx >= fy))),
-            (FOLT(), bz === (ordered & (fx < fy))),
-            (FOLE(), bz === (ordered & (fx <= fy))),
-            (FUNE(), bz === (unordered | !(fx.fpeq(fy)))),
-            (FUEQ(), bz === (unordered | (fx.fpeq(fy)))),
-            (FUGT(), bz === (unordered | (fx > fy))),
-            (FUGE(), bz === (unordered | (fx >= fy))),
-            (FULT(), bz === (unordered | (fx < fy))),
-            (FULE(), bz === (unordered | (fx <= fy)))
-        )
+    for (fs <- floatSizes) {
+        val fv = fs.asFPBV(v).toFPBV(11, 53)
+        val fw = fs.asFPBV(w).toFPBV(11, 53)
+        val vconst = makeFloat(v)
+        val wconst = makeFloat(w)
+        val fx = fxs(fs.tipe).toFPBV(11, 53)
+        val fy = fys(fs.tipe).toFPBV(11, 53)
+        type ttype = TypedTerm[FPBVTerm, Term]
+        def unordered = (x : ttype, y : ttype) => x.isNaN | y.isNaN
+        def ordered = (x : ttype, y : ttype) => !unordered(x, y)
+        type ftype = (ttype, ttype) => TypedTerm[BoolTerm, Term]
+        val floatCompares : Vector[(FCond, ftype)] =
+            Vector(
+                (FFalse(), (x, y) => False()),
+                (FTrue(), (x, y) => True()),
+                (FORD(), ordered),
+                (FONE(), (x, y) => ordered(x, y) & !(x.fpeq(y))),
+                (FOEQ(), (x, y) => ordered(x, y) & (x.fpeq(y))),
+                (FOGT(), (x, y) => ordered(x, y) & (x > y)),
+                (FOGE(), (x, y) => ordered(x, y) & (x >= y)),
+                (FOLT(), (x, y) => ordered(x, y) & (x < y)),
+                (FOLE(), (x, y) => ordered(x, y) & (x <= y)),
+                (FUNE(), (x, y) => unordered(x, y) | !(x.fpeq(y))),
+                (FUEQ(), (x, y) => unordered(x, y) | (x.fpeq(y))),
+                (FUGT(), (x, y) => unordered(x, y) | (x > y)),
+                (FUGE(), (x, y) => unordered(x, y) | (x >= y)),
+                (FULT(), (x, y) => unordered(x, y) | (x < y)),
+                (FULE(), (x, y) => unordered(x, y) | (x <= y))
+            )
         for ((cond, term) <- floatCompares) {
-            test(s"compare ${show(tipe)} real with ${show(cond)} is encoded correctly") {
-                hasEffect(Compare(Binding(z), FCmp(cond), tipe, xexp, yexp), term)
+            test(s"compare insn ${show(fs.tipe)} real with ${show(cond)} is encoded correctly") {
+                hasEffect(Compare(Binding(z), FCmp(cond), fs.tipe, xexp, yexp), bz === term(fx, fy))
+            }
+            test(s"compare constant ${show(fs.tipe)} real with ${show(cond)} is encoded correctly") {
+                termBuilder.ctermB(CompareC(FCmp(cond), fs.tipe, vconst, fs.tipe, wconst)) shouldBe term(fv, fw)
             }
         }
     }

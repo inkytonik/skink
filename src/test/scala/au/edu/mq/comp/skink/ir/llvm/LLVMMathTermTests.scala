@@ -15,7 +15,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, IntSort, RealSort, SSymbol, Term}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, IntTerm, RealTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     def config = createAndInitConfig(Seq())
@@ -52,15 +52,32 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     val iy = makeVarTermI("%y")
     val iz = makeVarTermI("%z")
 
+    val iv = Ints(v.toInt)
+    val iw = Ints(w.toInt)
+
     val ix1 = makeVarTermI("%x", 1)
     val ix2 = makeVarTermI("%x", 2)
 
     val iy1 = makeVarTermI("%y", 1)
     val iy2 = makeVarTermI("%y", 2)
 
+    val floatSizes = Vector(
+        HalfT(),
+        FloatT(),
+        DoubleT(),
+        X86_FP80(),
+        FP128T(),
+        PPC_FP128T()
+    )
+
     val fx = makeVarTermR("%x")
     val fy = makeVarTermR("%y")
     val fz = makeVarTermR("%z")
+
+    val fv = Reals(v.toInt)
+    val fw = Reals(w.toInt)
+    val vconst = makeFloat(v)
+    val wconst = makeFloat(w)
 
     val afx0 = makeArrayLoadTermR("%x", 0)
     val afy0 = makeArrayLoadTermR("%y", 0)
@@ -86,21 +103,32 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    val integerBinaryOps = Vector(
-        (Add(Vector()), iz === (ix + iy)),
-        (Mul(Vector()), iz === (ix * iy)),
-        (SDiv(Exact()), iz === (ix / iy)),
-        (SDiv(NotExact()), iz === (ix / iy)),
-        (SRem(), iz === (ix % iy)),
-        (Sub(Vector()), iz === (ix - iy)),
-        (UDiv(Exact()), iz === (ix / iy)),
-        (UDiv(NotExact()), iz === (ix / iy)),
-        (URem(), iz === (ix % iy))
-    )
+    {
+        type ttype = TypedTerm[IntTerm, Term]
+        type ftype = (ttype, ttype) => ttype
 
-    for ((op, term) <- integerBinaryOps) {
-        test(s"binary integer ${show(op)} insn is encoded correctly") {
-            hasEffect(Binary(Binding(z), op, IntT(32), xexp, yexp), term)
+        val integerBinaryOps : Vector[(BinOp, ftype)] =
+            Vector(
+                (Add(Vector()), _ + _),
+                (Mul(Vector()), _ * _),
+                (SDiv(Exact()), _ / _),
+                (SDiv(NotExact()), _ / _),
+                (SRem(), _ % _),
+                (Sub(Vector()), _ - _),
+                (UDiv(Exact()), _ / _),
+                (UDiv(NotExact()), _ / _),
+                (URem(), _ % _)
+            )
+
+        for (bits <- intSizes) {
+            for ((op, term) <- integerBinaryOps) {
+                test(s"binary $bits integer ${show(op)} insn is encoded correctly") {
+                    hasEffect(Binary(Binding(z), op, IntT(bits), xexp, yexp), iz === term(ix, iy))
+                }
+                test(s"binary $bits integer ${show(op)} constant is encoded correctly") {
+                    termBuilder.ctermI(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst)) shouldBe term(iv, iw)
+                }
+            }
         }
     }
 
@@ -214,22 +242,58 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
         }
     }
 
-    val integerCompares = Vector(
-        (EQ(), bz === (ix === iy)),
-        (NE(), bz === !(ix === iy)),
-        (UGT(), (ix >= 0) & (iy >= 0) & (bz === (ix > iy))),
-        (UGE(), (ix >= 0) & (iy >= 0) & (bz === (ix >= iy))),
-        (ULT(), (ix >= 0) & (iy >= 0) & (bz === (ix < iy))),
-        (ULE(), (ix >= 0) & (iy >= 0) & (bz === (ix <= iy))),
-        (SGT(), bz === (ix > iy)),
-        (SGE(), bz === (ix >= iy)),
-        (SLT(), bz === (ix < iy)),
-        (SLE(), bz === (ix <= iy))
-    )
+    {
+        type ttype = TypedTerm[IntTerm, Term]
+        type ftype = (ttype, ttype) => TypedTerm[BoolTerm, Term]
 
-    for ((cond, term) <- integerCompares) {
-        test(s"compare integer with ${show(cond)} is encoded correctly") {
-            hasEffect(Compare(Binding(z), ICmp(cond), IntT(32), xexp, yexp), term)
+        val integerCompares : Vector[(ICond, ftype)] =
+            Vector(
+                (EQ(), _ === _),
+                (NE(), (x, y) => !(x === y)),
+                (UGT(), (x, y) => (x >= 0) & (y >= 0) & (x > y)),
+                (UGE(), (x, y) => (x >= 0) & (y >= 0) & (x >= y)),
+                (ULT(), (x, y) => (x >= 0) & (y >= 0) & (x < y)),
+                (ULE(), (x, y) => (x >= 0) & (y >= 0) & (x <= y)),
+                (SGT(), _ > _),
+                (SGE(), _ >= _),
+                (SLT(), _ < _),
+                (SLE(), _ <= _)
+            )
+
+        for (bits <- intSizes) {
+            for ((cond, term) <- integerCompares) {
+                test(s"compare insn $bits bit integer with ${show(cond)} is encoded correctly") {
+                    hasEffect(Compare(Binding(z), ICmp(cond), IntT(bits), xexp, yexp), bz === term(ix, iy))
+                }
+                test(s"compare constant $bits bit integer with ${show(cond)} is encoded correctly") {
+                    termBuilder.ctermB(CompareC(ICmp(cond), IntT(bits), ivconst, IntT(bits), iwconst)) shouldBe term(iv, iw)
+                }
+            }
+        }
+    }
+
+    for (fs <- floatSizes) {
+        type ttype = TypedTerm[RealTerm, Term]
+        type ftype = (ttype, ttype) => TypedTerm[BoolTerm, Term]
+        val floatCompares : Vector[(FCond, ftype)] =
+            Vector(
+                (FFalse(), (x, y) => False()),
+                (FTrue(), (x, y) => True()),
+                (FORD(), (x, y) => True()),
+                (FONE(), (x, y) => !(x === y)),
+                (FOEQ(), _ === _),
+                (FOGT(), _ > _),
+                (FOGE(), _ >= _),
+                (FOLT(), _ < _),
+                (FOLE(), _ <= _)
+            )
+        for ((cond, term) <- floatCompares) {
+            test(s"compare insn ${show(fs)} real with ${show(cond)} is encoded correctly") {
+                hasEffect(Compare(Binding(z), FCmp(cond), fs, xexp, yexp), bz === term(fx, fy))
+            }
+            test(s"compare constant ${show(fs)} real with ${show(cond)} is encoded correctly") {
+                termBuilder.ctermB(CompareC(FCmp(cond), fs, vconst, fs, wconst)) shouldBe term(fv, fw)
+            }
         }
     }
 

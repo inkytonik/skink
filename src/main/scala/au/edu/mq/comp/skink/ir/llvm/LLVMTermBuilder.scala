@@ -375,9 +375,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def fpdecconst(f : String, bits : Int) : TypedTerm[FPBVTerm, Term] =
         bits match {
-            case 32 => f.toFloat.asFloat32
-            case 64 => f.toDouble.asFloat64
-            case _  => sys.error(s"fpconst: unsupported bit size $bits")
+            case 16 => f.asFloat16
+            case 32 => f.asFloat32
+            case 64 => f.asFloat64
+            case 80 =>
+                val (exp, sig) = fpexpsig(80)
+                f.asFPBV(exp, sig)
+            case 128 => f.asFloat128
+            case _   => sys.error(s"fpconst: unsupported bit size $bits")
         }
 
     /**
@@ -438,6 +443,222 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             FPBVToSBV(bits.toString, rm.termDef, op1.termDef)
         )
 
+    /**
+     * Return a term to express a floating-point bitvector operation.
+     */
+    def fpBinaryRBV(op : BinOp, bits : Int, left : Value, right : Value) : TypedTerm[FPBVTerm, Term] = {
+        val lterm = fpbvcast(vtermRBV(left, bits), 64)
+        val rterm = fpbvcast(vtermRBV(right, bits), 64)
+        val exp =
+            op match {
+                case _ : FAdd => lterm + rterm
+                case _ : FDiv => lterm / rterm
+                case _ : FMul => lterm * rterm
+                case _ : FSub => lterm - rterm
+                case _ =>
+                    opError[FPBVTerm]("float", left, op, right)
+            }
+        fpbvcast(exp, bits)
+    }
+
+    /**
+     * Return a term to express a floating-point real operation.
+     */
+    def fpBinaryR(op : BinOp, left : Value, right : Value) : TypedTerm[RealTerm, Term] = {
+        val lterm = vtermR(left)
+        val rterm = vtermR(right)
+        op match {
+            case _ : FAdd => lterm + rterm
+            case _ : FDiv => lterm / rterm
+            case _ : FMul => lterm * rterm
+            case _ : FSub => lterm - rterm
+            case _ =>
+                opError[RealTerm]("float", left, op, right)
+        }
+    }
+
+    /**
+     * Return a term to express a floating-point comparison.
+     */
+    def fpCompare(cond : FCond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] =
+        realMode match {
+            case BitRealMode() =>
+                val lterm = fpbvcast(vtermRBV(left, bits), 64)
+                val rterm = fpbvcast(vtermRBV(right, bits), 64)
+                val unordered = lterm.isNaN | rterm.isNaN
+                val ordered = !unordered
+                cond match {
+                    case FFalse() => False()
+                    case FOEQ()   => ordered & lterm.fpeq(rterm)
+                    case FOGT()   => ordered & lterm > rterm
+                    case FOGE()   => ordered & lterm >= rterm
+                    case FOLT()   => ordered & lterm < rterm
+                    case FOLE()   => ordered & lterm <= rterm
+                    case FONE()   => ordered & !(lterm.fpeq(rterm))
+                    case FORD()   => ordered
+                    case FUEQ()   => unordered | lterm.fpeq(rterm)
+                    case FUGT()   => unordered | lterm > rterm
+                    case FUGE()   => unordered | lterm >= rterm
+                    case FULT()   => unordered | lterm < rterm
+                    case FULE()   => unordered | lterm <= rterm
+                    case FUNE()   => unordered | !(lterm.fpeq(rterm))
+                    case FUNO()   => unordered
+                    case FTrue()  => True()
+                    case _ =>
+                        opError[BoolTerm]("bitvector real comparison", left, cond, right)
+                }
+            case MathRealMode() =>
+                val lterm = vtermR(left)
+                val rterm = vtermR(right)
+                cond match {
+                    case FFalse() => False()
+                    case FOEQ()   => lterm === rterm
+                    case FOGT()   => lterm > rterm
+                    case FOGE()   => lterm >= rterm
+                    case FOLT()   => lterm < rterm
+                    case FOLE()   => lterm <= rterm
+                    case FONE()   => !(lterm === rterm)
+                    case FORD()   => True()
+                    case FTrue()  => True()
+                    case _ =>
+                        opError[BoolTerm]("math real comparison", left, cond, right)
+                }
+        }
+
+    /**
+     * Return a term to express an integer bitvector operation.
+     */
+    def iBinaryIBV(op : BinOp, bits : Int, left : Value, right : Value) : TypedTerm[BVTerm, Term] = {
+        val lterm = vtermIBV(left, bits)
+        val rterm = vtermIBV(right, bits)
+        op match {
+            case _ : Add  => lterm + rterm
+            case _ : And  => lterm and rterm
+            case _ : AShR => lterm ashr rterm
+            case _ : LShR => lterm >> rterm
+            case _ : Mul  => lterm * rterm
+            case _ : Or   => lterm or rterm
+            case _ : SDiv => lterm sdiv rterm
+            case _ : ShL  => lterm << rterm
+            case _ : SRem => lterm srem rterm
+            case _ : Sub  => lterm - rterm
+            case _ : UDiv => lterm / rterm
+            case _ : URem => lterm % rterm
+            case _ : XOr  => lterm xor rterm
+            case _ =>
+                opError[BVTerm]("bitvector integer", left, op, right)
+        }
+    }
+
+    /**
+     * Return a term to express an integer operation.
+     */
+    def iBinaryI(op : BinOp, left : Value, right : Value) : TypedTerm[IntTerm, Term] = {
+        val lterm = vtermI(left)
+        val rterm = vtermI(right)
+        op match {
+            case _ : Add => lterm + rterm
+            case _ : And =>
+                right match {
+                    case Const(IntC(i)) =>
+                        powerOfTwo((i + 1).toInt) match {
+                            case -1 =>
+                                opError[IntTerm]("math integer", left, op, right)
+                            case _ =>
+                                lterm % (i + 1).toInt
+                        }
+                    case _ =>
+                        opError[IntTerm]("math integer", left, op, right)
+                }
+            case _ : AShR | _ : LShR =>
+                // FIXME: LShrR version is not right for negative numbers?
+                right match {
+                    case Const(IntC(i)) =>
+                        lterm / Math.pow(2, i.toDouble).toInt
+                    case _ =>
+                        opError[IntTerm]("math integer", left, op, right)
+                }
+            case _ : Mul => lterm * rterm
+            case _ : Or =>
+                // FIXME: correct for negative lterm?
+                right match {
+                    case Const(IntC(i)) if i == 1 =>
+                        (lterm % 2 === 0).ite(lterm + 1, lterm)
+                    case _ =>
+                        opError[IntTerm]("math integer", left, op, right)
+                }
+            case _ : ShL =>
+                right match {
+                    case Const(IntC(i)) =>
+                        lterm * Math.pow(2, i.toDouble).toInt
+                    case _ =>
+                        opError[IntTerm]("math integer", left, op, right)
+                }
+            case _ : SDiv => lterm / rterm
+            case _ : SRem => lterm % rterm
+            case _ : Sub  => lterm - rterm
+            case _ : UDiv => lterm / rterm
+            case _ : URem => lterm % rterm
+            case _ : XOr =>
+                right match {
+                    case Const(IntC(i)) if i == -1 =>
+                        lterm * -1 - 1
+                    case _ =>
+                        opError[IntTerm]("math integer", left, op, right)
+                }
+            case _ =>
+                opError[IntTerm]("math integer", left, op, right)
+        }
+    }
+
+    /**
+     * Return a term to express an integer comparison.
+     */
+    def iCompare(cond : ICond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] =
+        integerMode match {
+            case BitIntegerMode() =>
+                val lterm = vtermIBV(left, bits)
+                val rterm = vtermIBV(right, bits)
+                cond match {
+                    case EQ()  => lterm === rterm
+                    case NE()  => !(lterm === rterm)
+                    case UGT() => lterm ugt rterm
+                    case UGE() => lterm uge rterm
+                    case ULT() => lterm ult rterm
+                    case ULE() => lterm ule rterm
+                    case SGT() => lterm sgt rterm
+                    case SGE() => lterm sge rterm
+                    case SLT() => lterm slt rterm
+                    case SLE() => lterm sle rterm
+                    case _ =>
+                        opError[BoolTerm]("bitvector integer comparison", left, cond, right)
+                }
+            case MathIntegerMode() =>
+                val lterm = vtermI(left)
+                val rterm = vtermI(right)
+                val exp =
+                    cond match {
+                        case EQ()  => lterm === rterm
+                        case NE()  => !(lterm === rterm)
+                        case UGT() => lterm > rterm
+                        case UGE() => lterm >= rterm
+                        case ULT() => lterm < rterm
+                        case ULE() => lterm <= rterm
+                        case SGT() => lterm > rterm
+                        case SGE() => lterm >= rterm
+                        case SLT() => lterm < rterm
+                        case SLE() => lterm <= rterm
+                        case _ =>
+                            opError[BoolTerm]("math integer comparison", left, cond, right)
+                    }
+                cond match {
+                    case UGT() | UGE() | ULT() | ULE() =>
+                        (lterm >= 0) & (rterm >= 0) & exp
+                    case _ =>
+                        exp
+                }
+        }
+
     /*
      * Return a term that expresses the effect of a regular LLVM instruction.
      */
@@ -478,6 +699,14 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                     True()
 
                 case Binary(Binding(to), op, IntT(size), left, right) =>
+                    integerMode match {
+                        case BitIntegerMode() =>
+                            val bits = size.toInt
+                            ntermIBV(to, bits) === iBinaryIBV(op, bits, left, right)
+                        case MathIntegerMode() =>
+                            ntermI(to) === iBinaryI(op, left, right)
+                    }
+
                     integerMode match {
                         case BitIntegerMode() =>
                             val bits = size.toInt
@@ -571,31 +800,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case Binary(Binding(to), op, RealT(bits), left, right) =>
                     realMode match {
                         case BitRealMode() =>
-                            val lterm = fpbvcast(vtermRBV(left, bits), 64)
-                            val rterm = fpbvcast(vtermRBV(right, bits), 64)
-                            val exp =
-                                op match {
-                                    case _ : FAdd => lterm + rterm
-                                    case _ : FDiv => lterm / rterm
-                                    case _ : FMul => lterm * rterm
-                                    case _ : FSub => lterm - rterm
-                                    case _ =>
-                                        opError[FPBVTerm]("float", left, op, right)
-                                }
-                            ntermRBV(to, bits) === fpbvcast(exp, bits)
+                            ntermRBV(to, bits) === fpBinaryRBV(op, bits, left, right)
                         case MathRealMode() =>
-                            val lterm = vtermR(left)
-                            val rterm = vtermR(right)
-                            val exp =
-                                op match {
-                                    case _ : FAdd => lterm + rterm
-                                    case _ : FDiv => lterm / rterm
-                                    case _ : FMul => lterm * rterm
-                                    case _ : FSub => lterm - rterm
-                                    case _ =>
-                                        opError[RealTerm]("float", left, op, right)
-                                }
-                            ntermR(to) === exp
+                            ntermR(to) === fpBinaryR(op, left, right)
                     }
 
                 // Call to `assume`
@@ -766,103 +973,12 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 // Compare two integer or pointer values
 
                 case Compare(Binding(to), ICmp(icond), ComparisonType(bits), left, right) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val lterm = vtermIBV(left, bits)
-                            val rterm = vtermIBV(right, bits)
-                            val exp =
-                                icond match {
-                                    case EQ()  => lterm === rterm
-                                    case NE()  => !(lterm === rterm)
-                                    case UGT() => lterm ugt rterm
-                                    case UGE() => lterm uge rterm
-                                    case ULT() => lterm ult rterm
-                                    case ULE() => lterm ule rterm
-                                    case SGT() => lterm sgt rterm
-                                    case SGE() => lterm sge rterm
-                                    case SLT() => lterm slt rterm
-                                    case SLE() => lterm sle rterm
-                                    case _ =>
-                                        opError[BoolTerm]("bitvector integer comparison", left, icond, right)
-                                }
-                            ntermB(to) === exp
-                        case MathIntegerMode() =>
-                            val lterm = vtermI(left)
-                            val rterm = vtermI(right)
-                            val exp =
-                                icond match {
-                                    case EQ()  => lterm === rterm
-                                    case NE()  => !(lterm === rterm)
-                                    case UGT() => lterm > rterm
-                                    case UGE() => lterm >= rterm
-                                    case ULT() => lterm < rterm
-                                    case ULE() => lterm <= rterm
-                                    case SGT() => lterm > rterm
-                                    case SGE() => lterm >= rterm
-                                    case SLT() => lterm < rterm
-                                    case SLE() => lterm <= rterm
-                                    case _ =>
-                                        opError[BoolTerm]("math integer comparison", left, icond, right)
-                                }
-                            val cmp = ntermB(to) === exp
-                            icond match {
-                                case UGT() | UGE() | ULT() | ULE() =>
-                                    (lterm >= 0) & (rterm >= 0) & cmp
-                                case _ =>
-                                    cmp
-                            }
-                    }
+                    ntermB(to) === iCompare(icond, bits, left, right)
 
                 // Compare two floating-point values
 
                 case Compare(Binding(to), FCmp(fcond), ComparisonType(bits), left, right) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val lterm = fpbvcast(vtermRBV(left, bits), 64)
-                            val rterm = fpbvcast(vtermRBV(right, bits), 64)
-                            val unordered = lterm.isNaN | rterm.isNaN
-                            val ordered = !unordered
-                            val exp =
-                                fcond match {
-                                    case FFalse() => False()
-                                    case FOEQ()   => ordered & lterm.fpeq(rterm)
-                                    case FOGT()   => ordered & lterm > rterm
-                                    case FOGE()   => ordered & lterm >= rterm
-                                    case FOLT()   => ordered & lterm < rterm
-                                    case FOLE()   => ordered & lterm <= rterm
-                                    case FONE()   => ordered & !(lterm.fpeq(rterm))
-                                    case FORD()   => ordered
-                                    case FUEQ()   => unordered | lterm.fpeq(rterm)
-                                    case FUGT()   => unordered | lterm > rterm
-                                    case FUGE()   => unordered | lterm >= rterm
-                                    case FULT()   => unordered | lterm < rterm
-                                    case FULE()   => unordered | lterm <= rterm
-                                    case FUNE()   => unordered | !(lterm.fpeq(rterm))
-                                    case FUNO()   => unordered
-                                    case FTrue()  => True()
-                                    case _ =>
-                                        opError[BoolTerm]("bitvector real comparison", left, fcond, right)
-                                }
-                            ntermB(to) === exp
-                        case MathRealMode() =>
-                            val lterm = vtermR(left)
-                            val rterm = vtermR(right)
-                            val exp =
-                                fcond match {
-                                    case FFalse() => False()
-                                    case FOEQ()   => lterm === rterm
-                                    case FOGT()   => lterm > rterm
-                                    case FOGE()   => lterm >= rterm
-                                    case FOLT()   => lterm < rterm
-                                    case FOLE()   => lterm <= rterm
-                                    case FONE()   => !(lterm === rterm)
-                                    case FORD()   => True()
-                                    case FTrue()  => True()
-                                    case _ =>
-                                        opError[BoolTerm]("math real comparison", left, fcond, right)
-                                }
-                            ntermB(to) === exp
-                    }
+                    ntermB(to) === fpCompare(fcond, bits, left, right)
 
                 // Conversions
 
@@ -1370,6 +1486,10 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermB(constantValue : ConstantValue) : TypedTerm[BoolTerm, Term] =
         constantValue match {
+            case CompareC(FCmp(cond), ltype @ ComparisonType(bits), left, rtype, right) if ltype == rtype =>
+                fpCompare(cond, bits, Const(left), Const(right))
+            case CompareC(ICmp(cond), ltype @ ComparisonType(bits), left, rtype, right) if ltype == rtype =>
+                iCompare(cond, bits, Const(left), Const(right))
             case FalseC() =>
                 False()
             case IntC(i) =>
@@ -1387,6 +1507,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermIBV(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
         constantValue match {
+            case BinaryC(op, ltype : IntT, left, rtype, right) if ltype == rtype =>
+                iBinaryIBV(op, bits, Const(left), Const(right))
             case IntC(i) =>
                 i.toInt.withBits(bits)
             case NullC() | ZeroC() =>
@@ -1400,6 +1522,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermI(constantValue : ConstantValue) : TypedTerm[IntTerm, Term] =
         constantValue match {
+            case BinaryC(op, ltype @ IntT(_), left, rtype, right) if ltype == rtype =>
+                iBinaryI(op, Const(left), Const(right))
             case IntC(i) =>
                 i.toInt
             case FalseC() | NullC() | ZeroC() =>
@@ -1417,6 +1541,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermRBV(constantValue : ConstantValue, bits : Int) : TypedTerm[FPBVTerm, Term] =
         constantValue match {
+            case BinaryC(op, ltype @ RealT(bits), left, rtype, right) if ltype == rtype =>
+                fpBinaryRBV(op, bits, Const(left), Const(right))
             case FloatC(f) =>
                 if (f.startsWith("0xK"))
                     fphexconst(f.drop(3), 80, bits)
@@ -1441,6 +1567,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermR(constantValue : ConstantValue) : TypedTerm[RealTerm, Term] =
         constantValue match {
+            case BinaryC(op, ltype @ RealT(_), left, rtype, right) if ltype == rtype =>
+                fpBinaryR(op, Const(left), Const(right))
             case FloatC(f) =>
                 if (f.startsWith("0x"))
                     java.lang.Double.longBitsToDouble(java.lang.Long.parseUnsignedLong(f.drop(2), 16))
