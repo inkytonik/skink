@@ -375,14 +375,9 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def fpdecconst(f : String, bits : Int) : TypedTerm[FPBVTerm, Term] =
         bits match {
-            case 16 => f.asFloat16
-            case 32 => f.asFloat32
-            case 64 => f.asFloat64
-            case 80 =>
-                val (exp, sig) = fpexpsig(80)
-                f.asFPBV(exp, sig)
-            case 128 => f.asFloat128
-            case _   => sys.error(s"fpconst: unsupported bit size $bits")
+            case 32 => f.toFloat.asFloat32
+            case 64 => f.toDouble.asFloat64
+            case _  => sys.error(s"fpdecconst: unsupported bit size $bits")
         }
 
     /**
@@ -406,7 +401,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             val (exp, sig) = fpexpsig(srcbits)
             fpbvcast(BVs("#x" + num).toFPBV(exp, sig), tgtbits)
         } else
-            sys.error(s"fpliteral: literal $s is larger than expected $length characters")
+            sys.error(s"fphexconst: literal $s is larger than expected $length characters")
     }
 
     /*

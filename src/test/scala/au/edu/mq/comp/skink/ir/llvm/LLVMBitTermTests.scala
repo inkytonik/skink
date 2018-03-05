@@ -59,12 +59,8 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     )
 
     val floatSizes = Vector(
-        FloatSize(HalfT(), FPFloat16(), 5, 11, _.asFloat16),
-        FloatSize(FloatT(), FPFloat32(), 8, 24, _.asFloat32),
-        FloatSize(DoubleT(), FPFloat64(), 11, 53, _.asFloat64),
-        FloatSize(X86_FP80(), FPBitVectorSort("15", "65"), 15, 65, _.asFPBV(15, 65)),
-        FloatSize(FP128T(), FPFloat128(), 15, 113, _.asFloat128),
-        FloatSize(PPC_FP128T(), FPFloat128(), 15, 113, _.asFloat128)
+        FloatSize(FloatT(), FPFloat32(), 8, 24, _.toFloat.asFloat32),
+        FloatSize(DoubleT(), FPFloat64(), 11, 53, _.toDouble.asFloat64)
     )
 
     def makeFloatVars(id : String) : Map[Type, VarTerm[FPBVTerm]] =
