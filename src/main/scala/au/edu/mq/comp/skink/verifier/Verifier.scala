@@ -22,15 +22,6 @@ class Verifier(verifiable : Verifiable, ir : IR, config : SkinkConfig) {
      */
     def verify(driver : Driver, function : Verifiable) {
 
-        //  Create a verifiable according to the config
-        //  TODO: add config flag and set mtFlag accordingly
-        // val mtFlag = false
-
-        // val main = ir.functions.find(_.name == "main")
-
-        // val verifiable = new LLVMFunction(ir.program, main.get, config)
-        // if (mtFlag) new STVerifiable(ir) else new MTVerifiable(ir)
-
         logger.info(s"verify: ${verifiable.name}")
 
         val witnesses =
