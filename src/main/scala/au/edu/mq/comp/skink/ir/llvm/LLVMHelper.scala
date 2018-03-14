@@ -56,7 +56,7 @@ object LLVMHelper {
      * Return whether or not the named function is a memory allocation function.
      */
     def isMemoryAllocFunction(name : String) : Boolean =
-        List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
+        List("alloca", "calloc", "malloc", "kzalloc") contains name
 
     /**
      * Return whether or not the named function is an output function.
@@ -110,20 +110,6 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for types that we support comparisons between. Returns the bit size
-     * of the compared type.
-     */
-    object ComparisonType {
-        def unapply(tipe : Type) : Option[Int] =
-            tipe match {
-                case IntT(size)   => Some(size.toInt)
-                case _ : PointerT => Some(32)
-                case RealT(bits)  => Some(bits)
-                case _            => None
-            }
-    }
-
-    /**
      * Extractor that recognises functions whose calls we want to ignore when
      * generating effect terms. Currently:
      *   - any LLVM intrinsic, such as llvm.stacksave
@@ -173,13 +159,13 @@ object LLVMHelper {
 
     /**
      * Matcher for memory allocation calls. Successful matches return the
-     * optional binding and the name of the function.
+     * optional binding, the name of the function and the argument value.
      */
     object MemoryAllocFunctionCall {
-        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
+        def unapply(insn : Instruction) : Option[(OptBinding, String, Value)] = {
             insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(name))), _, _) if isMemoryAllocFunction(name) =>
-                    Some((to, name))
+                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(arg), _) if isMemoryAllocFunction(name) =>
+                    Some((to, name, arg))
                 case _ =>
                     None
             }

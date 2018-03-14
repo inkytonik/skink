@@ -12,12 +12,15 @@ import org.bitbucket.franck44.scalasmt.theories.{
     RealArithmetics
 }
 import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
+import org.bitbucket.inkytonik.kiama.attribution.Attribution
 import org.scalallvm.assembly.Analyser
+import org.scalallvm.assembly.AssemblySyntax.Program
 
-class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
-        extends ArrayExBV with ArrayExInt with ArrayExOperators with ArrayExReal
-        with BitVectors with Core with IntegerArithmetics with QuantifiedTerm
-        with RealArithmetics {
+class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
+    namer : LLVMNamer, config : SkinkConfig)
+        extends Attribution with ArrayExBV with ArrayExInt with ArrayExOperators
+        with ArrayExReal with BitVectors with Core with IntegerArithmetics
+        with QuantifiedTerm with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
@@ -50,74 +53,19 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     /**
      * Return a term to express the effect of a top-level item, not including
      * function definitions. Currently only handles initialisation of global
-     * integer variables and zero-initialised global integer arrays.
+     * variables.
      */
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
             case InitGlobalVar(name, tipe, constantValue) =>
-                val id = show(name)
-                val index = namer.defaultIndexOf(id)
-                (tipe, constantValue) match {
-                    case (IntT(_) | RealT(_), _) =>
-                        equality(name, tipe, Const(constantValue), tipe)
-                    case (ArrayT(_, elemtype @ (IntT(_) | RealT(_))), ZeroC()) =>
-                        val i =
-                            integerMode match {
-                                case BitIntegerMode() =>
-                                    BVs("i", architecture)
-                                case MathIntegerMode() =>
-                                    Ints("i")
-                            }
-                        forall(SSymbol("i")) {
-                            elemtype match {
-                                case IntT(size) =>
-                                    integerMode match {
-                                        case BitIntegerMode() =>
-                                            val bits = size.toInt
-                                            arrayTermBV(id, bits, index).at(i) === 0.withBits(bits)
-                                        case MathIntegerMode() =>
-                                            arrayTermI(id, index).at(i) === 0
-                                    }
-                                case RealT(_) =>
-                                    arrayTermR(id, index).at(i) === 0
-                            }
-                        }
-                    case (ArrayT(_, elemtype @ (IntT(_) | RealT(_))), ArrayC(elems)) =>
-                        combineTerms(elems.zipWithIndex.map {
-                            case (Element(_, constantValue), i) =>
-                                elemtype match {
-                                    case IntT(size) =>
-                                        integerMode match {
-                                            case BitIntegerMode() =>
-                                                val bits = size.toInt
-                                                arrayTermBV(id, bits, index).at(i.withBits(architecture)) === ctermBV(constantValue, bits)
-                                            case MathIntegerMode() =>
-                                                arrayTermI(id, index).at(i) === ctermI(constantValue)
-                                        }
-                                    case RealT(_) =>
-                                        arrayTermR(id, index).at(i) === ctermR(constantValue)
-                                }
-                        })
-                    case (ArrayT(_, IntT(size)), c : StringC) =>
-                        val chars = unescape(c).zipWithIndex
-                        integerMode match {
-                            case BitIntegerMode() =>
-                                val bits = size.toInt
-                                combineTerms(chars.map {
-                                    case (char, i) =>
-                                        arrayTermBV(id, bits, index).at(i.withBits(architecture)) === ctermBV(IntC(char.toInt), bits)
-                                })
-                            case MathIntegerMode() =>
-                                combineTerms(chars.map {
-                                    case (char, i) =>
-                                        arrayTermI(id, index).at(i) === ctermI(IntC(char.toInt))
-                                })
-                        }
-                    case _ =>
-                        sys.error(s"itemTerm: no support for global ${show(tipe)} variable initialisation to ${show(constantValue)}")
-                }
+                val num =
+                    tipe match {
+                        case ArrayT(num, _) => num.toInt
+                        case _              => 1
+                    }
+                allocate(name, tipe, Const(IntC(num))) &
+                    store(name, tipe, Const(constantValue))
             case _ =>
-                // Other items don't contribute to the program semantics
                 True()
         }
         if (term != True())
@@ -207,7 +155,7 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             vtermI(value) === vtermI(cases(choice).value)
                     }
 
-                case _ : Ret | RetVoid() if choice == 0 =>
+                case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
                     True()
 
                 case insn =>
@@ -224,6 +172,275 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
     def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
         sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
+    // FIXME: move these to ScalaLLVM?
+
+    /*
+     * Return a type definition by name if there is one.
+     */
+    def lookupType(name : Name) : Option[Type] =
+        program.items.collectFirst {
+            case TypeDefinition(n, tipe) if name == n =>
+                tipe
+        }
+
+    /*
+     * Return the number of bits in the representation of a type.
+     */
+    def numBits(tipe : Type) : Int =
+        tipe match {
+            case ArrayT(num, tipe)   => num.toInt * numBits(tipe)
+            case FloatT()            => 32
+            case DoubleT()           => 64
+            case IntT(n)             => n.toInt
+            case StructT(fieldTypes) => fieldTypes.map(numBits(_)).sum
+            case NameT(name) =>
+                lookupType(name) match {
+                    case Some(tipe) => numBits(tipe)
+                    case None       => sys.error(s"numBits: can't find type $name")
+                }
+            case _ =>
+                sys.error(s"numBits: unsupported type ${show(tipe)}")
+        }
+
+    /*
+     * Return the number of bytes in the representation of a type.
+     */
+    def numBytes(tipe : Type) : Int = {
+        val bits = numBits(tipe)
+        if (bits % 8 != 0)
+            sys.error(s"numBytes: non-byte size number of bits $bits")
+        bits / 8
+    }
+
+    // FIXME: end of Scala LLVM stuff
+
+    /*
+     * Return a term that expresses allocation of memory of `num` elements each
+     * of type `tipe`. In bit mode `to` will be defined to be the starting address
+     * of a new memory chunk unrelated to any previously allocated. In math mode
+     * this operation has no effect.
+     */
+    def allocate(to : Name, tipe : Type, num : Value) : TypedTerm[BoolTerm, Term] =
+        integerMode match {
+            case BitIntegerMode() =>
+                offsetTerm(to) === 0.withUBits(32)
+            case MathIntegerMode() =>
+                True()
+        }
+
+    /*
+     * Make a term representing the offset of a variable that holds
+     * a memory address.
+     */
+    def offsetTerm(name : Name) : TypedTerm[BVTerm, Term] =
+        ntermBV(suffixName(name, "$o"), architecture)
+
+    /*
+     * Get the base and offset terms for an address.
+     */
+    def baseAndOffset(addr : Value) : (TypedTerm[ArrayTerm[BVTerm], Term], TypedTerm[BVTerm, Term]) =
+        addr match {
+            case Named(name) =>
+                (arrayTermAtBV(name, 8, name), offsetTerm(name))
+            case Const(GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(name), indices)) if bt1 == bt2 =>
+                (arrayTermAtBV(name, 8, name), offset(tipe, name, indices))
+            case _ =>
+                sys.error(s"baseAndOffset: unsupported address $addr")
+        }
+
+    /*
+     * Return a term that expresses a load of a value given type from
+     * address `from` into variable `to`. In bit mode we select the bytes
+     * at the offset of `from` in its memory chunk and concatenate them
+     * into a `tipe` value. In math mode we fall back on equating `from`
+     * and `to`.
+     */
+    def load(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] =
+        integerMode match {
+            case BitIntegerMode() =>
+                val bytes = numBytes(tipe)
+                val (base, offset) = baseAndOffset(from)
+                val exp =
+                    (0 until bytes - 1).foldLeft[TypedTerm[BVTerm, Term]](
+                        base.select(offset + (bytes - 1).withUBits(architecture))
+                    ) {
+                            case (a, i) =>
+                                val off = if (i == bytes - 2) offset else offset + (bytes - i - 2).withUBits(architecture)
+                                base.select(off).concat(a)
+                        }
+                ntermBV(to, bytes * 8) === exp
+            case MathIntegerMode() =>
+                equality(to, tipe, from, tipe)
+        }
+
+    /*
+     * Get zero-indexed byte `i` from an integer constant `n` of
+     * size `bytes`.
+     */
+    def getIntByte(n : BigInt, bytes : Int, i : Int) : Byte =
+        ((n >> (bytes - i - 1) * 8) & 0xff).toByte
+
+    /*
+     * Return the bytes of a constant array element.
+     */
+    def constElemBytes(element : Element) : Vector[Byte] =
+        element match {
+            case Element(tipe : IntT, IntC(n)) =>
+                val bytes = numBytes(tipe)
+                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+            case _ =>
+                sys.error(s"constElemBytes: unsupported element $element")
+        }
+
+    /*
+     * The bytes of an array constant.
+     */
+    val constArrayBytes : ArrayC => Vector[Byte] =
+        attr {
+            case ArrayC(elements) =>
+                elements.flatMap(constElemBytes)
+        }
+
+    /*
+     * The bytes of a string constant.
+     */
+    val stringBytes : StringC => Vector[Byte] =
+        attr {
+            case string =>
+                unescape(string).map(_.toByte)
+        }
+
+    /*
+     * Make a term to get zero-indexed byte `i` from a value of size `bytes`
+     * optimising for the case where the `from` value is a constant.
+     */
+    def getByte(from : Value, bytes : Int, i : Int) : TypedTerm[BVTerm, Term] =
+        from match {
+            case Const(a : ArrayC) =>
+                constArrayBytes(a)(i).withBits(8)
+            case Const(IntC(n)) =>
+                getIntByte(n.toInt, bytes, i).withBits(8)
+            case Const(a : StringC) =>
+                stringBytes(a)(i).withBits(8)
+            case _ =>
+                val shift = (bytes - i - 1) * 8
+                val n = vtermBV(from, bytes * 8)
+                val b = if (shift == 0) n else n >> shift.withBits(32)
+                b.extract(7, 0)
+        }
+
+    /*
+     * Return a term that expresses storing `from` a value of a given type in
+     * to the location specified by the address`to`. In bit mode we get the
+     * chunk to which `to` refers and store the bytes of `from` into that
+     * chunk at the offset of `to`. In math mode we fall back on equating
+     * `from` and `to`.
+     */
+    def store(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] =
+        integerMode match {
+            case BitIntegerMode() =>
+                val bytes = numBytes(tipe)
+                val base = offsetTerm(to)
+                val exp =
+                    (0 until bytes).foldLeft(prevArrayTermAtBV(to, 8, to)) {
+                        case (a, i) =>
+                            a.store(
+                                if (i == 0) base else base + i.withUBits(32),
+                                getByte(from, bytes, i)
+                            )
+                    }
+                arrayTermAtBV(to, 8, to) === exp
+            case MathIntegerMode() =>
+                equality(to, tipe, from, tipe)
+        }
+
+    /*
+     * Return a term for an array element offset for a given element type
+     * and index value. Optimises if the index is a constant.
+     */
+    def arrayElemOffset(tipe : Type, value : Value) : TypedTerm[BVTerm, Term] =
+        value match {
+            case Const(IntC(n)) =>
+                (n.toInt * numBytes(tipe)).withUBits(architecture)
+            case _ =>
+                vtermBV(value, architecture) * numBytes(tipe).withUBits(architecture)
+        }
+
+    /*
+     * Return a term for a structure field offset given the sequence of field
+     * types in the structure type and the zero-based index of the field we
+     * are interested in.
+     */
+    def structFieldOffset(fieldTypes : Seq[Type], index : Int) : TypedTerm[BVTerm, Term] =
+        fieldTypes.take(index).map(numBytes(_)).sum.withUBits(architecture)
+
+    /*
+     * Given a type and a value that is an offset into that type, return
+     * the type of the element referred to by the offset and a term that
+     * expresses the offset from the base of the containing type. For an
+     * array type the value is a zero-based index and indexes an array
+     * element. For a structure type it's a zero-based field name and
+     * indexes a field.
+     */
+    def elemTypeOffset(tipe : Type, value : Value) : (Type, TypedTerm[BVTerm, Term]) =
+        tipe match {
+            case ArrayT(_, elemType) =>
+                (elemType, arrayElemOffset(elemType, value))
+            case PointerT(elemType, _) =>
+                (elemType, arrayElemOffset(elemType, value))
+            case NameT(name) =>
+                lookupType(name) match {
+                    case Some(tipe) =>
+                        elemTypeOffset(tipe, value)
+                    case None =>
+                        sys.error(s"elemTypeOffset: can't find type $name")
+                }
+            case StructT(fieldTypes) =>
+                value match {
+                    case Const(IntC(v)) =>
+                        if (v >= 0 && v < fieldTypes.size)
+                            (fieldTypes(v.toInt), structFieldOffset(fieldTypes, v.toInt))
+                        else
+                            sys.error(s"elemTypeOffset: type ${show(tipe)} doesn't have a field $v")
+                    case _ =>
+                        sys.error(s"elemTypeOffset: non-constant field $value requested of type ${show(tipe)}")
+                }
+            case _ =>
+                sys.error(s"elemTypeOffset: unsupported type ${show(tipe)}")
+        }
+
+    /*
+     * Return a term that calculates a memory offset given a starting type
+     * and address value, plus indices that express a sequence of indexing
+     * operations a'la LLVM's `getelementptr` instruction.
+     */
+    def offset(tipe : Type, name : Name, indices : Seq[ElemIndex]) : TypedTerm[BVTerm, Term] =
+        indices.foldLeft((offsetTerm(name), tipe)) {
+            case ((a, t), ElemIndex(_, v)) =>
+                val (etype, eoff) = elemTypeOffset(t, v)
+                v match {
+                    case Const(IntC(n)) if n == 0 =>
+                        (a, etype)
+                    case _ =>
+                        (a + eoff, etype)
+                }
+        }._1
+
+    /*
+     * Return a term that expresses that `to` will hold the memory address
+     * calculated by a `getelementptr` operation (maybe from an instruction
+     * but also can occur as a constant expression). In math mode this
+     * operation specifies no effect.
+     */
+    def getelementptr(to : Name, tipe : Type, from : Value, indices : Seq[ElemIndex]) : TypedTerm[BoolTerm, Term] =
+        integerMode match {
+            case BitIntegerMode() =>
+                val (base, offset) = baseAndOffset(from)
+                arrayTermAtBV(to, 8, to) === base & offsetTerm(to) === offset
+            case MathIntegerMode() =>
+                True()
+        }
+
     /*
      * Return a term that expresses the effect of a regular LLVM instruction.
      */
@@ -231,12 +448,6 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
         val insn = metaInsn.instruction
         val term =
             insn match {
-
-                /*
-                 * Ignore stack memory allocation.
-                 */
-                case _ : Alloca =>
-                    True()
 
                 /*
                  * Boolean binary operation (`left` `op` `right` into `to`).
@@ -550,18 +761,6 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                 case Convert(Binding(to), _, fromType, from, toType) =>
                     equality(to, toType, from, fromType)
 
-                // Pointer dereference
-
-                // We ignore getelementptr insns that have an "array element" as the target.
-                // The element properties are accessed when the target is used in another insn.
-                case GetElementPtr(Binding(to), _, _, _, _, _) if namer.elementProperty(to).isDefined =>
-                    True()
-
-                // Otherwise, fail on getelementptr insns since we don't want to draw any
-                // invalid conclusions
-                case _ : GetElementPtr =>
-                    sys.error(s"insnTerm: unsupported getelementptr insn ${longshow(insn)}")
-
                 // Select (inline choice)
 
                 case Select(Binding(to), SelectI1T(), from, BoolT(), value1, BoolT(), value2) =>
@@ -576,49 +775,29 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             ntermI(to) === vtermB(from).ite(vtermI(value1), vtermI(value2))
                     }
 
-                // Array loads and stores, just non-Boolean, integer and float elements for now
+                // Memory operations
 
-                case insn @ Load(Binding(to), _, IntegerT(size), _, ArrayElement(array, index), _) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            ntermBV(to, bits) === arrayTermAtBV(insn, bits, array).at(vtermAtBV(insn, architecture, index))
-                        case MathIntegerMode() =>
-                            ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
-                    }
+                case Alloca(Binding(to), _, tipe, optNum, _) =>
+                    val num =
+                        optNum match {
+                            case NumElements(_, value) => value
+                            case OneElement()          => Const(IntC(1))
+                        }
+                    allocate(to, tipe, num)
 
-                case insn @ Load(Binding(to), _, FloatT(), _, ArrayElement(array, index), _) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            sys.error("insnTerm: floating-point bit-vector load not yet supported")
-                        case MathIntegerMode() =>
-                            ntermR(to) === arrayTermAtR(insn, array).at(vtermAtI(insn, index))
-                    }
-
-                case insn @ Store(_, IntegerT(size), from, _, ArrayElement(array, index), _) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            arrayTermAtBV(insn, bits, array) === prevArrayTermAtBV(insn, bits, array).store(vtermAtBV(insn, architecture, index), vtermBV(from, bits))
-                        case MathIntegerMode() =>
-                            arrayTermAtI(insn, array) === prevArrayTermAtI(insn, array).store(vtermAtI(insn, index), vtermI(from))
-                    }
-
-                case insn @ Store(_, FloatT(), from, _, ArrayElement(array, index), _) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            sys.error("insnTerm: floating-point bit-vector store not yet supported")
-                        case MathIntegerMode() =>
-                            arrayTermAtR(insn, array) === prevArrayTermAtR(insn, array).store(vtermAtI(insn, index), vtermR(from))
-                    }
-
-                // Non-array loads and stores
+                case MemoryAllocFunctionCall(Binding(to), name, num) =>
+                    allocate(to, IntT(8), num)
 
                 case Load(Binding(to), _, tipe, _, from, _) =>
-                    equality(to, tipe, from, tipe)
+                    load(to, tipe, from)
 
                 case Store(_, tipe, from, _, Named(to), _) =>
-                    equality(to, tipe, from, tipe)
+                    store(to, tipe, from)
+
+                case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
+                    getelementptr(to, tipe, from, indices)
+
+                // Default
 
                 case insn =>
                     sys.error(s"insnTerm: don't know the effect of ${longshow(insn)}")
@@ -653,40 +832,40 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Return a bit vector array term that expresses a name when referenced from node.
      */
     def arrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), bits, indexOf(node, show(name)))
+        arrayTermBV(show(name), bits, indexOf(node, name))
 
     /**
      * Return an integer array term that expresses a name when referenced from node.
      */
     def arrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), indexOf(node, show(name)))
+        arrayTermI(show(name), indexOf(node, name))
 
     /**
      * Return a real array term that expresses a name when referenced from node.
      */
     def arrayTermAtR(node : Product, name : Name) : TypedTerm[ArrayTerm[RealTerm], Term] =
-        arrayTermR(show(name), indexOf(node, show(name)))
+        arrayTermR(show(name), indexOf(node, name))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermBV(show(name), bits, scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermBV(show(name), bits, scala.math.max(indexOf(node, name) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtI(node : Product, name : Name) : TypedTerm[ArrayTerm[IntTerm], Term] =
-        arrayTermI(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermI(show(name), scala.math.max(indexOf(node, name) - 1, 0))
 
     /**
      * Return an integer term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtR(node : Product, name : Name) : TypedTerm[ArrayTerm[RealTerm], Term] =
-        arrayTermR(show(name), scala.math.max(indexOf(node, show(name)) - 1, 0))
+        arrayTermR(show(name), scala.math.max(indexOf(node, name) - 1, 0))
 
     /**
      * Make a Boolean term for the named variable where `id` is the base name
@@ -720,25 +899,25 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      * Return a Boolean term that expresses a name when referenced from node.
      */
     def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
-        varTermB(show(name), indexOf(node, show(name)))
+        varTermB(show(name), indexOf(node, name))
 
     /**
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtBV(node : ASTNode, bits : Int, name : Name) : TypedTerm[BVTerm, Term] =
-        varTermBV(show(name), bits, indexOf(node, show(name)))
+        varTermBV(show(name), bits, indexOf(node, name))
 
     /**
      * Return an integer term that expresses a name when referenced from node.
      */
     def ntermAtI(node : ASTNode, name : Name) : TypedTerm[IntTerm, Term] =
-        varTermI(show(name), indexOf(node, show(name)))
+        varTermI(show(name), indexOf(node, name))
 
     /**
      * Return a real term that expresses a name when referenced from node.
      */
     def ntermAtR(node : ASTNode, name : Name) : TypedTerm[RealTerm, Term] =
-        varTermR(show(name), indexOf(node, show(name)))
+        varTermR(show(name), indexOf(node, name))
 
     /**
      * Return a Boolean term that expresses an LLVM name when referenced
@@ -875,6 +1054,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
      */
     def ctermBV(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
         constantValue match {
+            case GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(from), indices) if bt1 == bt2 =>
+                offset(tipe, from, indices)
             case IntC(i) =>
                 i.toInt.withBits(bits)
             case NullC() | ZeroC() =>
@@ -974,6 +1155,20 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             }
 
     /**
+     * Matcher for types that we support comparisons between. Returns the bit size
+     * of the compared type.
+     */
+    object ComparisonType {
+        def unapply(tipe : Type) : Option[Int] =
+            tipe match {
+                case IntT(size)   => Some(size.toInt)
+                case _ : PointerT => Some(architecture)
+                case RealT(bits)  => Some(bits)
+                case _            => None
+            }
+    }
+
+    /**
      * Combine terms via conjunction, dealing with case where there are no
      * terms so effect is "true". Any true terms in the sequence are removed.
      */
@@ -982,5 +1177,15 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
             True()
         else
             terms.reduceLeft((l, r) => if (r == True()) l else l & r)
+
+    /*
+     * Derive a new name from an existing one by adding a suffix.
+     */
+    def suffixName(to : Name, suffix : String) : Name = {
+        to match {
+            case Local(s)  => Local(s + suffix)
+            case Global(s) => Global(s + suffix)
+        }
+    }
 
 }
