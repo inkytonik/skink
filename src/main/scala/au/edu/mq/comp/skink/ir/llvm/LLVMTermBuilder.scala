@@ -612,10 +612,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case AbsoluteValueFunctionCall(Binding(to), arg) =>
                     ntermR(to) === absR(vtermR(arg))
 
-                // Memory allocations can't fail
-                case MemoryAllocFunctionCall(Binding(to), _) =>
-                    !(ntermI(to) === 0)
-
                 case Call(_, _, _, _, _, IgnoredFunction(_), _, _) =>
                     True()
 

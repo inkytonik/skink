@@ -164,7 +164,7 @@ object LLVMHelper {
     object MemoryAllocFunctionCall {
         def unapply(insn : Instruction) : Option[(OptBinding, String, Value)] = {
             insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(arg), _) if isMemoryAllocFunction(name) =>
+                case Call(to, _, _, _, _, Function(Named(Global(name))), Vector(ValueArg(_, _, arg)), _) if isMemoryAllocFunction(name) =>
                     Some((to, name, arg))
                 case _ =>
                     None
