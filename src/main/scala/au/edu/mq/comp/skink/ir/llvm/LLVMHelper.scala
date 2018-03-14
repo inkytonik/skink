@@ -264,7 +264,7 @@ object LLVMHelper {
             name match {
                 case Ceil() | CopySign() | Exit() | FAbs() | FDim() | FEGetRound() |
                     FESetRound() | Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | MemoryAlloc() | OutputFunctionName() | Remainder() |
+                    IsNan() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
                     RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
@@ -274,13 +274,13 @@ object LLVMHelper {
 
     /**
      * Matcher for memory allocation calls. Successful matches return the
-     * optional binding and the name of the function.
+     * optional binding, the name of the function and the argument value.
      */
     object MemoryAllocFunctionCall {
-        def unapply(insn : Instruction) : Option[OptBinding] = {
+        def unapply(insn : Instruction) : Option[(OptBinding, String, Value)] = {
             insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc()))), _, _) =>
-                    Some(to)
+                case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc(name)))), Vector(ValueArg(_, _, arg)), _) =>
+                    Some((to, name, arg))
                 case _ =>
                     None
             }
@@ -291,8 +291,11 @@ object LLVMHelper {
      * Matcher for memory allocation function names.
      */
     object MemoryAlloc {
-        def unapply(name : String) : Boolean =
-            List("alloca", "calloc", "free", "malloc", "kzalloc") contains name
+        def unapply(name : String) : Option[String] =
+            if (List("alloca", "calloc", "malloc", "kzalloc") contains name)
+                Some(name)
+            else
+                None
     }
 
     /**

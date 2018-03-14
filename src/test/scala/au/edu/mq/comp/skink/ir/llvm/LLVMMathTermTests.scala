@@ -19,7 +19,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
     def config = createAndInitConfig(Seq())
-    val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+    val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
 
     def makeVarTermB(id : String, index : Int = 0) : VarTerm[BoolTerm] =
         new VarTerm(id, BoolSort(), Some(index))

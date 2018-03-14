@@ -10,6 +10,7 @@ short vS = cS;
 int vI = cI;
 unsigned int vU = cU;
 int vA[] = { 0, 1, 2, 3, 4 };
+char vSS[] = "abcde";
 
 int main(void) {
   int i;
@@ -18,6 +19,8 @@ int main(void) {
   if (vS != cS) __VERIFIER_error();
   if (vI != cI) __VERIFIER_error();
   if (vU != cU) __VERIFIER_error();
-  for (i = 0; i < 5; i++)
+  for (i = 0; i < 5; i++) {
       if (vA[i] != i) __VERIFIER_error();
+      if (vSS[i] != 'a' + i) __VERIFIER_error();
+  }
 }

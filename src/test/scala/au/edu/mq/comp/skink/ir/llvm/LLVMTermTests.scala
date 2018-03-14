@@ -36,7 +36,7 @@ trait LLVMTermTests extends Tests with Core {
 
     // Dummy function and analyser for standalone tests
 
-    val Vector(func) = parseProgram("define i32 @main() { ret i32 0 }")
+    val (program, Vector(func)) = parseProgram("define i32 @main() { ret i32 0 }")
     val funTree = new Tree[ASTNode, FunctionDefinition](func.function)
     val funAnalyser = new Analyser(funTree)
 
@@ -131,17 +131,18 @@ trait LLVMTermTests extends Tests with Core {
      * Parses `prog` as a program and returns a vector of LLVMFunctions
      * that represent the functions in the program.
      */
-    def parseProgram(prog : String) : Vector[LLVMFunction] = {
+    def parseProgram(prog : String) : (Program, Vector[LLVMFunction]) = {
         val positions = new Positions
         val source = new StringSource(prog)
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
-            prog.items.collect {
+            val funs = prog.items.collect {
                 case func : FunctionDefinition =>
                     new LLVMFunction(prog, func, config)
             }
+            (prog, funs)
         } else
             fail(s"parse error: ${pr.parseError.msg}")
     }
@@ -150,7 +151,7 @@ trait LLVMTermTests extends Tests with Core {
      * The effect of a trace of a given program.
      */
     def traceEffect(prog : String, trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
-        val Vector(func) = parseProgram(prog)
+        val (_, Vector(func)) = parseProgram(prog)
         func.traceToTerms(trace)
     }
 

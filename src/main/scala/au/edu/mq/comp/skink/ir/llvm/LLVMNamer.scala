@@ -30,13 +30,13 @@ trait LLVMNamer {
      * Get the default index of a program variable. I.e., the index that
      * should be used for the initial value of that variable.
      */
-    def defaultIndexOf(s : String) : Int
+    def defaultIndexOf(name : Name) : Int
 
     /**
      * Retrieve the index of a particular occurrence of a program variable
      * in a trace.
      */
-    def indexOf(use : Product, s : String) : Int
+    def indexOf(use : Product, name : Name) : Int
 
     /**
      * Return the id that should be used in the term for a variable with
@@ -161,7 +161,7 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
             bumpcount(in(n), fprmodeName)
     }
 
-    def defaultIndexOf(s : String) : Int =
+    def defaultIndexOf(name : Name) : Int =
         0
 
     /**
@@ -174,20 +174,25 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * global data and we are referring to its initial value, so a
      * default index is returned.
      */
-    def indexOf(use : Product, s : String) : Int =
+    def indexOf(use : Product, name : Name) : Int =
         try {
-            val map =
-                enclosingPhi(use) match {
-                    case Some(phi) =>
-                        stores.in(enclosingBlock(phi))
-                    case _ =>
-                        stores(use)
-                }
-            map.get(s).getOrElse(defaultIndexOf(s))
+            name match {
+                case _ : Global =>
+                    defaultIndexOf(name)
+                case Local(s) =>
+                    val map =
+                        enclosingPhi(use) match {
+                            case Some(phi) =>
+                                stores.in(enclosingBlock(phi))
+                            case _ =>
+                                stores(use)
+                        }
+                    map.get(s).getOrElse(defaultIndexOf(name))
+            }
         } catch {
             case e @ NodeNotInTreeException(t : Product) if same(t, use) =>
                 // Not in the function so global and it's the initial version
-                defaultIndexOf(s)
+                defaultIndexOf(name)
         }
 
     /**

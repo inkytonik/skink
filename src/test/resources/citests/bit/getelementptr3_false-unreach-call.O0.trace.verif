@@ -28,36 +28,46 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/eca-like_false-unreach-call.c</data>
-  <data key="programhash"   >8b824726d46c311560f37307d94898739af0f206</data>
+  <data key="programfile"   >src/test/resources/citests/bit/getelementptr3_false-unreach-call.c</data>
+  <data key="programhash"   >f3fae5d3aebf8bb353edb770dc564fb3416ae3c0</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
+  <data key="block">0</data>
+  <data key="node.src">int i = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="assumption">\result == 8;</data>
-  <data key="assumption.scope">main</data>
-  <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
-  <data key="edge.src">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
-  <data key="startline">7</data>
+  <data key="edge.src">__VERIFIER_assume(i &gt;= 0 &amp;&amp; i &lt; 4);</data>
+  <data key="startline">22</data>
+  <data key="endline">22</data>
 </edge>
 
 <node id="N1">
+  <data key="block">9</data>
+  <data key="node.src">__VERIFIER_assume(i &gt;= 0 &amp;&amp; i &lt; 4);</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
-  <data key="assumption">\result == 4;</data>
-  <data key="assumption.scope">main</data>
-  <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
-  <data key="edge.src">cond = __VERIFIER_nondet_int();</data>
-  <data key="startline">13</data>
 </edge>
 
 <node id="N2">
+  <data key="block">12</data>
+  <data key="node.src">__VERIFIER_assume(i &gt;= 0 &amp;&amp; i &lt; 4);</data>
+</node>
+
+<edge id="E2" source="N2" target="N3">
+  <data key="edge.src">if (c1 == c2) __VERIFIER_error();</data>
+  <data key="startline">27</data>
+  <data key="endline">27</data>
+</edge>
+
+<node id="N3">
   <data key="violation">true</data>
+  <data key="block">32</data>
+  <data key="node.src">if (c1 == c2) __VERIFIER_error();</data>
 </node>
 
 </graph>

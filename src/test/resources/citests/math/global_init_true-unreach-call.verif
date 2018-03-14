@@ -29,7 +29,7 @@ TRUE
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
   <data key="programfile"   >src/test/resources/citests/math/global_init_true-unreach-call.c</data>
-  <data key="programhash"   >3e60825d6b932d52b36dc1e309aa03ed9f684eb0</data>
+  <data key="programhash"   >b5d9d605565a735b5681482281549a6589ba4043</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 

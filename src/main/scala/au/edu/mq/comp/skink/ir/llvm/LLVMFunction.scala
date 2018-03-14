@@ -104,7 +104,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
@@ -384,7 +384,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+        val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
@@ -522,10 +522,8 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
 
-        def getIndexedVarName(to : Name) : String = {
-            val varName = show(to)
-            makeIndexedVarName(varName, namer.indexOf(to, varName))
-        }
+        def getIndexedVarName(to : Name) : String =
+            makeIndexedVarName(show(to), namer.indexOf(to, to))
 
         collectl {
             case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>

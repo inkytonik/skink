@@ -17,7 +17,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     import scala.language.implicitConversions
 
     def config = createAndInitConfig(Seq("-i", "bit", "-r", "bit"))
-    val termBuilder = new LLVMTermBuilder(funAnalyser, namer, config)
+    val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
 
     def makeVarTermBV(id : String, sort : Sort, index : Int = 0) : VarTerm[BVTerm] =
         new VarTerm(id, sort, Some(index))

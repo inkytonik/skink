@@ -28,36 +28,16 @@ FALSE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/math/eca-like_false-unreach-call.c</data>
-  <data key="programhash"   >8b824726d46c311560f37307d94898739af0f206</data>
+  <data key="programfile"   >src/test/resources/citests/bit/getelementptr1_false-unreach-call.c</data>
+  <data key="programhash"   >13cf9327966b54776fb755a060581a6ea9ed88ea</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
-</node>
-
-<edge id="E0" source="N0" target="N1">
-  <data key="assumption">\result == 8;</data>
-  <data key="assumption.scope">main</data>
-  <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
-  <data key="edge.src">int p1 = __VERIFIER_nondet_int();  // condition variable</data>
-  <data key="startline">7</data>
-</edge>
-
-<node id="N1">
-</node>
-
-<edge id="E1" source="N1" target="N2">
-  <data key="assumption">\result == 4;</data>
-  <data key="assumption.scope">main</data>
-  <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
-  <data key="edge.src">cond = __VERIFIER_nondet_int();</data>
-  <data key="startline">13</data>
-</edge>
-
-<node id="N2">
   <data key="violation">true</data>
+  <data key="block">0</data>
+  <data key="node.src">int i = __VERIFIER_nondet_int();</data>
 </node>
 
 </graph>
