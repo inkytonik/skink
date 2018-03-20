@@ -6,6 +6,7 @@ import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 sealed abstract class SolverMode
 case class BoolectorSolverMode() extends SolverMode
 case class CVC4SolverMode() extends SolverMode
+case class MathSatSolverMode() extends SolverMode
 case class SMTInterpolSolverMode() extends SolverMode
 case class YicesSolverMode() extends SolverMode
 case class YicesNonIncrSolverMode() extends SolverMode
@@ -143,6 +144,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                         Right(Some(BoolectorSolverMode()))
                     case List((_, List("CVC4"))) =>
                         Right(Some(CVC4SolverMode()))
+                    case List((_, List("MathSat"))) =>
+                        Right(Some(MathSatSolverMode()))
                     case List((_, List("SMTInterpol"))) =>
                         Right(Some(SMTInterpolSolverMode()))
                     case List((_, List("Yices"))) =>

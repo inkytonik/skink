@@ -18,6 +18,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         CVC4SolverMode,
         MathIntegerMode,
         MathRealMode,
+        MathSatSolverMode,
         SMTInterpolSolverMode,
         YicesSolverMode,
         YicesNonIncrSolverMode,
@@ -108,6 +109,13 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(MODELS)))
                         case BitIntegerMode() =>
                             new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
+                    }
+                case MathSatSolverMode() =>
+                    config.integerMode() match {
+                        case MathIntegerMode() =>
+                            new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, List(MODELS)))
+                        case BitIntegerMode() =>
+                            new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(MODELS)))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
