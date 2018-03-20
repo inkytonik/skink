@@ -6,22 +6,6 @@ import org.scalallvm.assembly.AssemblySyntax._
 import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
 /**
- * Interface for extractors of array elements. If successful, the return
- * is the name of the array and a value that encodes the index of the
- * identified element.
- */
-trait ArrayElementExtractor {
-    def unapply(value : Value) : Option[(Name, Value)]
-}
-
-/**
- * As for `ArrayElementExtractor` but for constant values.
- */
-trait ArrayElementCExtractor {
-    def unapply(constantValue : ConstantValue) : Option[(Name, Value)]
-}
-
-/**
  * Interface for support of naming within structures.
  */
 trait LLVMNamer {
@@ -45,32 +29,6 @@ trait LLVMNamer {
     def termid(baseid : String) : String =
         baseid
 
-    /**
-     * Extractor to match stores to array elements. By default, we don't
-     * know if anything is an array, so we always fail.
-     */
-    val ArrayElement =
-        new ArrayElementExtractor {
-            def unapply(value : Value) : Option[(Name, Value)] =
-                None
-        }
-
-    /**
-     * As for `ArrayElement` but for constant values.
-     */
-    val ArrayElementC =
-        new ArrayElementCExtractor {
-            def unapply(constantValue : ConstantValue) : Option[(Name, Value)] =
-                None
-        }
-
-    /*
-     * Get the array element property for name, if there is one.
-     * By default, there isn't one.
-     */
-    def elementProperty(name : Name) : Option[(Name, Value)] =
-        None
-
 }
 
 /**
@@ -84,54 +42,12 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
     import org.bitbucket.inkytonik.kiama.relation.NodeNotInTreeException
     import org.bitbucket.inkytonik.kiama.util.Comparison.same
     import org.bitbucket.inkytonik.kiama.==>
-    import org.scalallvm.assembly.ElementProperty
 
     // Properties and decoration of function tree
 
     val properties = funanalyser.propertiesOfFunction(funtree.root)
     val decorators = new Decorators(nametree)
     import decorators._
-
-    /**
-     * Extractor to match stores to array elements. Currently only looks for
-     * array element references that have a zero index (to deref the array
-     * pointer), followed by the actual index.
-     * FIXME: there may well be other cases we should detect.
-     */
-    override val ArrayElement =
-        new ArrayElementExtractor {
-            def unapply(value : Value) : Option[(Name, Value)] =
-                value match {
-                    case Named(name) =>
-                        elementProperty(name)
-                    case Const(ArrayElementC(name, index)) =>
-                        Some((name, index))
-                    case _ =>
-                        None
-                }
-        }
-
-    override val ArrayElementC =
-        new ArrayElementCExtractor {
-            def unapply(valconstantValueue : ConstantValue) : Option[(Name, Value)] =
-                valconstantValueue match {
-                    case GetElementPtrC(_, _, _, NameC(name), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                        Some((name, index))
-                    case _ =>
-                        None
-                }
-        }
-
-    /*
-     * Get the array element property for name, if there is one.
-     */
-    override def elementProperty(name : Name) : Option[(Name, Value)] =
-        properties(name).collectFirst {
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
-                (array, index)
-            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
-                (array, index)
-        }
 
     // Chain keeping track of stores to memory. Each assignment to a
     // local variable or store to memory location is counted so that
@@ -152,8 +68,6 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         case n if nametree.isRoot(n) =>
             Map[String, Int]()
         case n @ Binding(name) =>
-            bumpcount(in(n), name)
-        case n @ Store(_, tipe, from, _, ArrayElement(name, _), _) =>
             bumpcount(in(n), name)
         case n @ Store(_, _, _, _, Named(name), _) =>
             bumpcount(in(n), name)
@@ -176,19 +90,14 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      */
     def indexOf(use : Product, name : Name) : Int =
         try {
-            name match {
-                case _ : Global =>
-                    defaultIndexOf(name)
-                case Local(s) =>
-                    val map =
-                        enclosingPhi(use) match {
-                            case Some(phi) =>
-                                stores.in(enclosingBlock(phi))
-                            case _ =>
-                                stores(use)
-                        }
-                    map.get(s).getOrElse(defaultIndexOf(name))
-            }
+            val map =
+                enclosingPhi(use) match {
+                    case Some(phi) =>
+                        stores.in(enclosingBlock(phi))
+                    case _ =>
+                        stores(use)
+                }
+            map.get(show(name)).getOrElse(defaultIndexOf(name))
         } catch {
             case e @ NodeNotInTreeException(t : Product) if same(t, use) =>
                 // Not in the function so global and it's the initial version

@@ -57,7 +57,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, IndexTerm, IntTerm, RealTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
-    import namer.{ArrayElement, ArrayElementC, indexOf, termid}
+    import namer.{indexOf, termid}
     import org.scalallvm.assembly.Analyser.{defaultBlockName, unescape}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
@@ -634,13 +634,10 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     /*
      * Return the number of bytes in the representation of a type.
+     * Rounds up if not a multiple of eight bits.
      */
-    def numBytes(tipe : Type) : Int = {
-        val bits = numBits(tipe)
-        if (bits % 8 != 0)
-            sys.error(s"numBytes: non-byte size number of bits $bits")
-        bits / 8
-    }
+    def numBytes(tipe : Type) : Int =
+        (numBits(tipe) + 7) / 8
 
     // FIXME: end of Scala LLVM stuff
 
@@ -659,6 +656,28 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /*
+     * Make a term representing the actual bits of a variable that is not
+     * represented by a plain bit vector (e.g., floating-point value).
+     */
+    def bitsTerm(name : Name, bits : Int) : TypedTerm[BVTerm, Term] =
+        ntermIBV(suffixName(name, "$b"), bits)
+
+    /*
+     * Make terms representing variables to hold the three pieces of
+     * a floating-point bit vector relative to a particular named memory
+     * chunk.
+     */
+    def fpbitTerms(name : Name, bits : Int) : (TypedTerm[BVTerm, Term], TypedTerm[BVTerm, Term], TypedTerm[BVTerm, Term]) = {
+        val (exp, sig) = fpexpsig(bits)
+        val chunkName = getChunkName(name)
+        (
+            ntermIBV(suffixName(chunkName, "$p"), 1),
+            ntermIBV(suffixName(chunkName, "$e"), exp),
+            ntermIBV(suffixName(chunkName, "$s"), sig - 1)
+        )
+    }
+
+    /*
      * Make a term representing the offset of a variable that holds
      * a memory address.
      */
@@ -666,14 +685,59 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         ntermIBV(suffixName(name, "$o"), architecture)
 
     /*
+     * Map from address variable names to the variable names of the
+     * chunk within which those addresses point. A variable that is
+     * not in the domain of the map *is* a chunk.
+     */
+    val chunkMap = new scala.collection.mutable.HashMap[Name, Name]
+
+    /*
+     * Update the chunk map to say that address variable `name`
+     * refer to chunk `base`.
+     */
+    def updateChunk(name : Name, base : Name) =
+        chunkMap.update(name, base)
+
+    /*
+     * Get the name of the chunk to which the address variable `name`
+     * refers.
+     */
+    // FIXME: remove var?
+    def getChunkName(name : Name) : Name = {
+        var ret = name
+        while (chunkMap contains ret) {
+            ret = chunkMap(ret)
+        }
+        ret
+    }
+
+    /*
+     * Make a term that refers to current version of the chunk of the
+     * address variable `name`.
+     */
+    def chunkTerm(name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] = {
+        val baseChunkName = getChunkName(name)
+        arrayTermAtIBV(name, 8, baseChunkName)
+    }
+
+    /*
+     * Make a term that refers to previous version of the chunk of the
+     * address variable `name`.
+     */
+    def prevChunkTerm(name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] = {
+        val chunkName = getChunkName(name)
+        prevArrayTermAtIBV(name, 8, chunkName)
+    }
+
+    /*
      * Get the base and offset terms for an address.
      */
-    def baseAndOffset(addr : Value) : (TypedTerm[ArrayTerm[BVTerm], Term], TypedTerm[BVTerm, Term]) =
+    def baseAndOffset(addr : Value) : (Name, TypedTerm[BVTerm, Term]) =
         addr match {
             case Named(name) =>
-                (arrayTermAtIBV(name, 8, name), offsetTerm(name))
+                (name, offsetTerm(name))
             case Const(GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(name), indices)) if bt1 == bt2 =>
-                (arrayTermAtIBV(name, 8, name), offset(tipe, name, indices))
+                (name, offset(tipe, name, indices))
             case _ =>
                 sys.error(s"baseAndOffset: unsupported address $addr")
         }
@@ -689,8 +753,9 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         integerMode match {
             case BitIntegerMode() =>
                 val bytes = numBytes(tipe)
-                val (base, offset) = baseAndOffset(from)
-                val exp =
+                val (chunkName, offset) = baseAndOffset(from)
+                val base = chunkTerm(chunkName)
+                val chunk =
                     (0 until bytes - 1).foldLeft[TypedTerm[BVTerm, Term]](
                         base.select(offset + (bytes - 1).withUBits(architecture))
                     ) {
@@ -698,8 +763,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 val off = if (i == bytes - 2) offset else offset + (bytes - i - 2).withUBits(architecture)
                                 base.select(off).concat(a)
                         }
-                // FIXME: need to something different for fp...
-                ntermIBV(to, bytes * 8) === exp
+                tipe match {
+                    case IntT(_) =>
+                        ntermIBV(to, bytes * 8) === chunk
+                    case RealT(bits) =>
+                        val (exp, sig) = fpexpsig(bits)
+                        ntermRBV(to, bytes * 8) === chunk.toFPBV(exp, sig)
+                    case _ =>
+                        sys.error(s"load: unsupported type ${show(tipe)}")
+                }
             case MathIntegerMode() =>
                 equality(to, tipe, from, tipe)
         }
@@ -733,7 +805,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /*
-     * The bytes of a string constant.
+     * The bytes of a string constant. Includes the nul byte on
+     * the end.
      */
     val stringBytes : StringC => Vector[Byte] =
         attr {
@@ -745,19 +818,19 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * Make a term to get zero-indexed byte `i` from a value of size `bytes`
      * optimising for the case where the `from` value is a constant.
      */
-    def getByte(from : Value, bytes : Int, i : Int) : TypedTerm[BVTerm, Term] =
-        from match {
+    def getByte(tipe : Type, to : Name, value : Value, bytes : Int, i : Int) : TypedTerm[BVTerm, Term] =
+        value match {
             case Const(a : ArrayC) =>
                 constArrayBytes(a)(i).withBits(8)
             case Const(IntC(n)) =>
                 getIntByte(n.toInt, bytes, i).withBits(8)
             case Const(a : StringC) =>
                 stringBytes(a)(i).withBits(8)
+            case Const(ZeroC()) =>
+                0.withBits(8)
             case _ =>
-                val shift = (bytes - i - 1) * 8
-                val n = vtermIBV(from, bytes * 8)
-                val b = if (shift == 0) n else n >> shift.withBits(32)
-                b.extract(7, 0)
+                val start = (bytes - i - 1) * 8
+                bitsTerm(to, bytes * 8).extract(start + 7, start)
         }
 
     /*
@@ -771,16 +844,28 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         integerMode match {
             case BitIntegerMode() =>
                 val bytes = numBytes(tipe)
+                val bits = bytes * 8
                 val base = offsetTerm(to)
-                val exp =
-                    (0 until bytes).foldLeft(prevArrayTermAtIBV(to, 8, to)) {
+                val chunk =
+                    (0 until bytes).foldLeft(prevChunkTerm(to)) {
                         case (a, i) =>
                             a.store(
                                 if (i == 0) base else base + i.withUBits(32),
-                                getByte(from, bytes, i)
+                                getByte(tipe, to, from, bytes, i)
                             )
                     }
-                arrayTermAtIBV(to, 8, to) === exp
+                tipe match {
+                    case IntT(_) =>
+                        vtermIBV(from, bits) === bitsTerm(to, bits) &
+                            chunkTerm(to) === chunk
+                    case RealT(_) =>
+                        val (c1, c2, c3) = fpbitTerms(to, bits)
+                        vtermRBV(from, bits) === FPBVs(c1, c2, c3) &
+                            bitsTerm(to, bits) === c1.concat(c2.concat(c3)) &
+                            chunkTerm(to) === chunk
+                    case _ =>
+                        sys.error(s"store: unsupported type $tipe")
+                }
             case MathIntegerMode() =>
                 equality(to, tipe, from, tipe)
         }
@@ -867,7 +952,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         integerMode match {
             case BitIntegerMode() =>
                 val (base, offset) = baseAndOffset(from)
-                arrayTermAtIBV(to, 8, to) === base & offsetTerm(to) === offset
+                updateChunk(to, base)
+                offsetTerm(to) === offset
             case MathIntegerMode() =>
                 True()
         }
@@ -1703,8 +1789,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 0
             case TrueC() =>
                 1
-            case ArrayElementC(name, Const(IntC(index))) =>
-                arrayTermAtI(name, name).at(index.toInt)
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }

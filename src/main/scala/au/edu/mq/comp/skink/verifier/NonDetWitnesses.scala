@@ -35,14 +35,16 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
                     val nv = termToBigDecimal(nt)
                     (dv / nv).toString
                 case ConstantTerm(DecLit(s))                        => s
+                case ConstantTerm(DecBVLit(BVvalue(s), _))          => s
                 case ConstantTerm(HexaLit(s))                       => s"${new java.math.BigInteger(s, 16).intValue()}"
                 case ConstantTerm(NumLit(i))                        => i.toString
-                // case ConstantTerm(v : FPBVvalue)                    => v.toString // FIXME
                 case ConstantTerm(FPPlusInfinity(_, _))             => "+infinity"
                 case ConstantTerm(FPMinusInfinity(_, _))            => "-infinity"
                 case ConstantTerm(FPBVPlusZero(_, _))               => "+zero"
                 case ConstantTerm(FPBVMinusZero(_, _))              => "-zero"
                 case ConstantTerm(FPBVNaN(_, _))                    => "NaN"
+                // FIXME: need to print C value
+                case f : FPBVvalueTerm                              => f.toString
                 case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
                 case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
                 case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => "0"
