@@ -1,4 +1,4 @@
-TRUE
+FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -24,12 +24,12 @@ TRUE
 <key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >correctness_witness</data>
+  <data key="witness-type"  >violation_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/bit/getelementptr_true-unreach-call.c</data>
-  <data key="programhash"   >acd1537c992bebf34b90b278c9c5e6961b74458e</data>
+  <data key="programfile"   >src/test/resources/citests/bit/getelementptr2_false-unreach-call.c</data>
+  <data key="programhash"   >be1dca72bea21518010fd0c0fb782927747f0c03</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
@@ -38,11 +38,26 @@ TRUE
 </node>
 
 <edge id="E0" source="N0" target="N1">
+  <data key="assumption">\result == 0;</data>
+  <data key="assumption.scope">main</data>
+  <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
+  <data key="edge.src">int i = __VERIFIER_nondet_int();</data>
+  <data key="startline">22</data>
 </edge>
 
 <node id="N1">
-  <data key="invariant">1</data>
-  <data key="invariant.scope">main</data>
+</node>
+
+<edge id="E1" source="N1" target="N2">
+  <data key="assumption">\result == FPBVvalueTerm(ConstantTerm(BinLit(0)),ConstantTerm(BinLit(00000000000)),ConstantTerm(BinLit(0000000000000000000000000000000000000000000000000000)));</data>
+  <data key="assumption.scope">main</data>
+  <data key="assumption.resultfunction">__VERIFIER_nondet_double</data>
+  <data key="edge.src">double a1 = __VERIFIER_nondet_double();</data>
+  <data key="startline">25</data>
+</edge>
+
+<node id="N2">
+  <data key="violation">true</data>
 </node>
 
 </graph>

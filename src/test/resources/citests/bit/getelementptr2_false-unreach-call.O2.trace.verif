@@ -1,4 +1,4 @@
-TRUE
+FALSE
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -24,25 +24,31 @@ TRUE
 <key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
 
 <graph edgedefault="directed">
-  <data key="witness-type"  >correctness_witness</data>
+  <data key="witness-type"  >violation_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/bit/getelementptr_true-unreach-call.c</data>
-  <data key="programhash"   >acd1537c992bebf34b90b278c9c5e6961b74458e</data>
+  <data key="programfile"   >src/test/resources/citests/bit/getelementptr2_false-unreach-call.c</data>
+  <data key="programhash"   >be1dca72bea21518010fd0c0fb782927747f0c03</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
 <node id="N0">
   <data key="entry">true</data>
+  <data key="block">0</data>
+  <data key="node.src">int i = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E0" source="N0" target="N1">
+  <data key="edge.src">if (a1 == a2) __VERIFIER_error();</data>
+  <data key="startline">29</data>
+  <data key="endline">29</data>
 </edge>
 
 <node id="N1">
-  <data key="invariant">1</data>
-  <data key="invariant.scope">main</data>
+  <data key="violation">true</data>
+  <data key="block">11</data>
+  <data key="node.src">if (a1 == a2) __VERIFIER_error();</data>
 </node>
 
 </graph>

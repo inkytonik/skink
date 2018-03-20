@@ -49,7 +49,7 @@ FALSE
 </node>
 
 <edge id="E1" source="N1" target="N2">
-  <data key="assumption">\result == 0;</data>
+  <data key="assumption">\result == 5;</data>
   <data key="assumption.scope">main</data>
   <data key="assumption.resultfunction">__VERIFIER_nondet_int</data>
   <data key="edge.src">int d1 = __VERIFIER_nondet_int();</data>
