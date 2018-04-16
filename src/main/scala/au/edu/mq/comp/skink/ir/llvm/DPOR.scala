@@ -38,13 +38,12 @@ case class DPOR[S, L](a : DetAuto[S, L], dependent : ((S, L), (S, L)) => Boolean
                 //  explore l from n
                 //  Get some successor state of l
                 val m = DPORNode(
-                    a.succ(n.s, l),
-                    Set(),
-                    Set()
-                )
+                        a.succ(n.s, l),
+                        Set(),
+                        Set()
+                    )
                 //  Explore m
                 exploreRec(m, n :: xn)
-                exploreRec(n, xn)
 
             case (Nil, x :: xn) =>
                 //  Node n is completely explored. Continue from parent.
