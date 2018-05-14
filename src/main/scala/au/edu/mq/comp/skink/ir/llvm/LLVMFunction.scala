@@ -1,3 +1,24 @@
+/*
+ * This file is part of Skink.
+ *
+ * Copyright (C) 2015-2018
+ * Programming Languages and Verification Research Group
+ * Macquarie University
+ *
+ * Skink is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Skink is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * See COPYING and COPYING.LESSER for full license terms.
+ * More information at http://www.gnu.org/licenses.
+ */
+
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
@@ -14,7 +35,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
  * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(val program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction {
+    config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
