@@ -113,6 +113,6 @@ to just run a test on those two benchmark files.
 If you want to investigate a single benchmark without using BenchExec, you can run
 Skink as follows:
 
-    ./skink.sh dev src/test/resources/citests/math/array-sequence_true-unreach-call.c
+    ./skink.sh src/test/resources/citests/math/array-sequence_true-unreach-call.c
 
 and you will see logging information, etc.

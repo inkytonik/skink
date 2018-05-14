@@ -1,3 +1,24 @@
+/*
+ * This file is part of Skink.
+ *
+ * Copyright (C) 2015-2018
+ * Programming Languages and Verification Research Group
+ * Macquarie University
+ *
+ * Skink is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Skink is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * See COPYING and COPYING.LESSER for full license terms.
+ * More information at http://www.gnu.org/licenses.
+ */
+
 package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
@@ -19,9 +40,9 @@ import org.scalallvm.assembly.AssemblySyntax.Program
 
 class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     namer : LLVMNamer, config : SkinkConfig)
-        extends Attribution with ArrayExBV with ArrayExInt with ArrayExOperators
-        with ArrayExReal with BitVectors with Core with FPBitVectors
-        with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
+    extends Attribution with ArrayExBV with ArrayExInt with ArrayExOperators
+    with ArrayExReal with BitVectors with Core with FPBitVectors
+    with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.{BitIntegerMode, BitRealMode, MathIntegerMode, MathRealMode}
