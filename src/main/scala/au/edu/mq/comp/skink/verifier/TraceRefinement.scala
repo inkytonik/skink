@@ -215,8 +215,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                                 refineRec(
                                     toDetNFA(r +
                                         (
-                                            //buildInterpolantAuto(function, choices, iteration)
-                                          psksvp.PredicatesAbstraction(function, choices, iteration)
+                                            buildInterpolantAuto(function, choices, iteration)
                                         // +
                                         // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
                                         ))._1,

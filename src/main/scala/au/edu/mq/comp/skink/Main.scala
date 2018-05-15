@@ -220,16 +220,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Format of witnesses (nondet or trace, default: trace)",
         default = Some(TraceWitnessFormat()))(witnessFormatConverter)
 
-    lazy val usePredicateAbstraction = opt[Boolean]("use-predicate-abstraction", short = 'b',
-                                                       descr = "use predicate abstraction to generate automaton",
-                                                       default = Some(false))
-
-    lazy val clang = opt[String]("use-clang", short = 'g',
-                                    descr = "specific clang executable to use",
-                                    default = Some("clang-3.7"))
-
-    lazy val noO2 = opt[Boolean]("no-O2", descr = "do not pass -O2 to clang", default = Some(false))
-
 }
 
 trait Driver extends CompilerBase[IR, SkinkConfig] {

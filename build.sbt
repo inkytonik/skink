@@ -93,7 +93,7 @@ assemblyMergeStrategy in assembly ~=
     })
 
 // ScalariForm
-/*
+
 import scalariform.formatter.preferences._
 
 scalariformPreferences := scalariformPreferences.value
@@ -101,8 +101,7 @@ scalariformPreferences := scalariformPreferences.value
     .setPreference (DanglingCloseParenthesis, Force)
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
-    .setPreference (SpacesAroundMultiImports, false) 
-*/
+    .setPreference (SpacesAroundMultiImports, false)
 
 // File headers
 
