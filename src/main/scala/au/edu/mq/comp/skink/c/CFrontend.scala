@@ -113,15 +113,24 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
-        val clang = "clang"
+        val clang = config.clang.toOption match {
+            case Some(clangName) => clangName
+            case _               => "clang-4.0"
+        }
+
+        val O2 = config.noO2.toOption match {
+            case Some(b) => if (b == true) "" else "-O2"
+            case _       => ""
+        }
+
         val programs = List(clang)
 
         // Setup command arguments
-        val archargs = s"-target i386-pc-linux-gnu -m${config.architecture()}"
-        val optargs = s"-O${config.optLevel()} "
+        val archargs = "" //s"-target i386-pc-linux-gnu -m${config.architecture()}"
+        val optargs = O2 //s"-O${config.optLevel()} "
         val wargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-        val fargs = "-fno-vectorize -fno-slp-vectorize"
-        val otherargs = "-gline-tables-only -Xclang -disable-lifetime-markers -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
+        val fargs = "" //-fno-vectorize -fno-slp-vectorize"
+        val otherargs = "" //-gline-tables-only -Xclang -disable-lifetime-markers -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
         val llvmargs = "-mllvm -inline-threshold=15000"
         val clangdefs = "-Dassert=__VERIFIER_assert"
         val clangargs = s"-c -S -emit-llvm $archargs $optargs $wargs $fargs $otherargs $llvmargs -o $clangllfile $clangdefs -x c $filename"
