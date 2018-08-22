@@ -90,7 +90,7 @@ object LLVMHelper {
      * function.
      */
     def isVerifierFunction(name : String) : Boolean =
-        name.startsWith("__VERIFIER")
+        name.startsWith("__VERIFIER") | name.startsWith("pagai.") | name.startsWith("nondet_")
 
     // Extractors to make matching more convenient
 
@@ -114,7 +114,7 @@ object LLVMHelper {
      */
     object AssumeName {
         def unapply(name : Name) : Boolean =
-            name == Global("__VERIFIER_assume")
+            List(Global("__VERIFIER_assume"), Global("pagai.invariant")) contains name
     }
 
     /**
@@ -217,6 +217,10 @@ object LLVMHelper {
             name match {
                 case Global(NondetName(tipe)) =>
                     Some(tipe)
+                // PAGAI: unclear what general format is or if other
+                // types might make sense
+                case Global("nondet_1") =>
+                    Some("int")
                 case _ =>
                     None
             }
