@@ -549,7 +549,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                 |     br label %1
                 |}
                 """.stripMargin,
-                Trace(Seq(0, 0, 0, 0))
+                Trace(Seq(0, 0, 0))
             ) shouldBe
                 Seq(
                     True(),
