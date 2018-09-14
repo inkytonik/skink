@@ -28,6 +28,7 @@ scalacOptions := {
         "-unchecked",
         "-Xfatal-warnings",
         "-Xcheckinit",
+        "-Yrangepos",
         lintOption
     )
 
