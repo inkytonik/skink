@@ -1,0 +1,11 @@
+{
+	"name": "skink-lsp-server-shim",
+	"description": "Thin shim to boot up skink",
+	"version": "1.0.0",
+	"author": "David Lewis",
+	"license": "MIT",
+	"engines": {
+		"node": "*"
+	},
+	"scripts": {}
+}
