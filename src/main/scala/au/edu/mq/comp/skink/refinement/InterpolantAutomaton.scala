@@ -34,7 +34,6 @@ import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => show
 trait AddBackEdges extends Core with Resources {
 
     import org.bitbucket.franck44.automat.edge.Implicits._
-    import org.bitbucket.franck44.scalasmt.configurations.SolverConfig
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success}
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
@@ -128,7 +127,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
     require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
 
     import au.edu.mq.comp.skink.ir.Trace
-    import org.bitbucket.franck44.scalasmt.configurations.{SMTInit, SolverConfig}
+    import org.bitbucket.franck44.scalasmt.configurations.SMTInit
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success}

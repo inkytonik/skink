@@ -30,7 +30,7 @@ import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperators with BitVectors with FPBitVectors with QuantifiedTerm {
 
     import au.edu.mq.comp.skink.ir.Trace
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, FPBitVectorSort, FPFloat16, FPFloat32, FPFloat64, FPFloat128, RNE, RoundingModeSort, Sort, SSymbol, Term}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BitVectorSort, FPFloat32, FPFloat64, RNE, RoundingModeSort, Sort, SSymbol, Term}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
@@ -131,7 +131,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                 hasEffect(Binary(Binding(z), op, IntT(bits), xexp, yexp), iz === term(ix, iy))
             }
             test(s"binary $bits bit integer ${show(op)} constant is encoded correctly") {
-                termBuilder.ctermIBV(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst), bits) shouldBe term(iv, iw)
+                termBuilder.ctermI(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst), bits) shouldBe term(iv, iw)
             }
         }
     }
@@ -158,7 +158,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
                 hasEffect(Binary(Binding(z), op, fs.tipe, xexp, yexp), fz === term(fx, fy).toFPBV(fs.exp, fs.sig))
             }
             test(s"binary ${show(fs.tipe)} real ${show(op)} constant is encoded correctly") {
-                termBuilder.ctermRBV(BinaryC(op, fs.tipe, vconst, fs.tipe, wconst), fs.exp + fs.sig) shouldBe term(fv, fw).toFPBV(fs.exp, fs.sig)
+                termBuilder.ctermR(BinaryC(op, fs.tipe, vconst, fs.tipe, wconst), fs.exp + fs.sig) shouldBe term(fv, fw).toFPBV(fs.exp, fs.sig)
             }
         }
     }

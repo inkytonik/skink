@@ -147,7 +147,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
                     hasEffect(Binary(Binding(z), op, IntT(bits), xexp, yexp), iz === term(ix, iy))
                 }
                 test(s"binary $bits integer ${show(op)} constant is encoded correctly") {
-                    termBuilder.ctermI(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst)) shouldBe term(iv, iw)
+                    termBuilder.ctermI(BinaryC(op, IntT(bits), ivconst, IntT(bits), iwconst), bits) shouldBe term(iv, iw)
                 }
             }
         }

@@ -26,8 +26,6 @@ package au.edu.mq.comp.skink.ir
  */
 trait IR {
 
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
-
     /**
      * Execute this IR instance, returning the output produced and the exit
      * code where zero means a normal exit.

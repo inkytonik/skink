@@ -42,21 +42,17 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
-    import org.bitbucket.franck44.scalasmt.theories.{BoolTerm, Core}
-    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
-    import org.scalallvm.assembly.AssemblySyntax.{True => _, Value => LLVMValue, _}
+    import org.scalallvm.assembly.AssemblySyntax.{True => _, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success, Try}
-
-    object BoolOps extends Core
-    import BoolOps._
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")

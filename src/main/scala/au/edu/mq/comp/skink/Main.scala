@@ -33,10 +33,6 @@ case class YicesSolverMode() extends SolverMode
 case class YicesNonIncrSolverMode() extends SolverMode
 case class Z3SolverMode() extends SolverMode
 
-sealed abstract class WitnessFormat
-case class NonDetWitnessFormat() extends WitnessFormat
-case class TraceWitnessFormat() extends WitnessFormat
-
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>

@@ -19,7 +19,7 @@ scalacOptions := {
         if (scalaVersion.value.startsWith ("2.10"))
             "-Xlint"
         else
-            "-Xlint:-stars-align,-unused,_"
+            "-Xlint:-stars-align,_"
 
     Seq (
         "-deprecation",

@@ -31,7 +31,6 @@ import org.scalallvm.assembly.AssemblySyntax.Program
 class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.SortedQId
     import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor

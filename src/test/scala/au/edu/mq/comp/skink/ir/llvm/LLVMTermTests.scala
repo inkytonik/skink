@@ -190,7 +190,7 @@ trait LLVMTermTests extends Tests with Core {
 
     def makeGlobalInitVar(id : String, tipe : Type, constantValue : ConstantValue) : GlobalVariableDefinition =
         GlobalVariableDefinition(
-            GlobalBinding(Global(id)), Common(), DefaultVisibility(),
+            GlobalBinding(Global(id)), Common(), NoPreemptionSpecifier(), DefaultVisibility(),
             DefaultDLLStorageClass(), NoThreadLocalSpec(), NamedAddr(),
             DefaultAddrSpace(), NotExternallyInitialized(), GlobalVar(),
             tipe, Init(constantValue), DefaultSection(), NoComdat(), Align(4),
