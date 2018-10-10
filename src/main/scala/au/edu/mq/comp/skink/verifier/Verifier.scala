@@ -44,13 +44,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
 
         logger.info(s"verify: ${function.name}")
 
-        val witnesses =
-            config.witnessFormat() match {
-                case NonDetWitnessFormat() =>
-                    new NonDetWitnesses(config)
-                case TraceWitnessFormat() =>
-                    new TraceWitnesses(config)
-            }
+        val witnesses = new NonDetWitnesses(config)
 
         def reportCorrect() {
             logger.info(s"verify: ${function.name} is correct")

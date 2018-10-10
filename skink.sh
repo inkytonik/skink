@@ -33,7 +33,6 @@ java -Xmx1400m -Xss16m \
   au.edu.mq.comp.skink.Main \
   --verify \
   --witness-file $WTNFILE \
-  --witness-format nondet \
   $ARGS \
   $*
 
