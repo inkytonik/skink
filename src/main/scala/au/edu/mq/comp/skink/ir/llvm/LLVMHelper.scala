@@ -286,12 +286,20 @@ object LLVMHelper {
             name match {
                 case Ceil() | CopySign() | Exit() | FAbs() | FDim() | FEGetRound() |
                     FESetRound() | Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
+                    IsNan() | LRound() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
                     RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
             }
+    }
+
+    /**
+     * Matcher for "lround" function names.
+     */
+    object LRound {
+        def unapply(name : String) : Boolean =
+            List("lround", "lroundf", "lroundl", "llroundl", "llroundf") contains name
     }
 
     /**
@@ -397,7 +405,8 @@ object LLVMHelper {
      */
     object Round {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.round.")
+            (List("round", "roundf", "lroundl") contains name) ||
+                name.startsWith("llvm.round.")
     }
 
     /**
