@@ -74,7 +74,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         SymbolId,
         Term
     }
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, IndexTerm, IntTerm, RealTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import namer.{indexOf, termid}
@@ -122,7 +121,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 True()
         }
         if (term != True())
-            logger.info(s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
+            logger.info(s"itemTerm:${longshow(item)}-> ${term.show}")
         term
     }
 
@@ -167,7 +166,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     // No previous block so phi insns don't make sense...
                     sys.error(s"phiInsnTerm: found ${longshow(insn)} but have no previous block")
             }
-        logger.debug(s"phiInsnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"phiInsnTerm: ${longshow(insn)} -> ${term.show}")
         term
     }
 
@@ -204,7 +203,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case insn =>
                     sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
             }
-        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.show}")
         term
     }
 
@@ -1219,7 +1218,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     sys.error(s"insnTerm: don't know the effect of ${longshow(insn)}")
 
             }
-        logger.debug(s"insnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(s"insnTerm: ${longshow(insn)} -> ${term.show}")
         term
     }
 
