@@ -110,7 +110,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      */
     def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
-            case InitGlobalVar(name, tipe, constantValue) =>
+            case GlobalInitVar(name, tipe, constantValue) =>
                 val num =
                     tipe match {
                         case ArrayT(num, _) => num.toInt
