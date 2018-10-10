@@ -33,12 +33,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{
-        BitIntegerMode,
-        BitRealMode,
         BoolectorSolverMode,
         CVC4SolverMode,
-        MathIntegerMode,
-        MathRealMode,
         MathSatSolverMode,
         SMTInterpolSolverMode,
         YicesSolverMode,
@@ -118,59 +114,19 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         def selectedSolver = {
             config.solverMode() match {
                 case BoolectorSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            sys.error(s"TraceRefinement: Boolector not supported in math integer mode")
-                        case BitIntegerMode() =>
-                            new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
-                    }
+                    new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
                 case CVC4SolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(MODELS)))
-                        case BitIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
-                    }
+                    new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
                 case MathSatSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, List(MODELS)))
-                        case BitIntegerMode() =>
-                            new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(MODELS)))
-                    }
+                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(MODELS)))
                 case SMTInterpolSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
-                        case BitIntegerMode() =>
-                            sys.error(s"TraceRefinement: SMTInterpol not supported in bit integer mode")
-                    }
+                    sys.error(s"TraceRefinement: SMTInterpol not supported")
                 case YicesSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, List(MODELS)))
-                        case BitIntegerMode() =>
-                            sys.error(s"TraceRefinement: Yices not supported in bit integer mode")
-                    }
+                    sys.error(s"TraceRefinement: Yices not supported")
                 case YicesNonIncrSolverMode() =>
-                    config.integerMode() match {
-                        case MathIntegerMode() =>
-                            new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, List(MODELS)))
-                        case BitIntegerMode() =>
-                            sys.error(s"TraceRefinement: Yices-nonIncr not supported in bit integer mode")
-                    }
+                    sys.error(s"TraceRefinement: Yices-nonIncr not supported")
                 case Z3SolverMode() =>
-                    config.realMode() match {
-                        case MathRealMode() =>
-                            config.integerMode() match {
-                                case MathIntegerMode() =>
-                                    new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
-                                case BitIntegerMode() =>
-                                    new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
-                            }
-                        case BitRealMode() =>
-                            new SMTSolver("Z3", new SMTInit(QF_FPBV, List(INTERPOLANTS, MODELS)))
-                    }
+                    new SMTSolver("Z3", new SMTInit(QF_FPBV, List(INTERPOLANTS, MODELS)))
             }
         }
 

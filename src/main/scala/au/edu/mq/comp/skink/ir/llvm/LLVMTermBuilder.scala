@@ -45,7 +45,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     with IntegerArithmetics with QuantifiedTerm with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
-    import au.edu.mq.comp.skink.{BitIntegerMode, BitRealMode, MathIntegerMode, MathRealMode}
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
@@ -85,9 +84,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     val logger = getLogger(this.getClass)
 
-    // Cached numeric modes and architecture
-    val integerMode = config.integerMode()
-    val realMode = config.realMode()
+    // Cached architecture
     val architecture = config.architecture()
 
     // Rounding mode variable term for floating-point bit vector operations
@@ -100,13 +97,9 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      */
     def initTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
         val itemTerms = combineTerms(program.items.map(itemTerm))
-        val term =
-            if (config.realMode() == BitRealMode()) {
-                val fpterm = varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
-                if (itemTerms == True()) fpterm else fpterm & itemTerms
-            } else
-                itemTerms
-        logger.info(s"initTerm: ${showTerm(term.termDef)}")
+        val fpterm = varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
+        val term = if (itemTerms == True()) fpterm else fpterm & itemTerms
+        logger.info(s"initTerm: ${term.show}")
         term
     }
 
@@ -198,22 +191,12 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     !vtermB(value)
 
                 case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            combineTerms(cases.map { case Case(_, v, _) => !(vtermIBV(value, bits) === vtermIBV(v, bits)) })
-                        case MathIntegerMode() =>
-                            combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value) === vtermI(v)) })
-                    }
+                    val bits = size.toInt
+                    combineTerms(cases.map { case Case(_, v, _) => !(vtermIBV(value, bits) === vtermIBV(v, bits)) })
 
                 case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            vtermIBV(value, bits) === vtermIBV(cases(choice).value, bits)
-                        case MathIntegerMode() =>
-                            vtermI(value) === vtermI(cases(choice).value)
-                    }
+                    val bits = size.toInt
+                    vtermIBV(value, bits) === vtermIBV(cases(choice).value, bits)
 
                 case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
                     True()
@@ -444,50 +427,32 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     /**
      * Return a term to express a floating-point comparison.
      */
-    def fpCompare(cond : FCond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] =
-        realMode match {
-            case BitRealMode() =>
-                val lterm = fpbvcast(vtermRBV(left, bits), 64)
-                val rterm = fpbvcast(vtermRBV(right, bits), 64)
-                val unordered = lterm.isNaN | rterm.isNaN
-                val ordered = !unordered
-                cond match {
-                    case FFalse() => False()
-                    case FOEQ()   => ordered & lterm.fpeq(rterm)
-                    case FOGT()   => ordered & lterm > rterm
-                    case FOGE()   => ordered & lterm >= rterm
-                    case FOLT()   => ordered & lterm < rterm
-                    case FOLE()   => ordered & lterm <= rterm
-                    case FONE()   => ordered & !(lterm.fpeq(rterm))
-                    case FORD()   => ordered
-                    case FUEQ()   => unordered | lterm.fpeq(rterm)
-                    case FUGT()   => unordered | lterm > rterm
-                    case FUGE()   => unordered | lterm >= rterm
-                    case FULT()   => unordered | lterm < rterm
-                    case FULE()   => unordered | lterm <= rterm
-                    case FUNE()   => unordered | !(lterm.fpeq(rterm))
-                    case FUNO()   => unordered
-                    case FTrue()  => True()
-                    case _ =>
-                        opError[BoolTerm]("bitvector real comparison", left, cond, right)
-                }
-            case MathRealMode() =>
-                val lterm = vtermR(left)
-                val rterm = vtermR(right)
-                cond match {
-                    case FFalse() => False()
-                    case FOEQ()   => lterm === rterm
-                    case FOGT()   => lterm > rterm
-                    case FOGE()   => lterm >= rterm
-                    case FOLT()   => lterm < rterm
-                    case FOLE()   => lterm <= rterm
-                    case FONE()   => !(lterm === rterm)
-                    case FORD()   => True()
-                    case FTrue()  => True()
-                    case _ =>
-                        opError[BoolTerm]("math real comparison", left, cond, right)
-                }
+    def fpCompare(cond : FCond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] = {
+        val lterm = fpbvcast(vtermRBV(left, bits), 64)
+        val rterm = fpbvcast(vtermRBV(right, bits), 64)
+        val unordered = lterm.isNaN | rterm.isNaN
+        val ordered = !unordered
+        cond match {
+            case FFalse() => False()
+            case FOEQ()   => ordered & lterm.fpeq(rterm)
+            case FOGT()   => ordered & lterm > rterm
+            case FOGE()   => ordered & lterm >= rterm
+            case FOLT()   => ordered & lterm < rterm
+            case FOLE()   => ordered & lterm <= rterm
+            case FONE()   => ordered & !(lterm.fpeq(rterm))
+            case FORD()   => ordered
+            case FUEQ()   => unordered | lterm.fpeq(rterm)
+            case FUGT()   => unordered | lterm > rterm
+            case FUGE()   => unordered | lterm >= rterm
+            case FULT()   => unordered | lterm < rterm
+            case FULE()   => unordered | lterm <= rterm
+            case FUNE()   => unordered | !(lterm.fpeq(rterm))
+            case FUNO()   => unordered
+            case FTrue()  => True()
+            case _ =>
+                opError[BoolTerm]("bitvector real comparison", left, cond, right)
         }
+    }
 
     /**
      * Return a term to express an integer bitvector operation.
@@ -578,50 +543,24 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     /**
      * Return a term to express an integer comparison.
      */
-    def iCompare(cond : ICond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] =
-        integerMode match {
-            case BitIntegerMode() =>
-                val lterm = vtermIBV(left, bits)
-                val rterm = vtermIBV(right, bits)
-                cond match {
-                    case EQ()  => lterm === rterm
-                    case NE()  => !(lterm === rterm)
-                    case UGT() => lterm ugt rterm
-                    case UGE() => lterm uge rterm
-                    case ULT() => lterm ult rterm
-                    case ULE() => lterm ule rterm
-                    case SGT() => lterm sgt rterm
-                    case SGE() => lterm sge rterm
-                    case SLT() => lterm slt rterm
-                    case SLE() => lterm sle rterm
-                    case _ =>
-                        opError[BoolTerm]("bitvector integer comparison", left, cond, right)
-                }
-            case MathIntegerMode() =>
-                val lterm = vtermI(left)
-                val rterm = vtermI(right)
-                val exp =
-                    cond match {
-                        case EQ()  => lterm === rterm
-                        case NE()  => !(lterm === rterm)
-                        case UGT() => lterm > rterm
-                        case UGE() => lterm >= rterm
-                        case ULT() => lterm < rterm
-                        case ULE() => lterm <= rterm
-                        case SGT() => lterm > rterm
-                        case SGE() => lterm >= rterm
-                        case SLT() => lterm < rterm
-                        case SLE() => lterm <= rterm
-                        case _ =>
-                            opError[BoolTerm]("math integer comparison", left, cond, right)
-                    }
-                cond match {
-                    case UGT() | UGE() | ULT() | ULE() =>
-                        (lterm >= 0) & (rterm >= 0) & exp
-                    case _ =>
-                        exp
-                }
+    def iCompare(cond : ICond, bits : Int, left : Value, right : Value) : TypedTerm[BoolTerm, Term] = {
+        val lterm = vtermIBV(left, bits)
+        val rterm = vtermIBV(right, bits)
+        cond match {
+            case EQ()  => lterm === rterm
+            case NE()  => !(lterm === rterm)
+            case UGT() => lterm ugt rterm
+            case UGE() => lterm uge rterm
+            case ULT() => lterm ult rterm
+            case ULE() => lterm ule rterm
+            case SGT() => lterm sgt rterm
+            case SGE() => lterm sge rterm
+            case SLT() => lterm slt rterm
+            case SLE() => lterm sle rterm
+            case _ =>
+                opError[BoolTerm]("bitvector integer comparison", left, cond, right)
         }
+    }
 
     // FIXME: move these to ScalaLLVM?
 
@@ -770,32 +709,28 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * into a `tipe` value. In math mode we fall back on equating `from`
      * and `to`.
      */
-    def load(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] =
-        integerMode match {
-            case BitIntegerMode() =>
-                val bytes = numBytes(tipe)
-                val (chunkName, offset) = baseAndOffset(from)
-                val base = chunkTerm(chunkName)
-                val chunk =
-                    (0 until bytes - 1).foldLeft[TypedTerm[BVTerm, Term]](
-                        base.select(offset + (bytes - 1).withUBits(architecture))
-                    ) {
-                            case (a, i) =>
-                                val off = if (i == bytes - 2) offset else offset + (bytes - i - 2).withUBits(architecture)
-                                base.select(off).concat(a)
-                        }
-                tipe match {
-                    case IntT(_) =>
-                        ntermIBV(to, bytes * 8) === chunk
-                    case RealT(bits) =>
-                        val (exp, sig) = fpexpsig(bits)
-                        ntermRBV(to, bytes * 8) === chunk.toFPBV(exp, sig)
-                    case _ =>
-                        sys.error(s"load: unsupported type ${show(tipe)}")
+    def load(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] = {
+        val bytes = numBytes(tipe)
+        val (chunkName, offset) = baseAndOffset(from)
+        val base = chunkTerm(chunkName)
+        val chunk =
+            (0 until bytes - 1).foldLeft[TypedTerm[BVTerm, Term]](
+                base.select(offset + (bytes - 1).withUBits(architecture))
+            ) {
+                    case (a, i) =>
+                        val off = if (i == bytes - 2) offset else offset + (bytes - i - 2).withUBits(architecture)
+                        base.select(off).concat(a)
                 }
-            case MathIntegerMode() =>
-                equality(to, tipe, from, tipe)
+        tipe match {
+            case IntT(_) =>
+                ntermIBV(to, bytes * 8) === chunk
+            case RealT(bits) =>
+                val (exp, sig) = fpexpsig(bits)
+                ntermRBV(to, bytes * 8) === chunk.toFPBV(exp, sig)
+            case _ =>
+                sys.error(s"load: unsupported type ${show(tipe)}")
         }
+    }
 
     /*
      * Get zero-indexed byte `i` from an integer constant `n` of
@@ -856,40 +791,36 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     /*
      * Return a term that expresses storing `from` a value of a given type in
-     * to the location specified by the address`to`. In bit mode we get the
+     * to the location specified by the address `to`. In bit mode we get the
      * chunk to which `to` refers and store the bytes of `from` into that
      * chunk at the offset of `to`. In math mode we fall back on equating
      * `from` and `to`.
      */
-    def store(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] =
-        integerMode match {
-            case BitIntegerMode() =>
-                val bytes = numBytes(tipe)
-                val bits = bytes * 8
-                val base = offsetTerm(to)
-                val chunk =
-                    (0 until bytes).foldLeft(prevChunkTerm(to)) {
-                        case (a, i) =>
-                            a.store(
-                                if (i == 0) base else base + i.withUBits(32),
-                                getByte(tipe, to, from, bytes, i)
-                            )
-                    }
-                tipe match {
-                    case IntT(_) =>
-                        vtermIBV(from, bits) === bitsTerm(to, bits) &
-                            chunkTerm(to) === chunk
-                    case RealT(_) =>
-                        val (c1, c2, c3) = fpbitTerms(to, bits)
-                        vtermRBV(from, bits) === FPBVs(c1, c2, c3) &
-                            bitsTerm(to, bits) === c1.concat(c2.concat(c3)) &
-                            chunkTerm(to) === chunk
-                    case _ =>
-                        sys.error(s"store: unsupported type $tipe")
-                }
-            case MathIntegerMode() =>
-                equality(to, tipe, from, tipe)
+    def store(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] = {
+        val bytes = numBytes(tipe)
+        val bits = bytes * 8
+        val base = offsetTerm(to)
+        val chunk =
+            (0 until bytes).foldLeft(prevChunkTerm(to)) {
+                case (a, i) =>
+                    a.store(
+                        if (i == 0) base else base + i.withUBits(32),
+                        getByte(tipe, to, from, bytes, i)
+                    )
+            }
+        tipe match {
+            case IntT(_) | ArrayT(_, IntT(_)) =>
+                vtermIBV(from, bits) === bitsTerm(to, bits) &
+                    chunkTerm(to) === chunk
+            case RealT(_) =>
+                val (p, e, s) = fpbitTerms(to, bits)
+                vtermRBV(from, bits) === FPBVs(p, e, s) &
+                    bitsTerm(to, bits) === p.concat(e.concat(s)) &
+                    chunkTerm(to) === chunk
+            case _ =>
+                sys.error(s"store: unsupported type $tipe")
         }
+    }
 
     /*
      * Return a term for an array element offset for a given element type
@@ -969,15 +900,11 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * but also can occur as a constant expression). In math mode this
      * operation specifies no effect.
      */
-    def getelementptr(to : Name, tipe : Type, from : Value, indices : Seq[ElemIndex]) : TypedTerm[BoolTerm, Term] =
-        integerMode match {
-            case BitIntegerMode() =>
-                val (base, offset) = baseAndOffset(from)
-                updateChunk(to, base)
-                offsetTerm(to) === offset
-            case MathIntegerMode() =>
-                True()
-        }
+    def getelementptr(to : Name, tipe : Type, from : Value, indices : Seq[ElemIndex]) : TypedTerm[BoolTerm, Term] = {
+        val (base, offset) = baseAndOffset(from)
+        updateChunk(to, base)
+        offsetTerm(to) === offset
+    }
 
     /*
      * Return a term that expresses the effect of a regular LLVM instruction.
@@ -1013,97 +940,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     True()
 
                 case Binary(Binding(to), op, IntT(size), left, right) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            ntermIBV(to, bits) === iBinaryIBV(op, bits, left, right)
-                        case MathIntegerMode() =>
-                            ntermI(to) === iBinaryI(op, left, right)
-                    }
-
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size.toInt
-                            val lterm = vtermIBV(left, bits)
-                            val rterm = vtermIBV(right, bits)
-                            val exp =
-                                op match {
-                                    case _ : Add  => lterm + rterm
-                                    case _ : And  => lterm and rterm
-                                    case _ : AShR => lterm ashr rterm
-                                    case _ : LShR => lterm >> rterm
-                                    case _ : Mul  => lterm * rterm
-                                    case _ : Or   => lterm or rterm
-                                    case _ : SDiv => lterm sdiv rterm
-                                    case _ : ShL  => lterm << rterm
-                                    case _ : SRem => lterm srem rterm
-                                    case _ : Sub  => lterm - rterm
-                                    case _ : UDiv => lterm / rterm
-                                    case _ : URem => lterm % rterm
-                                    case _ : XOr  => lterm xor rterm
-                                    case _ =>
-                                        opError[BVTerm]("bitvector integer", left, op, right)
-                                }
-                            ntermIBV(to, bits) === exp
-                        case MathIntegerMode() =>
-                            val lterm = vtermI(left)
-                            val rterm = vtermI(right)
-                            val exp =
-                                op match {
-                                    case _ : Add => lterm + rterm
-                                    case _ : And =>
-                                        right match {
-                                            case Const(IntC(i)) =>
-                                                powerOfTwo((i + 1).toInt) match {
-                                                    case -1 =>
-                                                        opError[IntTerm]("math integer", left, op, right)
-                                                    case _ =>
-                                                        lterm % (i + 1).toInt
-                                                }
-                                            case _ =>
-                                                opError[IntTerm]("math integer", left, op, right)
-                                        }
-                                    case _ : AShR | _ : LShR =>
-                                        // FIXME: LShrR version is not right for negative numbers?
-                                        right match {
-                                            case Const(IntC(i)) =>
-                                                lterm / Math.pow(2, i.toDouble).toInt
-                                            case _ =>
-                                                opError[IntTerm]("math integer", left, op, right)
-                                        }
-                                    case _ : Mul => lterm * rterm
-                                    case _ : Or =>
-                                        // FIXME: correct for negative lterm?
-                                        right match {
-                                            case Const(IntC(i)) if i == 1 =>
-                                                (lterm % 2 === 0).ite(lterm + 1, lterm)
-                                            case _ =>
-                                                opError[IntTerm]("math integer", left, op, right)
-                                        }
-                                    case _ : ShL =>
-                                        right match {
-                                            case Const(IntC(i)) =>
-                                                lterm * Math.pow(2, i.toDouble).toInt
-                                            case _ =>
-                                                opError[IntTerm]("math integer", left, op, right)
-                                        }
-                                    case _ : SDiv => lterm / rterm
-                                    case _ : SRem => lterm % rterm
-                                    case _ : Sub  => lterm - rterm
-                                    case _ : UDiv => lterm / rterm
-                                    case _ : URem => lterm % rterm
-                                    case _ : XOr =>
-                                        right match {
-                                            case Const(IntC(i)) if i == -1 =>
-                                                lterm * -1 - 1
-                                            case _ =>
-                                                opError[IntTerm]("math integer", left, op, right)
-                                        }
-                                    case _ =>
-                                        opError[IntTerm]("math integer", left, op, right)
-                                }
-                            ntermI(to) === exp
-                    }
+                    val bits = size.toInt
+                    ntermIBV(to, bits) === iBinaryIBV(op, bits, left, right)
 
                 /*
                  * Floating-point binary operation (`left` `op` `right` into `to`).
@@ -1112,37 +950,23 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     ntermR(to) === vtermR(left)
 
                 case Binary(Binding(to), op, RealT(bits), left, right) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            ntermRBV(to, bits) === fpBinaryRBV(op, bits, left, right)
-                        case MathRealMode() =>
-                            ntermR(to) === fpBinaryR(op, left, right)
-                    }
+                    ntermRBV(to, bits) === fpBinaryRBV(op, bits, left, right)
 
                 // Call to `assume`
                 case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                     tipe match {
-                        case BoolT() => vtermB(arg)
+                        case BoolT() =>
+                            vtermB(arg)
                         case IntT(size) =>
-                            integerMode match {
-                                case BitIntegerMode() =>
-                                    val bits = size.toInt
-                                    !(vtermIBV(arg, bits) === 0.withUBits(bits))
-                                case MathIntegerMode() =>
-                                    !(vtermI(arg) === 0)
-                            }
+                            val bits = size.toInt
+                            !(vtermIBV(arg, bits) === 0.withUBits(bits))
                         case _ =>
                             sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
                     }
 
                 // Call to `nondet_X` where X is an unsigned type
                 case NondetFunctionCall(Binding(to), UnsignedType(bits)) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            ntermIBV(to, bits) uge 0.withBits(bits)
-                        case MathIntegerMode() =>
-                            ntermI(to) >= 0
-                    }
+                    ntermIBV(to, bits) uge 0.withBits(bits)
 
                 // Other calls to `nondet_X`
                 case NondetFunctionCall(_, _) =>
@@ -1153,99 +977,76 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 // trapped when we see if inlining worked
 
                 case LibFunctionCall0(Binding(to), IntT(size), name) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            name match {
-                                case FEGetRound() =>
-                                    val bits = size.toInt
-                                    ntermIBV(to, bits) === fegetround(bits)
-                                case _ =>
-                                    True()
-                            }
+                    name match {
+                        case FEGetRound() =>
+                            val bits = size.toInt
+                            ntermIBV(to, bits) === fegetround(bits)
                         case _ =>
                             True()
                     }
 
                 case LibFunctionCall1(Binding(to), IntT(size), name, arg1, IntT(size1)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            name match {
-                                case FESetRound() =>
-                                    val bits = size.toInt
-                                    val bits1 = size1.toInt
-                                    fesetround(insn, bits, arg1, bits1)
-                                case _ =>
-                                    True()
-                            }
+                    name match {
+                        case FESetRound() =>
+                            val bits = size.toInt
+                            val bits1 = size1.toInt
+                            fesetround(insn, bits, arg1, bits1)
                         case _ =>
                             True()
                     }
 
                 case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(bits1)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val aterm1 = vtermRBV(arg1, bits1)
-                            val bits =
-                                tipe match {
-                                    case IntegerT(bits) => bits
-                                    case RealT(bits)    => bits
-                                    case _ =>
-                                        sys.error(s"insnTerm: LibFunctionCall1 unsupported return type $tipe")
-                                }
-                            name match {
-                                case Ceil() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTP()))
-                                case FAbs() =>
-                                    ntermRBV(to, bits) === aterm1.abs
-                                case Floor() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTN()))
-                                case FPClassify() =>
-                                    ntermIBV(to, bits) === fpclassify(aterm1, bits)
-                                case IsInf() =>
-                                    ntermIBV(to, bits) === aterm1.isInfinite.ite(1.withBits(bits), 0.withBits(bits))
-                                case IsNan() =>
-                                    ntermIBV(to, bits) === aterm1.isNaN.ite(1.withBits(bits), 0.withBits(bits))
-                                case RInt() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI
-                                case Round() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RNA()))
-                                case SignBit() =>
-                                    ntermIBV(to, bits) === aterm1.isNegative.ite(1.withBits(bits), 0.withBits(bits))
-                                case TruncName() =>
-                                    ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
-                                case _ =>
-                                    True()
-                            }
-                        case MathRealMode() =>
-                            name match {
-                                case FAbs() =>
-                                    ntermR(to) === absR(vtermR(arg1))
-                                case _ =>
-                                    True()
-                            }
+                    val aterm1 = vtermRBV(arg1, bits1)
+                    val bits =
+                        tipe match {
+                            case IntegerT(bits) => bits
+                            case RealT(bits)    => bits
+                            case _ =>
+                                sys.error(s"insnTerm: LibFunctionCall1 unsupported return type $tipe")
+                        }
+                    name match {
+                        case Ceil() =>
+                            ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTP()))
+                        case FAbs() =>
+                            ntermRBV(to, bits) === aterm1.abs
+                        case Floor() =>
+                            ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTN()))
+                        case FPClassify() =>
+                            ntermIBV(to, bits) === fpclassify(aterm1, bits)
+                        case IsInf() =>
+                            ntermIBV(to, bits) === aterm1.isInfinite.ite(1.withBits(bits), 0.withBits(bits))
+                        case IsNan() =>
+                            ntermIBV(to, bits) === aterm1.isNaN.ite(1.withBits(bits), 0.withBits(bits))
+                        case RInt() =>
+                            ntermRBV(to, bits) === aterm1.roundToI
+                        case Round() =>
+                            ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RNA()))
+                        case SignBit() =>
+                            val (p, e, s) = fpbitTerms(to, bits1)
+                            (aterm1 === FPBVs(p, e, s)) &
+                                (ntermIBV(to, bits) === (p zext (bits - 1)))
+                        case TruncName() =>
+                            ntermRBV(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
+                        case _ =>
+                            True()
                     }
 
                 case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1),
                     arg2, RealT(bits2)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val aterm1 = vtermRBV(arg1, bits1)
-                            val aterm2 = vtermRBV(arg2, bits2)
-                            name match {
-                                case CopySign() =>
-                                    ntermRBV(to, bits) === copysign(aterm1, aterm2, bits)
-                                case FDim() =>
-                                    ntermRBV(to, bits) === (aterm1 > aterm2).ite(aterm1 - aterm2, fpdecconst("0", bits))
-                                case FMax() =>
-                                    ntermRBV(to, bits) === aterm1.max(aterm2)
-                                case FMin() =>
-                                    ntermRBV(to, bits) === aterm1.min(aterm2)
-                                case FMod() | Remainder() =>
-                                    ntermRBV(to, bits) === aterm1 % aterm2
-                                case _ =>
-                                    True()
-                            }
-                        case MathRealMode() =>
+                    val aterm1 = vtermRBV(arg1, bits1)
+                    val aterm2 = vtermRBV(arg2, bits2)
+                    name match {
+                        case CopySign() =>
+                            ntermRBV(to, bits) === copysign(aterm1, aterm2, bits)
+                        case FDim() =>
+                            ntermRBV(to, bits) === (aterm1 > aterm2).ite(aterm1 - aterm2, fpdecconst("0", bits))
+                        case FMax() =>
+                            ntermRBV(to, bits) === aterm1.max(aterm2)
+                        case FMin() =>
+                            ntermRBV(to, bits) === aterm1.min(aterm2)
+                        case FMod() | Remainder() =>
+                            ntermRBV(to, bits) === aterm1 % aterm2
+                        case _ =>
                             True()
                     }
 
@@ -1296,103 +1097,83 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     True()
 
                 case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ IntT(toSize)) =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val toBits = toSize.toInt
-                            val fromBits = fromSize.toInt
-                            val bitsDiff = toBits - fromBits
-                            if (bitsDiff == 0)
+                    val toBits = toSize.toInt
+                    val fromBits = fromSize.toInt
+                    val bitsDiff = toBits - fromBits
+                    if (bitsDiff == 0)
+                        equality(to, toType, from, fromType)
+                    else {
+                        val toTerm =
+                            if (toBits == 1)
+                                ntermB(to).ite(1.withUBits(toBits), 0.withUBits(toBits))
+                            else
+                                ntermIBV(to, toBits)
+                        val fromTerm =
+                            if (fromBits == 1)
+                                vtermB(from).ite(1.withUBits(fromBits), 0.withUBits(fromBits))
+                            else
+                                vtermIBV(from, fromBits)
+                        op match {
+                            case SExt() =>
+                                if (bitsDiff > 0)
+                                    toTerm === (fromTerm sext bitsDiff)
+                                else
+                                    sys.error(s"insnTerm: shrinking sext insn ${longshow(insn)}")
+                            case Trunc() =>
+                                if (bitsDiff > 0)
+                                    sys.error(s"insnTerm: growing trunc insn ${longshow(insn)}")
+                                else
+                                    toTerm === fromTerm.extract(toBits - 1, 0)
+                            case ZExt() =>
+                                if (bitsDiff > 0)
+                                    toTerm === (fromTerm zext bitsDiff)
+                                else
+                                    sys.error(s"insnTerm: shrinking zext insn ${longshow(insn)}")
+                            case _ =>
                                 equality(to, toType, from, fromType)
-                            else {
-                                val toTerm =
-                                    if (toBits == 1)
-                                        ntermB(to).ite(1.withUBits(toBits), 0.withUBits(toBits))
-                                    else
-                                        ntermIBV(to, toBits)
-                                val fromTerm =
-                                    if (fromBits == 1)
-                                        vtermB(from).ite(1.withUBits(fromBits), 0.withUBits(fromBits))
-                                    else
-                                        vtermIBV(from, fromBits)
-                                op match {
-                                    case SExt() =>
-                                        if (bitsDiff > 0)
-                                            toTerm === (fromTerm sext bitsDiff)
-                                        else
-                                            sys.error(s"insnTerm: shrinking sext insn ${longshow(insn)}")
-                                    case Trunc() =>
-                                        if (bitsDiff > 0)
-                                            sys.error(s"insnTerm: growing trunc insn ${longshow(insn)}")
-                                        else
-                                            toTerm === fromTerm.extract(toBits - 1, 0)
-                                    case ZExt() =>
-                                        if (bitsDiff > 0)
-                                            toTerm === (fromTerm zext bitsDiff)
-                                        else
-                                            sys.error(s"insnTerm: shrinking zext insn ${longshow(insn)}")
-                                    case _ =>
-                                        equality(to, toType, from, fromType)
-                                }
-                            }
-                        case MathIntegerMode() =>
-                            equality(to, toType, from, fromType)
+                        }
                     }
 
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ IntT(toSize)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val toBits = toSize.toInt
-                            op match {
-                                case Bitcast() | FPToSI() =>
-                                    ntermIBV(to, toBits) === fpToSignedInt(vtermRBV(from, fromBits), toBits)
-                                case _ =>
-                                    equality(to, toType, from, fromType)
-                            }
-                        case MathRealMode() =>
+                    val toBits = toSize.toInt
+                    op match {
+                        case Bitcast() | FPToSI() =>
+                            ntermIBV(to, toBits) === fpToSignedInt(vtermRBV(from, fromBits), toBits)
+                        case _ =>
                             equality(to, toType, from, fromType)
                     }
 
                 case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ RealT(toBits)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val fromBits = fromSize.toInt
-                            op match {
-                                // FIXME: need Scala SMT support
-                                // case SIToFP() =>
-                                //     ntermRBV(to, toBits) === signedIntToFP(vtermRBV(from, fromBits), toBits)
-                                case _ =>
-                                    equality(to, toType, from, fromType)
-                            }
-                        case MathRealMode() =>
+                    val fromBits = fromSize.toInt
+                    op match {
+                        // FIXME: need Scala SMT support
+                        // case SIToFP() =>
+                        //     ntermRBV(to, toBits) === signedIntToFP(vtermRBV(from, fromBits), toBits)
+                        case _ =>
                             equality(to, toType, from, fromType)
                     }
 
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ RealT(toBits)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            val bitsDiff = toBits - fromBits
-                            if (bitsDiff == 0)
+                    val bitsDiff = toBits - fromBits
+                    if (bitsDiff == 0)
+                        equality(to, toType, from, fromType)
+                    else {
+                        val toTerm = ntermRBV(to, toBits)
+                        val fromTerm = vtermRBV(from, fromBits)
+                        op match {
+                            case FPExt() =>
+                                if (bitsDiff > 0)
+                                    toTerm === fpbvcast(fromTerm, toBits)
+                                else
+                                    sys.error(s"insnTerm: shrinking fpext insn ${longshow(insn)}")
+                            case FPTrunc() =>
+                                if (bitsDiff > 0)
+                                    sys.error(s"insnTerm: growing fptrunc insn ${longshow(insn)}")
+                                else
+                                    toTerm === fpbvcast(fromTerm, toBits)
+                            case _ =>
                                 equality(to, toType, from, fromType)
-                            else {
-                                val toTerm = ntermRBV(to, toBits)
-                                val fromTerm = vtermRBV(from, fromBits)
-                                op match {
-                                    case FPExt() =>
-                                        if (bitsDiff > 0)
-                                            toTerm === fpbvcast(fromTerm, toBits)
-                                        else
-                                            sys.error(s"insnTerm: shrinking fpext insn ${longshow(insn)}")
-                                    case FPTrunc() =>
-                                        if (bitsDiff > 0)
-                                            sys.error(s"insnTerm: growing fptrunc insn ${longshow(insn)}")
-                                        else
-                                            toTerm === fpbvcast(fromTerm, toBits)
-                                    case _ =>
-                                        equality(to, toType, from, fromType)
-                                }
-                            }
-                        case MathRealMode() =>
-                            equality(to, toType, from, fromType)
+                        }
                     }
 
                 case Convert(Binding(to), _, fromType, from, toType) =>
@@ -1404,21 +1185,11 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     ntermB(to) === vtermB(from).ite(vtermB(value1), vtermB(value2))
 
                 case Select(Binding(to), SelectI1T(), from, IntegerT(size1), value1, IntegerT(size2), value2) if size1 == size2 =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            val bits = size1.toInt
-                            ntermIBV(to, bits) === vtermB(from).ite(vtermIBV(value1, bits), vtermIBV(value2, bits))
-                        case MathIntegerMode() =>
-                            ntermI(to) === vtermB(from).ite(vtermI(value1), vtermI(value2))
-                    }
+                    val bits = size1.toInt
+                    ntermIBV(to, bits) === vtermB(from).ite(vtermIBV(value1, bits), vtermIBV(value2, bits))
 
                 case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
-                    realMode match {
-                        case BitRealMode() =>
-                            ntermRBV(to, bits1) === vtermB(from).ite(vtermRBV(value1, bits1), vtermRBV(value2, bits1))
-                        case MathRealMode() =>
-                            ntermR(to) === vtermB(from).ite(vtermR(value1), vtermR(value2))
-                    }
+                    ntermRBV(to, bits1) === vtermB(from).ite(vtermRBV(value1, bits1), vtermRBV(value2, bits1))
 
                 // Memory operations
 
@@ -1871,52 +1642,23 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
                 case (RealT(bits), RealT(_)) =>
-                    realMode match {
-                        case BitRealMode() =>
-                            ntermRBV(to, bits) === vtermRBV(from, bits)
-                        case MathRealMode() =>
-                            ntermR(to) === vtermR(from)
-                    }
+                    ntermRBV(to, bits) === vtermRBV(from, bits)
                 case _ =>
-                    integerMode match {
-                        case BitIntegerMode() =>
-                            (toType, fromType) match {
-                                case (BoolT(), IntT(size)) =>
-                                    val bits = size.toInt
-                                    ntermB(to) === !(vtermIBV(from, size.toInt) === 0.withUBits(bits))
-                                case (IntT(size), BoolT()) =>
-                                    val bits = size.toInt
-                                    ntermIBV(to, bits) === vtermB(from).ite(1.withUBits(bits), 0.withUBits(bits))
-                                case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
-                                    val bits = toSize.toInt
-                                    ntermIBV(to, bits) === vtermIBV(from, bits)
-                                case (PointerT(IntT(toSize), _), PointerT(IntT(fromSize), _)) if toSize == fromSize =>
-                                    val bits = toSize.toInt
-                                    ntermIBV(to, bits) === vtermIBV(from, bits)
-                                case _ =>
-                                    sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
-                            }
-                        case MathIntegerMode() =>
-                            (toType, fromType) match {
-                                case (BoolT(), IntT(_)) =>
-                                    ntermB(to) === !(vtermI(from) === 0)
-                                case (IntT(_), BoolT()) =>
-                                    ntermI(to) === vtermB(from).ite(1, 0)
-                                case (BoolT(), RealT(_)) =>
-                                    ntermB(to) === !(vtermR(from) === 0)
-                                case (RealT(_), BoolT()) =>
-                                    ntermR(to) === vtermB(from).ite(1, 0)
-                                case (IntT(_), IntT(_)) =>
-                                    ntermI(to) === vtermI(from)
-                                case (PointerT(IntT(_), _), PointerT(IntT(_), _)) =>
-                                    ntermI(to) === vtermI(from)
-                                case (RealT(_), IntT(_)) =>
-                                    ntermR(to) === vtermR(from)
-                                case (IntT(_), RealT(_)) =>
-                                    ntermR(to) === vtermR(from)
-                                case _ =>
-                                    sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
-                            }
+                    (toType, fromType) match {
+                        case (BoolT(), IntT(size)) =>
+                            val bits = size.toInt
+                            ntermB(to) === !(vtermIBV(from, size.toInt) === 0.withUBits(bits))
+                        case (IntT(size), BoolT()) =>
+                            val bits = size.toInt
+                            ntermIBV(to, bits) === vtermB(from).ite(1.withUBits(bits), 0.withUBits(bits))
+                        case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
+                            val bits = toSize.toInt
+                            ntermIBV(to, bits) === vtermIBV(from, bits)
+                        case (PointerT(IntT(toSize), _), PointerT(IntT(fromSize), _)) if toSize == fromSize =>
+                            val bits = toSize.toInt
+                            ntermIBV(to, bits) === vtermIBV(from, bits)
+                        case _ =>
+                            sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
                     }
             }
 

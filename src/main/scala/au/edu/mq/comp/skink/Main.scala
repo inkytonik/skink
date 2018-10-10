@@ -33,14 +33,6 @@ case class YicesSolverMode() extends SolverMode
 case class YicesNonIncrSolverMode() extends SolverMode
 case class Z3SolverMode() extends SolverMode
 
-sealed abstract class IntegerMode
-case class MathIntegerMode() extends IntegerMode
-case class BitIntegerMode() extends IntegerMode
-
-sealed abstract class RealMode
-case class MathRealMode() extends RealMode
-case class BitRealMode() extends RealMode
-
 sealed abstract class WitnessFormat
 case class NonDetWitnessFormat() extends WitnessFormat
 case class TraceWitnessFormat() extends WitnessFormat
@@ -88,31 +80,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "The frontend to use: C (default), LLVM",
         default = Some(new CFrontend(config)))(frontendConverter)
 
-    val integerModeConverter =
-        new ValueConverter[IntegerMode] {
-
-            val argType = ArgType.LIST
-
-            def parse(s : List[(String, List[String])]) : Either[String, Option[IntegerMode]] =
-                s match {
-                    case List((_, List("bit"))) =>
-                        Right(Some(new BitIntegerMode))
-                    case List((_, List("math"))) =>
-                        Right(Some(new MathIntegerMode))
-                    case List((_, _)) =>
-                        Left("expected bit or math")
-                    case _ =>
-                        Right(None)
-                }
-
-            val tag = implicitly[TypeTag[IntegerMode]]
-
-        }
-
-    lazy val integerMode = opt[IntegerMode]("integer", short = 'i',
-        descr = "Integer representation: bit, math (default)",
-        default = Some(new MathIntegerMode))(integerModeConverter)
-
     lazy val lli = opt[String]("lli", noshort = true,
         descr = "Program to use to execute target code (default: lli)",
         default = Some("lli"))
@@ -128,31 +95,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val parse = opt[Boolean]("parse", short = 'p',
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
-
-    val realModeConverter =
-        new ValueConverter[RealMode] {
-
-            val argType = ArgType.LIST
-
-            def parse(s : List[(String, List[String])]) : Either[String, Option[RealMode]] =
-                s match {
-                    case List((_, List("bit"))) =>
-                        Right(Some(new BitRealMode))
-                    case List((_, List("math"))) =>
-                        Right(Some(new MathRealMode))
-                    case List((_, _)) =>
-                        Left("expected bit or math")
-                    case _ =>
-                        Right(None)
-                }
-
-            val tag = implicitly[TypeTag[RealMode]]
-
-        }
-
-    lazy val realMode = opt[RealMode]("real", short = 'r',
-        descr = "Real representation: bit, math (default)",
-        default = Some(new MathRealMode))(realModeConverter)
 
     val solverModeConverter =
         new ValueConverter[SolverMode] {
