@@ -115,7 +115,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case ArrayT(num, _) => num.toInt
                         case _              => 1
                     }
-                allocate(name, tipe, Const(IntC(num))) &
+                allocate(name) &
                     store(name, tipe, Const(constantValue))
             case _ =>
                 True()
@@ -601,18 +601,13 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     // FIXME: end of Scala LLVM stuff
 
     /*
-     * Return a term that expresses allocation of memory of `num` elements each
-     * of type `tipe`. In bit mode `to` will be defined to be the starting address
-     * of a new memory chunk unrelated to any previously allocated. In math mode
-     * this operation has no effect.
+     * Return a term that expresses allocation of memory. `to` will
+     * be defined to be the starting address of a new memory chunk unrelated to
+     * any previously allocated, so we just get a new offset of zero for this
+     * chunk.
      */
-    def allocate(to : Name, tipe : Type, num : Value) : TypedTerm[BoolTerm, Term] =
-        integerMode match {
-            case BitIntegerMode() =>
-                offsetTerm(to) === 0.withUBits(32)
-            case MathIntegerMode() =>
-                True()
-        }
+    def allocate(to : Name) : TypedTerm[BoolTerm, Term] =
+        offsetTerm(to) === 0.withUBits(32)
 
     /*
      * Make a term representing the actual bits of a variable that is not
@@ -778,7 +773,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case Const(a : ArrayC) =>
                 constArrayBytes(a)(i).withBits(8)
             case Const(IntC(n)) =>
-                getIntByte(n.toInt, bytes, i).withBits(8)
+                getIntByte(n, bytes, i).withBits(8)
             case Const(a : StringC) =>
                 stringBytes(a)(i).withBits(8)
             case Const(ZeroC()) =>
@@ -1192,16 +1187,11 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
                 // Memory operations
 
-                case Alloca(Binding(to), _, tipe, optNum, _) =>
-                    val num =
-                        optNum match {
-                            case NumElements(_, value) => value
-                            case OneElement()          => Const(IntC(1))
-                        }
-                    allocate(to, tipe, num)
+                case Alloca(Binding(to), _, _, _, _) =>
+                    allocate(to)
 
-                case MemoryAllocFunctionCall(Binding(to), name, num) =>
-                    allocate(to, IntT(8), num)
+                case MemoryAllocFunctionCall(Binding(to), _, _) =>
+                    allocate(to)
 
                 case Load(Binding(to), _, tipe, _, from, _) =>
                     load(to, tipe, from)
@@ -1266,7 +1256,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * referenced from node.
      */
     def prevArrayTermAtIBV(node : Product, bits : Int, name : Name) : TypedTerm[ArrayTerm[BVTerm], Term] =
-        arrayTermIBV(show(name), bits, scala.math.max(indexOf(node, name) - 1, 0))
+        arrayTermIBV(show(name), bits, indexOf(node, name) - 1)
 
     /**
      * Return an integer term that expresses the previous version of a name when
