@@ -100,7 +100,8 @@ object LLVMHelper {
      */
     object CopySign {
         def unapply(name : String) : Boolean =
-            List("copysign", "copysignf", "copysignl") contains name
+            (List("copysign", "copysignf", "copysignl") contains name) ||
+                name.startsWith("llvm.copysign.")
     }
 
     /**
