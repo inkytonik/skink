@@ -34,46 +34,53 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import org.bitbucket.franck44.scalasmt.typedterms.Value
 
-    def termToBigDecimal(term : Term) : BigDecimal =
+    def convert(s : String, base : Int) : String =
+        new java.math.BigInteger(s, base).intValue().toString
+
+    // See https://www.h-schmidt.net/FloatConverter/IEEE754.html
+    // for IEEE FP bit representations
+
+    def ones(n : Int) : String =
+        "1" * n
+
+    def zeros(n : Int) : String =
+        "0" * n
+
+    def termToCValue(term : Term) : String =
         term match {
-            case ConstantTerm(DecLit(v)) =>
-                BigDecimal(v)
-            case NegTerm(ConstantTerm(DecLit(v))) =>
-                -1 * BigDecimal(v)
-            case ConstantTerm(NumLit(v)) =>
-                BigDecimal(v)
-            case NegTerm(ConstantTerm(NumLit(v))) =>
-                -1 * BigDecimal(v)
-            case _ =>
-                sys.error(s"termToBigDecimal: unexpected term: $term")
+            case ConstantTerm(DecLit(s))                        => s
+            case ConstantTerm(DecBVLit(BVvalue(s), _))          => s
+            case ConstantTerm(HexaLit(i))                       => convert(i, 16)
+            case ConstantTerm(NumLit(i))                        => i.toString
+            case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
+
+            case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
+            case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => "0"
+
+            case ConstantTerm(FPPlusInfinity(e, s)) =>
+                s"0x0${ones(e)}${zeros(s)} /* +Infinity */"
+            case ConstantTerm(FPMinusInfinity(e, s)) =>
+                s"1x0${ones(e)}${zeros(s)} /* -Infinity */"
+            case ConstantTerm(FPBVPlusZero(e, s)) =>
+                s"0x0${zeros(e + s)} /* +0 */"
+            case ConstantTerm(FPBVMinusZero(e, s)) =>
+                s"0x1${zeros(e + s)} /* -0 */"
+            case ConstantTerm(FPBVNaN(e, s)) =>
+                s"0x0${ones(e + s)} /* NaN */"
+            case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
+                s"0x$p$e$s"
+
+            case term =>
+                sys.error(s"optValueToCValue: unexpected value $term")
         }
 
     def optValueToCValue(optValue : Option[Value]) : String =
-        if (optValue.isDefined)
-            optValue.get.t match {
-                case RealDivTerm(dt, List(nt)) =>
-                    val dv = termToBigDecimal(dt)
-                    val nv = termToBigDecimal(nt)
-                    (dv / nv).toString
-                case ConstantTerm(DecLit(s))                        => s
-                case ConstantTerm(DecBVLit(BVvalue(s), _))          => s
-                case ConstantTerm(HexaLit(s))                       => s"${new java.math.BigInteger(s, 16).intValue()}"
-                case ConstantTerm(NumLit(i))                        => i.toString
-                case ConstantTerm(FPPlusInfinity(_, _))             => "+infinity"
-                case ConstantTerm(FPMinusInfinity(_, _))            => "-infinity"
-                case ConstantTerm(FPBVPlusZero(_, _))               => "+zero"
-                case ConstantTerm(FPBVMinusZero(_, _))              => "-zero"
-                case ConstantTerm(FPBVNaN(_, _))                    => "NaN"
-                // FIXME: need to print C value
-                case f : FPBVvalueTerm                              => f.toString
-                case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
-                case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => "0"
-                case term =>
-                    sys.error(s"optValueToCValue: unexpected value $term")
-            }
-        else
-            "0"
+        optValue match {
+            case Some(v) =>
+                termToCValue(v.t)
+            case None =>
+                "0"
+        }
 
     def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
         val returnedValues = function.traceToNonDetValues(failTrace)
