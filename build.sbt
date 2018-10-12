@@ -48,7 +48,7 @@ shellPrompt := {
 
 libraryDependencies ++=
     Seq (
-        "org.bitbucket.franck44.automat" %% "automat" % "1.0.4-SNAPSHOT",
+        "org.bitbucket.franck44.automat" %% "automat" % "1.2.1-SNAPSHOT",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0",
         "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.0",
