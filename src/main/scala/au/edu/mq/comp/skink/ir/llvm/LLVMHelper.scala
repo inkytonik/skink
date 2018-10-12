@@ -284,8 +284,8 @@ object LLVMHelper {
     object LibFunctionName {
         def unapply(name : String) : Boolean =
             name match {
-                case Ceil() | CopySign() | Exit() | FAbs() | FDim() | FEGetRound() |
-                    FESetRound() | Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
+                case Ceil() | CopySign() | Exit() | FAbs() | FDim() |
+                    Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
                     IsNan() | LRound() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
                     RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
