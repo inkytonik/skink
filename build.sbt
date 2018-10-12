@@ -58,8 +58,7 @@ libraryDependencies ++=
         "org.scalatest" %% "scalatest" % "3.0.4" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
         "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
-        "ch.qos.logback" % "logback-classic" % "1.2.3",
-        "com.github.dragos" %% "languageserver" % "0.2.3"
+        "ch.qos.logback" % "logback-classic" % "1.2.3"
     )
 
 resolvers ++= Seq (
