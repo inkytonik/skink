@@ -114,11 +114,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         def selectedSolver = {
             config.solverMode() match {
                 case BoolectorSolverMode() =>
-                    new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
+                    new SMTSolver("Boolector", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
                 case CVC4SolverMode() =>
-                    new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
+                    new SMTSolver("CVC4", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
                 case MathSatSolverMode() =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(MODELS)))
+                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true))))
                 case SMTInterpolSolverMode() =>
                     sys.error(s"TraceRefinement: SMTInterpol not supported")
                 case YicesSolverMode() =>
@@ -126,7 +126,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case YicesNonIncrSolverMode() =>
                     sys.error(s"TraceRefinement: Yices-nonIncr not supported")
                 case Z3SolverMode() =>
-                    new SMTSolver("Z3", new SMTInit(QF_FPBV, List(INTERPOLANTS, MODELS)))
+                    new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
             }
         }
 

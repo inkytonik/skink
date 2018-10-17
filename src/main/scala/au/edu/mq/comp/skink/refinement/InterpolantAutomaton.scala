@@ -154,7 +154,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */
-        using(new SMTSolver("Z3", new SMTInit(List(INTERPOLANTS)))) {
+        using(new SMTSolver("Z3", new SMTInit(List(SMTProduceInterpolants(true))))) {
             implicit solver =>
                 isSat(orderedTerms : _*) match {
 

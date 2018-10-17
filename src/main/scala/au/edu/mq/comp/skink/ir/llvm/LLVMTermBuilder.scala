@@ -337,7 +337,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         if (s.length <= length) {
             val num = padLeftTo(s, length)
             val (exp, sig) = fpexpsig(srcbits)
-            fpbvcast(BVs("#x" + num).toFPBV(exp, sig), tgtbits)
+            fpbvcast(BVs("#x" + num).bitStringToFPBV(exp, sig), tgtbits)
         } else
             sys.error(s"fphexconst: literal $s is larger than expected $length characters")
     }
@@ -630,7 +630,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 ntermI(to, bytes * 8) === chunk
             case RealT(bits) =>
                 val (exp, sig) = fpexpsig(bits)
-                ntermR(to, bytes * 8) === chunk.toFPBV(exp, sig)
+                ntermR(to, bytes * 8) === chunk.bitStringToFPBV(exp, sig)
             case _ =>
                 sys.error(s"load: unsupported type ${show(tipe)}")
         }
