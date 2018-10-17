@@ -44,11 +44,12 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
+    import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
@@ -85,7 +86,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         getDeclCmd() match {
                             case Success(xs) =>
                                 val map = xs.map {
-                                    x => (showTerm(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
                                 }.collect {
                                     case (s, Success(v)) =>
                                         (s, v)
@@ -164,8 +165,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
                     for (i <- 0 until traceTerms.length) {
                         val term = traceTerms(i)
-                        logger.debug(s"trace effect $i: ${showTerm(term.termDef)}")
-                        logger.debug(s"trace vars $i: ${term.typeDefs.map(showTerm(_))}")
+                        logger.debug(s"trace effect $i: ${show(term.termDef)}")
+                        logger.debug(s"trace vars $i: ${term.typeDefs.map(show(_))}")
                     }
 
                     // Check satisfiability and if Sat, get model values
@@ -179,7 +180,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)) {
-                                logger.debug(s"value: $x = ${values(x).show}")
+                                val term = values(x).t
+                                logger.debug(s"value: $x = ${show(term)} ${termToCValueString(term)}")
                             }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
