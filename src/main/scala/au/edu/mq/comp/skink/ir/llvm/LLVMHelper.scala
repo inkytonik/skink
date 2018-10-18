@@ -229,6 +229,7 @@ object LLVMHelper {
         def unapply(name : String) : Boolean =
             List("__isnan", "__isnanf") contains name
     }
+
     /**
      * Matcher for global library function calls with zero arguments. Successful
      * matches return the optional binding, return type, string function name.
@@ -286,8 +287,9 @@ object LLVMHelper {
             name match {
                 case Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | LRInt() | LRound() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
-                    RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
+                    IsNan() | LRInt() | LRound() | MemoryAlloc(_) | NAN() |
+                    OutputFunctionName() | Remainder() | RInt() | Round() | SignBit() |
+                    Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
@@ -334,6 +336,14 @@ object LLVMHelper {
                 Some(name)
             else
                 None
+    }
+
+    /**
+     * Matcher for "nan" function names.
+     */
+    object NAN {
+        def unapply(name : String) : Boolean =
+            List("nan", "nanf", "nanl") contains name
     }
 
     /**

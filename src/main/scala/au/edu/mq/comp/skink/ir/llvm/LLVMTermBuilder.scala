@@ -703,6 +703,23 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /*
+     * Build a term for a string constant that is the concatenation
+     * of the string bytes.
+     */
+    def stringToBV(a : StringC) : TypedTerm[BVTerm, Term] = {
+        val bytes = stringBytes(a)
+        bytes.length match {
+            case 0 =>
+                sys.error("stringToBV: zero length string constant")
+            case _ =>
+                bytes.tail.foldLeft(bytes(0).withBits(8)) {
+                    case (bs, b) =>
+                        bs.concat(b.withBits(8))
+                }
+        }
+    }
+
+    /*
      * Make a term to get zero-indexed byte `i` from a value of size `bytes`
      * optimising for the case where the `from` value is a constant.
      */
@@ -976,6 +993,17 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 (ntermI(to, bits) === (p zext (bits - 1)))
                         case TruncName() =>
                             ntermR(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
+                        case _ =>
+                            True()
+                    }
+
+                case LibFunctionCall1(Binding(to), RealT(size), name, arg1, PointerT(_, _)) =>
+                    name match {
+                        case NAN() =>
+                            // FIXME: ignores "nan" argument, but does build "a" NaN
+                            val bits = size.toInt
+                            val (exp, sig) = fpexpsig(bits)
+                            ntermR(to, bits) === NaN(exp, sig)
                         case _ =>
                             True()
                     }
@@ -1377,6 +1405,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 i.toInt.withBits(bits)
             case NullC() | ZeroC() =>
                 0.withBits(bits)
+            case a : StringC =>
+                stringToBV(a)
             case value =>
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }
