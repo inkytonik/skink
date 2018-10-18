@@ -1344,7 +1344,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /**
-     * Return a Boolean term that exprinsesses an LLVM Boolean constant value.
+     * Return a Boolean term that expresses an LLVM Boolean constant value.
      */
     def ctermB(constantValue : ConstantValue) : TypedTerm[BoolTerm, Term] =
         constantValue match {
@@ -1365,7 +1365,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /**
-     * Return a bit vector term that exprinsesses an LLVM integer constant value.
+     * Return a bit vector term that expresses an LLVM integer constant value.
      */
     def ctermI(constantValue : ConstantValue, bits : Int) : TypedTerm[BVTerm, Term] =
         constantValue match {
@@ -1382,7 +1382,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /**
-     * Return a bit vector term that exprinsesses an LLVM floating-point constant value.
+     * Return a bit vector term that expresses an LLVM floating-point constant value.
      */
     def ctermR(constantValue : ConstantValue, bits : Int) : TypedTerm[FPBVTerm, Term] =
         constantValue match {
