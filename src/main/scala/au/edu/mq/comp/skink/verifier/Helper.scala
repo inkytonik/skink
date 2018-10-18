@@ -34,15 +34,36 @@ object Helper {
     def convertBase(s : String, base : Int) : Long =
         new BigInteger(s, base).longValue()
 
+    def longToSigned(l : Long, bytes : Int) : Long =
+        bytes match {
+            case 2  => (l.toByte << 1) >> 1
+            case 4  => (l.toShort << 1) >> 1
+            case 8  => (l.toInt << 1) >> 1
+            case 16 => (l << 1) >> 1
+            case _  => l
+        }
+
+    def intValue(s : String, desc : String = "") : String = {
+        val l = convertBase(s, 10)
+        val comment =
+            if (desc == "") {
+                val h = l.toHexString
+                val s = longToSigned(l, h.length)
+                s"0x$h $s"
+            } else
+                desc
+        s"$s /* $comment */"
+    }
+
     def fpValue(s : String, desc : String = "") : String = {
         val l = convertBase(s, 2)
         val h = l.toHexString
-        val d =
+        val comment =
             if (desc == "")
                 longBitsToDouble(l).toString
             else
                 desc
-        s"0x$h /* $d */"
+        s"0x$h /* $comment */"
     }
 
     def ones(n : Int) : String =
@@ -56,14 +77,21 @@ object Helper {
 
     def termToCValueString(term : Term) : String =
         term match {
-            case ConstantTerm(DecLit(s))                        => s
-            case ConstantTerm(DecBVLit(BVvalue(s), _))          => s
-            case ConstantTerm(HexaLit(s))                       => convertBase(s, 16).toString
-            case ConstantTerm(NumLit(i))                        => i.toString
-            case NegTerm(ConstantTerm(NumLit(i)))               => s"-$i"
+            case ConstantTerm(DecLit(s)) =>
+                intValue(s)
+            case ConstantTerm(DecBVLit(BVvalue(s), _)) =>
+                intValue(s)
+            case ConstantTerm(HexaLit(s)) =>
+                intValue(convertBase(s, 16).toString)
+            case ConstantTerm(NumLit(i)) =>
+                intValue(i.toString)
+            case NegTerm(ConstantTerm(NumLit(i))) =>
+                intValue(s"-$i")
 
-            case QIdTerm(SimpleQId(SymbolId(SSymbol("true"))))  => "1"
-            case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) => "0"
+            case QIdTerm(SimpleQId(SymbolId(SSymbol("true")))) =>
+                intValue("1", "true")
+            case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) =>
+                intValue("0", "false")
 
             case ConstantTerm(FPPlusInfinity(e, s)) =>
                 fpValue(s"0${ones(e)}${zeros(s)}", "+Infinity")
