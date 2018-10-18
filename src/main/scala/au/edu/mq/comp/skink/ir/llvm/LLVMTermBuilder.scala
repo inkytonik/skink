@@ -46,6 +46,10 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.Skink.getLogger
+    import java.lang.Float.floatToRawIntBits
+    import java.lang.Double.doubleToRawLongBits
+    import java.lang.Integer.parseInt
+    import java.lang.Long.parseUnsignedLong
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
         BoolSort,
@@ -55,8 +59,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         FPFloat32,
         FPFloat64,
         FPFloat128,
-        FPBVToSBV,
-        // FPBVToUBV,
         RNA,
         RNE,
         RoundingMode,
@@ -367,16 +369,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /**
-     * Convert a floating-point bitvector into a signed integer bitvector.
-     * FIXME: should be in Scala SMT?
-     */
-    def fpToSignedInt(op1 : TypedTerm[FPBVTerm, Term], bits : Int)(implicit rm : TypedTerm[RMFPBVTerm, Term]) : TypedTerm[BVTerm, FPBVToSBV] =
-        TypedTerm[BVTerm, FPBVToSBV](
-            op1.typeDefs,
-            FPBVToSBV(bits.toString, rm.termDef, op1.termDef)
-        )
-
-    /**
      * Return a term to express a floating-point bitvector operation.
      */
     def fpBinary(op : BinOp, bits : Int, left : Value, right : Value) : TypedTerm[FPBVTerm, Term] = {
@@ -470,8 +462,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 opError[BoolTerm]("bitvector integer comparison", left, cond, right)
         }
     }
-
-    // FIXME: move these to ScalaLLVM?
 
     /*
      * Return a type definition by name if there is one.
@@ -651,6 +641,18 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case Element(tipe : IntT, IntC(n)) =>
                 val bytes = numBytes(tipe)
                 Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+            case Element(RealT(bits), FloatC(s)) =>
+                val bytes = bits / 8
+                bytes match {
+                    case 4 =>
+                        val n = floatStringToInt(s)
+                        Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+                    case 8 =>
+                        val n = doubleStringToLong(s)
+                        Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+                    case _ =>
+                        sys.error(s"constElemBytes: unsupported float size $bytes")
+                }
             case _ =>
                 sys.error(s"constElemBytes: unsupported element $element")
         }
@@ -665,13 +667,39 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /*
+     * The bytes of a double string representated as an Long.
+     */
+    val doubleStringToLong : String => Long =
+        attr {
+            case s if s.startsWith("0x") =>
+                parseUnsignedLong(s.drop(2), 16)
+            case s if s.startsWith("0xK") =>
+                parseUnsignedLong(s.drop(3), 16)
+            case s =>
+                doubleToRawLongBits(s.toDouble)
+        }
+
+    /*
+     * The bytes of a float string representated as an Int.
+     */
+    val floatStringToInt : String => Int =
+        attr {
+            case s if s.startsWith("0x") =>
+                parseInt(s.drop(2), 16)
+            case s if s.startsWith("0xK") =>
+                parseInt(s.drop(3), 16)
+            case s =>
+                floatToRawIntBits(s.toFloat)
+        }
+
+    /*
      * The bytes of a string constant. Includes the nul byte on
      * the end.
      */
     val stringBytes : StringC => Vector[Byte] =
         attr {
-            case string =>
-                unescape(string).map(_.toByte)
+            case s =>
+                unescape(s).map(_.toByte)
         }
 
     /*
@@ -684,6 +712,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 constArrayBytes(a)(i).withBits(8)
             case Const(IntC(n)) =>
                 getIntByte(n, bytes, i).withBits(8)
+            case Const(FloatC(s)) =>
+                tipe match {
+                    case FloatT() =>
+                        getIntByte(floatStringToInt(s), bytes, i).withBits(8)
+                    case DoubleT() =>
+                        getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
+                    case _ =>
+                        sys.error(s"getByte: unsupported constatnt float type $tipe")
+                }
             case Const(a : StringC) =>
                 stringBytes(a)(i).withBits(8)
             case Const(ZeroC()) =>
@@ -721,6 +758,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 vtermR(from, bits) === FPBVs(p, e, s) &
                     bitsTerm(to, bits) === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
+            case ArrayT(_, RealT(_)) =>
+                chunkTerm(to) === chunk
             case _ =>
                 sys.error(s"store: unsupported type $tipe")
         }
@@ -918,9 +957,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case FPClassify() =>
                             ntermI(to, bits) === fpclassify(aterm1, bits)
                         case IsInf() =>
-                            ntermI(to, bits) === aterm1.isInfinite.ite(1.withBits(bits), 0.withBits(bits))
+                            ntermI(to, bits) === boolToIntTerm(aterm1.isInfinite, bits)
                         case IsNan() =>
-                            ntermI(to, bits) === aterm1.isNaN.ite(1.withBits(bits), 0.withBits(bits))
+                            ntermI(to, bits) === boolToIntTerm(aterm1.isNaN, bits)
+                        case LRInt() =>
+                            ntermI(to, bits) === aterm1.toSBV(bits)
+                        case LRound() =>
+                            ntermI(to, bits) === aterm1.toSBV(bits)(ctermRM(RNA()))
+                        case RInt() =>
+                            ntermR(to, bits) === aterm1.roundToI
                         case RInt() =>
                             ntermR(to, bits) === aterm1.roundToI
                         case Round() =>
@@ -1007,16 +1052,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     if (bitsDiff == 0)
                         equality(to, toType, from, fromType)
                     else {
-                        val toTerm =
-                            if (toBits == 1)
-                                ntermB(to).ite(1.withUBits(toBits), 0.withUBits(toBits))
-                            else
-                                ntermI(to, toBits)
-                        val fromTerm =
-                            if (fromBits == 1)
-                                vtermB(from).ite(1.withUBits(fromBits), 0.withUBits(fromBits))
-                            else
-                                vtermI(from, fromBits)
+                        val toTerm = nintToIntTerm(to, toBits)
+                        val fromTerm = vintToIntTerm(from, fromBits)
                         op match {
                             case SExt() =>
                                 if (bitsDiff > 0)
@@ -1034,27 +1071,32 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 else
                                     sys.error(s"insnTerm: shrinking zext insn ${longshow(insn)}")
                             case _ =>
-                                equality(to, toType, from, fromType)
+                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
                         }
                     }
 
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ IntT(toSize)) =>
                     val toBits = toSize.toInt
                     op match {
-                        case Bitcast() | FPToSI() =>
-                            ntermI(to, toBits) === fpToSignedInt(vtermR(from, fromBits), toBits)
+                        case FPToSI() =>
+                            ntermI(to, toBits) === vtermR(from, fromBits).toSBV(toBits)(ctermRM(RTZ()))
+                        case FPToUI() =>
+                            ntermI(to, toBits) === vtermR(from, fromBits).toUBV(toBits)(ctermRM(RTZ()))
                         case _ =>
-                            equality(to, toType, from, fromType)
+                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
                     }
 
                 case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ RealT(toBits)) =>
+                    val fromBits = fromSize.toInt
+                    val (exp, sig) = fpexpsig(toBits)
+                    val iterm = vintToIntTerm(from, fromBits)
                     op match {
-                        // FIXME: need Scala SMT support
-                        // val fromBits = fromSize.toInt
-                        // case SIToFP() =>
-                        //     ntermR(to, toBits) === signedIntToFP(vtermR(from, fromBits), toBits)
+                        case SIToFP() =>
+                            ntermR(to, toBits) === iterm.signedToFPBV(exp, sig)
+                        case UIToFP() =>
+                            ntermR(to, toBits) === iterm.unSignedToFPBV(exp, sig)
                         case _ =>
-                            equality(to, toType, from, fromType)
+                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
                     }
 
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ RealT(toBits)) =>
@@ -1076,7 +1118,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 else
                                     toTerm === fpbvcast(fromTerm, toBits)
                             case _ =>
-                                equality(to, toType, from, fromType)
+                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
                         }
                     }
 
@@ -1360,10 +1402,36 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     /**
-     * Return a rounding mode term that exprinsesses a constant rounding mode.
+     * Return a rounding mode term that expresses a constant rounding mode.
      */
     def ctermRM(mode : RoundingMode) : TypedTerm[RMFPBVTerm, Term] =
         RMs(mode)
+
+    /*
+     * Turn a Boolean term into an integer encoding of the truth value.
+     */
+    def boolToIntTerm(term : TypedTerm[BoolTerm, Term], bits : Int) : TypedTerm[BVTerm, Term] =
+        term.ite(1.withUBits(bits), 0.withUBits(bits))
+
+    /*
+     * Turn an LLVM integer name into integer encoding, taking into account
+     * Boolean encoding.
+     */
+    def nintToIntTerm(name : Name, bits : Int) : TypedTerm[BVTerm, Term] =
+        if (bits == 1)
+            boolToIntTerm(ntermB(name), bits)
+        else
+            ntermI(name, bits)
+
+    /*
+     * Turn an LLVM integer value into integer encoding, taking into account
+     * Boolean encoding.
+     */
+    def vintToIntTerm(value : Value, bits : Int) : TypedTerm[BVTerm, Term] =
+        if (bits == 1)
+            boolToIntTerm(vtermB(value), bits)
+        else
+            vtermI(value, bits)
 
     /**
      * Make an equality term between an LLVM name and an LLVM value. The
@@ -1377,8 +1445,17 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
-                case (RealT(bits), RealT(_)) =>
+                case (RealT(bits), RealT(fromBits)) if bits == fromBits =>
                     ntermR(to, bits) === vtermR(from, bits)
+                case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
+                    val bits = toSize.toInt
+                    ntermI(to, bits) === vtermI(from, bits)
+                case (RealT(bits), IntT(fromSize)) if bits == fromSize.toInt =>
+                    val (exp, sig) = fpexpsig(bits)
+                    ntermR(to, bits) === vtermI(from, bits).signedToFPBV(exp, sig)
+                case (IntT(toSize), RealT(bits)) if toSize.toInt == bits =>
+                    val (exp, sig) = fpexpsig(bits)
+                    ntermI(to, toSize.toInt).signedToFPBV(exp, sig) === vtermR(from, bits)
                 case _ =>
                     (toType, fromType) match {
                         case (BoolT(), IntT(size)) =>
@@ -1386,10 +1463,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             ntermB(to) === !(vtermI(from, size.toInt) === 0.withUBits(bits))
                         case (IntT(size), BoolT()) =>
                             val bits = size.toInt
-                            ntermI(to, bits) === vtermB(from).ite(1.withUBits(bits), 0.withUBits(bits))
-                        case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
-                            val bits = toSize.toInt
-                            ntermI(to, bits) === vtermI(from, bits)
+                            ntermI(to, bits) === vintToIntTerm(from, bits)
                         case (PointerT(IntT(toSize), _), PointerT(IntT(fromSize), _)) if toSize == fromSize =>
                             val bits = toSize.toInt
                             ntermI(to, bits) === vtermI(from, bits)
