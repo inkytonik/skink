@@ -942,7 +942,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             val bits = size.toInt
                             ntermI(to, bits) === fegetround(bits)
                         case _ =>
-                            True()
+                            sys.error(s"insnTerm: unsupported call to library function $name (zero args, int return)")
                     }
 
                 case LibFunctionCall1(Binding(to), IntT(size), name, arg1, IntT(size1)) =>
@@ -952,7 +952,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             val bits1 = size1.toInt
                             fesetround(insn, bits, arg1, bits1)
                         case _ =>
-                            True()
+                            sys.error(s"insnTerm: unsupported call to library function $name (one int arg, int return)")
                     }
 
                 case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(bits1)) =>
@@ -962,7 +962,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             case IntegerT(bits) => bits
                             case RealT(bits)    => bits
                             case _ =>
-                                sys.error(s"insnTerm: LibFunctionCall1 unsupported return type $tipe")
+                                sys.error(s"insnTerm: unsupported return type $tipe for library function call $name (one real arg, ${show(tipe)} return)")
                         }
                     name match {
                         case Ceil() =>
@@ -994,7 +994,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case TruncName() =>
                             ntermR(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
                         case _ =>
-                            True()
+                            sys.error(s"insnTerm: unsupported call to library function $name (one real arg, ${show(tipe)} return)")
                     }
 
                 case LibFunctionCall1(Binding(to), RealT(size), name, arg1, PointerT(_, _)) =>
@@ -1005,7 +1005,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             val (exp, sig) = fpexpsig(bits)
                             ntermR(to, bits) === NaN(exp, sig)
                         case _ =>
-                            True()
+                            sys.error(s"insnTerm: unsupported call to library function $name (one pointer arg, real return)")
                     }
 
                 case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1),
@@ -1024,19 +1024,19 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case FMod() | Remainder() =>
                             ntermR(to, bits) === aterm1 % aterm2
                         case _ =>
-                            True()
+                            sys.error(s"insnTerm: unsupported call to library function $name (two reals arg, real return)")
                     }
 
-                // Any other library functions are ignored
+                // Any other library functions are errors
 
-                case LibFunctionCall0(_, _, _) =>
-                    True()
+                case LibFunctionCall0(_, tipe, name) =>
+                    sys.error(s"insnTerm: unsupported call to library function $name (zero args, ${show(tipe)} return)")
 
-                case LibFunctionCall1(_, _, _, _, _) =>
-                    True()
+                case LibFunctionCall1(_, tipe, name, _, argtipe) =>
+                    sys.error(s"insnTerm: unsupported call to library function $name (one ${show(argtipe)} arg, ${show(tipe)} return)")
 
-                case LibFunctionCall2(_, _, _, _, _, _, _) =>
-                    True()
+                case LibFunctionCall2(_, tipe, name, _, arg1tipe, _, arg2type) =>
+                    sys.error(s"insnTerm: unsupported call to library function $name (one ${show(arg1tipe)} ${show(arg2type)} args, ${show(tipe)} return)")
 
                 // Compare two Boolean values
 
