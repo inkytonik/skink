@@ -1099,7 +1099,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 else
                                     sys.error(s"insnTerm: shrinking zext insn ${longshow(insn)}")
                             case _ =>
-                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
+                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Int->Int conversion $op not supported")
                         }
                     }
 
@@ -1111,7 +1111,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case FPToUI() =>
                             ntermI(to, toBits) === vtermR(from, fromBits).toUBV(toBits)(ctermRM(RTZ()))
                         case _ =>
-                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
+                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Real->Int conversion $op not supported")
                     }
 
                 case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ RealT(toBits)) =>
@@ -1124,7 +1124,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                         case UIToFP() =>
                             ntermR(to, toBits) === iterm.unSignedToFPBV(exp, sig)
                         case _ =>
-                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
+                            sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Int->Real conversion $op not supported")
                     }
 
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ RealT(toBits)) =>
@@ -1146,7 +1146,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 else
                                     toTerm === fpbvcast(fromTerm, toBits)
                             case _ =>
-                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} conversion $op not supported")
+                                sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Real->Real conversion $op not supported")
                         }
                     }
 
