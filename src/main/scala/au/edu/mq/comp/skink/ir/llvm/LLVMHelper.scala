@@ -286,12 +286,20 @@ object LLVMHelper {
             name match {
                 case Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | LRound() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
+                    IsNan() | LRInt() | LRound() | MemoryAlloc(_) | OutputFunctionName() | Remainder() |
                     RInt() | Round() | SignBit() | Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
             }
+    }
+
+    /**
+     * Matcher for "lrint" function names.
+     */
+    object LRInt {
+        def unapply(name : String) : Boolean =
+            List("lrint", "lrintf", "lrintf", "llrint", "llrintf", "llrintf") contains name
     }
 
     /**
