@@ -27,6 +27,7 @@ package au.edu.mq.comp.skink.verifier
 object Helper {
 
     import java.lang.Double.longBitsToDouble
+    import java.lang.Float.intBitsToFloat
     import java.math.BigInteger
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
@@ -55,12 +56,19 @@ object Helper {
         s"$s /* $comment */"
     }
 
+    def longToRealString(l : Long, bytes : Int) : String =
+        bytes match {
+            case 4 => intBitsToFloat(l.toInt).toString
+            case 8 => longBitsToDouble(l).toString
+            case _ => s"${bytes}"
+        }
+
     def fpValue(s : String, desc : String = "") : String = {
         val l = convertBase(s, 2)
         val h = l.toHexString
         val comment =
             if (desc == "")
-                longBitsToDouble(l).toString
+                longToRealString(l, s.length / 8)
             else
                 desc
         s"0x$h /* $comment */"
