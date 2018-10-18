@@ -1378,7 +1378,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case NullC() | ZeroC() =>
                 0.withBits(bits)
             case value =>
-                sys.error(s"ctermIBV: unexpected constant value $constantValue")
+                sys.error(s"ctermI: unexpected constant value $constantValue")
         }
 
     /**
