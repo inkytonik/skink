@@ -44,7 +44,7 @@ object Helper {
             case _  => l
         }
 
-    def intValue(s : String, desc : String = "") : String = {
+    def intValue(s : String, desc : String = "") : (String, String) = {
         val l = convertBase(s, 10)
         val comment =
             if (desc == "") {
@@ -53,7 +53,7 @@ object Helper {
                 s"0x$h $s"
             } else
                 desc
-        s"$s /* $comment */"
+        (s, comment)
     }
 
     def longToRealString(l : Long, bytes : Int) : String =
@@ -63,7 +63,7 @@ object Helper {
             case _ => s"${bytes}"
         }
 
-    def fpValue(s : String, desc : String = "") : String = {
+    def fpValue(s : String, desc : String = "") : (String, String) = {
         val l = convertBase(s, 2)
         val h = l.toHexString
         val comment =
@@ -71,7 +71,7 @@ object Helper {
                 longToRealString(l, s.length / 8)
             else
                 desc
-        s"0x$h /* $comment */"
+        (s"0x$h", comment)
     }
 
     def ones(n : Int) : String =
@@ -83,7 +83,10 @@ object Helper {
     // See https://www.h-schmidt.net/FloatConverter/IEEE754.html
     // for IEEE FP bit representations
 
-    def termToCValueString(term : Term) : String =
+    /*
+     * Returns the C value string for a term, plus extra explanation.
+     */
+    def termToCValueString(term : Term) : (String, String) =
         term match {
             case ConstantTerm(DecLit(s)) =>
                 intValue(s)
@@ -97,9 +100,9 @@ object Helper {
                 intValue(s"-$i")
 
             case QIdTerm(SimpleQId(SymbolId(SSymbol("true")))) =>
-                intValue("1", "true")
+                ("1", "true")
             case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) =>
-                intValue("0", "false")
+                ("0", "false")
 
             case ConstantTerm(FPPlusInfinity(e, s)) =>
                 fpValue(s"0${ones(e)}${zeros(s)}", "+Infinity")
@@ -115,7 +118,7 @@ object Helper {
                 fpValue(s"$p$e$s")
 
             case term =>
-                show(term)
+                (show(term), "")
         }
 
 }

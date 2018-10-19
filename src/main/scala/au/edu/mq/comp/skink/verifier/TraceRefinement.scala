@@ -181,7 +181,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             logger.info(s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
                                 val term = values(x).t
-                                logger.debug(s"value: $x = ${show(term)} ${termToCValueString(term)}")
+                                val (value, note) = termToCValueString(term)
+                                logger.debug(s"value: $x = ${show(term)} $value $note")
                             }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))

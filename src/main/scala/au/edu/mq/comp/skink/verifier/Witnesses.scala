@@ -90,7 +90,8 @@ abstract class Witnesses(config : SkinkConfig) {
            |<key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
            |<key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
            |<key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
-           |<key id="assumption"                for="edge" attr.name="assumption"     attr.type="string"/>
+           |<key id="assumption"                for="edge" attr.name="assumption"       attr.type="string"/>
+           |<key id="assumption.note"           for="edge" attr.name="assumption.note"  attr.type="string"/>
            |<key id="assumption.scope"          for="edge" attr.name="assumption.scope" attr.type="string"/>
            |<key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
            |

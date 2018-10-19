@@ -34,12 +34,12 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
     import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
     import org.bitbucket.franck44.scalasmt.typedterms.Value
 
-    def optValueToCValue(optValue : Option[Value]) : String =
+    def optValueToCValue(optValue : Option[Value]) : (String, String) =
         optValue match {
             case Some(v) =>
                 termToCValueString(v.t)
             case None =>
-                "0"
+                ("0", "")
         }
 
     def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
@@ -55,11 +55,12 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
             returnedValues.zipWithIndex.map {
                 case (call, index) =>
                     val node = if (index == 0) "" else mkNode(index) + "\n"
-                    val value = optValueToCValue(call.optValue)
+                    val (value, note) = optValueToCValue(call.optValue)
                     val edge =
                         mkEdge(
                             index,
                             mkData(Some(s"\\result == $value;"), "assumption") +
+                                mkData(Some(note), "assumption.note") +
                                 mkData(Some("main"), "assumption.scope") +
                                 mkData(Some(s"__VERIFIER_nondet_${call.tipe}"), "assumption.resultfunction") +
                                 mkData(call.optCode, "edge.src") +
