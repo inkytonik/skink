@@ -45,6 +45,6 @@ trait IR {
     /**
      * Sort IR ids into a useful order of display to the user.
      */
-    def sortIds(ids : Vector[String]) : Vector[String]
+    def sortIds(ids : Vector[String])(implicit ordering : Ordering[String]) : Vector[String]
 
 }

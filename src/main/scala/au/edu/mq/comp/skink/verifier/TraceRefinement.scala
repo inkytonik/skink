@@ -179,7 +179,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // can file. Build the failure trace and return.
                         case Success((Sat(), values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
-                            for (x <- ir.sortIds(values.keys.toVector)) {
+                            for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
                                 val term = values(x).t
                                 logger.debug(s"value: $x = ${show(term)} ${termToCValueString(term)}")
                             }
@@ -216,4 +216,17 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         // Start the refinement algorithm with no "ruled out" traces.
         refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
     }
+
+    /*
+     * An ordering that first works on string length, then within
+     * each length on the value.
+     */
+    object LengthFirstStringOrdering extends Ordering[String] {
+        def compare(a : String, b : String) =
+            if (a.length == b.length)
+                a.compare(b)
+            else
+                a.length - b.length
+    }
+
 }

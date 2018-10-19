@@ -49,7 +49,7 @@ class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
     def show : String =
         AssemblyPrettyPrinter.show(ir, 5)
 
-    def sortIds(ids : Vector[String]) : Vector[String] =
+    def sortIds(ids : Vector[String])(implicit ordering : Ordering[String]) : Vector[String] =
         ids.sorted
 
 }
