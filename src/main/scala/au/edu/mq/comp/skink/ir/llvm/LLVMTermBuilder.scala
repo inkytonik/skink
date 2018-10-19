@@ -592,6 +592,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 (name, offsetTerm(name))
             case Const(GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(name), indices)) if bt1 == bt2 =>
                 (name, offset(tipe, name, indices))
+            case Const(ConvertC(Bitcast(), PointerT(_, _), NameC(name), PointerT(_, _))) =>
+                (name, offsetTerm(name))
             case _ =>
                 sys.error(s"baseAndOffset: unsupported address $addr")
         }
@@ -1179,6 +1181,9 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     load(to, tipe, from)
 
                 case Store(_, tipe, from, _, Named(to), _) =>
+                    store(to, tipe, from)
+
+                case Store(_, tipe, from, _, Const(ConvertC(Bitcast(), _, NameC(to), _)), _) =>
                     store(to, tipe, from)
 
                 case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
