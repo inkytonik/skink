@@ -1119,6 +1119,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     val (exp, sig) = fpexpsig(toBits)
                     val iterm = vintToIntTerm(from, fromBits)
                     op match {
+                        case Bitcast() =>
+                            ntermR(to, toBits) === iterm.bitStringToFPBV(exp, sig)
                         case SIToFP() =>
                             ntermR(to, toBits) === iterm.signedToFPBV(exp, sig)
                         case UIToFP() =>
