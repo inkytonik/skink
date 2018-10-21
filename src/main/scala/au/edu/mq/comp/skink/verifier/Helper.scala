@@ -30,7 +30,6 @@ object Helper {
     import java.lang.Float.intBitsToFloat
     import java.math.BigInteger
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
 
     def convertBase(s : String, base : Int) : Long =
         new BigInteger(s, base).longValue()
@@ -118,7 +117,7 @@ object Helper {
                 fpValue(s"$p$e$s")
 
             case term =>
-                (show(term), "")
+                ("", "")
         }
 
 }
