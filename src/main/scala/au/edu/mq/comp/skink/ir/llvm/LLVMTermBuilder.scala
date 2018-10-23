@@ -591,7 +591,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case Named(name) =>
                 (name, offsetTerm(name))
             case Const(GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(name), indices)) if bt1 == bt2 =>
-                (name, offset(tipe, name, indices))
+                (name, offsetFromName(tipe, name, indices))
             case Const(ConvertC(Bitcast(), PointerT(_, _), NameC(name), PointerT(_, _))) =>
                 (name, offsetTerm(name))
             case _ =>
@@ -753,8 +753,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * Return a term that expresses storing `from` a value of a given type in
      * to the location specified by the address `to`. In bit mode we get the
      * chunk to which `to` refers and store the bytes of `from` into that
-     * chunk at the offset of `to`. In math mode we fall back on equating
-     * `from` and `to`.
+     * chunk at the offset of `to`.
      */
     def store(to : Name, tipe : Type, from : Value) : TypedTerm[BoolTerm, Term] = {
         val bytes = numBytes(tipe)
@@ -769,7 +768,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     )
             }
         tipe match {
-            case IntT(_) | ArrayT(_, IntT(_)) =>
+            case IntT(_) =>
                 vtermI(from, bits) === bitsTerm(to, bits) &
                     chunkTerm(to) === chunk
             case RealT(_) =>
@@ -841,11 +840,11 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     /*
      * Return a term that calculates a memory offset given a starting type
-     * and address value, plus indices that express a sequence of indexing
-     * operations a'la LLVM's `getelementptr` instruction.
+     * and address value given by a term, plus indices that express a sequence
+     * of indexing operations a'la LLVM's `getelementptr` instruction.
      */
-    def offset(tipe : Type, name : Name, indices : Seq[ElemIndex]) : TypedTerm[BVTerm, Term] =
-        indices.foldLeft((offsetTerm(name), tipe)) {
+    def offsetFromTerm(tipe : Type, term : TypedTerm[BVTerm, Term], indices : Seq[ElemIndex]) : TypedTerm[BVTerm, Term] =
+        indices.foldLeft((term, tipe)) {
             case ((a, t), ElemIndex(_, v)) =>
                 val (etype, eoff) = elemTypeOffset(t, v)
                 v match {
@@ -856,6 +855,12 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 }
         }._1
 
+    /**
+     * As for `offsetFromTerm` but start at the offset for a given name.
+     */
+    def offsetFromName(tipe : Type, name : Name, indices : Seq[ElemIndex]) : TypedTerm[BVTerm, Term] =
+        offsetFromTerm(tipe, offsetTerm(name), indices)
+
     /*
      * Return a term that expresses that `to` will hold the memory address
      * calculated by a `getelementptr` operation (maybe from an instruction
@@ -863,7 +868,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * operation specifies no effect.
      */
     def getelementptr(to : Name, tipe : Type, from : Value, indices : Seq[ElemIndex]) : TypedTerm[BoolTerm, Term] = {
-        val (base, offset) = baseAndOffset(from)
+        val (base, fromOffset) = baseAndOffset(from)
+        val offset = offsetFromTerm(tipe, fromOffset, indices)
         updateChunk(to, base)
         offsetTerm(to) === offset
     }
@@ -1407,7 +1413,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case BinaryC(op, ltype : IntT, left, rtype, right) if ltype == rtype =>
                 iBinary(op, bits, Const(left), Const(right))
             case GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(from), indices) if bt1 == bt2 =>
-                offset(tipe, from, indices)
+                offsetFromName(tipe, from, indices)
             case IntC(i) =>
                 i.toInt.withBits(bits)
             case NullC() | ZeroC() =>
