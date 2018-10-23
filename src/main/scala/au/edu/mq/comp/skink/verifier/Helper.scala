@@ -36,11 +36,10 @@ object Helper {
 
     def longToSigned(l : Long, bytes : Int) : Long =
         bytes match {
-            case 2  => (l.toByte << 1) >> 1
-            case 4  => (l.toShort << 1) >> 1
-            case 8  => (l.toInt << 1) >> 1
-            case 16 => (l << 1) >> 1
-            case _  => l
+            case 1 => l.toByte
+            case 2 => l.toShort
+            case 4 => l.toInt
+            case _ => l
         }
 
     def intValue(s : String, desc : String = "") : (String, String) = {
@@ -48,7 +47,7 @@ object Helper {
         val comment =
             if (desc == "") {
                 val h = l.toHexString
-                val s = longToSigned(l, h.length)
+                val s = longToSigned(l, h.length / 2)
                 s"0x$h $s"
             } else
                 desc
@@ -115,6 +114,15 @@ object Helper {
                 fpValue(s"0${ones(e + s)}", "NaN")
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
                 fpValue(s"$p$e$s")
+
+            case ConstArrayTerm(_, elem) =>
+                val (s, c) = termToCValueString(elem)
+                (s"[$s..]", "")
+            case StoreTerm(array, index, elem) =>
+                val (sa, ca) = termToCValueString(array)
+                val (si, ci) = termToCValueString(index)
+                val (se, ce) = termToCValueString(elem)
+                (s"$sa[$si -> $se]", "")
 
             case term =>
                 ("", "")
