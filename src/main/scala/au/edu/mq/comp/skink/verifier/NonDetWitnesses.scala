@@ -39,7 +39,7 @@ class NonDetWitnesses(config : SkinkConfig) extends Witnesses(config) {
             case Some(v) =>
                 termToCValueString(v.t)
             case None =>
-                ("unknown", "")
+                ("0", "unknown")
         }
 
     def printViolationWitness(function : IRFunction, failTrace : FailureTrace) {
