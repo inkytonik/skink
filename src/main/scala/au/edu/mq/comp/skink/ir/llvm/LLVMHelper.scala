@@ -57,7 +57,7 @@ object LLVMHelper {
      */
     object Assume {
         def unapply(name : String) : Boolean =
-            name == "__VERIFIER_assume"
+            name == "llvm.assume"
     }
 
     /**
@@ -285,7 +285,7 @@ object LLVMHelper {
     object LibFunctionName {
         def unapply(name : String) : Boolean =
             name match {
-                case Ceil() | CopySign() | Exit() | FAbs() | FDim() |
+                case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
                     IsNan() | LRInt() | LRound() | MemoryAlloc(_) | NAN() |
                     OutputFunctionName() | Remainder() | RInt() | Round() | SignBit() |

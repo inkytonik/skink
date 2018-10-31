@@ -54,14 +54,15 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     }
 
     def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
-        import sys.process._
+        import scala.sys.process._
 
         def checkFor(program : String) : Messages = {
             val which = new java.io.ByteArrayOutputStream
-            if ((s"which $program" #> which).! == 0) {
+            val processlogger = ProcessLogger(_ => (), _ => ())
+            if ((s"which $program" #> which).!(processlogger) == 0) {
                 logger.info(s"buildIRFromFile: $program is $which")
                 val version = new java.io.ByteArrayOutputStream
-                if ((s"$program --version" #> version).! == 0)
+                if ((s"$program --version" #> version).!(processlogger) == 0)
                     logger.info(s"buildIRFromFile: $program version is $version")
                 Vector()
             } else {
@@ -79,7 +80,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Run a pipeline of commands, return status and output
-        def runPipeline(command : String, rest : String*) : (Int, String) = {
+        def runPipeline(command : Seq[String], rest : Seq[String]*) : (Int, String) = {
             val outputBuilder = new StringBuilder
             for (stage <- command +: rest) {
                 logger.info(s"buildIRFromFile: $stage\n")
@@ -110,26 +111,57 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Setup filenames
+        val sedcfile = dotc2dotext(filename, ".sed.c")
         val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
+        val sed = "sed"
         val clang = "clang"
-        val programs = List(clang)
+        val programs = List(sed, clang)
 
-        // Setup command arguments
-        val archargs = s"-target i386-pc-linux-gnu -m${config.architecture()}"
-        val optargs = s"-O${config.optLevel()} "
-        val wargs = s"-Wno-implicit-function-declaration -Wno-incompatible-library-redeclaration"
-        val fargs = "-fno-vectorize -fno-slp-vectorize"
-        val otherargs = "-gline-tables-only -Xclang -disable-lifetime-markers -Rpass=.* -Rpass-missed=.* -Rpass-analysis=.*"
-        val llvmargs = "-mllvm -inline-threshold=15000"
-        val clangdefs = "-Dassert=__VERIFIER_assert"
-        val clangargs = s"-c -S -emit-llvm $archargs $optargs $wargs $fargs $otherargs $llvmargs -o $clangllfile $clangdefs -x c $filename"
+        // sed command arguments
+        val sedargs = Seq(
+            // Replace SV-COMP assume with Clang assume
+            "-e", "s/void __VERIFIER_assume(int);/void __builtin_assume(_Bool);/",
+            "-e", "s/__VERIFIER_assume/__builtin_assume/g",
+            // output
+            "-e", s"w $sedcfile",
+            // input
+            filename
+        )
+
+        // Clang command arguments
+        val clangargs = Seq(
+            "-c", "-S", "-emit-llvm",
+            // architecture
+            "-target", "i386-pc-linux-gnu", s"-m${config.architecture()}",
+            // optimisation
+            s"-O${config.optLevel()}",
+            // warnings
+            "-Wno-implicit-function-declaration", "-Wno-incompatible-library-redeclaration",
+            // functionality
+            "-fno-vectorize", "-fno-slp-vectorize",
+            // others
+            "-gline-tables-only", "-Xclang", "-disable-lifetime-markers",
+            "-Rpass=.*", "-Rpass-missed=.*", "-Rpass-analysis=.*",
+            // LLVM
+            "-mllvm", "-inline-threshold=15000",
+            // CPP definitions
+            "-Dassert=__VERIFIER_assert",
+            // output
+            "-o", clangllfile,
+            // language
+            "-x", "c",
+            // input
+            sedcfile
+        )
 
         def run() : Either[IR, Messages] = {
+            deleteFile(sedcfile)
             deleteFile(clangllfile)
             val (res, output) = runPipeline(
-                s"$clang $clangargs"
+                sed +: sedargs,
+                clang +: clangargs
             )
             if (res == 0) {
                 logfile("Clang output", clangllfile)
@@ -137,7 +169,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 logger.info(s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
                 (new LLVMFrontend(config)).buildIR(FileSource(clangllfile), positions)
             } else {
-                logger.info("buildIRFromFile: preparing LLVM code failed")
+                logger.info("buildIRFromFile: preparing LLVM code failed\n")
                 logger.info(output)
                 fail(s"buildIRFromFile: preparing LLVM code failed with code $res")
             }
