@@ -1114,6 +1114,10 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ IntT(toSize)) =>
                     val toBits = toSize.toInt
                     op match {
+                        case Bitcast() if fromBits == toBits =>
+                            val (p, e, s) = fpbitTerms(to, toBits)
+                            vtermR(from, fromBits) === FPBVs(p, e, s) &
+                                ntermI(to, toBits) === p.concat(e.concat(s))
                         case FPToSI() =>
                             ntermI(to, toBits) === vtermR(from, fromBits).toSBV(toBits)(ctermRM(RTZ()))
                         case FPToUI() =>
@@ -1127,7 +1131,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     val (exp, sig) = fpexpsig(toBits)
                     val iterm = vintToIntTerm(from, fromBits)
                     op match {
-                        case Bitcast() =>
+                        case Bitcast() if fromBits == toBits =>
                             ntermR(to, toBits) === iterm.bitStringToFPBV(exp, sig)
                         case SIToFP() =>
                             ntermR(to, toBits) === iterm.signedToFPBV(exp, sig)
