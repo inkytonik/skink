@@ -287,13 +287,21 @@ object LLVMHelper {
             name match {
                 case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | LRInt() | LRound() | MemoryAlloc(_) | NAN() |
+                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc(_) | NAN() |
                     OutputFunctionName() | Remainder() | RInt() | Round() | SignBit() |
                     Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
             }
+    }
+
+    /**
+     * Matcher for "llvm.lifetime" intrinsic names.
+     */
+    object Lifetime {
+        def unapply(name : String) : Boolean =
+            name startsWith "llvm.lifetime"
     }
 
     /**

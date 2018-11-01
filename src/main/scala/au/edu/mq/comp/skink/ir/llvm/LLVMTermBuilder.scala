@@ -1035,6 +1035,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             sys.error(s"insnTerm: unsupported call to library function $name (two reals arg, real return)")
                     }
 
+                case LibFunctionCall2(Binding(to), VoidT(), name, arg1, IntT(bits1), arg2, PointerT(IntT(bits2), _)) =>
+                    name match {
+                        case Lifetime() =>
+                            // Ignore lifetime calls
+                            True()
+                        case _ =>
+                            sys.error(s"insnTerm: unsupported call to library function $name (int and pointer to int arg, void return)")
+                    }
+
                 // Any other library functions are errors
 
                 case LibFunctionCall0(_, tipe, name) =>
