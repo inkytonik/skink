@@ -1016,8 +1016,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             sys.error(s"insnTerm: unsupported call to library function $name (one pointer arg, real return)")
                     }
 
-                case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1),
-                    arg2, RealT(bits2)) =>
+                case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1), arg2, RealT(bits2)) =>
                     val aterm1 = vtermR(arg1, bits1)
                     val aterm2 = vtermR(arg2, bits2)
                     name match {
