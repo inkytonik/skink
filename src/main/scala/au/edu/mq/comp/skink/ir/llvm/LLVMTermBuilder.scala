@@ -1419,7 +1419,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(from), indices) if bt1 == bt2 =>
                 offsetFromName(tipe, from, indices)
             case IntC(i) =>
-                i.toInt.withBits(bits)
+                BVs(i, bits)
             case NullC() | ZeroC() =>
                 0.withBits(bits)
             case a : StringC =>
