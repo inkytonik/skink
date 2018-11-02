@@ -46,9 +46,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.Skink.getLogger
-    import java.lang.Float.floatToRawIntBits
+    import au.edu.mq.comp.skink.verifier.Helper.fpexpsig
     import java.lang.Double.doubleToRawLongBits
-    import java.lang.Integer.parseInt
     import java.lang.Long.parseUnsignedLong
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
@@ -285,20 +284,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     y.isNegative.ite(-x, x)
                 )
             )
-        }
-    }
-
-    /**
-     * Convert a floating-point size to exponent and significand sizes (in that order).
-     */
-    def fpexpsig(bits : Int) : (Int, Int) = {
-        bits match {
-            case 16  => (5, 11)
-            case 32  => (8, 24)
-            case 64  => (11, 53)
-            case 80  => (15, 65)
-            case 128 => (15, 113)
-            case _   => sys.error(s"fpexpsig: unsupported bit size $bits")
         }
     }
 
@@ -645,16 +630,18 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 Vector.tabulate(bytes)(getIntByte(n, bytes, _))
             case Element(RealT(bits), FloatC(s)) =>
                 val bytes = bits / 8
-                bytes match {
-                    case 4 =>
-                        val n = floatStringToInt(s)
-                        Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-                    case 8 =>
-                        val n = doubleStringToLong(s)
-                        Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-                    case _ =>
-                        sys.error(s"constElemBytes: unsupported float size $bytes")
-                }
+                val n = doubleStringToLong(s)
+                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+            // bytes match {
+            //     case 4 =>
+            //         val n = floatStringToInt(s)
+            //         Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+            //     case 8 =>
+            //         val n = doubleStringToLong(s)
+            //         Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+            //     case _ =>
+            //         sys.error(s"constElemBytes: unsupported float size $bytes")
+            // }
             case _ =>
                 sys.error(s"constElemBytes: unsupported element $element")
         }
@@ -681,18 +668,18 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 doubleToRawLongBits(s.toDouble)
         }
 
-    /*
-     * The bytes of a float string representated as an Int.
-     */
-    val floatStringToInt : String => Int =
-        attr {
-            case s if s.startsWith("0x") =>
-                parseInt(s.drop(2), 16)
-            case s if s.startsWith("0xK") =>
-                parseInt(s.drop(3), 16)
-            case s =>
-                floatToRawIntBits(s.toFloat)
-        }
+    // /*
+    //  * The bytes of a float string representated as a Long.
+    //  */
+    // val floatStringToLong : String => Long =
+    //     attr {
+    //         case s if s.startsWith("0x") =>
+    //             parseLong(s.drop(2), 16)
+    //         case s if s.startsWith("0xK") =>
+    //             parseInt(s.drop(3), 16)
+    //         case s =>
+    //             floatToRawIntBits(s.toFloat)
+    //     }
 
     /*
      * The bytes of a string constant. Includes the nul byte on
@@ -732,14 +719,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case Const(IntC(n)) =>
                 getIntByte(n, bytes, i).withBits(8)
             case Const(FloatC(s)) =>
-                tipe match {
-                    case FloatT() =>
-                        getIntByte(floatStringToInt(s), bytes, i).withBits(8)
-                    case DoubleT() =>
-                        getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
-                    case _ =>
-                        sys.error(s"getByte: unsupported constatnt float type $tipe")
-                }
+                getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
+            // tipe match {
+            //     case FloatT() =>
+            //         getIntByte(floatStringToInt(s), bytes, i).withBits(8)
+            //     case DoubleT() =>
+            //         getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
+            //     case _ =>
+            //         sys.error(s"getByte: unsupported constatnt float type $tipe")
+            // }
             case Const(a : StringC) =>
                 stringBytes(a)(i).withBits(8)
             case Const(ZeroC()) =>

@@ -30,6 +30,7 @@ object Helper {
     import java.lang.Float.intBitsToFloat
     import java.math.BigInteger
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
+    import scala.math.pow
 
     def convertBase(s : String, base : Int) : Long =
         new BigInteger(s, base).longValue()
@@ -61,15 +62,51 @@ object Helper {
             case _ => s"${bytes}"
         }
 
-    def fpValue(s : String, desc : String = "") : (String, String) = {
-        val l = convertBase(s, 2)
-        val h = l.toHexString
+    /**
+     * Convert a floating-point size to exponent and significand sizes (in that order).
+     */
+    def fpexpsig(bits : Int) : (Int, Int) = {
+        bits match {
+            case 16  => (5, 11)
+            case 32  => (8, 24)
+            case 64  => (11, 53)
+            case 80  => (15, 65)
+            case 128 => (15, 113)
+            case _   => sys.error(s"fpexpsig: unsupported bit size $bits")
+        }
+    }
+
+    def fpValue(p : String, e : String, s : String, bits : Int, desc : String = "") : (String, String) = {
+        val (ebits, sbits) = fpexpsig(bits)
+
+        val sign = if (p == "0") "" else "-"
+
+        // Exponent is adjusted by subtracting 2^bits - 1
+        val eadjust = pow(2, ebits - 1).toLong
+        val eraw = convertBase(e, 2)
+        val exp = eraw - eadjust + 1
+
+        // If raw exponent is 0 (smallest posisible) then mantissa prefix is 0, else 1
+        val pre = if (eraw == 0) 0 else 1
+
+        val sig = s"${pre}.${convertBase(s, 2)}"
+
         val comment =
-            if (desc == "")
-                longToRealString(l, s.length / 8)
-            else
+            if (desc == "") {
+                val n = s"$p$e$s"
+                val l = convertBase(n, 2)
+                longToRealString(l, n.length / 8)
+            } else
                 desc
-        (s"0x$h", comment)
+
+        val suffix =
+            bits match {
+                case 32 => "f"
+                case 64 => "l"
+                case _  => sys.error(s"fpValue: unknown size $bits, so don't know suffix")
+            }
+
+        (s"${sign}0x${sig}p${exp}${suffix}", comment)
     }
 
     def ones(n : Int) : String =
@@ -103,17 +140,17 @@ object Helper {
                 ("0", "false")
 
             case ConstantTerm(FPPlusInfinity(e, s)) =>
-                fpValue(s"0${ones(e)}${zeros(s)}", "+Infinity")
+                fpValue("1", ones(e), zeros(s), 1 + e + s, "+Infinity")
             case ConstantTerm(FPMinusInfinity(e, s)) =>
-                fpValue(s"1${ones(e)}${zeros(s)}", "-Infinity")
+                fpValue("0", ones(e), zeros(s), 1 + e + s, "-Infinity")
             case ConstantTerm(FPBVPlusZero(e, s)) =>
-                fpValue(s"0${zeros(e + s)}", "+Zero")
+                fpValue("1", zeros(e), zeros(s), 1 + e + s, "+Zero")
             case ConstantTerm(FPBVMinusZero(e, s)) =>
-                fpValue(s"1${zeros(e + s)}", "-Zero")
+                fpValue("0", zeros(e), zeros(s), 1 + e + s, "-Zero")
             case ConstantTerm(FPBVNaN(e, s)) =>
-                fpValue(s"0${ones(e + s)}", "NaN")
+                fpValue("1", ones(e), ones(s), 1 + e + s, "NaN")
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
-                fpValue(s"$p$e$s")
+                fpValue(p, e, s, p.length + e.length + s.length)
 
             case ConstArrayTerm(_, elem) =>
                 val (s, c) = termToCValueString(elem)
