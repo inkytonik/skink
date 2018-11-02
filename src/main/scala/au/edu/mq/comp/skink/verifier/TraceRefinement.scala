@@ -58,6 +58,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.scalasmt.typedterms.Commands
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
     import org.bitbucket.franck44.scalasmt.interpreters.Resources
+    import org.bitbucket.franck44.scalasmt.interpreters.SolverCompose
 
     case class ValMap(m : Map[QualifiedId, Value])
 
@@ -101,6 +102,66 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         }
 
     /**
+     * Run the given solvers in parallel to see if the given terms are satisifiable. If so,
+     * return `Sat()` and a map that relates ids from the terms to their values.
+     * If the term is not satisfiable, return `UnSat()` and an empty map.
+     * The first solver that succeeds (returns a success) provides the result.
+     * Hence we have to filter out the Unknow() SatResponse in the script as, if it succeeds,
+     * it could prevent other solvers from completing their jobs.
+     */
+    def runSolver(
+        strategy : SolverCompose.Parallel,
+        terms : Seq[TypedTerm[BoolTerm, Term]]
+    ) : Try[(SatResponses, Map[String, Value])] =
+        using(strategy) {
+            implicit solver =>
+                isSat(config.solverTimeOut())(terms : _*) map {
+                    case Sat() =>
+                        getDeclCmd() match {
+                            case Success(xs) =>
+                                val map = xs.map {
+                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                }.collect {
+                                    case (s, Success(v)) =>
+                                        (s, v)
+                                }.toMap
+                                (Sat(), map)
+                            case _ =>
+                                (Sat(), Map())
+                        }
+                    case r =>
+                        (r, Map())
+                }
+        }
+
+    def runSolvers(
+        strategy : SolverCompose.Parallel,
+        terms : Seq[TypedTerm[BoolTerm, Term]]
+    ) : Try[(SatResponses, Map[String, Value])] =
+        using(strategy) {
+            implicit solver =>
+                isSat(config.solverTimeOut())(terms : _*) match {
+                    case Success(Sat()) =>
+                        getDeclCmd() match {
+                            case Success(xs) =>
+                                val map = xs.map {
+                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                }.collect {
+                                    case (s, Success(v)) =>
+                                        (s, v)
+                                }.toMap
+                                Success((Sat(), map))
+                            case _ =>
+                                Success((Sat(), Map()))
+                        }
+                    case Success(UnSat()) =>
+                        Success((UnSat(), Map()))
+
+                    case other => Failure(new Exception("Strategy did not provide an answer"))
+                }
+        }
+
+    /**
      * Implement the refinement loop for the given function, optionally
      * returning a failure trace that is feasible and demonstrates how the
      * program is incorrect.
@@ -109,9 +170,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        // Get a solver specification as per configuration options. This
-        // object creation does not spawn any process merely declare a solver
-        // type we want to use
+        /**
+         * Get a solver specification as per configuration options. This
+         * object creation does not spawn any process merely declare a solver
+         * type we want to use
+         */
         def selectedSolver = {
             config.solverMode() match {
                 case BoolectorSolverMode() =>
@@ -130,6 +193,16 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
             }
         }
+
+        // Use selected solver to avoid compil eerrors fir unused objects
+        val _ = selectedSolver
+
+        val mathSatAndZ3FPBV = SolverCompose.Parallel(
+            List(
+                new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true)))),
+                new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
+            )
+        )
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
@@ -170,7 +243,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     }
 
                     // Check satisfiability and if Sat, get model values
-                    val result = runSolver(selectedSolver, traceTerms)
+                    // val result = runSolver(selectedSolver, traceTerms)
+                    val result = runSolvers(mathSatAndZ3FPBV, traceTerms)
 
                     // Check to see if the trace is feasible.
                     result match {
