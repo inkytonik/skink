@@ -632,16 +632,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 val bytes = bits / 8
                 val n = doubleStringToLong(s)
                 Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-            // bytes match {
-            //     case 4 =>
-            //         val n = floatStringToInt(s)
-            //         Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-            //     case 8 =>
-            //         val n = doubleStringToLong(s)
-            //         Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-            //     case _ =>
-            //         sys.error(s"constElemBytes: unsupported float size $bytes")
-            // }
             case _ =>
                 sys.error(s"constElemBytes: unsupported element $element")
         }
@@ -667,19 +657,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
             case s =>
                 doubleToRawLongBits(s.toDouble)
         }
-
-    // /*
-    //  * The bytes of a float string representated as a Long.
-    //  */
-    // val floatStringToLong : String => Long =
-    //     attr {
-    //         case s if s.startsWith("0x") =>
-    //             parseLong(s.drop(2), 16)
-    //         case s if s.startsWith("0xK") =>
-    //             parseInt(s.drop(3), 16)
-    //         case s =>
-    //             floatToRawIntBits(s.toFloat)
-    //     }
 
     /*
      * The bytes of a string constant. Includes the nul byte on
@@ -720,14 +697,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 getIntByte(n, bytes, i).withBits(8)
             case Const(FloatC(s)) =>
                 getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
-            // tipe match {
-            //     case FloatT() =>
-            //         getIntByte(floatStringToInt(s), bytes, i).withBits(8)
-            //     case DoubleT() =>
-            //         getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
-            //     case _ =>
-            //         sys.error(s"getByte: unsupported constatnt float type $tipe")
-            // }
             case Const(a : StringC) =>
                 stringBytes(a)(i).withBits(8)
             case Const(ZeroC()) =>
