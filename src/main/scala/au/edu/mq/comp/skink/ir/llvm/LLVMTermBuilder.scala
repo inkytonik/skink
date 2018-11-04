@@ -733,7 +733,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 vtermR(from, bits) === FPBVs(p, e, s) &
                     bitsTerm(to, bits) === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
-            case ArrayT(_, RealT(_)) =>
+            case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
                 chunkTerm(to) === chunk
             case _ =>
                 sys.error(s"store: unsupported type $tipe")
@@ -821,8 +821,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     /*
      * Return a term that expresses that `to` will hold the memory address
      * calculated by a `getelementptr` operation (maybe from an instruction
-     * but also can occur as a constant expression). In math mode this
-     * operation specifies no effect.
+     * but also can occur as a constant expression).
      */
     def getelementptr(to : Name, tipe : Type, from : Value, indices : Seq[ElemIndex]) : TypedTerm[BoolTerm, Term] = {
         val (base, fromOffset) = baseAndOffset(from)
@@ -991,13 +990,23 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             sys.error(s"insnTerm: unsupported call to library function $name (two reals arg, real return)")
                     }
 
-                case LibFunctionCall2(Binding(to), VoidT(), name, arg1, IntT(bits1), arg2, PointerT(IntT(bits2), _)) =>
+                case LibFunctionCall2(_, VoidT(), name, arg1, IntT(bits1), arg2, PointerT(IntT(bits2), _)) =>
                     name match {
                         case Lifetime() =>
                             // Ignore lifetime calls
                             True()
                         case _ =>
                             sys.error(s"insnTerm: unsupported call to library function $name (int and pointer to int arg, void return)")
+                    }
+
+                //   call void @llvm.memset.p0i8.i64(i8* nonnull align 8 %799, i8 0, i64 24, i1 false) #7, !dbg !2074
+
+                case LibFunctionCall4(Binding(to), VoidT(), name, arg1, PointerT(IntT(bits1), _), arg2, IntT(bits2), arg3, IntT(bits3), arg4, IntT(bits4)) =>
+                    name match {
+                        case Memset() if bits1 == bits2 =>
+                            sys.error("insnTerm: FIXME implement memset")
+                        case _ =>
+                            sys.error(s"insnTerm: unsupported call to library function $name (pointer to int, int, int, int, void return)")
                     }
 
                 // Any other library functions are errors
@@ -1009,7 +1018,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     sys.error(s"insnTerm: unsupported call to library function $name (one ${show(argtipe)} arg, ${show(tipe)} return)")
 
                 case LibFunctionCall2(_, tipe, name, _, arg1tipe, _, arg2type) =>
-                    sys.error(s"insnTerm: unsupported call to library function $name (one ${show(arg1tipe)} ${show(arg2type)} args, ${show(tipe)} return)")
+                    sys.error(s"insnTerm: unsupported call to library function $name (two ${show(arg1tipe)} ${show(arg2type)} args, ${show(tipe)} return)")
 
                 // Compare two Boolean values
 
@@ -1128,6 +1137,9 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                                 sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Real->Real conversion $op not supported")
                         }
                     }
+
+                case Convert(Binding(to), Bitcast(), tipe : PointerT, from, _ : PointerT) =>
+                    getelementptr(to, tipe, from, Seq())
 
                 case Convert(Binding(to), _, fromType, from, toType) =>
                     equality(to, toType, from, fromType)

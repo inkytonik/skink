@@ -278,6 +278,22 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for global library function calls with four arguments. Successful
+     * matches return the optional binding, return type, string function name,
+     * arguments and argument types.
+     */
+    object LibFunctionCall4 {
+        def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type, Value, Type, Value, Type, Value, Type)] = {
+            insn match {
+                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2), ValueArg(tipe3, _, arg3), ValueArg(tipe4, _, arg4)), _) =>
+                    Some((to, tipe, name, arg1, tipe1, arg2, tipe2, arg3, tipe3, arg4, tipe4))
+                case _ =>
+                    None
+            }
+        }
+    }
+
+    /**
      * Extractor that recognises names of functions that we support as library
      * functions, i.e. we cope if calls of these remain in the program to be
      * verified.
@@ -287,9 +303,9 @@ object LLVMHelper {
             name match {
                 case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc(_) | NAN() |
-                    OutputFunctionName() | Remainder() | RInt() | Round() | SignBit() |
-                    Trunc() | VarargsFunctionName() | VerifierFunctionName() =>
+                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc(_) | Memset() |
+                    NAN() | Output() | Remainder() | RInt() | Round() | SignBit() |
+                    Trunc() | Varargs() | VerifierFunctionName() =>
                     true
                 case _ =>
                     false
@@ -301,7 +317,7 @@ object LLVMHelper {
      */
     object Lifetime {
         def unapply(name : String) : Boolean =
-            name startsWith "llvm.lifetime"
+            name.startsWith("llvm.lifetime")
     }
 
     /**
@@ -347,6 +363,14 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for LLVM "memset" instrinsic function names.
+     */
+    object Memset {
+        def unapply(name : String) : Boolean =
+            name.startsWith("llvm.memset")
+    }
+
+    /**
      * Matcher for "nan" function names.
      */
     object NAN {
@@ -389,7 +413,7 @@ object LLVMHelper {
     /**
      * Matcher for output function names.
      */
-    object OutputFunctionName {
+    object Output {
         def unapply(name : String) : Boolean =
             List("fprintf", "printf") contains name
     }
@@ -472,7 +496,7 @@ object LLVMHelper {
     /**
      * Matcher for varargs function names.
      */
-    object VarargsFunctionName {
+    object Varargs {
         def unapply(name : String) : Boolean =
             List("llvm.va_copy", "llvm.va_start", "llvm.va_end") contains name
     }
