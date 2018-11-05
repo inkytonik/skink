@@ -122,7 +122,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         // sed command arguments
         val sedargs = Seq(
             // Replace SV-COMP assume with Clang assume
-            "-e", "s/void __VERIFIER_assume(int);/void __builtin_assume(_Bool);/",
+            "-e", "s/void __VERIFIER_assume(int[^)]*);/void __builtin_assume(_Bool);/",
             "-e", "s/__VERIFIER_assume/__builtin_assume/g",
             // output
             "-e", s"w $sedcfile",
