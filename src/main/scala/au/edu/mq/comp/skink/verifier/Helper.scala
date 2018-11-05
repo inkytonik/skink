@@ -140,15 +140,15 @@ object Helper {
                 ("0", "false")
 
             case ConstantTerm(FPPlusInfinity(e, s)) =>
-                fpValue("1", ones(e), zeros(s), 1 + e + s, "+Infinity")
+                fpValue("1", ones(e), zeros(s), e + s, "+Infinity")
             case ConstantTerm(FPMinusInfinity(e, s)) =>
-                fpValue("0", ones(e), zeros(s), 1 + e + s, "-Infinity")
+                fpValue("0", ones(e), zeros(s), e + s, "-Infinity")
             case ConstantTerm(FPBVPlusZero(e, s)) =>
-                fpValue("1", zeros(e), zeros(s), 1 + e + s, "+Zero")
+                fpValue("1", zeros(e), zeros(s), e + s, "+Zero")
             case ConstantTerm(FPBVMinusZero(e, s)) =>
-                fpValue("0", zeros(e), zeros(s), 1 + e + s, "-Zero")
+                fpValue("0", zeros(e), zeros(s), e + s, "-Zero")
             case ConstantTerm(FPBVNaN(e, s)) =>
-                fpValue("1", ones(e), ones(s), 1 + e + s, "NaN")
+                fpValue("1", ones(e), ones(s), e + s, "NaN")
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
                 fpValue(p, e, s, p.length + e.length + s.length)
 
