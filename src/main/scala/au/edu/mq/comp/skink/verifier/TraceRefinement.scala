@@ -109,31 +109,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      * Hence we have to filter out the Unknow() SatResponse in the script as, if it succeeds,
      * it could prevent other solvers from completing their jobs.
      */
-    def runSolver(
-        strategy : SolverCompose.Parallel,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[String, Value])] =
-        using(strategy) {
-            implicit solver =>
-                isSat(config.solverTimeOut())(terms : _*) map {
-                    case Sat() =>
-                        getDeclCmd() match {
-                            case Success(xs) =>
-                                val map = xs.map {
-                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
-                                }.collect {
-                                    case (s, Success(v)) =>
-                                        (s, v)
-                                }.toMap
-                                (Sat(), map)
-                            case _ =>
-                                (Sat(), Map())
-                        }
-                    case r =>
-                        (r, Map())
-                }
-        }
-
     def runSolvers(
         strategy : SolverCompose.Parallel,
         terms : Seq[TypedTerm[BoolTerm, Term]]
