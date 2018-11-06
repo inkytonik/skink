@@ -169,14 +169,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
             }
         }
 
-        // Use selected solver to avoid compil eerrors fir unused objects
+        // Use selected solver to avoid compil errors fir unused objects
         val _ = selectedSolver
 
         val mathSatAndZ3FPBV = SolverCompose.Parallel(
             List(
                 new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true)))),
                 new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
-            )
+            ),
+            Some(config.solverTimeOut())
         )
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
