@@ -132,7 +132,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     case Success(UnSat()) =>
                         Success((UnSat(), Map()))
 
-                    case other => Failure(new Exception("Strategy did not provide an answer"))
+                    case other => Failure(new Exception(s"Solver ${solver.name} did not provide an answer"))
                 }
         }
 
