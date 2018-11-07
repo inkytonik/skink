@@ -915,6 +915,26 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case Binary(Binding(to), op, RealT(bits), left, right) =>
                     ntermR(to, bits) === fpBinary(op, bits, left, right)
 
+                // Memory operations, including library functions to allocate memory
+
+                case Alloca(Binding(to), _, _, _, _) =>
+                    allocate(to)
+
+                case Malloc(Binding(to), _, clear) =>
+                    allocate(to) // FIXME: use clear
+
+                case Load(Binding(to), _, tipe, _, from, _) =>
+                    load(to, tipe, from)
+
+                case Store(_, tipe, from, _, Named(to), _) =>
+                    store(to, tipe, from)
+
+                case Store(_, tipe, from, _, Const(ConvertC(Bitcast(), _, NameC(to), _)), _) =>
+                    store(to, tipe, from)
+
+                case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
+                    getelementptr(to, tipe, from, indices)
+
                 // Call to `assume`
                 case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                     tipe match {
@@ -1194,26 +1214,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
                 case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
                     ntermR(to, bits1) === vtermB(from).ite(vtermR(value1, bits1), vtermR(value2, bits1))
-
-                // Memory operations
-
-                case Alloca(Binding(to), _, _, _, _) =>
-                    allocate(to)
-
-                case MemoryAllocFunctionCall(Binding(to), _, _) =>
-                    allocate(to)
-
-                case Load(Binding(to), _, tipe, _, from, _) =>
-                    load(to, tipe, from)
-
-                case Store(_, tipe, from, _, Named(to), _) =>
-                    store(to, tipe, from)
-
-                case Store(_, tipe, from, _, Const(ConvertC(Bitcast(), _, NameC(to), _)), _) =>
-                    store(to, tipe, from)
-
-                case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
-                    getelementptr(to, tipe, from, indices)
 
                 // Default
 

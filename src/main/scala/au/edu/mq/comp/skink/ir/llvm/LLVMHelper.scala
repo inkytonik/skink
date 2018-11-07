@@ -303,9 +303,10 @@ object LLVMHelper {
             name match {
                 case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
                     Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc(_) | Memset() |
-                    NAN() | Output() | Remainder() | RInt() | Round() | SignBit() |
-                    Trunc() | Varargs() | VerifierFunctionName() =>
+                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
+                    MemoryAllocClear() | Memset() | NAN() | Output() | Remainder() |
+                    RInt() | Round() | SignBit() | Trunc() | Varargs() |
+                    VerifierFunctionName() =>
                     true
                 case _ =>
                     false
@@ -338,13 +339,16 @@ object LLVMHelper {
 
     /**
      * Matcher for memory allocation calls. Successful matches return the
-     * optional binding, the name of the function and the argument value.
+     * optional binding, the argument value, and whether or not this
+     * function clears its memory.
      */
-    object MemoryAllocFunctionCall {
-        def unapply(insn : Instruction) : Option[(OptBinding, String, Value)] = {
+    object Malloc {
+        def unapply(insn : Instruction) : Option[(OptBinding, Value, Boolean)] = {
             insn match {
-                case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc(name)))), Vector(ValueArg(_, _, arg)), _) =>
-                    Some((to, name, arg))
+                case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc()))), Vector(ValueArg(_, _, arg)), _) =>
+                    Some((to, arg, false))
+                case Call(to, _, _, _, _, Function(Named(Global(MemoryAllocClear()))), Vector(ValueArg(_, _, arg)), _) =>
+                    Some((to, arg, true))
                 case _ =>
                     None
             }
@@ -355,11 +359,16 @@ object LLVMHelper {
      * Matcher for memory allocation function names.
      */
     object MemoryAlloc {
-        def unapply(name : String) : Option[String] =
-            if (List("alloca", "calloc", "malloc", "kzalloc") contains name)
-                Some(name)
-            else
-                None
+        def unapply(name : String) : Boolean =
+            List("malloc") contains name
+    }
+
+    /**
+     * Matcher for "clearing" memory allocation function names.
+     */
+    object MemoryAllocClear {
+        def unapply(name : String) : Boolean =
+            List("calloc", "kzalloc") contains name
     }
 
     /**
