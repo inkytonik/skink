@@ -111,7 +111,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Setup filenames
-        val sedcfile = dotc2dotext(filename, ".sed.c")
+        val sedcfile = dotc2dotext(filename, ".c.sed")
         val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
