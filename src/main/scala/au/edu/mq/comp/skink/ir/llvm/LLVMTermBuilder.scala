@@ -1020,6 +1020,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             sys.error(s"insnTerm: unsupported call to library function $name (one real arg, ${show(tipe)} return)")
                     }
 
+                case LibFunctionCall1(NoBinding(), VoidT(), name, arg1, PointerT(_, _)) =>
+                    name match {
+                        case Free() =>
+                            // Ignore frees
+                            True()
+                        case _ =>
+                            sys.error(s"insnTerm: unsupported call to library function $name (one pointer arg, void return)")
+                    }
+
                 case LibFunctionCall1(Binding(to), RealT(size), name, arg1, PointerT(_, _)) =>
                     name match {
                         case NAN() =>

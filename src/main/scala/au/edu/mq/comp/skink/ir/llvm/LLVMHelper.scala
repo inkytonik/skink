@@ -185,6 +185,14 @@ object LLVMHelper {
     }
 
     /**
+     * Matcher for "free" function names.
+     */
+    object Free {
+        def unapply(name : String) : Boolean =
+            name == "free"
+    }
+
+    /**
      * Extractor for initialised global variable items that returns global name,
      * type and intiial constant value.
      */
@@ -302,8 +310,8 @@ object LLVMHelper {
         def unapply(name : String) : Boolean =
             name match {
                 case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
-                    Floor() | FMax() | FMin() | FMod() | FPClassify() | IsInf() |
-                    IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
+                    Floor() | FMax() | FMin() | FMod() | FPClassify() | Free() |
+                    IsInf() | IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
                     MemoryAllocClear() | Memset() | NAN() | Output() | Remainder() |
                     RInt() | Round() | SignBit() | Trunc() | Varargs() |
                     VerifierFunctionName() =>
