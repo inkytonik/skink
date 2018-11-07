@@ -52,7 +52,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
         BoolSort,
-        EqualTerm,
         FPBitVectorSort,
         FPFloat16,
         FPFloat32,
@@ -472,8 +471,10 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     case Some(tipe) => numBits(tipe)
                     case None       => sys.error(s"numBits: can't find type $name")
                 }
+            case PointerT(_, _) =>
+                architecture
             case _ =>
-                sys.error(s"numBits: unsupported type ${show(tipe)}")
+                sys.error(s"numBits: unsupported type ${show(tipe)} $tipe")
         }
 
     /*
@@ -739,7 +740,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         val base = offsetTerm(to)
         val fromBytes =
             from match {
-                case Const(ZeroC()) =>
+                case Const(ZeroC()) | Const(NullC()) =>
                     Vector.fill(bytes)(0.withBits(8))
                 case Const(c) =>
                     val bs = constantBytes(tipe, c, bytes)
@@ -763,7 +764,9 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     )
             }
         tipe match {
-            case IntT(_) =>
+            case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
+                chunkTerm(to) === chunk
+            case IntT(_) | PointerT(_, _) =>
                 vtermI(from, bits) === bitsTerm(to, bits) &
                     chunkTerm(to) === chunk
             case RealT(_) =>
@@ -771,8 +774,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 vtermR(from, bits) === FPBVs(p, e, s) &
                     bitsTerm(to, bits) === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
-            case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
-                chunkTerm(to) === chunk
             case _ =>
                 sys.error(s"store: unsupported type $tipe")
         }
@@ -1500,7 +1501,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * kind of equality depends on the type of the name. We mostly handle
      * integer, real and Boolean equalities, but also pointers as integers.
      */
-    def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, EqualTerm] =
+    def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         if (from == Const(UndefC()))
             True() === True()
         else
@@ -1518,6 +1519,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case (IntT(toSize), RealT(bits)) if toSize.toInt == bits =>
                     val (exp, sig) = fpexpsig(bits)
                     ntermI(to, toSize.toInt).signedToFPBV(exp, sig) === vtermR(from, bits)
+                case (PointerT(_, _), PointerT(_, _)) =>
+                    getelementptr(to, fromType, from, Seq())
                 case _ =>
                     (toType, fromType) match {
                         case (BoolT(), IntT(size)) =>
