@@ -580,6 +580,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 (name, offsetFromName(tipe, name, indices))
             case Const(ConvertC(Bitcast(), PointerT(_, _), NameC(name), PointerT(_, _))) =>
                 (name, offsetTerm(name))
+            case Const(NullC()) =>
+                (Local("null"), offsetTerm(Local("null")))
             case _ =>
                 sys.error(s"baseAndOffset: unsupported address $addr")
         }
