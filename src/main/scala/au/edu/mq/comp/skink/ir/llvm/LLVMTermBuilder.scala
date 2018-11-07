@@ -47,7 +47,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.Skink.getLogger
     import au.edu.mq.comp.skink.verifier.Helper.fpexpsig
-    import java.lang.Double.doubleToRawLongBits
+    import java.nio.ByteBuffer
     import java.lang.Long.parseUnsignedLong
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
@@ -614,71 +614,72 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     }
 
     /*
-     * Get zero-indexed byte `i` from an integer constant `n` of
-     * size `bytes`.
-     */
-    def getIntByte(n : BigInt, bytes : Int, i : Int) : Byte =
-        ((n >> (bytes - i - 1) * 8) & 0xff).toByte
-
-    /*
      * Return the bytes of a constant array element.
      */
-    def constElemBytes(element : Element) : Vector[Byte] =
+    def constElemBytes(bb : ByteBuffer, element : Element) : ByteBuffer =
         element match {
             case Element(tipe : IntT, IntC(n)) =>
                 val bytes = numBytes(tipe)
-                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-            case Element(RealT(bits), FloatC(s)) =>
-                val bytes = bits / 8
-                val n = doubleStringToLong(s)
-                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+                bytes match {
+                    case 2 =>
+                        bb.putShort(n.toShort)
+                    case 4 =>
+                        bb.putInt(n.toInt)
+                    case 8 =>
+                        bb.putLong(n.toLong)
+                    case _ =>
+                        sys.error(s"constElemBytes: unsupported int size $bytes")
+                }
+            case Element(tipe @ RealT(_), FloatC(s)) =>
+                val bytes = numBytes(tipe)
+                bytes match {
+                    case 4 =>
+                        floatStringBytes(bb, s)
+                    case 8 =>
+                        doubleStringBytes(bb, s)
+                    case _ =>
+                        sys.error(s"constElemBytes: unsupported real size $bytes")
+                }
             case _ =>
                 sys.error(s"constElemBytes: unsupported element $element")
         }
 
     /*
-     * The bytes of an array constant.
+     * The bytes of a double string.
      */
-    val constArrayBytes : ArrayC => Vector[Byte] =
-        attr {
-            case ArrayC(elements) =>
-                elements.flatMap(constElemBytes)
-        }
+    def doubleStringBytes(bb : ByteBuffer, s : String) : ByteBuffer =
+        if (s.startsWith("0x"))
+            bb.putLong(parseUnsignedLong(s.drop(2), 16))
+        else if (s.startsWith("0xK"))
+            bb.putLong(parseUnsignedLong(s.drop(3), 16))
+        else
+            bb.putDouble(s.toDouble)
 
     /*
-     * The bytes of a double string representated as an Long.
+     * The bytes of a float string. The hexadecimal version is
+     * tricky since the literals are given in double precision.
+     * So we turn them into a Double, convert to Float, then
+     * encode the Float.
      */
-    val doubleStringToLong : String => Long =
-        attr {
-            case s if s.startsWith("0x") =>
-                parseUnsignedLong(s.drop(2), 16)
-            case s if s.startsWith("0xK") =>
-                parseUnsignedLong(s.drop(3), 16)
-            case s =>
-                doubleToRawLongBits(s.toDouble)
-        }
-
-    /*
-     * The bytes of a string constant. Includes the nul byte on
-     * the end.
-     */
-    val stringBytes : StringC => Vector[Byte] =
-        attr {
-            case s =>
-                unescape(s).map(_.toByte)
-        }
+    def floatStringBytes(bb : ByteBuffer, s : String) : ByteBuffer =
+        if (s.startsWith("0x")) {
+            val l = parseUnsignedLong(s.drop(2), 16)
+            val tbb = ByteBuffer.allocate(8).putLong(l)
+            bb.putFloat(tbb.getDouble().toFloat)
+        } else
+            bb.putFloat(s.toFloat)
 
     /*
      * Build a term for a string constant that is the concatenation
      * of the string bytes.
      */
     def stringToBV(a : StringC) : TypedTerm[BVTerm, Term] = {
-        val bytes = stringBytes(a)
-        bytes.length match {
+        val chars = unescape(a)
+        chars.length match {
             case 0 =>
                 sys.error("stringToBV: zero length string constant")
             case _ =>
-                bytes.tail.foldLeft(bytes(0).withBits(8)) {
+                chars.tail.foldLeft(chars(0).withBits(8)) {
                     case (bs, b) =>
                         bs.concat(b.withBits(8))
                 }
@@ -686,25 +687,45 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     }
 
     /*
-     * Make a term to get zero-indexed byte `i` from a value of size `bytes`
-     * optimising for the case where the `from` value is a constant.
+     * Get the bytes for a constant value.
      */
-    def getByte(tipe : Type, to : Name, value : Value, bytes : Int, i : Int) : TypedTerm[BVTerm, Term] =
+    def constantBytes(tipe : Type, value : ConstantValue, bytes : Int) : ByteBuffer = {
+        val bb = ByteBuffer.allocate(numBytes(tipe))
         value match {
-            case Const(a : ArrayC) =>
-                constArrayBytes(a)(i).withBits(8)
-            case Const(IntC(n)) =>
-                getIntByte(n, bytes, i).withBits(8)
-            case Const(FloatC(s)) =>
-                getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
-            case Const(a : StringC) =>
-                stringBytes(a)(i).withBits(8)
-            case Const(ZeroC()) =>
-                0.withBits(8)
+            case a : ArrayC =>
+                a.optElements.foldLeft(bb) {
+                    case (b, e) =>
+                        constElemBytes(b, e)
+                }
+            case IntC(n) =>
+                bytes match {
+                    case 2 =>
+                        bb.putShort(n.toShort)
+                    case 4 =>
+                        bb.putInt(n.toInt)
+                    case 8 =>
+                        bb.putLong(n.toLong)
+                    case _ =>
+                        sys.error(s"constantBytes: unsupported constant int size $bytes bytes")
+                }
+            case FloatC(s) =>
+                bytes match {
+                    case 4 =>
+                        floatStringBytes(bb, s)
+                    case 8 =>
+                        doubleStringBytes(bb, s)
+                    case _ =>
+                        sys.error(s"constantBytes: unsupported constant float size $bytes bytes")
+                }
+            case s : StringC =>
+                unescape(s).foldLeft(bb) {
+                    case (b, c) =>
+                        bb.put(c.toByte)
+                }
             case _ =>
-                val start = (bytes - i - 1) * 8
-                bitsTerm(to, bytes * 8).extract(start + 7, start)
+                sys.error(s"constantBytes: unsupported constant ${show(value)}")
         }
+    }
 
     /*
      * Return a term that expresses storing `from` a value of a given type in
@@ -716,12 +737,29 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         val bytes = numBytes(tipe)
         val bits = bytes * 8
         val base = offsetTerm(to)
+        val fromBytes =
+            from match {
+                case Const(ZeroC()) =>
+                    Vector.fill(bytes)(0.withBits(8))
+                case Const(c) =>
+                    val bs = constantBytes(tipe, c, bytes)
+                    (0 until bytes).map {
+                        case i =>
+                            bs.get(i).withBits(8)
+                    }
+                case _ =>
+                    (0 until bytes).map {
+                        case i =>
+                            val start = (bytes - i - 1) * 8
+                            bitsTerm(to, bytes * 8).extract(start + 7, start)
+                    }
+            }
         val chunk =
             (0 until bytes).foldLeft(prevChunkTerm(to)) {
                 case (a, i) =>
                     a.store(
                         if (i == 0) base else base + i.withUBits(32),
-                        getByte(tipe, to, from, bytes, i)
+                        fromBytes(i)
                     )
             }
         tipe match {
