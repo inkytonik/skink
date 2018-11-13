@@ -57,7 +57,7 @@ object LLVMHelper {
      */
     object Assume {
         def unapply(name : String) : Boolean =
-            name == "llvm.assume"
+            name == "__VERIFIER_assume"
     }
 
     /**
