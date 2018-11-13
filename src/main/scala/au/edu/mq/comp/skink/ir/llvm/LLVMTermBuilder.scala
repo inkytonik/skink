@@ -925,8 +925,14 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case Malloc(Binding(to), _, clear) =>
                     allocate(to) // FIXME: use clear
 
+                case Load(Binding(to), _, PointerT(_, _), _, from, _) =>
+                    sys.error(s"insnTerm: unsupported pointer load of ${show(from)} to ${show(to)}")
+
                 case Load(Binding(to), _, tipe, _, from, _) =>
                     load(to, tipe, from)
+
+                case Store(_, PointerT(_, _), from, _, Named(to), _) =>
+                    sys.error(s"insnTerm: unsupported pointer store of ${show(from)} to ${show(to)}")
 
                 case Store(_, tipe, from, _, Named(to), _) =>
                     store(to, tipe, from)
