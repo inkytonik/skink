@@ -777,7 +777,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     bitsTerm(to, bits) === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
             case _ =>
-                sys.error(s"store: unsupported type $tipe")
+                sys.error(s"store: unsupported type ${show(tipe)}")
         }
     }
 
