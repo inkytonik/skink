@@ -120,7 +120,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                         Right(Some(YicesSolverMode()))
                     case List((_, List("Yices-nonIncr"))) =>
                         Right(Some(YicesNonIncrSolverMode()))
-                    case List((_, List("Z3"))) =>
+                    case List((_, List("Z3-4.5.0"))) =>
                         Right(Some(Z3SolverMode()))
                     case List((_, _)) =>
                         Left("expected Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3")
@@ -220,7 +220,16 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
 
-    override def createAndInitConfig(args : Seq[String]) : SkinkConfig =
+    // override def createAndInitConfig(args : Seq[String]) : SkinkConfig =
+    //     try {
+    //         super.createAndInitConfig(args)
+    //     } catch {
+    //         case e : ScallopException =>
+    //             println(e.getMessage())
+    //             sys.exit(1)
+    //     }
+
+    override def createAndInitConfig(args : Seq[String]) : Either[String, SkinkConfig] =
         try {
             super.createAndInitConfig(args)
         } catch {

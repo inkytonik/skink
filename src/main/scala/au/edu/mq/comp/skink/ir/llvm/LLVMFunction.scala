@@ -14,7 +14,7 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
  * Representation of an LLVM IR function from the given program.
  */
 class LLVMFunction(val program : Program, val function : FunctionDefinition,
-        config : SkinkConfig) extends Attribution with IRFunction {
+    config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}

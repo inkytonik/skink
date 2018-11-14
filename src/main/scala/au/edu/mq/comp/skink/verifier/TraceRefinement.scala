@@ -89,42 +89,42 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         case MathIntegerMode() =>
                             sys.error(s"TraceRefinement: Boolector not supported in math integer mode")
                         case BitIntegerMode() =>
-                            new SMTSolver("Boolector", new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver("Boolector", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
                     }
                 case CVC4SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, List(SMTProduceModels(true))))
                         case BitIntegerMode() =>
-                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(MODELS)))
+                            new SMTSolver("CVC4", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
                     }
                 case SMTInterpolSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: SMTInterpol not supported in bit integer mode")
                     }
                 case YicesSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, List(MODELS)))
+                            new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, List(SMTProduceModels(true))))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: Yices not supported in bit integer mode")
                     }
                 case YicesNonIncrSolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, List(MODELS)))
+                            new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, List(SMTProduceModels(true))))
                         case BitIntegerMode() =>
                             sys.error(s"TraceRefinement: Yices-nonIncr not supported in bit integer mode")
                     }
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("Z3", new SMTInit(AUFNIRA, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3-4.5.0", new SMTInit(AUFNIRA, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
                         case BitIntegerMode() =>
-                            new SMTSolver("Z3", new SMTInit(QF_ABV, List(INTERPOLANTS, MODELS)))
+                            new SMTSolver("Z3-4.5.0", new SMTInit(QF_ABV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
                     }
             }
         }
@@ -193,11 +193,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 refineRec(
                                     toDetNFA(r +
-                                    (
-                                        buildInterpolantAuto(function, choices, iteration)
-                                    // +
-                                    // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
-                                    ))._1,
+                                        (
+                                            buildInterpolantAuto(function, choices, iteration)
+                                        // +
+                                        // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
+                                        ))._1,
                                     iteration + 1
                                 )
                             } else {

@@ -15,9 +15,9 @@ import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 import org.scalallvm.assembly.Analyser
 
 class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkConfig)
-        extends ArrayExBV with ArrayExInt with ArrayExOperators with ArrayExReal
-        with BitVectors with Core with IntegerArithmetics with QuantifiedTerm
-        with RealArithmetics {
+    extends ArrayExBV with ArrayExInt with ArrayExOperators with ArrayExReal
+    with BitVectors with Core with IntegerArithmetics with QuantifiedTerm
+    with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.{BitIntegerMode, MathIntegerMode}
