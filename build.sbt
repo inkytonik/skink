@@ -7,7 +7,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.5"
 
 scalacOptions := {
 
@@ -28,6 +28,7 @@ scalacOptions := {
         "-unchecked",
         "-Xfatal-warnings",
         "-Xcheckinit",
+        "-Yrangepos",
         lintOption
     )
 
@@ -37,19 +38,23 @@ scalacOptions := {
 
 logLevel := Level.Info
 
-shellPrompt <<= (name, version) { (n, v) =>
-     _ => n + " " + v + "> "
+shellPrompt := {
+    state =>
+        Project.extract(state).currentRef.project + " " + version.value +
+            " " + scalaVersion.value + "> "
 }
 
 // Dependencies
 
 libraryDependencies ++=
     Seq (
-        "org.bitbucket.franck44.automat" %% "automat" % "1.0.4-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.franck44.automat" %% "automat" % "1.2.1-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
-        "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.0.16-SNAPSHOT",
+        "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.2.1-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.4" % "test",
         "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
         "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
@@ -81,22 +86,48 @@ test in assembly := {}
 
 mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
 
-mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
-  {
-    case "logback-test.xml" => MergeStrategy.discard
-    case x                  => old(x)
-  }
-}
+assemblyMergeStrategy in assembly ~=
+  (old =>
+    {
+      case "logback-test.xml" => MergeStrategy.discard
+      case x                  => old(x)
+    })
 
 // ScalariForm
 
 import scalariform.formatter.preferences._
-import SbtScalariform.ScalariformKeys
 
-scalariformSettings
-
-ScalariformKeys.preferences := ScalariformKeys.preferences.value
+scalariformPreferences := scalariformPreferences.value
     .setPreference (AlignSingleLineCaseStatements, true)
+    .setPreference (DanglingCloseParenthesis, Force)
     .setPreference (IndentSpaces, 4)
     .setPreference (SpaceBeforeColon, true)
     .setPreference (SpacesAroundMultiImports, false)
+
+// File headers
+
+//  Use headerCheck to check which files need new headers
+//  Use headerCreate in sbt to generate the headers
+//  Use Test/headerCheck etc to do same in test code
+
+headerLicense := Some(HeaderLicense.Custom(
+   """This file is part of Skink.
+     |
+     |Copyright (C) 2015-2018
+     |Programming Languages and Verification Research Group
+     |Macquarie University
+     |
+     |Skink is free software: you can redistribute it and/or modify
+     |it under the terms of the GNU Lesser General Public License as published
+     |by the Free Software Foundation, either version 3 of the License, or
+     |(at your option) any later version.
+     |
+     |Skink is distributed in the hope that it will be useful,
+     |but WITHOUT ANY WARRANTY; without even the implied warranty of
+     |MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     |GNU Lesser General Public License for more details.
+     |
+     |See COPYING and COPYING.LESSER for full license terms.
+     |More information at http://www.gnu.org/licenses.
+     |""".stripMargin
+))
