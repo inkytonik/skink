@@ -215,7 +215,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                                 refineRec(
                                     toDetNFA(r +
                                         (
-                                            buildInterpolantAuto(function, integerMode, choices, iteration)
+                                            buildInterpolantAuto(function, choices, iteration)
                                         // +
                                         // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
                                         ))._1,

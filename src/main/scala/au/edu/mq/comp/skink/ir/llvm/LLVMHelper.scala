@@ -170,7 +170,7 @@ object LLVMHelper {
         def unapply(item : Item) : Option[(Name, Type, ConstantValue)] =
             item match {
                 case GlobalVariableDefinition(
-                    GlobalBinding(name), _, _, _, _, _, _, _, _,
+                    GlobalBinding(name), _, _, _, _, _, _, _, _, _,
                     tipe, Init(constantValue), _, _, _, _) =>
                     Some((name, tipe, constantValue))
                 case _ =>

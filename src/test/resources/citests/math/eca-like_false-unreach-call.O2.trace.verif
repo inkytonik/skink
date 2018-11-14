@@ -40,14 +40,14 @@ FALSE
 </node>
 
 <edge id="E0" source="N0" target="N1">
-  <data key="edge.src">if (cond == 0) {</data>
-  <data key="startline">14</data>
-  <data key="endline">14</data>
+  <data key="edge.src">while(1) {</data>
+  <data key="startline">12</data>
+  <data key="endline">12</data>
 </edge>
 
 <node id="N1">
-  <data key="block">4</data>
-  <data key="node.src">if (cond == 0) {</data>
+  <data key="block">3</data>
+  <data key="node.src">cond = __VERIFIER_nondet_int();</data>
 </node>
 
 <edge id="E1" source="N1" target="N2">
@@ -57,8 +57,19 @@ FALSE
 </edge>
 
 <node id="N2">
+  <data key="block">6</data>
+  <data key="node.src">if (p1 != 0) {</data>
+</node>
+
+<edge id="E2" source="N2" target="N3">
+  <data key="edge.src">if (p1 != 0) {</data>
+  <data key="startline">20</data>
+  <data key="endline">20</data>
+</edge>
+
+<node id="N3">
   <data key="violation">true</data>
-  <data key="block">11</data>
+  <data key="block">8</data>
   <data key="node.src">ERROR: __VERIFIER_error();</data>
 </node>
 
