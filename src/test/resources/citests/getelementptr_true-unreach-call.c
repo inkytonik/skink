@@ -1,4 +1,4 @@
-extern void __VERIFIER_assume();
+extern void __VERIFIER_assume(int);
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 extern int __VERIFIER_nondet_int();
 extern double __VERIFIER_nondet_double();

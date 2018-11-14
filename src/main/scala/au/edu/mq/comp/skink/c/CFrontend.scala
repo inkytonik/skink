@@ -111,24 +111,11 @@ class CFrontend(config : SkinkConfig) extends Frontend {
         }
 
         // Setup filenames
-        val sedcfile = dotc2dotext(filename, ".sed.c")
         val clangllfile = dotc2dotext(filename, ".ll")
 
         // Programs we may run
-        val sed = "sed"
         val clang = "clang"
-        val programs = List(sed, clang)
-
-        // sed command arguments
-        val sedargs = Seq(
-            // Replace SV-COMP assume with Clang assume
-            "-e", "s/void __VERIFIER_assume(int[^)]*);/void __builtin_assume(_Bool);/",
-            "-e", "s/__VERIFIER_assume/__builtin_assume/g",
-            // output
-            "-e", s"w $sedcfile",
-            // input
-            filename
-        )
+        val programs = List(clang)
 
         // Clang command arguments
         val clangargs = Seq(
@@ -153,14 +140,12 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             // language
             "-x", "c",
             // input
-            sedcfile
+            filename
         )
 
         def run() : Either[IR, Messages] = {
-            deleteFile(sedcfile)
             deleteFile(clangllfile)
             val (res, output) = runPipeline(
-                sed +: sedargs,
                 clang +: clangargs
             )
             if (res == 0) {

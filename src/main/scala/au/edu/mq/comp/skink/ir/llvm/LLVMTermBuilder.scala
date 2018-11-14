@@ -47,12 +47,11 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{Trunc => TruncName, _}
     import au.edu.mq.comp.skink.Skink.getLogger
     import au.edu.mq.comp.skink.verifier.Helper.fpexpsig
-    import java.lang.Double.doubleToRawLongBits
+    import java.nio.ByteBuffer
     import java.lang.Long.parseUnsignedLong
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{
         BitVectorSort,
         BoolSort,
-        EqualTerm,
         FPBitVectorSort,
         FPFloat16,
         FPFloat32,
@@ -472,8 +471,10 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                     case Some(tipe) => numBits(tipe)
                     case None       => sys.error(s"numBits: can't find type $name")
                 }
+            case PointerT(_, _) =>
+                architecture
             case _ =>
-                sys.error(s"numBits: unsupported type ${show(tipe)}")
+                sys.error(s"numBits: unsupported type ${show(tipe)} $tipe")
         }
 
     /*
@@ -579,6 +580,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 (name, offsetFromName(tipe, name, indices))
             case Const(ConvertC(Bitcast(), PointerT(_, _), NameC(name), PointerT(_, _))) =>
                 (name, offsetTerm(name))
+            case Const(NullC()) =>
+                (Local("null"), offsetTerm(Local("null")))
             case _ =>
                 sys.error(s"baseAndOffset: unsupported address $addr")
         }
@@ -614,71 +617,72 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     }
 
     /*
-     * Get zero-indexed byte `i` from an integer constant `n` of
-     * size `bytes`.
-     */
-    def getIntByte(n : BigInt, bytes : Int, i : Int) : Byte =
-        ((n >> (bytes - i - 1) * 8) & 0xff).toByte
-
-    /*
      * Return the bytes of a constant array element.
      */
-    def constElemBytes(element : Element) : Vector[Byte] =
+    def constElemBytes(bb : ByteBuffer, element : Element) : ByteBuffer =
         element match {
             case Element(tipe : IntT, IntC(n)) =>
                 val bytes = numBytes(tipe)
-                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
-            case Element(RealT(bits), FloatC(s)) =>
-                val bytes = bits / 8
-                val n = doubleStringToLong(s)
-                Vector.tabulate(bytes)(getIntByte(n, bytes, _))
+                bytes match {
+                    case 2 =>
+                        bb.putShort(n.toShort)
+                    case 4 =>
+                        bb.putInt(n.toInt)
+                    case 8 =>
+                        bb.putLong(n.toLong)
+                    case _ =>
+                        sys.error(s"constElemBytes: unsupported int size $bytes")
+                }
+            case Element(tipe @ RealT(_), FloatC(s)) =>
+                val bytes = numBytes(tipe)
+                bytes match {
+                    case 4 =>
+                        floatStringBytes(bb, s)
+                    case 8 =>
+                        doubleStringBytes(bb, s)
+                    case _ =>
+                        sys.error(s"constElemBytes: unsupported real size $bytes")
+                }
             case _ =>
                 sys.error(s"constElemBytes: unsupported element $element")
         }
 
     /*
-     * The bytes of an array constant.
+     * The bytes of a double string.
      */
-    val constArrayBytes : ArrayC => Vector[Byte] =
-        attr {
-            case ArrayC(elements) =>
-                elements.flatMap(constElemBytes)
-        }
+    def doubleStringBytes(bb : ByteBuffer, s : String) : ByteBuffer =
+        if (s.startsWith("0x"))
+            bb.putLong(parseUnsignedLong(s.drop(2), 16))
+        else if (s.startsWith("0xK"))
+            bb.putLong(parseUnsignedLong(s.drop(3), 16))
+        else
+            bb.putDouble(s.toDouble)
 
     /*
-     * The bytes of a double string representated as an Long.
+     * The bytes of a float string. The hexadecimal version is
+     * tricky since the literals are given in double precision.
+     * So we turn them into a Double, convert to Float, then
+     * encode the Float.
      */
-    val doubleStringToLong : String => Long =
-        attr {
-            case s if s.startsWith("0x") =>
-                parseUnsignedLong(s.drop(2), 16)
-            case s if s.startsWith("0xK") =>
-                parseUnsignedLong(s.drop(3), 16)
-            case s =>
-                doubleToRawLongBits(s.toDouble)
-        }
-
-    /*
-     * The bytes of a string constant. Includes the nul byte on
-     * the end.
-     */
-    val stringBytes : StringC => Vector[Byte] =
-        attr {
-            case s =>
-                unescape(s).map(_.toByte)
-        }
+    def floatStringBytes(bb : ByteBuffer, s : String) : ByteBuffer =
+        if (s.startsWith("0x")) {
+            val l = parseUnsignedLong(s.drop(2), 16)
+            val tbb = ByteBuffer.allocate(8).putLong(l)
+            bb.putFloat(tbb.getDouble().toFloat)
+        } else
+            bb.putFloat(s.toFloat)
 
     /*
      * Build a term for a string constant that is the concatenation
      * of the string bytes.
      */
     def stringToBV(a : StringC) : TypedTerm[BVTerm, Term] = {
-        val bytes = stringBytes(a)
-        bytes.length match {
+        val chars = unescape(a)
+        chars.length match {
             case 0 =>
                 sys.error("stringToBV: zero length string constant")
             case _ =>
-                bytes.tail.foldLeft(bytes(0).withBits(8)) {
+                chars.tail.foldLeft(chars(0).withBits(8)) {
                     case (bs, b) =>
                         bs.concat(b.withBits(8))
                 }
@@ -686,25 +690,45 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
     }
 
     /*
-     * Make a term to get zero-indexed byte `i` from a value of size `bytes`
-     * optimising for the case where the `from` value is a constant.
+     * Get the bytes for a constant value.
      */
-    def getByte(tipe : Type, to : Name, value : Value, bytes : Int, i : Int) : TypedTerm[BVTerm, Term] =
+    def constantBytes(tipe : Type, value : ConstantValue, bytes : Int) : ByteBuffer = {
+        val bb = ByteBuffer.allocate(numBytes(tipe))
         value match {
-            case Const(a : ArrayC) =>
-                constArrayBytes(a)(i).withBits(8)
-            case Const(IntC(n)) =>
-                getIntByte(n, bytes, i).withBits(8)
-            case Const(FloatC(s)) =>
-                getIntByte(doubleStringToLong(s), bytes, i).withBits(8)
-            case Const(a : StringC) =>
-                stringBytes(a)(i).withBits(8)
-            case Const(ZeroC()) =>
-                0.withBits(8)
+            case a : ArrayC =>
+                a.optElements.foldLeft(bb) {
+                    case (b, e) =>
+                        constElemBytes(b, e)
+                }
+            case IntC(n) =>
+                bytes match {
+                    case 2 =>
+                        bb.putShort(n.toShort)
+                    case 4 =>
+                        bb.putInt(n.toInt)
+                    case 8 =>
+                        bb.putLong(n.toLong)
+                    case _ =>
+                        sys.error(s"constantBytes: unsupported constant int size $bytes bytes")
+                }
+            case FloatC(s) =>
+                bytes match {
+                    case 4 =>
+                        floatStringBytes(bb, s)
+                    case 8 =>
+                        doubleStringBytes(bb, s)
+                    case _ =>
+                        sys.error(s"constantBytes: unsupported constant float size $bytes bytes")
+                }
+            case s : StringC =>
+                unescape(s).foldLeft(bb) {
+                    case (b, c) =>
+                        bb.put(c.toByte)
+                }
             case _ =>
-                val start = (bytes - i - 1) * 8
-                bitsTerm(to, bytes * 8).extract(start + 7, start)
+                sys.error(s"constantBytes: unsupported constant ${show(value)}")
         }
+    }
 
     /*
      * Return a term that expresses storing `from` a value of a given type in
@@ -716,16 +740,35 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
         val bytes = numBytes(tipe)
         val bits = bytes * 8
         val base = offsetTerm(to)
+        val fromBytes =
+            from match {
+                case Const(ZeroC()) | Const(NullC()) =>
+                    Vector.fill(bytes)(0.withBits(8))
+                case Const(c) =>
+                    val bs = constantBytes(tipe, c, bytes)
+                    (0 until bytes).map {
+                        case i =>
+                            bs.get(i).withBits(8)
+                    }
+                case _ =>
+                    (0 until bytes).map {
+                        case i =>
+                            val start = (bytes - i - 1) * 8
+                            bitsTerm(to, bytes * 8).extract(start + 7, start)
+                    }
+            }
         val chunk =
             (0 until bytes).foldLeft(prevChunkTerm(to)) {
                 case (a, i) =>
                     a.store(
                         if (i == 0) base else base + i.withUBits(32),
-                        getByte(tipe, to, from, bytes, i)
+                        fromBytes(i)
                     )
             }
         tipe match {
-            case IntT(_) =>
+            case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
+                chunkTerm(to) === chunk
+            case IntT(_) | PointerT(_, _) =>
                 vtermI(from, bits) === bitsTerm(to, bits) &
                     chunkTerm(to) === chunk
             case RealT(_) =>
@@ -733,10 +776,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 vtermR(from, bits) === FPBVs(p, e, s) &
                     bitsTerm(to, bits) === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
-            case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
-                chunkTerm(to) === chunk
             case _ =>
-                sys.error(s"store: unsupported type $tipe")
+                sys.error(s"store: unsupported type ${show(tipe)}")
         }
     }
 
@@ -876,6 +917,32 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case Binary(Binding(to), op, RealT(bits), left, right) =>
                     ntermR(to, bits) === fpBinary(op, bits, left, right)
 
+                // Memory operations, including library functions to allocate memory
+
+                case Alloca(Binding(to), _, _, _, _) =>
+                    allocate(to)
+
+                case Malloc(Binding(to), _, clear) =>
+                    allocate(to) // FIXME: use clear
+
+                case Load(Binding(to), _, PointerT(_, _), _, from, _) =>
+                    sys.error(s"insnTerm: unsupported pointer load of ${show(from)} to ${show(to)}")
+
+                case Load(Binding(to), _, tipe, _, from, _) =>
+                    load(to, tipe, from)
+
+                case Store(_, PointerT(_, _), from, _, Named(to), _) =>
+                    sys.error(s"insnTerm: unsupported pointer store of ${show(from)} to ${show(to)}")
+
+                case Store(_, tipe, from, _, Named(to), _) =>
+                    store(to, tipe, from)
+
+                case Store(_, tipe, from, _, Const(ConvertC(Bitcast(), _, NameC(to), _)), _) =>
+                    store(to, tipe, from)
+
+                case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
+                    getelementptr(to, tipe, from, indices)
+
                 // Call to `assume`
                 case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                     tipe match {
@@ -959,6 +1026,15 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                             ntermR(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
                         case _ =>
                             sys.error(s"insnTerm: unsupported call to library function $name (one real arg, ${show(tipe)} return)")
+                    }
+
+                case LibFunctionCall1(NoBinding(), VoidT(), name, arg1, PointerT(_, _)) =>
+                    name match {
+                        case Free() =>
+                            // Ignore frees
+                            True()
+                        case _ =>
+                            sys.error(s"insnTerm: unsupported call to library function $name (one pointer arg, void return)")
                     }
 
                 case LibFunctionCall1(Binding(to), RealT(size), name, arg1, PointerT(_, _)) =>
@@ -1155,26 +1231,6 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
 
                 case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
                     ntermR(to, bits1) === vtermB(from).ite(vtermR(value1, bits1), vtermR(value2, bits1))
-
-                // Memory operations
-
-                case Alloca(Binding(to), _, _, _, _) =>
-                    allocate(to)
-
-                case MemoryAllocFunctionCall(Binding(to), _, _) =>
-                    allocate(to)
-
-                case Load(Binding(to), _, tipe, _, from, _) =>
-                    load(to, tipe, from)
-
-                case Store(_, tipe, from, _, Named(to), _) =>
-                    store(to, tipe, from)
-
-                case Store(_, tipe, from, _, Const(ConvertC(Bitcast(), _, NameC(to), _)), _) =>
-                    store(to, tipe, from)
-
-                case GetElementPtr(Binding(to), _, bt1, tipe @ PointerT(bt2, _), from, indices) if bt1 == bt2 =>
-                    getelementptr(to, tipe, from, indices)
 
                 // Default
 
@@ -1462,7 +1518,7 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
      * kind of equality depends on the type of the name. We mostly handle
      * integer, real and Boolean equalities, but also pointers as integers.
      */
-    def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, EqualTerm] =
+    def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         if (from == Const(UndefC()))
             True() === True()
         else
@@ -1480,6 +1536,8 @@ class LLVMTermBuilder(program : Program, funAnalyser : Analyser,
                 case (IntT(toSize), RealT(bits)) if toSize.toInt == bits =>
                     val (exp, sig) = fpexpsig(bits)
                     ntermI(to, toSize.toInt).signedToFPBV(exp, sig) === vtermR(from, bits)
+                case (PointerT(_, _), PointerT(_, _)) =>
+                    getelementptr(to, fromType, from, Seq())
                 case _ =>
                     (toType, fromType) match {
                         case (BoolT(), IntT(size)) =>
