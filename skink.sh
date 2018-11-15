@@ -53,7 +53,7 @@ then
   cp $WTNFILE $IWTNFILE
 fi
 
-if grep -s '^UNKNOWN' $RESULT
+if grep -q '^UNKNOWN' $RESULT
 then
   java -Xmx1400m -Xss16m \
     -cp ./:$FPBVJAR \
