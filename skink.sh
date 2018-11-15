@@ -21,12 +21,22 @@ export C_INCLUDE_PATH=./include/:$C_INCLUDE_PATH
 ARGS=""
 
 DEVJAR=/skink/target/scala-2.12/skink-assembly-2.0-SNAPSHOT.jar
-if test -f $DEVJAR 
-then 
-    JAR=$DEVJAR 
-else 
-    JAR=skink.jar 
-fi    
+if test -f $DEVJAR
+then
+    JAR=$DEVJAR
+else
+    JAR=skink.jar
+fi
+
+DEVFPBVJAR=/skink/skink-fpbv-assembly-2.0-SNAPSHOT.jar
+if test -f $DEVFPBVJAR
+then
+    FPBVJAR=$DEVFPBVJAR
+else
+    FPBVJAR=skink-fpbv.jar
+fi
+
+RESULT=/skink/result.txt
 
 java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
@@ -35,9 +45,29 @@ java -Xmx1400m -Xss16m \
   --witness-file $WTNFILE \
   --witness-format nondet \
   $ARGS \
-  $*
+  $* \
+  >$RESULT
 
 if test -e $WTNFILE
 then
   cp $WTNFILE $IWTNFILE
 fi
+
+if grep -s '^UNKNOWN' $RESULT
+then
+  java -Xmx1400m -Xss16m \
+    -cp ./:$FPBVJAR \
+    au.edu.mq.comp.skink.Main \
+    --verify \
+    --witness-file $WTNFILE \
+    $ARGS \
+    $*
+  if test -e $WTNFILE
+  then
+    cp $WTNFILE $IWTNFILE
+  fi
+else
+  cat $RESULT
+fi
+
+rm -f $RESULT
