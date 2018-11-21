@@ -1,6 +1,6 @@
   <tasks name="Test">
     <exclude>../sv-benchmarks/c/*/*_true-unreach-call*</exclude>
     <includesfile>../sv-benchmarks/c/Test.set</includesfile>
-    <propertyfile>../sv-benchmarks/c/ReachSafety.prp</propertyfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     <option name="-m32"/>
   </tasks>
