@@ -8,13 +8,7 @@
 
   <resultfiles>**.graphml</resultfiles>
 
-  <rundefinition name="sv-comp18"></rundefinition>
-
-  <tasks name="Test">
-    <includesfile>../sv-benchmarks/c/Test.set</includesfile>
-    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
+<rundefinition name="sv-comp19_prop-reachsafety">
   <tasks name="ReachSafety-Arrays">
     <includesfile>../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
     <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
@@ -55,10 +49,14 @@
     <includesfile>../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
     <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
   </tasks>
-
   <tasks name="ConcurrencySafety-Main">
     <includesfile>../sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
     <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="Test">
+    <includesfile>../sv-benchmarks/c/Test.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+</rundefinition>
 
 </benchmark>
