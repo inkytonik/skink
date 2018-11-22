@@ -554,7 +554,11 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
 
                 // We ignore getelementptr insns that have an "array element" as the target.
                 // The element properties are accessed when the target is used in another insn.
-                case GetElementPtr(Binding(to), _, _, _, _, _) if namer.elementProperty(to).isDefined =>
+                // We require the first index to be zero since that is how the compiler gets
+                // to the base address of the array. Other cases are buggy, since we don't
+                // properly track the relationships between arrays in this version.
+                // E.g., array-multidimensional/init-non-constant-2-n-u_true-unreach-call.i
+                case GetElementPtr(Binding(to), _, _, _, _, Vector(ElemIndex(IntT(_), Const(IntC(c))), _*)) if (c == 0) && namer.elementProperty(to).isDefined =>
                     True()
 
                 // Otherwise, fail on getelementptr insns since we don't want to draw any
