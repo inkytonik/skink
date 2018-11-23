@@ -8,8 +8,8 @@ import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
  * terms but also non-integer terms.
  */
 class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperators
-        with ArrayExReal with Core with IntegerArithmetics with QuantifiedTerm
-        with RealArithmetics {
+    with ArrayExReal with Core with IntegerArithmetics with QuantifiedTerm
+    with RealArithmetics {
 
     import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, IntSort, RealSort, SSymbol, Term}
