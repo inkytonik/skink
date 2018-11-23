@@ -37,6 +37,10 @@ else
 fi
 
 RESULT=/skink/result.txt
+function finish {
+  rm -f $RESULT
+}
+trap finish EXIT SIGTERM SIGINT SIGFPE SIGSTP
 
 java -Xmx1400m -Xss16m \
   -cp ./:$JAR \
@@ -45,13 +49,7 @@ java -Xmx1400m -Xss16m \
   --witness-file $WTNFILE \
   --witness-format nondet \
   $ARGS \
-  $* \
-  >$RESULT
-
-if test -e $WTNFILE
-then
-  cp $WTNFILE $IWTNFILE
-fi
+  $* | tee $RESULT
 
 if grep -q '^UNKNOWN' $RESULT
 then
@@ -62,12 +60,9 @@ then
     --witness-file $WTNFILE \
     $ARGS \
     $*
-  if test -e $WTNFILE
-  then
-    cp $WTNFILE $IWTNFILE
-  fi
-else
-  cat $RESULT
 fi
 
-rm -f $RESULT
+if test -e $WTNFILE
+then
+  cp $WTNFILE $IWTNFILE
+fi
