@@ -122,7 +122,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 case Z3SolverMode() =>
                     config.integerMode() match {
                         case MathIntegerMode() =>
-                            new SMTSolver("Z3-4.5.0", new SMTInit(QF_AUFLIA, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
+                            new SMTSolver("Z3-4.5.0", new SMTInit(QF_AUFNIA, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
                         case BitIntegerMode() =>
                             new SMTSolver("Z3-4.5.0", new SMTInit(QF_ABV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
                     }
