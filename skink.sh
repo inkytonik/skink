@@ -36,7 +36,7 @@ else
     FPBVJAR=skink-fpbv.jar
 fi
 
-RESULT=/skink/result.txt
+RESULT=result.txt
 function finish {
   rm -f $RESULT
 }
