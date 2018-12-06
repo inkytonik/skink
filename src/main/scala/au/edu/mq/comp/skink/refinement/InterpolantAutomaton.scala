@@ -56,7 +56,7 @@ trait AddBackEdges extends Core with Resources {
 
         itpLogger.info(s"candidate pairs $candidatePairs")
 
-        /**
+        /*
          * Check if backedges can be added to the linear automaton
          * If there is a repetition of a block at index i and j, we
          * can try to add a backedge j -- choices(i) -> i + 1
@@ -131,7 +131,7 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
         itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
-        /**
+        /*
          * the following returns n - 1 interpolants for n terms
          * To make n + 1 use True fr the first one, and False for the last one.
          */

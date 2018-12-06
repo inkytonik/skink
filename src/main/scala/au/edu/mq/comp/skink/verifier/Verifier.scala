@@ -48,7 +48,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
             config.output().emitln(s"UNKNOWN\n$reasons")
         }
 
-        /**
+        /*
          * Run the verification using diffferent sets of configurations.
          * At the moment this means that the actual command-line arguments
          * are augmented by the arguments here.
@@ -58,7 +58,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
             import scala.collection.mutable.StringBuilder
 
             val argSets = List(
-                List("-e", "Z3-4.5.0", "-i", "bit"),
+                // List("-e", "Z3-4.5.0", "-i", "bit"),
                 List("-e", "Z3-4.5.0")
             // List("-e", "Yices-nonIncr")
             )
