@@ -490,6 +490,8 @@ class LLVMTermBuilder(funAnalyser : Analyser, namer : LLVMNamer, config : SkinkC
                             case FOGT()   => lterm > rterm
                             case FOGE()   => lterm >= rterm
                             case FOLT()   => lterm < rterm
+                            //  FIXME: ult is unordered or lt
+                            case FULT()   => lterm < rterm
                             case FOLE()   => lterm <= rterm
                             case FONE()   => !(lterm === rterm)
                             case FORD()   => True()
