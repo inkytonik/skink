@@ -1,5 +1,5 @@
 /** 
- * @authoir: Franck Cassez
+ * @author: Franck Cassez
  * @date December 7, 2018.
  * 
  * A stopwatch automaton.

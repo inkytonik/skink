@@ -1,5 +1,5 @@
 /** 
- * @authoir: Franck Cassez
+ * @author: Franck Cassez
  * @date December 7, 2018.
  * 
  * A timed automaton with mized integer and real constraints.
