@@ -145,22 +145,6 @@ object LLVMHelper {
      * Extractor for initialised global variable items that returns global name,
      * type and intiial constant value.
      */
-    // object InitGlobalVar {
-    //     def unapply(item : Item) : Option[(Name, Type, ConstantValue)] =
-    //         item match {
-    //             case GlobalVariableDefinition(
-    //                 GlobalBinding(name), _, _, _, _, _, _, _, _,
-    //                 tipe, Init(constantValue), _, _, _, _) =>
-    //                 Some((name, tipe, constantValue))
-    //             case _ =>
-    //                 None
-    //         }
-    // }
-
-    /**
-     * Extractor for initialised global variable items that returns global name,
-     * type and intiial constant value.
-     */
     object InitGlobalVar {
         def unapply(item : Item) : Option[(Name, Type, ConstantValue)] =
             item match {
