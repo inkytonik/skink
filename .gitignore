@@ -1,6 +1,6 @@
 target
-project/target
-project/project/target
+.bloop
+.metals
 *.log
 .vagrant/**
 sv-benchmarks/**
