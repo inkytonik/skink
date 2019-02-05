@@ -42,8 +42,8 @@ function addspec() {
   j=`basename $1 .xml`
   sed -e '$d' $1 | cat - $3 | \
     sed -e 's|../sv-benchmarks|/sv-benchmarks|' \
-      -e 's|../../results-verified|../results-verified|'\
-      -e 's|../results-verified/LOGDIR/sv-comp18.${inputfile_name}.files/witness.graphml|${inputfile_path}/${inputfile_name}.graphml|' \
+      -e 's|../../results-verified|../results-verified|' \
+      -e 's|../results-verified/LOGDIR/${rundefinition_name}.${inputfile_name}.files/witness.graphml|${inputfile_path}/${inputfile_name}.graphml|' \
     >$2
   echo '</benchmark>' >>$2
 }
