@@ -7,7 +7,7 @@ organization := "au.edu.mq.comp"
 
 // Scala compiler settings
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.8"
 
 scalacOptions := {
 
@@ -49,14 +49,14 @@ shellPrompt := {
 libraryDependencies ++=
     Seq (
         "org.bitbucket.franck44.automat" %% "automat" % "1.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.0" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.0",
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.0" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
         "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.2.2-SNAPSHOT",
-        "org.scalatest" %% "scalatest" % "3.0.4" % "test",
-        "org.scalacheck" %% "scalacheck" % "1.13.5" % "test",
+        "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+        "org.scalacheck" %% "scalacheck" % "1.14.0" % "test",
         "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
         "ch.qos.logback" % "logback-classic" % "1.2.3"
     )
