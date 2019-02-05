@@ -1,3 +1,4 @@
 #! /bin/sh
 skinkdir=`pwd`
-docker run -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v $skinkdir:/skink --rm -i -t inkytonik/docker-skink
+image=inkytonik/docker-skink
+docker run -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v $skinkdir:/skink --rm -i -t $image
