@@ -32,8 +32,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-    import org.bitbucket.inkytonik.kiama.util.Message
-    import org.bitbucket.inkytonik.kiama.util.{FileSource, Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Message, Positions, Source}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -54,68 +53,13 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     }
 
     def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
-        import scala.sys.process._
-
-        def checkFor(program : String) : Messages = {
-            val which = new java.io.ByteArrayOutputStream
-            val processlogger = ProcessLogger(_ => (), _ => ())
-            if ((s"which $program" #> which).!(processlogger) == 0) {
-                logger.info(s"buildIRFromFile: $program is $which")
-                val version = new java.io.ByteArrayOutputStream
-                if ((s"$program --version" #> version).!(processlogger) == 0)
-                    logger.info(s"buildIRFromFile: $program version is $version")
-                Vector()
-            } else {
-                val msg = s"buildIRFromFile: $program not present on PATH"
-                logger.info(msg)
-                Vector(Message(msg, msg))
-            }
-        }
-
-        def dotc2dotext(filename : String, ext : String) : String = {
-            (if (filename.lastIndexOf(".") >= 0)
-                filename.substring(0, filename.lastIndexOf('.'))
-            else
-                filename) + ext
-        }
-
-        // Run a pipeline of commands, return status and output
-        def runPipeline(command : Seq[String], rest : Seq[String]*) : (Int, String) = {
-            val outputBuilder = new StringBuilder
-            for (stage <- command +: rest) {
-                logger.info(s"buildIRFromFile: $stage\n")
-            }
-            val process = rest.foldLeft(Process(command))(_ #&& _)
-            val processLoggger = ProcessLogger(
-                line => outputBuilder.append(s"$line\n"),
-                line => outputBuilder.append(s"$line\n")
-            )
-            val status = process ! processLoggger
-            val output = outputBuilder.result()
-            logger.info(output)
-            (status, output)
-        }
-
-        def fail(msg : String) : Either[IR, Messages] = {
-            logger.info(msg)
-            Right(Vector(Message(msg, msg)))
-        }
-
-        def logfile(title : String, filename : String) {
-            programLogger.debug(s"\n* $title\n\n")
-            programLogger.debug(FileSource(filename).content)
-        }
-
-        def deleteFile(filename : String) {
-            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filename))
-        }
 
         // Setup filenames
-        val clangllfile = dotc2dotext(filename, ".ll")
+        val clangllfile = replaceExtension(filename, ".ll")
 
         // Programs we may run
         val clang = "clang"
-        val programs = List(clang)
+        val programs = Vector(clang)
 
         // Clang command arguments
         val clangargs = Seq(
@@ -152,7 +96,8 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 logfile("Clang output", clangllfile)
                 logger.info(s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
                 logger.info(s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
-                (new LLVMFrontend(config)).buildIR(FileSource(clangllfile), positions)
+                val llvmFrontend = new LLVMFrontend(config)
+                llvmFrontend.buildIR(FileSource(clangllfile), positions)
             } else {
                 logger.info("buildIRFromFile: preparing LLVM code failed\n")
                 logger.info(output)
@@ -160,12 +105,11 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             }
         }
 
-        // Check for required programs on PATH, report errors or if ok, run them
         programs.flatMap(checkFor) match {
-            case Nil =>
+            case Vector() =>
                 run()
             case msgs =>
-                Right(msgs.toVector)
+                Right(msgs)
         }
 
     }
