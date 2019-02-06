@@ -26,18 +26,21 @@ import org.bitbucket.inkytonik.kiama.util.TestCompilerWithConfig
 
 class CITests extends Driver with TestCompilerWithConfig[IR, SkinkConfig] {
 
-    def makeTests(optLevel : Int, subpath : String = "") = {
+    def makeTests(optLevel : Int, mode : String, subpath : String = "") = {
         val path = s"src/test/resources/citests$subpath"
-        val args = List(List("-v", "-w", "-", s"-O$optLevel"))
+        val args = List(List("-v", "-w", "-", mode, s"-O$optLevel"))
         filetests(s"citests", path, "_true-unreach-call.c", s"_true-unreach-call.verif", argslist = args)
         filetests(s"citests", path, "_false-unreach-call.c", s"_false-unreach-call.O$optLevel.verif", argslist = args)
     }
 
+    val modes = List("-n bit", "-n math")
     val optLevels = List(0, 2)
-    for (optLevel <- optLevels) {
-        makeTests(optLevel)
+
+    for (mode <- modes) {
+        for (optLevel <- optLevels) {
+            makeTests(optLevel, mode)
+        }
     }
-    makeTests(2, "/function-Yices-nonIncr")
-    makeTests(2, "/function-Z3")
+    makeTests(2, "-n bit", "/bit")
 
 }
