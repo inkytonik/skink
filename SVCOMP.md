@@ -15,6 +15,18 @@ Tables below show Skink/Best/Max for each category.
 * [Total](https://sv-comp.sosy-lab.org/2019/results/results-verified/skink.results.sv-comp19.All.table.html) ReachSafety (adjusted) 1389/4638/6296
 * Overall total 9329
 
+Of six wrong programs, fpbv with MathSat gets these five right:
+
+floats-cbmc-regression/float20_true-unreach-call_true-termination.i
+float-newlib/double_req_bl_1121a_true-unreach-call.c
+float-newlib/double_req_bl_1121b_true-unreach-call.c
+float-newlib/float_req_bl_1121a_true-unreach-call.c
+float-newlib/float_req_bl_1121b_true-unreach-call.c
+
+So I assume they are wrong because the 2018 Skink gets them wrong before 2019 fpbv Skink got a go. But we need to be careful not to try too many parallel solvers too in these sorts of cases...
+
+The other wrong program is heap-data/calendar_true-unreach-call.i which fails I think due a bad treatment of the NULL pointer.
+
 ## 2018
 
 * Arrays: 52/235/290
