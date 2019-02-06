@@ -36,11 +36,13 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         Boolector,
         CVC4,
         MathSat,
+        Solver,
         SMTInterpol,
         Yices,
         YicesNonIncr,
         Z3
     }
+    import au.edu.mq.comp.skink.{Bit, NumberMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
@@ -144,28 +146,53 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
-        /**
-         * Get the user-specified solvers and create solver objects (does not
-         * create the solver instances).
-         */
-        val solvers =
-            config.solvers().map {
-                case Boolector() =>
+        def getSolver(solverAndMode : (Solver, NumberMode)) : SMTSolver =
+            solverAndMode match {
+                case (Boolector(), Bit()) =>
                     new SMTSolver("Boolector", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
-                case CVC4() =>
+                case (CVC4(), Bit()) =>
                     new SMTSolver("CVC4", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
-                case MathSat() =>
+                case (MathSat(), Bit()) =>
                     new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true))))
-                case SMTInterpol() =>
-                    sys.error(s"TraceRefinement: SMTInterpol not supported")
-                case Yices() =>
-                    sys.error(s"TraceRefinement: Yices not supported")
-                case YicesNonIncr() =>
-                    sys.error(s"TraceRefinement: Yices-nonIncr not supported")
-                case Z3() =>
+                case (SMTInterpol(), mode) =>
+                    sys.error(s"TraceRefinement: SMTInterpol not supported in $mode mode")
+                case (Yices(), mode) =>
+                    sys.error(s"TraceRefinement: Yices not supported in $mode mode")
+                case (YicesNonIncr(), mode) =>
+                    sys.error(s"TraceRefinement: Yices-nonIncr not supported in $mode mode")
+                case (Z3(), Bit()) =>
                     new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
+                case (solver, mode) =>
+                    sys.error(s"solver $solver with number mode $mode is not supported")
             }
 
+        // Combine the solvers with the number modes. If there are the same number of solvers and
+        // modes, then they are paired in order. If there are more solvers than modes, then
+        // the last mode is repeated for the remainder. If there are more modes than solvers, then
+        // the excess modes are ignored.
+
+        val userSolvers = config.solvers()
+        if (userSolvers.isEmpty)
+            sys.error("traceRefinement: unexpectedly got an empty solvers list")
+
+        val userNumberModes = config.numberModes()
+        if (userNumberModes.isEmpty)
+            sys.error("traceRefinement: unexpectedly got an empty number modes list")
+
+        val numberModes =
+            if (userNumberModes.length < userSolvers.length)
+                userNumberModes.padTo(userSolvers.length, userNumberModes.last)
+            else
+                userNumberModes
+
+        val solversAndModes = userSolvers.zip(numberModes)
+
+        logger.info(s"solvers and modes: ${solversAndModes.mkString(" ")}")
+
+        // Create solver objects (does not create the solver instances)
+        val solvers = solversAndModes.map(getSolver)
+
+        // Combine the solvers together in parallel
         val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))

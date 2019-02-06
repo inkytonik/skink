@@ -92,6 +92,36 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
+    val numberModesUsageMessage = "Available number modes: bit (default), math"
+
+    val numberModesConverter =
+        new ValueConverter[List[NumberMode]] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[List[NumberMode]]] = {
+                val allArgs = s.map(_._2).flatten
+                val modes = allArgs.map {
+                    case "bit"  => Some(Bit())
+                    case "math" => Some(Math())
+                    case _      => None
+                }
+                if (modes.isEmpty)
+                    Right(None)
+                else if (modes.contains(None))
+                    Left(numberModesUsageMessage)
+                else
+                    Right(Some(modes.map(_.get)))
+            }
+
+            val tag = implicitly[TypeTag[NumberMode]]
+
+        }
+
+    lazy val numberModes = opt[List[NumberMode]]("num", short = 'n',
+        descr = numberModesUsageMessage,
+        default = Some(List(Bit())))(numberModesConverter)
+
     lazy val optLevel = opt[Int]("optlevel", short = 'O',
         descr = "Optimisation level for source compilation (default: 2)",
         default = Some(2))
