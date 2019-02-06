@@ -78,7 +78,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
             }
 
             val configDesc = config.args.mkString(" ")
-            logger.info(s"verify: trying configuration args: $configDesc")
+            logger.info(s"verify: configuration args: $configDesc")
 
             val refiner = new TraceRefinement(ir, config)
 
