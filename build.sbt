@@ -1,9 +1,15 @@
 // name of the project
 name := "skink"
 
-version := "2.0-SNAPSHOT"
+version := "3.0-SNAPSHOT"
 
 organization := "au.edu.mq.comp"
+
+// Build Info
+
+enablePlugins(BuildInfoPlugin)
+buildInfoKeys := Seq[BuildInfoKey](name, version)
+buildInfoPackage := "au.edu.mq.comp.skink"
 
 // Scala compiler settings
 

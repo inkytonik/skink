@@ -47,6 +47,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import scala.concurrent.duration.Duration
     import scala.reflect.runtime.universe.TypeTag
 
+    version(s"${BuildInfo.name} ${BuildInfo.version}")
+
     lazy val architecture = opt[Int]("architecture", short = 'a',
         descr = "Architecture specified by bits (default: 32)",
         default = Some(32))
@@ -98,7 +100,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
 
-    val solversUsageMessage = "available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr or Z3"
+    val solversUsageMessage = "Available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr, Z3"
 
     val solversConverter =
         new ValueConverter[List[Solver]] {
@@ -158,10 +160,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val solverTimeOut = opt[Duration]("timeout", short = 'o',
         descr = "Timeout for SMT solvers in seconds (default : 10s)",
         default = Some(Duration(10, "second")))(solverTimeOutConverter)
-
-    lazy val trackValues = opt[Boolean]("track", short = 'k',
-        descr = "Track values (default: false)",
-        default = Some(false))
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
         descr = "Verify the target code (default: false)",
