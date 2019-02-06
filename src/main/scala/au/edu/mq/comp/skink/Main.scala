@@ -57,7 +57,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Execute the target code (default: false)",
         default = Some(false))
 
-    val frontendUsageMessage = "The frontend to use: C (default), LLVM"
+    val frontendUsageMessage = "A single frontend to use: C (default), LLVM"
 
     val frontendConverter =
         new ValueConverter[Frontend] {
@@ -70,10 +70,11 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                         Right(Some(new CFrontend(config)))
                     case List((_, List("LLVM"))) =>
                         Right(Some(new LLVMFrontend(config)))
-                    case List((_, _)) =>
-                        Left(s"expected: $frontendUsageMessage")
                     case _ =>
-                        Right(None)
+                        if (s.isEmpty)
+                            Right(None)
+                        else
+                            Left(s"expected: $frontendUsageMessage")
                 }
 
             val tag = implicitly[TypeTag[Frontend]]
