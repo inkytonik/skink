@@ -24,14 +24,18 @@ package au.edu.mq.comp.skink
 import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
-sealed abstract class SolverMode
-case class BoolectorSolverMode() extends SolverMode
-case class CVC4SolverMode() extends SolverMode
-case class MathSatSolverMode() extends SolverMode
-case class SMTInterpolSolverMode() extends SolverMode
-case class YicesSolverMode() extends SolverMode
-case class YicesNonIncrSolverMode() extends SolverMode
-case class Z3SolverMode() extends SolverMode
+sealed abstract class NumberMode
+case class Bit() extends NumberMode
+case class Math() extends NumberMode
+
+sealed abstract class Solver
+case class Boolector() extends Solver
+case class CVC4() extends Solver
+case class MathSat() extends Solver
+case class SMTInterpol() extends Solver
+case class Yices() extends Solver
+case class YicesNonIncr() extends Solver
+case class Z3() extends Solver
 
 class SkinkConfig(args : Seq[String]) extends Config(args) {
 
@@ -51,6 +55,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Execute the target code (default: false)",
         default = Some(false))
 
+    val frontendUsageMessage = "The frontend to use: C (default), LLVM"
+
     val frontendConverter =
         new ValueConverter[Frontend] {
 
@@ -63,7 +69,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                     case List((_, List("LLVM"))) =>
                         Right(Some(new LLVMFrontend(config)))
                     case List((_, _)) =>
-                        Left("expected 'frontend C or LLVM'")
+                        Left(s"expected: $frontendUsageMessage")
                     case _ =>
                         Right(None)
                 }
@@ -73,7 +79,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val frontend = opt[Frontend]("frontend", short = 'f',
-        descr = "The frontend to use: C (default), LLVM",
+        descr = frontendUsageMessage,
         default = Some(new CFrontend(config)))(frontendConverter)
 
     lazy val lli = opt[String]("lli", noshort = true,
@@ -92,40 +98,40 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Only parse the program in the front-end (default: false)",
         default = Some(false))
 
-    val solverModeConverter =
-        new ValueConverter[SolverMode] {
+    val solversUsageMessage = "available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr or Z3"
+
+    val solversConverter =
+        new ValueConverter[List[Solver]] {
 
             val argType = ArgType.LIST
 
-            def parse(s : List[(String, List[String])]) : Either[String, Option[SolverMode]] =
-                s match {
-                    case List((_, List("Boolector"))) =>
-                        Right(Some(BoolectorSolverMode()))
-                    case List((_, List("CVC4"))) =>
-                        Right(Some(CVC4SolverMode()))
-                    case List((_, List("MathSat"))) =>
-                        Right(Some(MathSatSolverMode()))
-                    case List((_, List("SMTInterpol"))) =>
-                        Right(Some(SMTInterpolSolverMode()))
-                    case List((_, List("Yices"))) =>
-                        Right(Some(YicesSolverMode()))
-                    case List((_, List("Yices-nonIncr"))) =>
-                        Right(Some(YicesNonIncrSolverMode()))
-                    case List((_, List("Z3"))) =>
-                        Right(Some(Z3SolverMode()))
-                    case List((_, _)) =>
-                        Left("expected Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3")
-                    case _ =>
-                        Right(None)
+            def parse(s : List[(String, List[String])]) : Either[String, Option[List[Solver]]] = {
+                val allArgs = s.map(_._2).flatten
+                val solvers = allArgs.map {
+                    case "Boolector"    => Some(Boolector())
+                    case "CVC4"         => Some(CVC4())
+                    case "MathSat"      => Some(MathSat())
+                    case "SMTInterpol"  => Some(SMTInterpol())
+                    case "Yices"        => Some(Yices())
+                    case "YicesNonIncr" => Some(YicesNonIncr())
+                    case "Z3"           => Some(Z3())
+                    case _              => None
                 }
+                if (solvers.isEmpty)
+                    Right(None)
+                else if (solvers.contains(None))
+                    Left(solversUsageMessage)
+                else
+                    Right(Some(solvers.map(_.get)))
+            }
 
-            val tag = implicitly[TypeTag[SolverMode]]
+            val tag = implicitly[TypeTag[List[Solver]]]
 
         }
 
-    lazy val solverMode = opt[SolverMode]("solver", short = 'e',
-        descr = "SMT solver: Boolector, CVC4, SMTInterpol, Yices, Yices-nonIncr or Z3 (default)",
-        default = Some(Z3SolverMode()))(solverModeConverter)
+    lazy val solvers = opt[List[Solver]]("solver", short = 'e',
+        descr = solversUsageMessage,
+        default = Some(List(MathSat())))(solversConverter)
 
     val solverTimeOutConverter =
         new ValueConverter[Duration] {

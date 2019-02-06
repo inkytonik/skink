@@ -33,16 +33,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{
-        BoolectorSolverMode,
-        CVC4SolverMode,
-        MathSatSolverMode,
-        SMTInterpolSolverMode,
-        YicesSolverMode,
-        YicesNonIncrSolverMode,
-        Z3SolverMode
+        Boolector,
+        CVC4,
+        MathSat,
+        SMTInterpol,
+        Yices,
+        YicesNonIncr,
+        Z3
     }
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
-    import au.edu.mq.comp.skink.{CVC4SolverMode, SMTInterpolSolverMode, Z3SolverMode}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
     import scala.annotation.tailrec
@@ -146,39 +145,28 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         val functionLang = Lang(function.nfa)
 
         /**
-         * Get a solver specification as per configuration options. This
-         * object creation does not spawn any process merely declare a solver
-         * type we want to use
+         * Get the user-specified solvers and create solver objects (does not
+         * create the solver instances).
          */
-        def selectedSolver = {
-            config.solverMode() match {
-                case BoolectorSolverMode() =>
+        val solvers =
+            config.solvers().map {
+                case Boolector() =>
                     new SMTSolver("Boolector", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
-                case CVC4SolverMode() =>
+                case CVC4() =>
                     new SMTSolver("CVC4", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
-                case MathSatSolverMode() =>
+                case MathSat() =>
                     new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true))))
-                case SMTInterpolSolverMode() =>
+                case SMTInterpol() =>
                     sys.error(s"TraceRefinement: SMTInterpol not supported")
-                case YicesSolverMode() =>
+                case Yices() =>
                     sys.error(s"TraceRefinement: Yices not supported")
-                case YicesNonIncrSolverMode() =>
+                case YicesNonIncr() =>
                     sys.error(s"TraceRefinement: Yices-nonIncr not supported")
-                case Z3SolverMode() =>
+                case Z3() =>
                     new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
             }
-        }
 
-        // Use selected solver to avoid compil errors fir unused objects
-        val _ = selectedSolver
-
-        val mathSatAndZ3FPBV = SolverCompose.Parallel(
-            List(
-                new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true)))),
-                new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
-            ),
-            Some(config.solverTimeOut())
-        )
+        val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
 
         cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
 
@@ -220,7 +208,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
                     // Check satisfiability and if Sat, get model values
                     // val result = runSolver(selectedSolver, traceTerms)
-                    val result = runSolvers(mathSatAndZ3FPBV, traceTerms)
+                    val result = runSolvers(parallelSolvers, traceTerms)
 
                     // Check to see if the trace is feasible.
                     result match {
