@@ -127,10 +127,6 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Optimisation level for source compilation (default: 2)",
         default = Some(2))
 
-    lazy val parse = opt[Boolean]("parse", short = 'p',
-        descr = "Only parse the program in the front-end (default: false)",
-        default = Some(false))
-
     val solversUsageMessage = "Available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr, Z3"
 
     val solversConverter =
