@@ -42,7 +42,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         YicesNonIncr,
         Z3
     }
-    import au.edu.mq.comp.skink.{Bit, NumberMode}
+    import au.edu.mq.comp.skink.{Bit, Math, NumberMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
     import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
@@ -146,22 +146,31 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
         val functionLang = Lang(function.nfa)
 
+        val models = List(SMTProduceModels(true))
+        val modelsAndInterpolants = SMTProduceInterpolants(true) :: models
+
         def getSolver(solverAndMode : (Solver, NumberMode)) : SMTSolver =
             solverAndMode match {
                 case (Boolector(), Bit()) =>
-                    new SMTSolver("Boolector", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
+                    new SMTSolver("Boolector", new SMTInit(QF_ABV, models))
                 case (CVC4(), Bit()) =>
-                    new SMTSolver("CVC4", new SMTInit(QF_ABV, List(SMTProduceModels(true))))
+                    new SMTSolver("CVC4", new SMTInit(QF_ABV, models))
+                case (CVC4(), Math()) =>
+                    new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, models))
                 case (MathSat(), Bit()) =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, List(SMTProduceModels(true))))
-                case (SMTInterpol(), mode) =>
-                    sys.error(s"TraceRefinement: SMTInterpol not supported in $mode mode")
-                case (Yices(), mode) =>
-                    sys.error(s"TraceRefinement: Yices not supported in $mode mode")
-                case (YicesNonIncr(), mode) =>
-                    sys.error(s"TraceRefinement: Yices-nonIncr not supported in $mode mode")
+                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, models))
+                case (MathSat(), Math()) =>
+                    new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, models))
+                case (SMTInterpol(), Math()) =>
+                    new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsAndInterpolants))
+                case (Yices(), Math()) =>
+                    new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, models))
+                case (YicesNonIncr(), Math()) =>
+                    new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, models))
                 case (Z3(), Bit()) =>
-                    new SMTSolver("Z3", new SMTInit(QF_FPBV, List(SMTProduceInterpolants(true), SMTProduceModels(true))))
+                    new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsAndInterpolants))
+                case (Z3(), Math()) =>
+                    new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsAndInterpolants))
                 case (solver, mode) =>
                     sys.error(s"solver $solver with number mode $mode is not supported")
             }
