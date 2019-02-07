@@ -24,7 +24,7 @@ Downloads for Java can be found here:
 
 To build Skink you will need the Scala build tool (sbt) which can be obtained here:
 
-    http://www.scala-sbt.org    
+    http://www.scala-sbt.org
 
 Once Java and sbt are installed, you can build Skink as follows:
 
@@ -32,7 +32,7 @@ Once Java and sbt are installed, you can build Skink as follows:
     sbt compile
 
 If you are only interested in running Skink using Docker, you can now go to the Docker instructions.
-Otherwise, continue here for further instructions on installing the toosl needed to run Skink directly on your local machine.    
+Otherwise, continue here for further instructions on installing the tools needed to run Skink directly on your local machine.
 
 ## Supporting tools - Clang
 
@@ -48,15 +48,15 @@ At a minimum you should install Z3 which is the default solver used by Skink.
 
 Installation details for the solvers will depend on the machine and operating system you are using.
 
-#### Mac OS X (using Homebrew)
+### Mac OS X (using Homebrew)
 
     brew install z3
 
-#### Linux (Ubuntu)
+### Linux (Ubuntu)
 
     apt-get install z3
 
-#### Windows
+### Windows
 
     FIXME
 
@@ -67,7 +67,7 @@ Once you have at least Z3 installed you can test your Skink installation by runn
     cd <skink repo clone>
     sbt test
 
-All of the tests should pass.    
+All of the tests should pass.
 
 ## Running Skink via sbt
 
@@ -110,16 +110,24 @@ For example, `logs/C.log` contains information about the execution of the C fron
 
 ## Running Skink outside sbt (FIXME: check)
 
-#### Mac or Linux shell
+### Mac or Linux shell
 
 On Mac or Linux, you can also run Skink on a single C file using the `skink.sh` script.
 You first need to run
 
     sbt assembly
 
-which builds Skink and packages it as a single Java archive.    
+which builds Skink and packages it as a single Java archive.
 Then you can run a shell command such as:
 
-    skink.sh loc <file.c>
+    skink.sh <file.c>
 
-The `loc` argument means *local mode* which means it runs Skink using the Java archive created by `sbt assembly` in the current directory's `target` folder.
+This script will use `/skink/target/scala-SCALAVERSION/skink-assembly-SKINKVERSION.jar` if it exists, which is the configuration for the SV-COMP.
+Otherwise, it will look for `skink.jar`.
+For debugging, it is easiest to link that file to the jar built by sbt.
+
+Also, the script can use used as
+
+    skink.sh --version
+
+to print Skink's version number and exit.
