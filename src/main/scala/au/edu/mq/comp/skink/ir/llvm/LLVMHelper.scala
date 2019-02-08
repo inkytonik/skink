@@ -57,7 +57,7 @@ object LLVMHelper {
      */
     object Assume {
         def unapply(name : String) : Boolean =
-            name == "__VERIFIER_assume"
+            List("__VERIFIER_assume", "pagai.invariant") contains name
     }
 
     /**
