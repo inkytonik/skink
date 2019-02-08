@@ -149,8 +149,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         val models = List(SMTProduceModels(true))
         val modelsAndInterpolants = SMTProduceInterpolants(true) :: models
 
-        def getSolver(solverAndMode : (Solver, NumberMode)) : SMTSolver =
-            solverAndMode match {
+        def getSolver(numberMode : NumberMode)(solver : Solver) : SMTSolver =
+            (solver, numberMode) match {
                 case (Boolector(), Bit()) =>
                     new SMTSolver("Boolector", new SMTInit(QF_ABV, models))
                 case (CVC4(), Bit()) =>
@@ -180,26 +180,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         // the last mode is repeated for the remainder. If there are more modes than solvers, then
         // the excess modes are ignored.
 
-        val userSolvers = config.solvers()
-        if (userSolvers.isEmpty)
+        val solverNames = config.solvers()
+        if (solverNames.isEmpty)
             sys.error("traceRefinement: unexpectedly got an empty solvers list")
 
-        val userNumberModes = config.numberModes()
-        if (userNumberModes.isEmpty)
-            sys.error("traceRefinement: unexpectedly got an empty number modes list")
-
-        val numberModes =
-            if (userNumberModes.length < userSolvers.length)
-                userNumberModes.padTo(userSolvers.length, userNumberModes.last)
-            else
-                userNumberModes
-
-        val solversAndModes = userSolvers.zip(numberModes)
-
-        logger.info(s"solvers and modes: ${solversAndModes.mkString(" ")}")
+        logger.info(s"solvers: ${solverNames.mkString(" ")}")
+        logger.info(s"number mode: ${config.numberMode()}")
 
         // Create solver objects (does not create the solver instances)
-        val solvers = solversAndModes.map(getSolver)
+        val solvers = solverNames.map(getSolver(config.numberMode()))
 
         // Combine the solvers together in parallel
         val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))

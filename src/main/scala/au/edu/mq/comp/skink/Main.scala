@@ -57,7 +57,7 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Execute the target code (default: false)",
         default = Some(false))
 
-    val frontendUsageMessage = "A single frontend to use: C (default), LLVM"
+    val frontendUsageMessage = "A single frontend from C (default), LLVM"
 
     val frontendConverter =
         new ValueConverter[Frontend] {
@@ -93,35 +93,33 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
-    val numberModesUsageMessage = "Available number modes: bit (default), math"
+    val numberModeUsageMessage = "A single number mode from bit (default), math"
 
-    val numberModesConverter =
-        new ValueConverter[List[NumberMode]] {
+    val numberModeConverter =
+        new ValueConverter[NumberMode] {
 
             val argType = ArgType.LIST
 
-            def parse(s : List[(String, List[String])]) : Either[String, Option[List[NumberMode]]] = {
-                val allArgs = s.map(_._2).flatten
-                val modes = allArgs.map {
-                    case "bit"  => Some(Bit())
-                    case "math" => Some(Math())
-                    case _      => None
+            def parse(s : List[(String, List[String])]) : Either[String, Option[NumberMode]] =
+                s match {
+                    case List((_, List("bit"))) =>
+                        Right(Some(Bit()))
+                    case List((_, List("math"))) =>
+                        Right(Some(Math()))
+                    case _ =>
+                        if (s.isEmpty)
+                            Right(None)
+                        else
+                            Left(s"expected: $numberModeUsageMessage")
                 }
-                if (modes.isEmpty)
-                    Right(None)
-                else if (modes.contains(None))
-                    Left(numberModesUsageMessage)
-                else
-                    Right(Some(modes.map(_.get)))
-            }
 
             val tag = implicitly[TypeTag[NumberMode]]
 
         }
 
-    lazy val numberModes = opt[List[NumberMode]]("num", short = 'n',
-        descr = numberModesUsageMessage,
-        default = Some(List(Bit())))(numberModesConverter)
+    lazy val numberMode = opt[NumberMode]("num", short = 'n',
+        descr = numberModeUsageMessage,
+        default = Some(Bit()))(numberModeConverter)
 
     lazy val optLevel = opt[Int]("optlevel", short = 'O',
         descr = "Optimisation level for source compilation (default: 2)",
