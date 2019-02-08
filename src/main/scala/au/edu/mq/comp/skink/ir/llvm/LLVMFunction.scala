@@ -143,7 +143,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                     val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
                     Seq(termBuilder.combineTerms(terms))
                 case _ =>
-                    trace.choices.init.zipWithIndex.map {
+                    trace.choices.zipWithIndex.map {
                         case (choice, count) =>
                             val block = treeBlockTrace.blocks(count)
                             val optPrevBlock =
