@@ -218,9 +218,16 @@ object InterpolantAuto extends AddBackEdges {
 
         import scala.util.{Failure, Success}
 
-        //  first build a linear automaton for the trace
+        // first build a linear automaton for the trace
         val linearAuto = buildAutoForTrace(choices)
         itpLogger.info(s"Linear Interpolant automaton built")
+
+        // if there is only one choice then we only have one step and
+        // can't compute interpolants, so use the linear auto
+        // FIXME: should be same as default case below??? or it should be same as this?
+        if (choices.length == 1) {
+            return linearAuto
+        }
 
         //  try to compute predicates for the infeasible trace
         val predicates = Interpolant(function, choices, fromEnd).predicateAnnotations
@@ -234,12 +241,8 @@ object InterpolantAuto extends AddBackEdges {
                 //  compute back edges
                 val newBackEdges = computeSafeBackEdges(function, choices, xitp)
 
-                val itpAuto = NFA(
-                    linearAuto.getInit,
-                    linearAuto.transitions ++ newBackEdges,
-                    linearAuto.accepting,
-                    linearAuto.accepting
-                )
+                val itpAuto = linearAuto.copy(transitions = linearAuto.transitions ++ newBackEdges)
+
                 //  dump the automaton if logger is enabled
                 import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
                 itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
@@ -248,12 +251,7 @@ object InterpolantAuto extends AddBackEdges {
             //  computation of predicates failed
             case Failure(f) =>
                 itpLogger.warn(s"Solver could not compute interpolants $f")
-                NFA(
-                    linearAuto.getInit,
-                    linearAuto.transitions,
-                    linearAuto.accepting,
-                    linearAuto.accepting
-                )
+                linearAuto
         }
     }
 }
