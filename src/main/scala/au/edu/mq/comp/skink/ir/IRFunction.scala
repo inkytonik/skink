@@ -58,10 +58,8 @@ trait IRFunction {
 
     /**
      * Return SMTlib terms that express the effect of the given trace for
-     * this function. Each element of the outer sequence contains the terms
-     * that together describe effect of a single trace step. The inner
-     * sequences collect terms that express the effect of each block
-     * that appears in the trace.
+     * this function. Each element of the sequence contains the terms
+     * that together describe effect of a single trace step.
      */
     def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
 
