@@ -73,51 +73,24 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     val cfgLogger = getLogger(this.getClass, ".cfg")
 
     /**
-     * Run the given solver to see if the given terms are satisifiable. If so,
-     * return `Sat()` and a map that relates ids from the terms to their values.
-     * If the term is not satisfiable, return `UnSat()` and an empty map.
-     */
-    def runSolver(
-        selectedSolver : SMTSolver,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[String, Value])] =
-        using(selectedSolver) {
-            implicit solver =>
-                isSat(config.solverTimeOut())(terms : _*) map {
-                    case Sat() =>
-                        getDeclCmd() match {
-                            case Success(xs) =>
-                                val map = xs.map {
-                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
-                                }.collect {
-                                    case (s, Success(v)) =>
-                                        (s, v)
-                                }.toMap
-                                (Sat(), map)
-                            case _ =>
-                                (Sat(), Map())
-                        }
-                    case r =>
-                        (r, Map())
-                }
-        }
-
-    /**
      * Run the given solvers in parallel to see if the given terms are satisifiable. If so,
-     * return `Sat()` and a map that relates ids from the terms to their values.
-     * If the term is not satisfiable, return `UnSat()` and an empty map.
-     * The first solver that succeeds (returns a success) provides the result.
-     * Hence we have to filter out the Unknow() SatResponse in the script as, if it succeeds,
-     * it could prevent other solvers from completing their jobs.
+     * return `Sat()`, a count and a map. Prefixes of the terms sequence are checked in
+     * order of increasing length. If a prefix is found to be unsatisfiable, then the
+     * process stops, since longer prefixes will also be unsatisfiable. The first solver
+     * that succeeds provides the result. Unknown responses are ignored unless all solvers
+     * return that result. If the term is not satisfiable, return `UnSat()` and an empty map.
+     *
+     * The map returned relates ids from the terms to their values. The count returned
+     * says how many prefix terms in the input sequence were used to determine the result.
      */
     def runSolvers(
         strategy : SolverCompose.Parallel,
         terms : Seq[TypedTerm[BoolTerm, Term]]
-    ) : Try[(SatResponses, Map[String, Value])] =
+    ) : Try[(SatResponses, Int, Map[String, Value])] =
         using(strategy) {
             implicit solver =>
-                isSat(config.solverTimeOut())(terms : _*) match {
-                    case Success(Sat()) =>
+                isSatByPrefix(Some(config.solverTimeOut()))(0, terms : _*) match {
+                    case (Success(Sat()), count) =>
                         getDeclCmd() match {
                             case Success(xs) =>
                                 val map = xs.map {
@@ -126,14 +99,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                                     case (s, Success(v)) =>
                                         (s, v)
                                 }.toMap
-                                Success((Sat(), map))
+                                (Success((Sat(), count, map)))
                             case _ =>
-                                Success((Sat(), Map()))
+                                (Success((Sat(), count, Map())))
                         }
-                    case Success(UnSat()) =>
-                        Success((UnSat(), Map()))
+                    case (Success(UnSat()), count) =>
+                        Success((UnSat(), count, Map()))
 
-                    case other => Failure(new Exception(s"Solver ${solver.name} did not provide an answer"))
+                    case (Success(UnKnown()), _) | (Failure(_), _) =>
+                        Failure(new Exception(s"Solver ${solver.name} did not provide an answer"))
                 }
         }
 
@@ -232,7 +206,6 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     }
 
                     // Check satisfiability and if Sat, get model values
-                    // val result = runSolver(selectedSolver, traceTerms)
                     val result = runSolvers(parallelSolvers, traceTerms)
 
                     // Check to see if the trace is feasible.
@@ -240,7 +213,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
 
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
-                        case Success((Sat(), values)) =>
+                        case Success((Sat(), _, values)) =>
                             logger.info(s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
                                 val term = values(x).t
@@ -254,14 +227,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // execution. If we've got iterations to spare, try
                         // again after removing the infeasible trace (and perhaps
                         // other traces that fail for related reasons).
-                        case Success((UnSat(), _)) =>
+                        case Success((UnSat(), count, _)) =>
                             logger.info(s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
+                                val usedChoices = choices.take(count)
                                 refineRec(
                                     toDetNFA(r +
                                         (
-                                            buildInterpolantAuto(function, choices, iteration)
+                                            buildInterpolantAuto(function, usedChoices, iteration)
                                         // +
                                         // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
                                         ))._1,
