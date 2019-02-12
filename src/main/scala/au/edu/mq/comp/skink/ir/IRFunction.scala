@@ -58,10 +58,14 @@ trait IRFunction {
 
     /**
      * Return SMTlib terms that express the effect of the given trace for
-     * this function. Each element of the sequence contains the terms
-     * that together describe effect of a single trace step.
+     * this function. Each element of the sequence contains a term
+     * that describes the effect of a single trace step. The associated
+     * Boolean expresses whether the transition out of that step
+     * meaningfully contributes to the trace semantics, in the sense that
+     * a fall-through to the next step is not meaningful, but one where
+     * a choice has been made is meaningful.
      */
-    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]]
+    def traceToTerms(trace : Trace) : Seq[(TypedTerm[BoolTerm, Term], Boolean)]
 
     /**
      * Given a trace, return one list element for each block in that trace

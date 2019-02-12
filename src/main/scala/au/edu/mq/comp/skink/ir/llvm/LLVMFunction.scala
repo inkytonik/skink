@@ -112,7 +112,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
     }
 
-    def traceToTerms(trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
+    def traceToTerms(trace : Trace) : Seq[(TypedTerm[BoolTerm, Term], Boolean)] = {
 
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
@@ -131,36 +131,44 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         // the block trace after it has been made into a proper tree.
         val treeBlockTrace = traceTree.root
 
-        // Return the terms corresponding to the traced blocks, not including
-        // the last step since that is to the error block. A trace with a
-        // single choice doesn't have an error block. This can't occur during
-        // verification but is useful for testing.
-        val blockTerms =
-            trace.choices.size match {
-                case 0 =>
-                    sys.error("traceToTerms: unexpected empty trace")
-                case 1 =>
-                    val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
-                    Seq(termBuilder.combineTerms(terms))
+        def hasMultipleSuccessors(block : Block) : Boolean =
+            block.metaTerminatorInstruction.terminatorInstruction match {
+                case _ : BranchCond =>
+                    true
+                case ib : IndirectBr if ib.labels.length > 1 =>
+                    true
+                case sw : Switch if sw.optCases.length > 1 =>
+                    true
                 case _ =>
-                    trace.choices.zipWithIndex.map {
-                        case (choice, count) =>
-                            val block = treeBlockTrace.blocks(count)
-                            val optPrevBlock =
-                                if (count == 0)
-                                    None
-                                else
-                                    Some(treeBlockTrace.blocks(count - 1))
-                            termBuilder.blockTerms(block, optPrevBlock, choice)
-                    }.map(termBuilder.combineTerms)
+                    false
             }
 
-        // Prepend the global initialisation terms to the terms of the first block
-        if (blockTerms.isEmpty)
-            Seq(initTerm)
-        else
-            termBuilder.combineTerms(Seq(initTerm, blockTerms.head)) +: blockTerms.tail
-
+        // Return the terms and flags corresponding to the traced blocks.
+        trace.choices.size match {
+            case 0 =>
+                sys.error("traceToTerms: unexpected empty trace")
+            case 1 =>
+                val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
+                Seq((termBuilder.combineTerms(terms), true))
+            case n =>
+                trace.choices.zipWithIndex.map {
+                    case (choice, count) =>
+                        val block = treeBlockTrace.blocks(count)
+                        val optPrevBlock =
+                            if (count == 0)
+                                None
+                            else
+                                Some(treeBlockTrace.blocks(count - 1))
+                        val blockTerm = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
+                        val term =
+                            if (count == 0)
+                                termBuilder.combineTerms(Seq(initTerm, blockTerm))
+                            else
+                                blockTerm
+                        val flag = (count == n - 1) || hasMultipleSuccessors(block)
+                        (term, flag)
+                }
+        }
     }
 
     def traceToSteps(failTrace : FailureTrace) : Seq[Step] =

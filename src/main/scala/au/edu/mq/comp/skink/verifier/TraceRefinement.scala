@@ -85,11 +85,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def runSolvers(
         strategy : SolverCompose.Parallel,
-        terms : Seq[TypedTerm[BoolTerm, Term]]
+        terms : Seq[(TypedTerm[BoolTerm, Term], Boolean)]
     ) : Try[(SatResponses, Int, Map[String, Value])] =
         using(strategy) {
             implicit solver =>
-                isSatByPrefix(Some(config.solverTimeOut()))(0, terms : _*) match {
+                isSatWithAssertWhileSat(Some(config.solverTimeOut()))(0, true, terms : _*) match {
                     case (Success(Sat()), count) =>
                         getDeclCmd() match {
                             case Success(xs) =>
@@ -200,8 +200,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                     val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
-                        val term = traceTerms(i)
+                        val (term, flag) = traceTerms(i)
                         logger.debug(s"trace effect $i: ${show(term.termDef)}")
+                        logger.debug(s"trace flag $i: $flag")
                         logger.debug(s"trace vars $i: ${term.typeDefs.map(show(_))}")
                     }
 
@@ -232,7 +233,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 val usedChoices = choices.take(count)
-                                val usedTerms = traceTerms.take(count)
+                                val usedTerms = traceTerms.take(count).map(_._1)
                                 refineRec(
                                     toDetNFA(r +
                                         (
