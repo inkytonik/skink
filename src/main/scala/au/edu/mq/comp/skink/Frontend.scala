@@ -1,7 +1,7 @@
 /*
  * This file is part of Skink.
  *
- * Copyright (C) 2015-2018
+ * Copyright (C) 2015-2019
  * Programming Languages and Verification Research Group
  * Macquarie University
  *
