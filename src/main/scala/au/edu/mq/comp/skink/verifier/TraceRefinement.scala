@@ -232,10 +232,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             if (iteration < config.maxIterations()) {
                                 import interpolant.InterpolantAuto.buildInterpolantAuto
                                 val usedChoices = choices.take(count)
+                                val usedTerms = traceTerms.take(count)
                                 refineRec(
                                     toDetNFA(r +
                                         (
-                                            buildInterpolantAuto(function, usedChoices, iteration)
+                                            buildInterpolantAuto(function, usedChoices, usedTerms, iteration)
                                         // +
                                         // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
                                         ))._1,

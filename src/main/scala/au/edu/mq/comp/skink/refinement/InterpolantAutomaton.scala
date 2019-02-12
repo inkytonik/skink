@@ -23,22 +23,20 @@ package au.edu.mq.comp.skink.verifier
 
 package interpolant
 
-import org.bitbucket.franck44.scalasmt.interpreters.Resources
-import org.bitbucket.franck44.scalasmt.typedterms.{Commands}
-import org.bitbucket.franck44.scalasmt.theories.{Core}
 import au.edu.mq.comp.skink.Skink.getLogger
 import au.edu.mq.comp.skink.ir.IRFunction
-import au.edu.mq.comp.skink.ir.{Trace}
+import au.edu.mq.comp.skink.ir.Trace
+import org.bitbucket.franck44.scalasmt.interpreters.Resources
+import org.bitbucket.franck44.scalasmt.typedterms.{Commands, TypedTerm}
+import org.bitbucket.franck44.scalasmt.theories.{BoolTerm, Core}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
+import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
 
 trait AddBackEdges extends Core with Resources {
 
     import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success}
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
 
     private def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] = xl match {
         case l if (l.size < 2) => Nil
@@ -122,11 +120,10 @@ trait AddBackEdges extends Core with Resources {
     }
 }
 
-case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Boolean) extends AddBackEdges with Commands {
+case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTerm, Term]], fromEnd : Boolean) extends AddBackEdges with Commands {
 
-    require(choices.size >= 2, s"More than 2 choices are needed to compute interpolants")
+    require(traceTerms.size >= 2, s"At least 1 terms are needed to compute interpolants")
 
-    import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.configurations.SMTInit
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
@@ -136,12 +133,6 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
     val itpLogger = getLogger(this.getClass, ".itp")
 
     lazy val predicateAnnotations = {
-
-        itpLogger.info(s"Choices are $choices")
-
-        //  From the sequence of choices, retrieve the sequence of terms that encodes the semantics
-        //  of the trace
-        val traceTerms = function.traceToTerms(Trace(choices))
 
         //  make NamedTerms with an index
         val namedTerms = for { (tt, n) ← traceTerms.zipWithIndex } yield tt.named("P" + n)
@@ -186,9 +177,12 @@ case class Interpolant(function : IRFunction, choices : Seq[Int], fromEnd : Bool
 }
 
 object InterpolantAuto extends AddBackEdges {
-    //  NFA
+
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.edge.Implicits._
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
 
     val logger = getLogger(this.getClass)
@@ -212,6 +206,7 @@ object InterpolantAuto extends AddBackEdges {
     def buildInterpolantAuto(
         function : IRFunction,
         choices : Seq[Int],
+        traceTerms : Seq[TypedTerm[BoolTerm, Term]],
         iteration : Int,
         fromEnd : Boolean = false
     ) : NFA[Int, Int] = {
@@ -229,7 +224,7 @@ object InterpolantAuto extends AddBackEdges {
         }
 
         //  try to compute predicates for the infeasible trace
-        val predicates = Interpolant(function, choices, fromEnd).predicateAnnotations
+        val predicates = Interpolant(function, traceTerms, fromEnd).predicateAnnotations
 
         predicates match {
 
