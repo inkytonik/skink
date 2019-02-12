@@ -38,6 +38,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
+    import au.edu.mq.comp.skink.{Bit, Math}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
@@ -112,6 +113,15 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
     }
 
+    def getTermBuilder(program : Program, funAnalyser : Analyser,
+        namer : LLVMNamer, config : SkinkConfig) : LLVMTermBuilder =
+        config.numberMode() match {
+            case Bit() =>
+                new LLVMBitTermBuilder(program, funAnalyser, namer, config)
+            case Math() =>
+                sys.error("getTermBuilder: no support for math mode yet...")
+        }
+
     def traceToTerms(trace : Trace) : Seq[(TypedTerm[BoolTerm, Term], Boolean)] = {
 
         // Make the block trace that corresponds to this trace and set it
@@ -121,7 +131,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
+        val termBuilder = getTermBuilder(program, funAnalyser, namer, config)
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
@@ -390,7 +400,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = new LLVMTermBuilder(program, funAnalyser, namer, config)
+        val termBuilder = getTermBuilder(program, funAnalyser, namer, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
