@@ -45,18 +45,6 @@ case class Trace(choices : Seq[Int]) {
 case class FailureTrace(trace : Trace, values : Map[String, Value])
 
 /**
- * A description of a step in the execution of a trace for use in witness
- * generation. All of the values are optional since some may be missing in
- * a particular IR.
- */
-case class Step(
-    optFileName : Option[String],
-    optBlockName : Option[String],
-    optBlockCode : Option[String],
-    optTermCode : Option[String],
-    optTermLine : Option[Int]
-)
-/**
  * A description of a call to a `nondet` function in the execution of
  * a trace for use in witness generation. Included are the type of
  * the call (e.g., "int", "uint" or "float"), an optional value that

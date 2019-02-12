@@ -28,9 +28,11 @@ trait IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.ir.FailureTrace
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import scala.util.Try
 
     /**
      * The IR-level name of this function.
@@ -86,14 +88,6 @@ trait IRFunction {
      */
     def traceBlockEffect(trace : Trace, index : Int, choice : Int) : (TypedTerm[BoolTerm, Term], Map[String, Int])
 
-    /**
-     * Return descriptions of the steps taken by a failure trace for use
-     * in witness generation.
-     */
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step]
-
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
-    import scala.util.Try
     /**
      *  Check that the image of a precondition is included in a postcondition
      *

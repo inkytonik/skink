@@ -38,7 +38,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
-    import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall, Step}
+    import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall}
     import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
@@ -47,7 +47,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
-    import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
+    import org.bitbucket.inkytonik.kiama.util.{Position, Source}
     import org.scalallvm.assembly.AssemblySyntax.{True => _, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
     import org.scalallvm.assembly.Analyser
@@ -170,25 +170,6 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 }
         }
     }
-
-    def traceToSteps(failTrace : FailureTrace) : Seq[Step] =
-        traceToBlockTrace(failTrace.trace).blocks.map {
-            block =>
-                val (optFileName, optBlockCode) =
-                    Analyser.blockPosition(program, block) match {
-                        case Some(Position(blockLine, _, blockSource @ FileSource(fileName, _))) =>
-                            (Some(fileName), Some(getSourceLineText(blockSource, blockLine)))
-                        case _ =>
-                            (None, None)
-                    }
-                val optBlockName = Some(blockName(block))
-                val (optTermLine, optTermCode) =
-                    block.metaTerminatorInstruction match {
-                        case MetaTerminatorInstruction(insn, metadata) =>
-                            getCodeLine(insn, metadata)
-                    }
-                Step(optFileName, optBlockName, optBlockCode, optTermCode, optTermLine)
-        }
 
     // Helper methods
 
