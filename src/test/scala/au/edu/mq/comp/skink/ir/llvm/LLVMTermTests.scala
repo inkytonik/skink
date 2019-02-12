@@ -173,7 +173,7 @@ trait LLVMTermTests extends Tests with Core {
      */
     def traceEffect(prog : String, trace : Trace) : Seq[TypedTerm[BoolTerm, Term]] = {
         val (_, Vector(func)) = parseProgram(prog)
-        func.traceToTerms(trace)
+        func.traceToTerms(trace).map(_._1)
     }
 
     // Support for testing phi insns
