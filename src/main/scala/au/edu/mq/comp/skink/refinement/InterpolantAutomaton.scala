@@ -224,7 +224,6 @@ object InterpolantAuto extends AddBackEdges {
 
         // if there is only one choice then we only have one step and
         // can't compute interpolants, so use the linear auto
-        // FIXME: should be same as default case below??? or it should be same as this?
         if (choices.length == 1) {
             return linearAuto
         }
