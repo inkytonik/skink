@@ -28,47 +28,568 @@ import org.bitbucket.franck44.scalasmt.theories.Core
  */
 trait LLVMTermBuilder extends Core {
 
-    import org.bitbucket.franck44.scalasmt.theories.BoolTerm
-    import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
-    import org.scalallvm.assembly.AssemblySyntax.{Block, Item, MetaInstruction, MetaPhiInstruction, MetaTerminatorInstruction, Program}
+    import au.edu.mq.comp.skink.SkinkConfig
+    import com.typesafe.scalalogging.Logger
+    import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm}
+    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, Term}
+    import org.scalallvm.assembly.Analyser
+    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+    import org.scalallvm.assembly.AssemblySyntax._
+
+    // The term builder's context
+
+    val logger : Logger
+
+    val program : Program
+    val funAnalyser : Analyser
+
+    val namer : LLVMNamer
+    import namer.{indexOf, termid}
+
+    val helper : LLVMHelper
+    import helper._
+
+    val config : SkinkConfig
 
     /**
-     * Return terms that express the semantics of running the given block,
-     * (optionally) coming from the given previous block, then leaving the
-     * current block with the given choice.
+     * The type used to represent integer terms.
      */
-    def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]]
+    type IntTermType
 
     /**
-     * Return terms that express the semantics of a give block exit instruction
-     * (terminator) assuming we exit with the given choice.
+     * The type used to represent real terms.
      */
-    def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term]
+    type RealTermType
+
+    /*
+     * Return terms that express the effect of an LLVM node, including of
+     * phi insns given entry to the block from a particular previous block
+     * (if there is one), and exit from this block using a particular choice.
+     */
+    def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
+        logger.info(s"blockTerms: block ${funAnalyser.blockName(block)}")
+        val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
+        val effects = block.optMetaInstructions.map(insnTerm)
+        val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
+        val allEffects = phiEffects ++ effects :+ exitEffect
+        allEffects.filter(_ != True())
+    }
+
+    /*
+     * Return a term that expresses the effect of an LLVM terminator instruction
+     * that exits a block using a particular choice.
+     * Exits or choices are integers >=0, typically 0 and 1 for an if-then-else, 0 for
+     * a non-conditional exit.
+     */
+    def exitTerm(metaInsn : MetaTerminatorInstruction, choice : Int) : TypedTerm[BoolTerm, Term] = {
+        val insn = metaInsn.terminatorInstruction
+        val term =
+            insn match {
+                case Branch(_) if choice == 0 =>
+                    True()
+
+                case BranchCond(value, _, _) if choice == 0 =>
+                    vtermB(value)
+
+                case BranchCond(value, _, _) if choice == 1 =>
+                    !vtermB(value)
+
+                case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
+                    val bits = size.toInt
+                    combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value, bits) === vtermI(v, bits)) })
+
+                case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
+                    val bits = size.toInt
+                    vtermI(value, bits) === vtermI(cases(choice).value, bits)
+
+                case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
+                    True()
+
+                case insn =>
+                    sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
+            }
+        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.show}")
+        term
+    }
 
     /**
-     * Return terms that express the initialisation fo the program,
-     * global data initialisation, etc.
+     * Return terms that express the initialisation of the program, not
+     * includnig program items.
      */
-    def initTerm(program : Program) : TypedTerm[BoolTerm, Term]
+    def initTerm(program : Program) : TypedTerm[BoolTerm, Term] =
+        True()
 
     /**
      * Return terms that express the semantics of the given normal instruction.
      */
-    def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term]
+    def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
+        val insn = metaInsn.instruction
+        val term = insn match {
+
+            // Boolean operations
+
+            case Binary(Binding(to), op, BoolT(), left, right) =>
+                val lterm = vtermB(left)
+                val rterm = vtermB(right)
+                val exp =
+                    op match {
+                        case _ : And => lterm & rterm
+                        case _ : Or  => lterm | rterm
+                        case _ : XOr => lterm xor rterm
+                        case _ =>
+                            opError[BoolTerm]("Boolean", left, op, right)
+                    }
+                ntermB(to) === exp
+
+            // Integer operations
+
+            case Binary(_, _, _, Const(UndefC()), _) =>
+                True()
+
+            case Binary(_, _, _, _, Const(UndefC())) =>
+                True()
+
+            case Binary(Binding(to), op, IntT(size), left, right) =>
+                val bits = size.toInt
+                ntermI(to, bits) === iBinary(op, left, right, bits)
+
+            // Real operations
+
+            case Binary(Binding(to), FAdd(_), RealT(bits), left, Const(FloatC("0"))) =>
+                ntermR(to, bits) === vtermR(left, bits)
+
+            case Binary(Binding(to), op, RealT(bits), left, right) =>
+                ntermR(to, bits) === fpBinary(op, left, right, bits)
+
+            // Comparisons
+
+            case Compare(_, _, _, Const(UndefC()), _) =>
+                True()
+
+            case Compare(_, _, _, _, Const(UndefC())) =>
+                True()
+
+            case Compare(Binding(to), ICmp(cond), BoolT(), left, right) =>
+                val lterm = vtermB(left)
+                val rterm = vtermB(right)
+                val exp =
+                    cond match {
+                        case EQ() => lterm === rterm
+                        case NE() => !(lterm === rterm)
+                        case _ =>
+                            opError[BoolTerm]("Boolean comparison", left, cond, right)
+                    }
+                ntermB(to) === exp
+
+            case Compare(Binding(to), ICmp(icond), ComparisonType(bits), left, right) =>
+                ntermB(to) === iCompare(icond, left, right, bits)
+
+            case Compare(Binding(to), FCmp(fcond), ComparisonType(bits), left, right) =>
+                ntermB(to) === fpCompare(fcond, left, right, bits)
+
+            // Conversions
+
+            case Convert(Binding(to), _, IntT(_), Const(UndefC()), IntT(_)) =>
+                True()
+
+            // Select
+
+            case Select(Binding(to), SelectI1T(), from, BoolT(), value1, BoolT(), value2) =>
+                ntermB(to) === vtermB(from).ite(vtermB(value1), vtermB(value2))
+
+            case Select(Binding(to), SelectI1T(), from, IntegerT(size1), value1, IntegerT(size2), value2) if size1 == size2 =>
+                val bits = size1.toInt
+                ntermI(to, bits) === vtermB(from).ite(vtermI(value1, bits), vtermI(value2, bits))
+
+            case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
+                ntermR(to, bits1) === vtermB(from).ite(vtermR(value1, bits1), vtermR(value2, bits1))
+
+            // Memory
+
+            case Alloca(Binding(to), _, tipe, _, _) =>
+                alloca(to, tipe)
+
+            // Calls
+
+            case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
+                tipe match {
+                    case BoolT() =>
+                        vtermB(arg)
+                    case IntT(size) =>
+                        val bits = size.toInt
+                        !(vtermI(arg, bits) === ctermI(ZeroC(), bits))
+                    case _ =>
+                        sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
+                }
+
+            case NondetFunctionCall(_, _) =>
+                True()
+
+            // Default
+
+            case insn =>
+                sys.error(s"insnTerm: don't know the effect of ${longshow(insn)}")
+
+        }
+        logger.debug(s"insnTerm: ${longshow(insn)} -> ${term.show}")
+        term
+    }
+
+    /**
+     *  Return terms that express the semantics of the all top-level items in the given program.
+     */
+    def itemsTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
+        val term = combineTerms(program.items.map(itemTerm))
+        logger.info(s"itemsTerm: ${term.show}")
+        term
+    }
 
     /**
      *  Return terms that express the semantics of the given top-level item.
      */
-    def itemTerm(item : Item) : TypedTerm[BoolTerm, Term]
+    def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] =
+        True()
+
+    /*
+     * Return a term that expresses the effect of an LLVM phi instruction
+     * given that control comes from a particular previous block (if any).
+     */
+    def phiInsnTerm(metaInsn : MetaPhiInstruction, optPrevBlock : Option[Block]) : TypedTerm[BoolTerm, Term] = {
+        val insn = metaInsn.phiInstruction
+        val term : TypedTerm[BoolTerm, Term] =
+            optPrevBlock match {
+                case Some(prevBlock) =>
+                    val prevLabel = Label(Local(funAnalyser.blockName(prevBlock)))
+                    insn match {
+                        case insn @ Phi(Binding(to), tipe, preds) =>
+                            // Bound phi result, find value
+                            preds.find(_.label == prevLabel) match {
+                                case Some(pred) =>
+                                    equality(to, tipe, pred.value, tipe)
+                                case None =>
+                                    sys.error(s"phiInsnTerm: can't find ${show(prevLabel)} in ${longshow(insn)}")
+                            }
+                        case Phi(NoBinding(), _, _) =>
+                            // No effect since result of phi is not bound
+                            True()
+                    }
+                case None =>
+                    // No previous block so phi insns don't make sense...
+                    sys.error(s"phiInsnTerm: found ${longshow(insn)} but have no previous block")
+            }
+        logger.debug(s"phiInsnTerm: ${longshow(insn)} -> ${term.show}")
+        term
+    }
+
+    // Booleans
 
     /**
-     * Return terms that express the semantics of a phi instruction, assuming
-     * (optionally) control flow from a given previous block.
+     * Make a Boolean term for the named variable where `id` is the base name
+     * identifier and index it.
      */
-    def phiInsnTerm(metaInsn : MetaPhiInstruction, optPrevBlock : Option[Block]) : TypedTerm[BoolTerm, Term]
+    def varTermB(id : String, index : Int) : TypedTerm[BoolTerm, Term] =
+        new VarTerm(termid(id), BoolSort(), Some(index))
 
-    // Utility methods
+    /**
+     * Return a Boolean term that expresses a name when referenced from node.
+     */
+    def ntermAtB(node : ASTNode, name : Name) : TypedTerm[BoolTerm, Term] =
+        varTermB(show(name), indexOf(node, name))
+
+    /**
+     * Return a Boolean term that expresses an LLVM name when referenced
+     * from the name node.
+     */
+    def ntermB(name : Name) : TypedTerm[BoolTerm, Term] =
+        ntermAtB(name, name)
+
+    /**
+     * Return a BoolTerm that expresses an LLVM i1 value.
+     */
+    def vtermB(value : Value) : TypedTerm[BoolTerm, Term] =
+        value match {
+            case Const(c) =>
+                ctermB(c)
+            case Named(name) =>
+                ntermB(name)
+            case value =>
+                sys.error(s"vtermB: unexpected value $value")
+        }
+
+    /**
+     * Return a Boolean term that expresses an LLVM Boolean constant value.
+     */
+    def ctermB(constantValue : ConstantValue) : TypedTerm[BoolTerm, Term] =
+        constantValue match {
+            case CompareC(FCmp(cond), ltype @ ComparisonType(bits), left, rtype, right) if ltype == rtype =>
+                fpCompare(cond, Const(left), Const(right), bits)
+            case CompareC(ICmp(cond), ltype @ ComparisonType(bits), left, rtype, right) if ltype == rtype =>
+                iCompare(cond, Const(left), Const(right), bits)
+            case FalseC() =>
+                False()
+            case IntC(i) =>
+                if (i == 0) False() else True()
+            case TrueC() =>
+                True()
+            case ZeroC() =>
+                False()
+            case value =>
+                sys.error(s"ctermB: unexpected constant value $constantValue")
+        }
+
+    /*
+     * Turn a Boolean term into an integer encoding of the truth value.
+     */
+    def boolToIntTerm(term : TypedTerm[BoolTerm, Term], bits : Int) : TypedTerm[IntTermType, Term] =
+        term.ite(ctermI(IntC(1), bits), ctermI(ZeroC(), bits))
+
+    // Integer numbers
+
+    /**
+     * Return a term for the named variable where `id` is the base name
+     * identifier and index it.
+     */
+    def varTermI(id : String, index : Int, bits : Int = 0) : TypedTerm[IntTermType, Term]
+
+    /**
+     * Return a term that expresses a name when referenced from node.
+     */
+    def ntermAtI(node : ASTNode, name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        varTermI(show(name), indexOf(node, name), bits)
+
+    /**
+     * Return a term that expresses an LLVM name when referenced
+     * from the name node.
+     */
+    def ntermI(name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        ntermAtI(name, name, bits)
+
+    /**
+     * Return an integer term that expresses a value when referenced from node.
+     */
+    def vtermAtI(node : ASTNode, value : Value, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        value match {
+            case Named(name) =>
+                ntermAtI(node, name, bits)
+            case _ =>
+                vtermI(value, bits)
+        }
+
+    /**
+     * Return a term that expresses an LLVM int value of a given bit size.
+     */
+    def vtermI(value : Value, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        value match {
+            case Const(c) =>
+                ctermI(c, bits)
+            case Named(name) =>
+                ntermI(name, bits)
+            case value =>
+                sys.error(s"vtermI: unexpected value $value")
+        }
+
+    /**
+     * Return a term that expresses an LLVM integer constant value.
+     */
+    def ctermI(constantValue : ConstantValue, bits : Int = 0) : TypedTerm[IntTermType, Term]
+
+    /*
+     * Turn an LLVM integer name into integer encoding, taking into account
+     * Boolean encoding.
+     */
+    def nintToIntTerm(name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        if (bits == 1)
+            boolToIntTerm(ntermB(name), bits)
+        else
+            ntermI(name, bits)
+
+    /*
+     * Turn an LLVM integer value into integer encoding, taking into account
+     * Boolean encoding.
+     */
+    def vintToIntTerm(value : Value, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        if (bits == 1)
+            boolToIntTerm(vtermB(value), bits)
+        else
+            vtermI(value, bits)
+
+    /**
+     * Return a term to express an integer operation.
+     */
+    def iBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[IntTermType, Term]
+
+    /**
+     * Return a term to express an integer comparison.
+     */
+    def iCompare(cond : ICond, left : Value, right : Value, bits : Int = 0) : TypedTerm[BoolTerm, Term]
+
+    // Real numbers
+
+    /**
+     * Make a erm for the named variable where `id` is the base name
+     * identifier and index it.
+     */
+    def varTermR(id : String, index : Int, bits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /**
+     * Return a bit vector term that expresses a name when referenced from node.
+     */
+    def ntermAtR(node : ASTNode, name : Name, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        varTermR(show(name), bits, indexOf(node, name))
+
+    /**
+     * Return a bit vector term that expresses an LLVM name when referenced
+     * from the name node.
+     */
+    def ntermR(name : Name, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        ntermAtR(name, name, bits)
+
+    /**
+     * Return a bit vector term that expresses a value when referenced from node.
+     */
+    def vtermAtR(node : ASTNode, value : Value, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        value match {
+            case Named(name) =>
+                ntermAtR(node, name, bits)
+            case _ =>
+                vtermR(value, bits)
+        }
+
+    /**
+     * Return a bit vector term that expresses an LLVM floating-point value.
+     */
+    def vtermR(value : Value, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        value match {
+            case Const(c) =>
+                ctermR(c, bits)
+            case Named(name) =>
+                ntermR(name, bits)
+            case value =>
+                sys.error(s"vtermR: unexpected value $value")
+        }
+
+    /**
+     * Return a term that expresses an LLVM floating-point constant value.
+     */
+    def ctermR(constantValue : ConstantValue, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        constantValue match {
+            case BinaryC(op, ltype @ RealT(bits), left, rtype, right) if ltype == rtype =>
+                fpBinary(op, Const(left), Const(right), bits)
+            case FloatC(f) =>
+                fpconst(f, bits)
+            case UndefC() =>
+                fpdecconst("0", bits)
+            case value =>
+                sys.error(s"ctermR: unexpected constant value $constantValue")
+        }
+
+    /**
+     * Convert a string floating-poiint representation to a term.
+     */
+    def fpconst(f : String, bits : Int = 0) : TypedTerm[RealTermType, Term] =
+        if (f.startsWith("0xK"))
+            fphexconst(f.drop(3), 80, bits)
+        else if (f.startsWith("0x"))
+            fphexconst(f.drop(2), 64, bits)
+        else
+            fpdecconst(f, bits)
+
+    /**
+     * Make a floating-point term from a hexadecimal literal string.
+     */
+    def fphexconst(s : String, srcbits : Int = 0, tgtbits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /*
+     * Return a term for a given sized floating-point decimal constant.
+     */
+    def fpdecconst(f : String, bits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /**
+     * Return a term to express a floating-point bitvector operation.
+     */
+    def fpBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /**
+     * Return a term to express a floating-point comparison.
+     */
+    def fpCompare(cond : FCond, left : Value, right : Value, bits : Int = 0) : TypedTerm[BoolTerm, Term]
+
+    // Arrays
+
+    /**
+     * Make an integer ArrayTerm for the named variable where `id` is the base name
+     * identifier and include an index.
+     */
+    def arrayTermI(id : String, index : Int, bits : Int = 0) : TypedTerm[ArrayTerm[IntTermType], Term]
+
+    /**
+     * Return an array term that expresses a name when referenced from node.
+     */
+    def arrayTermAtI(node : Product, name : Name, bits : Int = 0) : TypedTerm[ArrayTerm[IntTermType], Term] =
+        arrayTermI(show(name), indexOf(node, name), bits)
+
+    /**
+     * Return an integer term that expresses the previous version of a name when
+     * referenced from node.
+     */
+    def prevArrayTermAtI(node : Product, name : Name, bits : Int = 0) : TypedTerm[ArrayTerm[IntTermType], Term] =
+        arrayTermI(show(name), indexOf(node, name) - 1, bits)
+
+    // Memory operators
+
+    /**
+     * Return a term to represent the allocation of stack memory.
+     */
+    def alloca(to : Name, tipe : Type) : TypedTerm[BoolTerm, Term]
+
+    // Equality
+
+    /**
+     * Return a term that expresses equality between `to` and `from.
+     */
+    def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
+        if (from == Const(UndefC()))
+            True() === True()
+        else
+            (toType, fromType) match {
+                case (BoolT(), BoolT()) =>
+                    ntermB(to) === vtermB(from)
+                case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
+                    val toBits = toSize.toInt
+                    ntermI(to, toBits) === vtermI(from, toBits)
+                case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
+                    ntermR(to, toBits) === vtermR(from, toBits)
+
+                case (BoolT(), IntT(fromSize)) =>
+                    val fromBits = fromSize.toInt
+                    ntermB(to) === !(vtermI(from, fromBits) === ctermI(ZeroC(), fromBits))
+                case (IntT(toSize), BoolT()) =>
+                    val toBits = toSize.toInt
+                    ntermI(to, toBits) === vintToIntTerm(from, toBits)
+
+                case (BoolT(), RealT(fromBits)) =>
+                    ntermB(to) === !(vtermR(from, fromBits) === ctermR(ZeroC(), fromBits))
+                case (RealT(toBits), BoolT()) =>
+                    ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0                    "), toBits), ctermR(FloatC("0.0"), toBits))
+
+                case (RealT(toBits), IntT(fromSize)) if toBits == fromSize.toInt =>
+                    ntermR(to, toBits) === vtermR(from, toBits)
+                case (IntT(toSize), RealT(fromBits)) if toSize.toInt == fromBits =>
+                    ntermR(to, fromBits) === vtermR(from, fromBits)
+
+                case _ =>
+                    sys.error(s"equality: unexpected equality: $to : $toType, $from : $fromType")
+            }
+
+    // Utilities
+
+    /*
+     * Throw an error that `op` applied to `left` and `right` cannot be handled.
+     * Prefix is prepended to the message.
+     */
+    def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
+        sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
     /**
      * Combine terms via conjunction, dealing with case where there are no
@@ -79,5 +600,62 @@ trait LLVMTermBuilder extends Core {
             True()
         else
             terms.reduceLeft((l, r) => if (r == True()) l else l & r)
+
+    /*
+     * Return a type definition by name if there is one.
+     */
+    def lookupType(name : Name) : Option[Type] =
+        program.items.collectFirst {
+            case TypeDefinition(n, tipe) if name == n =>
+                tipe
+        }
+
+    /*
+     * Return the number of bits in the representation of a type.
+     */
+    def numBits(tipe : Type) : Int =
+        tipe match {
+            case ArrayT(num, tipe)   => num.toInt * numBits(tipe)
+            case FloatT()            => 32
+            case DoubleT()           => 64
+            case IntT(n)             => n.toInt
+            case StructT(fieldTypes) => fieldTypes.map(numBits(_)).sum
+            case NameT(name) =>
+                lookupType(name) match {
+                    case Some(tipe) => numBits(tipe)
+                    case None       => sys.error(s"numBits: can't find type $name")
+                }
+            case PointerT(_, _) =>
+                config.architecture()
+            case _ =>
+                sys.error(s"numBits: unsupported type ${show(tipe)} $tipe")
+        }
+
+    /*
+     * Return the number of bytes in the representation of a type.
+     * Rounds up if not a multiple of eight bits.
+     */
+    def numBytes(tipe : Type) : Int =
+        (numBits(tipe) + 7) / 8
+
+    /**
+     * Matcher for types that we support comparisons between. Returns the bit size
+     * of the compared type.
+     */
+    object ComparisonType {
+        def unapply(tipe : Type) : Option[Int] =
+            tipe match {
+                case IntT(size)   => Some(size.toInt)
+                case _ : PointerT => Some(32)
+                case RealT(bits)  => Some(bits)
+                case _            => None
+            }
+    }
+
+    /**
+     * Version of LLVM PP show that avoids line-wrapping.
+     */
+    def longshow(n : ASTNode) : String =
+        show(n, 1000)
 
 }

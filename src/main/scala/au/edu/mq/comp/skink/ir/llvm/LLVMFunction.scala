@@ -40,7 +40,6 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.{Bit, Math}
     import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall}
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper._
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
@@ -58,6 +57,10 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
     val checkPostLogger = getLogger(this.getClass, ".checkpost")
+
+    // A helper for this module and the term builders
+    val helper = new LLVMHelper(config)
+    import helper._
 
     // An analyser for the verifiable version of this function and its associated tree
 
@@ -93,7 +96,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 case Call(_, _, _, _, _, Function(Named(Global(LibFunctionName()))), _, _) =>
                     None
                 case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
-                    logger.info(s"isVerifiable: non-inlined call ${longshow(insn)}")
+                    logger.info(s"isVerifiable: non-inlined call ${show(insn)}")
                     Some(s)
                 case _ =>
                     None
@@ -114,12 +117,12 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     }
 
     def getTermBuilder(program : Program, funAnalyser : Analyser,
-        namer : LLVMNamer, config : SkinkConfig) : LLVMTermBuilder =
+        namer : LLVMNamer, helper : LLVMHelper, config : SkinkConfig) : LLVMTermBuilder =
         config.numberMode() match {
             case Bit() =>
-                new LLVMBitTermBuilder(program, funAnalyser, namer, config)
+                new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config)
             case Math() =>
-                sys.error("getTermBuilder: no support for math mode yet...")
+                new LLVMMathTermBuilder(program, funAnalyser, namer, helper, config)
         }
 
     def traceToTerms(trace : Trace) : Seq[(TypedTerm[BoolTerm, Term], Boolean)] = {
@@ -130,11 +133,12 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
 
         // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
-        val termBuilder = getTermBuilder(program, funAnalyser, namer, config)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree, helper)
+        val termBuilder = getTermBuilder(program, funAnalyser, namer, helper, config)
 
         // The term for the effects of program initialisation
         val initTerm = termBuilder.initTerm(program)
+        val itemsTerm = termBuilder.itemsTerm(program)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -172,7 +176,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                         val blockTerm = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
                         val term =
                             if (count == 0)
-                                termBuilder.combineTerms(Seq(initTerm, blockTerm))
+                                termBuilder.combineTerms(Seq(initTerm, itemsTerm, blockTerm))
                             else
                                 blockTerm
                         val flag = (count == n - 1) || hasMultipleSuccessors(block)
@@ -399,8 +403,8 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         val block = blockTree.root
 
         // Get a function-specifc namer and term builder
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree)
-        val termBuilder = getTermBuilder(program, funAnalyser, namer, config)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree, helper)
+        val termBuilder = getTermBuilder(program, funAnalyser, namer, helper, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
@@ -536,7 +540,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
         val blockTrace = traceToBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
-        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree)
+        val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree, helper)
 
         def getIndexedVarName(to : Name) : String =
             makeIndexedVarName(show(to), namer.indexOf(to, to))

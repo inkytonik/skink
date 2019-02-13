@@ -21,11 +21,12 @@
 
 package au.edu.mq.comp.skink.ir.llvm
 
+import au.edu.mq.comp.skink.SkinkConfig
 import org.scalallvm.assembly.AssemblySyntax._
 
-object LLVMHelper {
+class LLVMHelper(config : SkinkConfig) {
 
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
+    import au.edu.mq.comp.skink.{Bit, Math}
 
     // Property helpers
 
@@ -34,12 +35,6 @@ object LLVMHelper {
      */
     def fprmodeName : Name =
         Global("_fprmode")
-
-    /**
-     * Version of LLVM PP show that avoids line-wrapping.
-     */
-    def longshow(n : ASTNode) : String =
-        show(n, 1000)
 
     /**
      * Convert an LLVM name into its string representation.
@@ -82,20 +77,6 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for types that we support comparisons between. Returns the bit size
-     * of the compared type.
-     */
-    object ComparisonType {
-        def unapply(tipe : Type) : Option[Int] =
-            tipe match {
-                case IntT(size)   => Some(size.toInt)
-                case _ : PointerT => Some(32)
-                case RealT(bits)  => Some(bits)
-                case _            => None
-            }
-    }
-
-    /**
      * Matcher for "copysign" function names.
      */
     object CopySign {
@@ -105,7 +86,7 @@ object LLVMHelper {
     }
 
     /**
-     * Matcher for assumption function names.
+     * Matcher for exit function names.
      */
     object Exit {
         def unapply(name : String) : Boolean =
@@ -308,16 +289,27 @@ object LLVMHelper {
      */
     object LibFunctionName {
         def unapply(name : String) : Boolean =
-            name match {
-                case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
-                    Floor() | FMax() | FMin() | FMod() | FPClassify() | Free() |
-                    IsInf() | IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
-                    MemoryAllocClear() | Memset() | NAN() | Output() | Remainder() |
-                    RInt() | Round() | SignBit() | Trunc() | Varargs() |
-                    VerifierFunctionName() =>
-                    true
-                case _ =>
-                    false
+            config.numberMode() match {
+                case Bit() =>
+                    name match {
+                        case Assume() | Ceil() | CopySign() | Exit() | FAbs() | FDim() |
+                            Floor() | FMax() | FMin() | FMod() | FPClassify() | Free() |
+                            IsInf() | IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
+                            MemoryAllocClear() | Memset() | NAN() | Output() | Remainder() |
+                            RInt() | Round() | SignBit() | Trunc() | Varargs() |
+                            VerifierFunctionName() =>
+                            true
+                        case _ =>
+                            false
+                    }
+                case Math() =>
+                    name match {
+                        case Assume() | FAbs() | MemoryAlloc() | MemoryAllocClear() | Output() | Varargs() |
+                            VerifierFunctionName() =>
+                            true
+                        case _ =>
+                            false
+                    }
             }
     }
 
@@ -591,7 +583,7 @@ object LLVMHelper {
      * Return the logarithm of `x` base 2.
      */
     def log2(x : Double) : Double =
-        Math.log(x) / Math.log(2)
+        scala.math.log(x) / scala.math.log(2)
 
     /**
      * If the given integer is power of two, return that power,
@@ -599,7 +591,7 @@ object LLVMHelper {
      */
     def powerOfTwo(x : Int) : Int = {
         val pd = log2(x.toDouble)
-        if (pd == Math.round(pd)) pd.toInt else -1
+        if (pd == scala.math.round(pd)) pd.toInt else -1
     }
 
 }

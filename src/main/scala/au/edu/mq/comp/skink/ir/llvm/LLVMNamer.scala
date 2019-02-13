@@ -50,19 +50,25 @@ trait LLVMNamer {
     def termid(baseid : String) : String =
         baseid
 
+    /*
+     * Get the array element property for name, if there is one.
+     */
+    def elementProperty(name : Name) : Option[(Name, Value)]
+
 }
 
 /**
  * Naming for a given function which names uniquely over the given name tree.
  */
 class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, FunctionDefinition],
-    nametree : Tree[Product, Product]) extends LLVMNamer {
+    nametree : Tree[Product, Product],
+    helper : LLVMHelper) extends LLVMNamer {
 
-    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper.{fprmodeName, LibFunctionCall1}
     import org.bitbucket.inkytonik.kiama.attribution.Decorators
     import org.bitbucket.inkytonik.kiama.relation.NodeNotInTreeException
     import org.bitbucket.inkytonik.kiama.util.Comparison.same
     import org.bitbucket.inkytonik.kiama.==>
+    import org.scalallvm.assembly.ElementProperty
 
     // Properties and decoration of function tree
 
@@ -92,8 +98,8 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
             bumpcount(in(n), name)
         case n @ Store(_, _, _, _, Named(name), _) =>
             bumpcount(in(n), name)
-        case n @ LibFunctionCall1(_, _, "fesetround", _, _) =>
-            bumpcount(in(n), fprmodeName)
+        case n @ helper.LibFunctionCall1(_, _, "fesetround", _, _) =>
+            bumpcount(in(n), helper.fprmodeName)
     }
 
     def defaultIndexOf(name : Name) : Int =
@@ -142,6 +148,17 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
         downErr {
             case block : Block =>
                 block
+        }
+
+    /*
+     * Get the array element property for name, if there is one.
+     */
+    def elementProperty(name : Name) : Option[(Name, Value)] =
+        properties(name).collectFirst {
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), Const(IntC(i))), ElemIndex(IntT(_), index))) if i == 0 =>
+                (array, index)
+            case ElementProperty(Named(array), Vector(ElemIndex(IntT(_), index))) =>
+                (array, index)
         }
 
 }

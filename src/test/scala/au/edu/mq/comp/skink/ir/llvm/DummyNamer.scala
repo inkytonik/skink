@@ -28,8 +28,16 @@ import org.scalallvm.assembly.AssemblySyntax.Name
  * Always returns an index of zero.
  */
 class DummyNamer extends LLVMNamer {
+
+    import org.scalallvm.assembly.AssemblySyntax.Value
+
     def defaultIndexOf(name : Name) : Int =
         0
+
     def indexOf(use : Product, name : Name) : Int =
         0
+
+    def elementProperty(name : Name) : Option[(Name, Value)] =
+        None
+
 }
