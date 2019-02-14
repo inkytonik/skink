@@ -95,12 +95,10 @@ trait LLVMTermBuilder extends Core {
                 case BranchCond(value, _, _) if choice == 1 =>
                     !vtermB(value)
 
-                case Switch(IntegerT(size), value, _, cases) if choice == cases.length =>
-                    val bits = size.toInt
+                case Switch(IntegerT(bits), value, _, cases) if choice == cases.length =>
                     combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value, bits) === vtermI(v, bits)) })
 
-                case Switch(IntegerT(size), value, _, cases) if choice < cases.length =>
-                    val bits = size.toInt
+                case Switch(IntegerT(bits), value, _, cases) if choice < cases.length =>
                     vtermI(value, bits) === vtermI(cases(choice).value, bits)
 
                 case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
@@ -150,8 +148,8 @@ trait LLVMTermBuilder extends Core {
             case Binary(_, _, _, _, Const(UndefC())) =>
                 True()
 
-            case Binary(Binding(to), op, IntT(size), left, right) =>
-                val bits = size.toInt
+            case Binary(Binding(to), op, tipe : IntT, left, right) =>
+                val bits = numBits(tipe)
                 ntermI(to, bits) === iBinary(op, left, right, bits)
 
             // Real
@@ -198,9 +196,8 @@ trait LLVMTermBuilder extends Core {
             case Select(Binding(to), SelectI1T(), from, BoolT(), value1, BoolT(), value2) =>
                 ntermB(to) === vtermB(from).ite(vtermB(value1), vtermB(value2))
 
-            case Select(Binding(to), SelectI1T(), from, IntegerT(size1), value1, IntegerT(size2), value2) if size1 == size2 =>
-                val bits = size1.toInt
-                ntermI(to, bits) === vtermB(from).ite(vtermI(value1, bits), vtermI(value2, bits))
+            case Select(Binding(to), SelectI1T(), from, IntegerT(bits1), value1, IntegerT(bits2), value2) if bits1 == bits2 =>
+                ntermI(to, bits1) === vtermB(from).ite(vtermI(value1, bits1), vtermI(value2, bits1))
 
             case Select(Binding(to), SelectI1T(), from, RealT(bits1), value1, RealT(bits2), value2) if bits1 == bits2 =>
                 ntermR(to, bits1) === vtermB(from).ite(vtermR(value1, bits1), vtermR(value2, bits1))
@@ -216,8 +213,8 @@ trait LLVMTermBuilder extends Core {
                 tipe match {
                     case BoolT() =>
                         vtermB(arg)
-                    case IntT(size) =>
-                        val bits = size.toInt
+                    case IntT(_) =>
+                        val bits = numBits(tipe)
                         !(vtermI(arg, bits) === ctermI(ZeroC(), bits))
                     case _ =>
                         sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
@@ -555,17 +552,17 @@ trait LLVMTermBuilder extends Core {
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
-                case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
-                    val toBits = toSize.toInt
+                case (IntT(toSize), IntT(_)) if toSize == numBits(fromType) =>
+                    val toBits = numBits(toType)
                     ntermI(to, toBits) === vtermI(from, toBits)
                 case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
                     ntermR(to, toBits) === vtermR(from, toBits)
 
-                case (BoolT(), IntT(fromSize)) =>
-                    val fromBits = fromSize.toInt
+                case (BoolT(), IntT(_)) =>
+                    val fromBits = numBits(fromType)
                     ntermB(to) === !(vtermI(from, fromBits) === ctermI(ZeroC(), fromBits))
                 case (IntT(toSize), BoolT()) =>
-                    val toBits = toSize.toInt
+                    val toBits = numBits(toType)
                     ntermI(to, toBits) === vintToIntTerm(from, toBits)
 
                 case (BoolT(), RealT(fromBits)) =>
@@ -573,9 +570,9 @@ trait LLVMTermBuilder extends Core {
                 case (RealT(toBits), BoolT()) =>
                     ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0                    "), toBits), ctermR(FloatC("0.0"), toBits))
 
-                case (RealT(toBits), IntT(fromSize)) if toBits == fromSize.toInt =>
+                case (RealT(toBits), IntT(_)) if toBits == numBits(fromType) =>
                     ntermR(to, toBits) === vtermR(from, toBits)
-                case (IntT(toSize), RealT(fromBits)) if toSize.toInt == fromBits =>
+                case (IntT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
                     ntermR(to, fromBits) === vtermR(from, fromBits)
 
                 case _ =>
@@ -616,17 +613,15 @@ trait LLVMTermBuilder extends Core {
     def numBits(tipe : Type) : Int =
         tipe match {
             case ArrayT(num, tipe)   => num.toInt * numBits(tipe)
-            case FloatT()            => 32
-            case DoubleT()           => 64
+            case RealT(bits)         => bits
             case IntT(n)             => n.toInt
             case StructT(fieldTypes) => fieldTypes.map(numBits(_)).sum
+            case PointerT(_, _)      => config.architecture()
             case NameT(name) =>
                 lookupType(name) match {
                     case Some(tipe) => numBits(tipe)
                     case None       => sys.error(s"numBits: can't find type $name")
                 }
-            case PointerT(_, _) =>
-                config.architecture()
             case _ =>
                 sys.error(s"numBits: unsupported type ${show(tipe)} $tipe")
         }
@@ -645,10 +640,9 @@ trait LLVMTermBuilder extends Core {
     object ComparisonType {
         def unapply(tipe : Type) : Option[Int] =
             tipe match {
-                case IntT(size)   => Some(size.toInt)
-                case _ : PointerT => Some(32)
-                case RealT(bits)  => Some(bits)
-                case _            => None
+                case IntT(_) | RealT(_) | PointerT(_, _) =>
+                    Some(numBits(tipe))
+                case _ => None
             }
     }
 

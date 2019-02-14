@@ -83,9 +83,9 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Conversion
 
-            case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ IntT(toSize)) =>
-                val toBits = toSize.toInt
-                val fromBits = fromSize.toInt
+            case Convert(Binding(to), op, fromType : IntT, from, toType : IntT) =>
+                val toBits = numBits(toType)
+                val fromBits = numBits(fromType)
                 val bitsDiff = toBits - fromBits
                 if (bitsDiff == 0)
                     equality(to, toType, from, fromType)
@@ -113,8 +113,8 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                     }
                 }
 
-            case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType @ IntT(toSize)) =>
-                val toBits = toSize.toInt
+            case Convert(Binding(to), op, fromType @ RealT(fromBits), from, toType : IntT) =>
+                val toBits = numBits(toType)
                 op match {
                     case Bitcast() if fromBits == toBits =>
                         val (p, e, s) = fpbitTerms(to, toBits)
@@ -128,8 +128,8 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                         sys.error(s"insnTerm: ${show(fromType)} to ${show(toType)} Real->Int conversion $op not supported")
                 }
 
-            case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ RealT(toBits)) =>
-                val fromBits = fromSize.toInt
+            case Convert(Binding(to), op, fromType : IntT, from, toType @ RealT(toBits)) =>
+                val fromBits = numBits(fromType)
                 val (exp, sig) = fpexpsig(toBits)
                 val iterm = vintToIntTerm(from, fromBits)
                 op match {
@@ -197,34 +197,26 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Call
 
-            case LibFunctionCall0(Binding(to), IntT(size), name) =>
+            case LibFunctionCall0(Binding(to), tipe : IntT, name) =>
                 name match {
                     case FEGetRound() =>
-                        val bits = size.toInt
+                        val bits = numBits(tipe)
                         ntermI(to, bits) === fegetround(bits)
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (zero args, int return)")
                 }
 
-            case LibFunctionCall1(Binding(to), IntT(size), name, arg1, IntT(size1)) =>
+            case LibFunctionCall1(Binding(to), tipe : IntT, name, arg1, tipe1 : IntT) =>
                 name match {
                     case FESetRound() =>
-                        val bits = size.toInt
-                        val bits1 = size1.toInt
-                        fesetround(insn, bits, arg1, bits1)
+                        fesetround(insn, numBits(tipe), arg1, numBits(tipe1))
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (one int arg, int return)")
                 }
 
             case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(bits1)) =>
                 val aterm1 = vtermR(arg1, bits1)
-                val bits =
-                    tipe match {
-                        case IntegerT(bits) => bits
-                        case RealT(bits)    => bits
-                        case _ =>
-                            sys.error(s"insnTerm: unsupported return type $tipe for library function call $name (one real arg, ${show(tipe)} return)")
-                    }
+                val bits = numBits(tipe)
                 name match {
                     case Ceil() =>
                         ntermR(to, bits) === aterm1.roundToI(ctermRM(RTP()))
@@ -267,11 +259,10 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                         sys.error(s"insnTerm: unsupported call to library function $name (one pointer arg, void return)")
                 }
 
-            case LibFunctionCall1(Binding(to), RealT(size), name, arg1, PointerT(_, _)) =>
+            case LibFunctionCall1(Binding(to), RealT(bits), name, arg1, PointerT(_, _)) =>
                 name match {
                     case NAN() =>
                         // FIXME: ignores "nan" argument, but does build "a" NaN
-                        val bits = size.toInt
                         val (exp, sig) = fpexpsig(bits)
                         ntermR(to, bits) === NaN(exp, sig)
                     case _ =>
@@ -1045,11 +1036,11 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
      */
     override def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         (toType, fromType) match {
-            case (RealT(bits), IntT(fromSize)) if bits == fromSize.toInt =>
+            case (RealT(bits), IntT(_)) if bits == numBits(fromType) =>
                 val (exp, sig) = fpexpsig(bits)
                 ntermR(to, bits) === vtermI(from, bits).signedToFPBV(exp, sig)
 
-            case (IntT(toSize), RealT(fromBits)) if toSize.toInt == fromBits =>
+            case (IntT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
                 val (exp, sig) = fpexpsig(fromBits)
                 ntermI(to, fromBits).signedToFPBV(exp, sig) === vtermR(from, fromBits)
 
