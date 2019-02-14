@@ -41,7 +41,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
 
     def config = createAndInitConfig(Seq())
     val helper = new LLVMHelper(config)
-    val termBuilder = new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config) // FIXME
+    val termBuilder = new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config)
 
     def makeVarTermB(id : String, index : Int = 0) : VarTerm[BoolTerm] =
         new VarTerm(id, BoolSort(), Some(index))
