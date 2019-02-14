@@ -60,7 +60,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         val insn = metaInsn.instruction
         val term = insn match {
 
-            // Conversions
+            // Conversion
 
             case Convert(Binding(to), op, fromType @ IntT(_), from, toType @ IntT(_)) =>
                 equality(to, toType, from, fromType)
@@ -85,8 +85,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : GetElementPtr =>
                 sys.error(s"insnTerm: unsupported getelementptr insn ${longshow(insn)}")
 
-            // Array loads and stores, just non-Boolean, integer and float elements for now
-
             case insn @ Load(Binding(to), _, IntegerT(_), _, ArrayElement(array, index), _) =>
                 ntermI(to) === arrayTermAtI(insn, array).at(vtermAtI(insn, index))
 
@@ -99,15 +97,13 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case insn @ Store(_, RealT(_), from, _, ArrayElement(array, index), _) =>
                 arrayTermAtR(insn, array) === prevArrayTermAtR(insn, array).store(vtermAtI(insn, index), vtermR(from))
 
-            // Memory operations
-
             case Load(Binding(to), _, tipe, _, from, _) =>
                 equality(to, tipe, from, tipe)
 
             case Store(_, tipe, from, _, Named(to), _) =>
                 equality(to, tipe, from, tipe)
 
-            // Calls
+            // Call
 
             case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(_)) => {
                 name match {

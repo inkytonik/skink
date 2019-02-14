@@ -81,7 +81,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
         val insn = metaInsn.instruction
         val term = insn match {
 
-            // Conversions
+            // Conversion
 
             case Convert(Binding(to), op, fromType @ IntT(fromSize), from, toType @ IntT(toSize)) =>
                 val toBits = toSize.toInt
@@ -312,8 +312,6 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (pointer to int, int, int, int, void return)")
                 }
-
-            // Calls
 
             case NondetFunctionCall(Binding(to), UnsignedType(bits)) =>
                 iCompare(UGE(), Named(to), Const(ZeroC()), bits)

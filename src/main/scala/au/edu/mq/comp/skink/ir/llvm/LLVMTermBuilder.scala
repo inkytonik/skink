@@ -127,7 +127,7 @@ trait LLVMTermBuilder extends Core {
         val insn = metaInsn.instruction
         val term = insn match {
 
-            // Boolean operations
+            // Boolean
 
             case Binary(Binding(to), op, BoolT(), left, right) =>
                 val lterm = vtermB(left)
@@ -142,7 +142,7 @@ trait LLVMTermBuilder extends Core {
                     }
                 ntermB(to) === exp
 
-            // Integer operations
+            // Integer
 
             case Binary(_, _, _, Const(UndefC()), _) =>
                 True()
@@ -154,7 +154,7 @@ trait LLVMTermBuilder extends Core {
                 val bits = size.toInt
                 ntermI(to, bits) === iBinary(op, left, right, bits)
 
-            // Real operations
+            // Real
 
             case Binary(Binding(to), FAdd(_), RealT(bits), left, Const(FloatC("0"))) =>
                 ntermR(to, bits) === vtermR(left, bits)
@@ -162,7 +162,7 @@ trait LLVMTermBuilder extends Core {
             case Binary(Binding(to), op, RealT(bits), left, right) =>
                 ntermR(to, bits) === fpBinary(op, left, right, bits)
 
-            // Comparisons
+            // Comparison
 
             case Compare(_, _, _, Const(UndefC()), _) =>
                 True()
@@ -188,7 +188,7 @@ trait LLVMTermBuilder extends Core {
             case Compare(Binding(to), FCmp(fcond), ComparisonType(bits), left, right) =>
                 ntermB(to) === fpCompare(fcond, left, right, bits)
 
-            // Conversions
+            // Conversion
 
             case Convert(Binding(to), _, IntT(_), Const(UndefC()), IntT(_)) =>
                 True()
@@ -210,7 +210,7 @@ trait LLVMTermBuilder extends Core {
             case Alloca(Binding(to), _, tipe, _, _) =>
                 alloca(to, tipe)
 
-            // Calls
+            // Call
 
             case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                 tipe match {
