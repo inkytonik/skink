@@ -123,7 +123,7 @@ trait LLVMTermBuilder extends Core {
      */
     def insnTerm(metaInsn : MetaInstruction) : TypedTerm[BoolTerm, Term] = {
         val insn = metaInsn.instruction
-        val term = insn match {
+        insn match {
 
             // Boolean
 
@@ -229,8 +229,6 @@ trait LLVMTermBuilder extends Core {
                 sys.error(s"insnTerm: don't know the effect of ${longshow(insn)}")
 
         }
-        logger.debug(s"insnTerm: ${longshow(insn)} -> ${term.show}")
-        term
     }
 
     /**
