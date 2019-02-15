@@ -339,7 +339,7 @@ trait LLVMTermBuilder extends Core {
      * Turn a Boolean term into an integer encoding of the truth value.
      */
     def boolToIntTerm(term : TypedTerm[BoolTerm, Term], bits : Int) : TypedTerm[IntTermType, Term] =
-        term.ite(ctermI(IntC(1), bits), ctermI(ZeroC(), bits))
+        term.ite(ctermI(TrueC(), bits), ctermI(FalseC(), bits))
 
     // Integer numbers
 
@@ -433,7 +433,7 @@ trait LLVMTermBuilder extends Core {
      * Return a bit vector term that expresses a name when referenced from node.
      */
     def ntermAtR(node : ASTNode, name : Name, bits : Int = 0) : TypedTerm[RealTermType, Term] =
-        varTermR(show(name), bits, indexOf(node, name))
+        varTermR(show(name), indexOf(node, name), bits)
 
     /**
      * Return a bit vector term that expresses an LLVM name when referenced

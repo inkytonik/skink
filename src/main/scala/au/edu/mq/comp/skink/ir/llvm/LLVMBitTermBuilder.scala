@@ -345,9 +345,9 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case IntC(i) =>
                 BVs(i, bits)
             case FalseC() | NullC() | ZeroC() =>
-                0.withBits(bits)
+                0.withUBits(bits)
             case TrueC() =>
-                1.withBits(bits)
+                1.withUBits(bits)
             case GetElementPtrC(_, bt1, tipe @ PointerT(bt2, _), NameC(from), indices) if bt1 == bt2 =>
                 offsetFromName(tipe, from, indices)
             case a : StringC =>
