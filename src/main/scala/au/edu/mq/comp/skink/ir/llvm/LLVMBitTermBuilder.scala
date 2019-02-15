@@ -858,6 +858,8 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                 }
             case IntC(n) =>
                 bytes match {
+                    case 1 =>
+                        bb.put(n.toByte)
                     case 2 =>
                         bb.putShort(n.toShort)
                     case 4 =>
