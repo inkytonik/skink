@@ -256,12 +256,12 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         val lterm = vtermI(left)
         val rterm = vtermI(right)
         cond match {
-            case EQ()  => lterm === rterm
-            case NE()  => !(lterm === rterm)
-            case SGT() => lterm > rterm
-            case SGE() => lterm >= rterm
-            case SLT() => lterm < rterm
-            case SLE() => lterm <= rterm
+            case EQ()          => lterm === rterm
+            case NE()          => !(lterm === rterm)
+            case SGT() | UGT() => lterm > rterm
+            case SGE() | UGE() => lterm >= rterm
+            case SLT() | ULT() => lterm < rterm
+            case SLE() | ULE() => lterm <= rterm
             case _ =>
                 opError[BoolTerm]("math integer comparison", left, cond, right)
         }
