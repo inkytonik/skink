@@ -53,6 +53,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Architecture specified by bits (default: 32)",
         default = Some(32))
 
+    lazy val cleanup = opt[Boolean]("cleanup", short = 'c',
+        descr = "Clean up any generated files (default: false)",
+        default = Some(false))
+
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
         default = Some(false))
