@@ -552,18 +552,18 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case _  => sys.error(s"fpdecconst: unsupported bit size $bits")
         }
 
-    def fphexconst(s : String, srcbits : Int, tgtbits : Int) : TypedTerm[FPBVTerm, Term] = {
+    def fphexconst(f : String, srcbits : Int, tgtbits : Int) : TypedTerm[FPBVTerm, Term] = {
 
         def padZeroLeftTo(s : String, length : Int) : String =
             "0" * (length - s.length) + s
 
         val length = srcbits / 4
-        if (s.length <= length) {
-            val num = padZeroLeftTo(s, length)
+        if (f.length <= length) {
+            val num = padZeroLeftTo(f, length)
             val (exp, sig) = fpexpsig(srcbits)
             fpbvcast(BVs("#x" + num).bitStringToFPBV(exp, sig), tgtbits)
         } else
-            sys.error(s"fphexconst: literal $s is larger than expected $length characters")
+            sys.error(s"fphexconst: literal $f is larger than expected $length characters")
     }
 
     /*
@@ -1031,11 +1031,6 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
 
     // Equality
 
-    /**
-     * Make an equality term between an LLVM name and an LLVM value. The
-     * kind of equality depends on the type of the name. We mostly handle
-     * integer, real and Boolean equalities, but also pointers as integers.
-     */
     override def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         (toType, fromType) match {
             case (RealT(bits), IntT(_)) if bits == numBits(fromType) =>

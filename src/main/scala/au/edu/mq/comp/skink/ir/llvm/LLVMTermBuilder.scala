@@ -490,15 +490,15 @@ trait LLVMTermBuilder extends Core {
         else
             fpdecconst(f, bits)
 
-    /**
-     * Make a floating-point term from a hexadecimal literal string.
-     */
-    def fphexconst(s : String, srcbits : Int = 0, tgtbits : Int = 0) : TypedTerm[RealTermType, Term]
-
     /*
      * Return a term for a given sized floating-point decimal constant.
      */
     def fpdecconst(f : String, bits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /**
+     * Make a floating-point term from a hexadecimal literal string.
+     */
+    def fphexconst(f : String, srcbits : Int = 0, tgtbits : Int = 0) : TypedTerm[RealTermType, Term]
 
     /**
      * Return a term to express a floating-point bitvector operation.
