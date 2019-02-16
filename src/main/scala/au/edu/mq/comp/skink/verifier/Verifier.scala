@@ -48,19 +48,22 @@ class Verifier(ir : IR, config : SkinkConfig) {
 
         def reportCorrect() {
             logger.info(s"verify: ${function.name} is correct")
-            config.output().emitln("TRUE")
+            if (!config.quiet())
+                config.output().emitln("TRUE")
             witnesses.printCorrectnessWitness(function)
         }
 
         def reportIncorrect(failureTrace : FailureTrace) {
             logger.info(s"verify: ${function.name} is incorrect")
-            config.output().emitln("FALSE")
+            if (!config.quiet())
+                config.output().emitln("FALSE")
             witnesses.printViolationWitness(function, failureTrace)
         }
 
         def reportUnknown(reasons : String) {
             logger.info(s"verify: correctness of ${function.name} is unknown")
-            config.output().emitln(s"UNKNOWN\n$reasons")
+            if (!config.quiet())
+                config.output().emitln(s"UNKNOWN\n$reasons")
         }
 
         /**

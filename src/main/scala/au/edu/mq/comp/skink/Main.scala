@@ -125,6 +125,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Optimisation level for source compilation (default: 2)",
         default = Some(2))
 
+    lazy val quiet = opt[Boolean]("quiet", short = 'q',
+        descr = "Don't print output (default: false)",
+        default = Some(false))
+
     val solversUsageMessage = "Available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr, Z3"
 
     val solversConverter =
@@ -264,9 +268,11 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
             logger.info("processIR: running program")
 
             val (output, code) = ir.execute()
-            config.output().emit(output)
-            if (code != 0)
-                config.output().emitln(s"exit code: $code")
+            if (!config.quiet()) {
+                config.output().emit(output)
+                if (code != 0)
+                    config.output().emitln(s"exit code: $code")
+            }
         }
 
     }
