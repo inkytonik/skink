@@ -105,6 +105,25 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Call
 
+            case LibFunctionCall0(Binding(to), tipe, name) =>
+                name match {
+                    case NondetFunctionName(UnsignedType(_)) =>
+                        iCompare(SGE(), Named(to), Const(ZeroC()))
+                    case NondetFunctionName(_) =>
+                        True()
+                    case _ =>
+                        sys.error(s"insnTerm: unsupported call to library function $name (zero args, ${show(tipe)} return)")
+                }
+
+            case LibFunctionCall1(Binding(to), tipe, name, arg1, argType1 : IntT) => {
+                name match {
+                    case Assume() =>
+                        assume(arg1, argType1)
+                    case _ =>
+                        sys.error(s"insnTerm: unsupported call to library function $name (one ${show(argType1)} arg, ${show(tipe)} return)")
+                }
+            }
+
             case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(_)) => {
                 name match {
                     case FAbs() =>
@@ -113,9 +132,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                         sys.error(s"insnTerm: unsupported call to library function $name (one real arg, ${show(tipe)} return)")
                 }
             }
-
-            case NondetFunctionCall(Binding(to), UnsignedType(_)) =>
-                iCompare(SGE(), Named(to), Const(ZeroC()))
 
             case insn =>
                 super.insnTerm(metaInsn)
@@ -280,7 +296,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         f.toDouble
 
     def fphexconst(f : String, srcbits : Int = 0, tgtbits : Int = 0) : TypedTerm[RealTerm, Term] =
-        java.lang.Double.longBitsToDouble(java.lang.Long.parseUnsignedLong(f.drop(2), 16))
+        java.lang.Double.longBitsToDouble(java.lang.Long.parseUnsignedLong(f, 16))
 
     def fpBinary(op : BinOp, left : Value, right : Value, bits : Int) : TypedTerm[RealTerm, Term] = {
         val lterm = vtermR(left)
@@ -372,5 +388,18 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
 
     def alloca(to : Name, tipe : Type) : TypedTerm[BoolTerm, Term] =
         True()
+
+    // Equality
+
+    override def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
+        (toType, fromType) match {
+            case (IntegerT(_), IntegerT(_)) =>
+                ntermI(to) === vtermI(from)
+            case (RealT(_), RealT(_)) =>
+                ntermR(to) === vtermR(from)
+
+            case _ =>
+                super.equality(to, toType, from, fromType)
+        }
 
 }

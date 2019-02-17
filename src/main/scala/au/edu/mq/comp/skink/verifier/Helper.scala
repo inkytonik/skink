@@ -32,7 +32,7 @@ object Helper {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import scala.math.pow
 
-    def convertBase(s : String, base : Int) : Long =
+    def convertFromBase(s : String, base : Int) : Long =
         new BigInteger(s, base).longValue()
 
     def longToSigned(l : Long, bytes : Int) : Long =
@@ -44,7 +44,7 @@ object Helper {
         }
 
     def intValue(s : String, desc : String = "") : (String, String) = {
-        val l = convertBase(s, 10)
+        val l = convertFromBase(s, 10)
         val comment =
             if (desc == "") {
                 val h = l.toHexString
@@ -77,36 +77,35 @@ object Helper {
     }
 
     def fpValue(p : String, e : String, s : String, bits : Int, desc : String = "") : (String, String) = {
+        // Get the size of the components
         val (ebits, sbits) = fpexpsig(bits)
 
-        val sign = if (p == "0") "" else "-"
-
-        // Exponent is adjusted by subtracting 2^bits - 1
-        val eadjust = pow(2, ebits - 1).toLong
-        val eraw = convertBase(e, 2)
-        val exp = eraw - eadjust + 1
+        // Exponent is 8-bit signed value adjusted down by 2^(ebits - 1) - 1
+        val eadjust = pow(2, ebits - 1) - 1
+        val exp = convertFromBase(e, 2) - eadjust
+        val expsign = if (exp < 0) -1 else 1
 
         // If raw exponent is 0 (smallest posisible) then mantissa prefix is 0, else 1
-        val pre = if (eraw == 0) 0 else 1
+        val pre = if (exp == 0) 0 else 1
 
-        val sig = s"${pre}.${convertBase(s, 2)}"
+        // Signficand is shifted to fractional size and add prefix
+        val mant = pre + convertFromBase(s, 2) / pow(2, s.length)
 
+        // The actual value of the number
+        val sign = if (p == "0") 1 else -1
+        val num = sign * mant * pow(2, expsign * exp)
+        val value = num.formatted("%a")
+
+        // Describe the number in stadnard double notation
         val comment =
             if (desc == "") {
                 val n = s"$p$e$s"
-                val l = convertBase(n, 2)
+                val l = convertFromBase(n, 2)
                 longToRealString(l, n.length / 8)
             } else
                 desc
 
-        val suffix =
-            bits match {
-                case 32 => "f"
-                case 64 => "l"
-                case _  => sys.error(s"fpValue: unknown size $bits, so don't know suffix")
-            }
-
-        (s"${sign}0x${sig}p${exp}${suffix}", comment)
+        (value, comment)
     }
 
     def ones(n : Int) : String =
@@ -128,7 +127,7 @@ object Helper {
             case ConstantTerm(DecBVLit(BVvalue(s), _)) =>
                 intValue(s)
             case ConstantTerm(HexaLit(s)) =>
-                intValue(convertBase(s, 16).toString)
+                intValue(convertFromBase(s, 16).toString)
             case ConstantTerm(NumLit(i)) =>
                 intValue(i.toString)
             case NegTerm(ConstantTerm(NumLit(i))) =>
@@ -151,6 +150,14 @@ object Helper {
                 fpValue("1", ones(e), ones(s), e + s, "NaN")
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
                 fpValue(p, e, s, p.length + e.length + s.length)
+            case RealDivTerm(ConstantTerm(NumLit(a)), List(ConstantTerm(NumLit(b)))) =>
+                (s"$a / $b", s"${a.toDouble / b.toDouble}")
+            case NegTerm(t : RealDivTerm) =>
+                val (s, c) = termToCValueString(t)
+                (s"-(s)", s"-$c")
+
+            case ConstantTerm(RoundingModeLit(mode)) =>
+                (mode.toString, "")
 
             case ConstArrayTerm(_, elem) =>
                 val (s, c) = termToCValueString(elem)
@@ -162,7 +169,7 @@ object Helper {
                 (s"$sa[$si -> $se]", "")
 
             case term =>
-                ("", "")
+                sys.error(s"termToCValueString: unexpected value term $term")
         }
 
 }

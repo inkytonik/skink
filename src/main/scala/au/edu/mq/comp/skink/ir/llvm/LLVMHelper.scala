@@ -162,7 +162,7 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object FPClassify {
         def unapply(name : String) : Boolean =
-            List("__fpclassify", "__fpclassifyf", "__fpclassifyl") contains name
+            List("fpclassify", "__fpclassify", "__fpclassifyf", "__fpclassifyl") contains name
     }
 
     /**
@@ -208,7 +208,7 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object IsInf {
         def unapply(name : String) : Boolean =
-            List("__isinf", "__isinff") contains name
+            List("isinf", "__isinf", "__isinff") contains name
     }
 
     /**
@@ -216,7 +216,27 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object IsNan {
         def unapply(name : String) : Boolean =
-            List("__isnan", "__isnanf") contains name
+            List("isnan", "__isnan", "__isnanf") contains name
+    }
+
+    /**
+     * Extractor to match various forms of calls to library functions,
+     * returning the function name. The main reason for the differences
+     * between the forms seems to be whether a correct prototype is
+     * available when the LLVM IR is produced. To simplify things, we
+     * don't assume that the proper prototype is there, so we support
+     * these multiple forms.
+     */
+    object LibFunction {
+        def unapply(v : CalledValue) : Option[String] =
+            v match {
+                case Function(Named(Global(name))) =>
+                    Some(name)
+                case Function(Const(ConvertC(Bitcast(), _, NameC(Global(name)), _))) =>
+                    Some(name)
+                case _ =>
+                    None
+            }
     }
 
     /**
@@ -226,7 +246,7 @@ class LLVMHelper(config : SkinkConfig) {
     object LibFunctionCall0 {
         def unapply(insn : Instruction) : Option[(OptBinding, Type, String)] = {
             insn match {
-                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(), _) =>
+                case Call(to, _, _, _, tipe, LibFunction(name), Vector(), _) =>
                     Some((to, tipe, name))
                 case _ =>
                     None
@@ -242,7 +262,7 @@ class LLVMHelper(config : SkinkConfig) {
     object LibFunctionCall1 {
         def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type)] = {
             insn match {
-                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1)), _) =>
+                case Call(to, _, _, _, tipe, LibFunction(name), Vector(ValueArg(tipe1, _, arg1)), _) =>
                     Some((to, tipe, name, arg1, tipe1))
                 case _ =>
                     None
@@ -258,7 +278,7 @@ class LLVMHelper(config : SkinkConfig) {
     object LibFunctionCall2 {
         def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type, Value, Type)] = {
             insn match {
-                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2)), _) =>
+                case Call(to, _, _, _, tipe, LibFunction(name), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2)), _) =>
                     Some((to, tipe, name, arg1, tipe1, arg2, tipe2))
                 case _ =>
                     None
@@ -274,7 +294,7 @@ class LLVMHelper(config : SkinkConfig) {
     object LibFunctionCall4 {
         def unapply(insn : Instruction) : Option[(OptBinding, Type, String, Value, Type, Value, Type, Value, Type, Value, Type)] = {
             insn match {
-                case Call(to, _, _, _, tipe, Function(Named(Global(name))), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2), ValueArg(tipe3, _, arg3), ValueArg(tipe4, _, arg4)), _) =>
+                case Call(to, _, _, _, tipe, LibFunction(name), Vector(ValueArg(tipe1, _, arg1), ValueArg(tipe2, _, arg2), ValueArg(tipe3, _, arg3), ValueArg(tipe4, _, arg4)), _) =>
                     Some((to, tipe, name, arg1, tipe1, arg2, tipe2, arg3, tipe3, arg4, tipe4))
                 case _ =>
                     None
@@ -297,7 +317,7 @@ class LLVMHelper(config : SkinkConfig) {
                             IsInf() | IsNan() | Lifetime() | LRInt() | LRound() | MemoryAlloc() |
                             MemoryAllocClear() | Memset() | NAN() | Output() | Remainder() |
                             RInt() | Round() | SignBit() | Trunc() | Varargs() |
-                            VerifierFunctionName() =>
+                            VerifierFunction() =>
                             true
                         case _ =>
                             false
@@ -305,7 +325,7 @@ class LLVMHelper(config : SkinkConfig) {
                 case Math() =>
                     name match {
                         case Assume() | FAbs() | MemoryAlloc() | MemoryAllocClear() | Output() | Varargs() |
-                            VerifierFunctionName() =>
+                            VerifierFunction() =>
                             true
                         case _ =>
                             false
@@ -388,22 +408,6 @@ class LLVMHelper(config : SkinkConfig) {
     }
 
     /**
-     * Matcher for nondet function calls. Successful matches return the
-     * optional binding for the return value of the call and the name of
-     * the type of value that is returned.
-     */
-    object NondetFunctionCall {
-        def unapply(insn : Instruction) : Option[(OptBinding, String)] = {
-            insn match {
-                case Call(to, _, _, _, _, VerifierFunction(NondetFunctionName(tipe)), Vector(), _) =>
-                    Some((to, tipe))
-                case _ =>
-                    None
-            }
-        }
-    }
-
-    /**
      * Matcher for nondet function names. Successful matches return the
      * identifier of the type that is returned by the matched function.
      */
@@ -473,7 +477,23 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object SignBit {
         def unapply(name : String) : Boolean =
-            List("__signbit", "__signbitf") contains name
+            List("signbit", "__signbit", "__signbitf") contains name
+    }
+
+    /*
+     * Extractor for base variable names that identifies numeric names,
+     * i.e., LLVM temporaries.
+     */
+    object TempVarBaseName {
+        def unapply(name : String) : Option[Int] = {
+            val TempBaseName = "([0-9]+)".r
+            name match {
+                case TempBaseName(temp) =>
+                    Some(temp.toInt)
+                case _ =>
+                    None
+            }
+        }
     }
 
     /**
@@ -503,22 +523,6 @@ class LLVMHelper(config : SkinkConfig) {
     }
 
     /**
-     * Matcher for varargs function names.
-     */
-    object Varargs {
-        def unapply(name : String) : Boolean =
-            List("llvm.va_copy", "llvm.va_start", "llvm.va_end") contains name
-    }
-
-    /**
-     * Matcher for SV-COMP verifier function names.
-     */
-    object VerifierFunctionName {
-        def unapply(name : String) : Boolean =
-            name.startsWith("__VERIFIER")
-    }
-
-    /**
      * Make an indexed variable name. Inverse of `UserLevelVarName`.
      */
     def makeIndexedVarName(varName : String, index : Int) : String =
@@ -541,40 +545,20 @@ class LLVMHelper(config : SkinkConfig) {
         }
     }
 
-    /*
-     * Extractor for base variable names that identifies numeric names,
-     * i.e., LLVM temporaries.
+    /**
+     * Matcher for varargs function names.
      */
-    object TempVarBaseName {
-        def unapply(name : String) : Option[Int] = {
-            val TempBaseName = "([0-9]+)".r
-            name match {
-                case TempBaseName(temp) =>
-                    Some(temp.toInt)
-                case _ =>
-                    None
-            }
-        }
+    object Varargs {
+        def unapply(name : String) : Boolean =
+            List("llvm.va_copy", "llvm.va_start", "llvm.va_end") contains name
     }
 
     /**
-     * Extractor to match various forms of calls to verifier functions,
-     * returning the function name. The main reason for the differences
-     * between the forms seems to be whether a correct prototype is
-     * available when the LLVM IR is produced. To simplify things, we
-     * don't assume that the proper prototype is there, so we support
-     * these multiple forms.
+     * Matcher for SV-COMP verifier function names.
      */
     object VerifierFunction {
-        def unapply(v : CalledValue) : Option[String] =
-            v match {
-                case Function(Named(Global(name))) =>
-                    Some(name)
-                case Function(Const(ConvertC(Bitcast(), _, NameC(Global(name)), _))) =>
-                    Some(name)
-                case _ =>
-                    None
-            }
+        def unapply(name : String) : Boolean =
+            name.startsWith("__VERIFIER")
     }
 
     // Useful math functions

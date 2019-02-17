@@ -301,7 +301,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 case MetaInstruction(
                     Call(
                         _, _, _, _, _,
-                        VerifierFunction("__VERIFIER_error"),
+                        LibFunction("__VERIFIER_error"),
                         _, _
                         ),
                     _
@@ -546,7 +546,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
             makeIndexedVarName(show(to), namer.indexOf(to, to))
 
         collectl {
-            case MetaInstruction(call @ NondetFunctionCall(binding, tipe), metadata) =>
+            case MetaInstruction(call @ LibFunctionCall0(binding, _, NondetFunctionName(tipe)), metadata) =>
                 val value = binding match {
                     case Binding(to) =>
                         failTrace.values.get(getIndexedVarName(to))

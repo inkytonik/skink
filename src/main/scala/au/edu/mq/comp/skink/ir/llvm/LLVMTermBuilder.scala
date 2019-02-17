@@ -209,7 +209,7 @@ trait LLVMTermBuilder extends Core {
 
             // Call
 
-            case Call(_, _, _, _, _, VerifierFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
+            case Call(_, _, _, _, _, LibFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
                 tipe match {
                     case BoolT() =>
                         vtermB(arg)
@@ -219,9 +219,6 @@ trait LLVMTermBuilder extends Core {
                     case _ =>
                         sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
                 }
-
-            case NondetFunctionCall(_, _) =>
-                True()
 
             // Default
 
@@ -537,6 +534,22 @@ trait LLVMTermBuilder extends Core {
      * Return a term to represent the allocation of stack memory.
      */
     def alloca(to : Name, tipe : Type) : TypedTerm[BoolTerm, Term]
+
+    // Assume
+
+    /**
+     * Return a term for a call to "assume".
+     */
+    def assume(arg : Value, tipe : Type) : TypedTerm[BoolTerm, Term] =
+        tipe match {
+            case BoolT() =>
+                vtermB(arg)
+            case IntT(_) =>
+                val bits = numBits(tipe)
+                !(vtermI(arg, bits) === ctermI(ZeroC(), bits))
+            case _ =>
+                sys.error(s"assume: unexpected type ${show(tipe)} in call")
+        }
 
     // Equality
 

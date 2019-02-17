@@ -1,4 +1,6 @@
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+extern void __VERIFIER_assume(int);
+extern int __VERIFIER_nondet_int();
 extern double __VERIFIER_nondet_double();
 extern int __isnan(double);
 
@@ -23,7 +25,7 @@ int main()
     __VERIFIER_assume(i >= 0 && i < 4);
 
     double a1 = __VERIFIER_nondet_double();
-    __VERIFIER_assume(!__isnan(a1));
+    __VERIFIER_assume(!isnan(a1));
     s[i].Y = a1;
     double a2 = s[i].Y;
     if (a1 == a2) __VERIFIER_error();

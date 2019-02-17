@@ -37,7 +37,7 @@ class LLVMBitTermTests extends LLVMTermTests with ArrayExBV with ArrayExOperator
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import scala.language.implicitConversions
 
-    def config = createAndInitConfig(Seq("-i", "bit", "-r", "bit"))
+    def config = createAndInitConfig(Seq("-n", "bit"))
     val helper = new LLVMHelper(config)
     val termBuilder = new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config)
 

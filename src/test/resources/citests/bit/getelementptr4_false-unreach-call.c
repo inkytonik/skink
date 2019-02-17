@@ -1,4 +1,6 @@
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+extern void __VERIFIER_assume(int);
+extern int __VERIFIER_nondet_int();
 extern double __VERIFIER_nondet_double();
 
 // These types are from LLVM doc for getelementptr insn

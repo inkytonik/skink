@@ -39,7 +39,7 @@ class LLVMMathTermTests extends LLVMTermTests with ArrayExInt with ArrayExOperat
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
 
-    def config = createAndInitConfig(Seq())
+    def config = createAndInitConfig(Seq("-n math"))
     val helper = new LLVMHelper(config)
     val termBuilder = new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config)
 

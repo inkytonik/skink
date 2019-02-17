@@ -1,5 +1,8 @@
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+extern void __VERIFIER_assume(int);
 extern int __VERIFIER_nondet_int();
+extern char __VERIFIER_nondet_char();
+extern double __VERIFIER_nondet_double();
 
 // These types are from LLVM doc for getelementptr insn
 
@@ -21,10 +24,10 @@ int main()
     int i = __VERIFIER_nondet_int();
     __VERIFIER_assume(i >= 0 && i < 4);
 
-    int a1 = __VERIFIER_nondet_int();
-    s[i].X = a1;
-    int a2 = s[i].X;
-    if (a1 == a2) __VERIFIER_error();
-
+    int c1 = __VERIFIER_nondet_char();
+    s[i].Z.A = c1;
+    char c2 = s[i].Z.A;
+    if (c1 == c2) __VERIFIER_error();
+    
     return 0;
 }

@@ -1,4 +1,18 @@
-TRUE
+#!/bin/bash
+# Check that a true witness file is as expected.
+
+if test $# -ne 2
+then
+    echo "usage: check-true-witness.sh property witness.graphml file.c"
+    exit 1
+fi
+
+witness=$1
+program=$2
+
+sha1=`sha1sum $program | cut -d ' ' -f 1`
+
+diff $witness - <<END
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <graphml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -19,7 +33,8 @@ TRUE
 <key id="programhash"    for="graph" attr.name="programhash"      attr.type="string"/>
 <key id="memorymodel"    for="graph" attr.name="memorymodel"      attr.type="string"/>
 <key id="architecture"   for="graph" attr.name="architecture"     attr.type="string"/>
-<key id="assumption"                for="edge" attr.name="assumption"     attr.type="string"/>
+<key id="assumption"                for="edge" attr.name="assumption"       attr.type="string"/>
+<key id="assumption.note"           for="edge" attr.name="assumption.note"  attr.type="string"/>
 <key id="assumption.scope"          for="edge" attr.name="assumption.scope" attr.type="string"/>
 <key id="assumption.resultfunction" for="edge" attr.name="assumption.resultfunction" attr.type="string"/>
 
@@ -28,8 +43,8 @@ TRUE
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
   <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-  <data key="programfile"   >src/test/resources/citests/getelementptr_true-unreach-call.c</data>
-  <data key="programhash"   >acd1537c992bebf34b90b278c9c5e6961b74458e</data>
+  <data key="programfile"   >$program</data>
+  <data key="programhash"   >$sha1</data>
   <data key="memorymodel"   >simple</data>
   <data key="architecture"  >32bit</data>
 
@@ -48,3 +63,4 @@ TRUE
 </graph>
 
 </graphml>
+END

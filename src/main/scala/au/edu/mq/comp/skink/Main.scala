@@ -24,9 +24,13 @@ package au.edu.mq.comp.skink
 import au.edu.mq.comp.skink.ir.IR
 import org.bitbucket.inkytonik.kiama.util.{CompilerBase, Config}
 
-sealed abstract class NumberMode
-case class Bit() extends NumberMode
-case class Math() extends NumberMode
+sealed abstract class NumberMode extends Product
+case class Bit() extends NumberMode {
+    override def toString = "-n bit"
+}
+case class Math() extends NumberMode {
+    override def toString = "-n math"
+}
 
 sealed abstract class Solver
 case class Boolector() extends Solver
@@ -211,7 +215,7 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.Source
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-    import org.rogach.scallop.exceptions.ScallopException
+    // import org.rogach.scallop.exceptions.ScallopException
 
     val logger = getLogger(this.getClass)
 
@@ -222,15 +226,6 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
 
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
-
-    override def createAndInitConfig(args : Seq[String]) : Either[String, SkinkConfig] =
-        try {
-            super.createAndInitConfig(args)
-        } catch {
-            case e : ScallopException =>
-                println(e.getMessage())
-                sys.exit(1)
-        }
 
     override def processfile(filename : String, config : SkinkConfig) {
         logger.info(s"processfile: $filename")

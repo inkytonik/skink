@@ -1,0 +1,3 @@
+[submodule "fshell-w2t"]
+	path = fshell-w2t
+	url = https://github.com/tautschnig/fshell-w2t

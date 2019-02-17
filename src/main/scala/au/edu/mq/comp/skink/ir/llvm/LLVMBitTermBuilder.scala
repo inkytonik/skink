@@ -197,21 +197,27 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Call
 
-            case LibFunctionCall0(Binding(to), tipe : IntT, name) =>
+            case LibFunctionCall0(Binding(to), tipe, name) =>
                 name match {
                     case FEGetRound() =>
                         val bits = numBits(tipe)
                         ntermI(to, bits) === fegetround(bits)
+                    case NondetFunctionName(UnsignedType(bits)) =>
+                        iCompare(UGE(), Named(to), Const(ZeroC()), bits)
+                    case NondetFunctionName(_) =>
+                        True()
                     case _ =>
-                        sys.error(s"insnTerm: unsupported call to library function $name (zero args, int return)")
+                        sys.error(s"insnTerm: unsupported call to library function $name (zero args, ${show(tipe)} return)")
                 }
 
-            case LibFunctionCall1(Binding(to), tipe : IntT, name, arg1, tipe1 : IntT) =>
+            case LibFunctionCall1(Binding(to), tipe, name, arg1, argType1 : IntT) =>
                 name match {
+                    case Assume() =>
+                        assume(arg1, argType1)
                     case FESetRound() =>
-                        fesetround(insn, numBits(tipe), arg1, numBits(tipe1))
+                        fesetround(insn, numBits(tipe), arg1, numBits(argType1))
                     case _ =>
-                        sys.error(s"insnTerm: unsupported call to library function $name (one int arg, int return)")
+                        sys.error(s"insnTerm: unsupported call to library function $name (one ${show(argType1)} arg, ${show(tipe)} return)")
                 }
 
             case LibFunctionCall1(Binding(to), tipe, name, arg1, RealT(bits1)) =>
@@ -303,9 +309,6 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (pointer to int, int, int, int, void return)")
                 }
-
-            case NondetFunctionCall(Binding(to), UnsignedType(bits)) =>
-                iCompare(UGE(), Named(to), Const(ZeroC()), bits)
 
             // Default
 
