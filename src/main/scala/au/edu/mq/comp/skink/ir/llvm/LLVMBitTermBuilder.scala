@@ -911,11 +911,11 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                         case i =>
                             bs.get(i).withBits(8)
                     }
-                case _ =>
+                case Named(name) =>
                     (0 until bytes).map {
                         case i =>
                             val start = (bytes - i - 1) * 8
-                            bitsTerm(to, bytes * 8).extract(start + 7, start)
+                            ntermI(name, bytes * 8).extract(start + 7, start)
                     }
             }
         val chunk =
@@ -930,8 +930,8 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
                 chunkTerm(to) === chunk
             case IntT(_) | PointerT(_, _) =>
-                vtermI(from, bits) === bitsTerm(to, bits) &
-                    chunkTerm(to) === chunk
+                //vtermI(from, bits) === bitsTerm(to, bits) &
+                chunkTerm(to) === chunk
             case RealT(_) =>
                 val (p, e, s) = fpbitTerms(to, bits)
                 vtermR(from, bits) === FPBVs(p, e, s) &
