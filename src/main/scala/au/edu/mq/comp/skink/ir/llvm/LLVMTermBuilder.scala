@@ -579,7 +579,7 @@ trait LLVMTermBuilder extends Core {
                 case (BoolT(), RealT(fromBits)) =>
                     ntermB(to) === !(vtermR(from, fromBits) === ctermR(ZeroC(), fromBits))
                 case (RealT(toBits), BoolT()) =>
-                    ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0                    "), toBits), ctermR(FloatC("0.0"), toBits))
+                    ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0"), toBits), ctermR(FloatC("0.0"), toBits))
 
                 case (RealT(toBits), IntT(_)) if toBits == numBits(fromType) =>
                     ntermR(to, toBits) === vtermR(from, toBits)
