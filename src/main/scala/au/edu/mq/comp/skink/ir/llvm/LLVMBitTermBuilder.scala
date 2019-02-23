@@ -594,6 +594,8 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     def fpBinary(op : BinOp, left : Value, right : Value, bits : Int) : TypedTerm[FPBVTerm, Term] = {
+        if (bits > 64)
+            sys.error(s"fpBinary: don't know what to do with float binary operation on $bits bits")
         val lterm = fpbvcast(vtermR(left, bits), 64)
         val rterm = fpbvcast(vtermR(right, bits), 64)
         val exp =
@@ -603,7 +605,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                 case _ : FMul => lterm * rterm
                 case _ : FSub => lterm - rterm
                 case _ =>
-                    opError[FPBVTerm]("float", left, op, right)
+                    opError[FPBVTerm]("bitvector float", left, op, right)
             }
         fpbvcast(exp, bits)
     }
