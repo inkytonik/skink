@@ -62,9 +62,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Conversion
 
-            case Convert(Binding(to), op, fromType @ IntT(_), from, toType @ IntT(_)) =>
-                equality(to, toType, from, fromType)
-
             case Convert(Binding(to), _, fromType, from, toType) =>
                 equality(to, toType, from, fromType)
 
@@ -194,12 +191,12 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
     def varTermI(id : String, index : Int, bits : Int) : TypedTerm[IntTerm, Term] =
         new VarTerm(termid(id), IntSort(), Some(index))
 
-    def ctermI(constantValue : ConstantValue, bits : Int) : TypedTerm[IntTerm, Term] =
+    def ctermI(constantValue : ConstantValue, bits : Int = 0) : TypedTerm[IntTerm, Term] =
         constantValue match {
             case BinaryC(op, ltype : IntT, left, rtype, right) if ltype == rtype =>
-                iBinary(op, Const(left), Const(right), bits)
+                iBinary(op, Const(left), Const(right))
             case IntC(i) =>
-                i.toInt
+                Ints(i)
             case FalseC() | NullC() | ZeroC() =>
                 0
             case TrueC() =>
@@ -210,7 +207,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }
 
-    def iBinary(op : BinOp, left : Value, right : Value, bits : Int) : TypedTerm[IntTerm, Term] = {
+    def iBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[IntTerm, Term] = {
         val lterm = vtermI(left)
         val rterm = vtermI(right)
         op match {
@@ -237,7 +234,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 }
             case _ : Mul => lterm * rterm
             case _ : Or =>
-                // FIXME: correct for negative lterm?
                 right match {
                     case Const(IntC(i)) if i == 1 =>
                         (lterm % 2 === 0).ite(lterm + 1, lterm)
@@ -268,7 +264,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         }
     }
 
-    def iCompare(cond : ICond, left : Value, right : Value, bits : Int) : TypedTerm[BoolTerm, Term] = {
+    def iCompare(cond : ICond, left : Value, right : Value, bits : Int = 0) : TypedTerm[BoolTerm, Term] = {
         val lterm = vtermI(left)
         val rterm = vtermI(right)
         cond match {
