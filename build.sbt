@@ -15,30 +15,19 @@ buildInfoPackage := "au.edu.mq.comp.skink"
 
 scalaVersion := "2.12.8"
 
-scalacOptions := {
-
-    // Turn on all lint warnings, except:
-    //  - stars-align: incorrectly reports problems if pattern matching of
-    //    unapplySeq extractor doesn't match sequence directly
-
-    val lintOption =
-        if (scalaVersion.value.startsWith ("2.10"))
-            "-Xlint"
-        else
-            "-Xlint:-stars-align,_"
-
+val compilerOptions =
     Seq (
         "-deprecation",
         "-feature",
-        "-sourcepath", baseDirectory.value.getAbsolutePath,
         "-unchecked",
-        "-Xfatal-warnings",
         "-Xcheckinit",
-        "-Yrangepos",
-        lintOption
+        "-Xlint:-stars-align,_",
+        "-Yrangepos"
     )
 
-}
+scalacOptions := "-Xfatal-warnings" +: compilerOptions
+
+scalacOptions in (Compile, console) := compilerOptions
 
 // Interactive settings
 
