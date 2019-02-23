@@ -52,7 +52,7 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object Assume {
         def unapply(name : String) : Boolean =
-            List("__VERIFIER_assume", "pagai.invariant") contains name
+            List("assume", "__VERIFIER_assume", "pagai.invariant") contains name
     }
 
     /**
