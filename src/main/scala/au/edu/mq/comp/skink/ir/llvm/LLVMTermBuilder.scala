@@ -98,7 +98,7 @@ trait LLVMTermBuilder extends Core {
                 case Switch(IntegerT(bits), value, _, cases) if choice == cases.length =>
                     combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value, bits) === vtermI(v, bits)) })
 
-                case Switch(IntegerT(bits), value, _, cases) if choice < cases.length =>
+                case Switch(IntegerT(bits), value, _, cases) if choice >= 0 && choice < cases.length =>
                     vtermI(value, bits) === vtermI(cases(choice).value, bits)
 
                 case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
