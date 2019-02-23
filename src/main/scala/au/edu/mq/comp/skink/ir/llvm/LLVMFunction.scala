@@ -165,14 +165,17 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
                 Seq((termBuilder.combineTerms(terms), true))
             case n =>
+                val blocks = treeBlockTrace.blocks
                 trace.choices.zipWithIndex.map {
                     case (choice, count) =>
-                        val block = treeBlockTrace.blocks(count)
+                        if (count >= blocks.length)
+                            sys.error(s"traceToTerms: can't find block with index $count in ${blocks.length} block trace")
+                        val block = blocks(count)
                         val optPrevBlock =
                             if (count == 0)
                                 None
                             else
-                                Some(treeBlockTrace.blocks(count - 1))
+                                Some(blocks(count - 1))
                         val blockTerm = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
                         val term =
                             if (count == 0)
