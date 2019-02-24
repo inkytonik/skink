@@ -29,6 +29,7 @@ import org.bitbucket.inkytonik.kiama.util.Tests
 class LLVMTermTests extends Tests {
 
     import au.edu.mq.comp.skink.{Main, SkinkConfig}
+    import au.edu.mq.comp.skink.verifier.SMTLIB2Interpolators._
     import au.edu.mq.comp.skink.ir.llvm.LLVMInterpolators._
     import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term

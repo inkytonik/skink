@@ -21,21 +21,16 @@
 
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.bitbucket.inkytonik.kiama.util.{Messaging, PositionStore}
+import au.edu.mq.comp.skink.verifier.Interpolators
 
-object LLVMInterpolators extends Messaging with PositionStore {
+object LLVMInterpolators extends Interpolators {
 
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
-    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Parser
-    import org.bitbucket.inkytonik.kiama.util.{StringSource, Source}
+    import org.bitbucket.inkytonik.kiama.util.Source
     import org.scalallvm.assembly.Assembly
     import org.scalallvm.assembly.AssemblySyntax.{Block, Instruction, Item, PhiInstruction, Program, TerminatorInstruction, Value}
-    import scala.util.{Failure, Success, Try}
     import xtc.parser.Result
 
-    implicit class InterpolatorHelper(val sc : StringContext) extends AnyVal {
-
-        // LLVM helpers
+    implicit class LLVMInterpolatorHelper(val sc : StringContext) extends AnyVal {
 
         def block(args : Any*) : Block =
             interpolate(sc, parseBlock)(args)
@@ -58,22 +53,6 @@ object LLVMInterpolators extends Messaging with PositionStore {
         def value[T](args : Any*) : Value =
             interpolate(sc, parseValue)(args)
 
-        // SMTLIB2 helpers
-
-        def term[T](args : Any*) : Term =
-            interpolate(sc, parseTerm)(args)
-
-    }
-
-    def interpolate[T](sc : StringContext, parser : Source => T)(args : Seq[Any]) : T = {
-        val strings = sc.parts.iterator
-        val expressions = args.iterator
-        val buf = new StringBuilder(strings.next)
-        while (strings.hasNext) {
-            buf append expressions.next
-            buf append strings.next
-        }
-        parser(new StringSource(buf.result()))
     }
 
     def parseBlock(source : Source) : Block =
@@ -105,19 +84,6 @@ object LLVMInterpolators extends Messaging with PositionStore {
         else {
             val msg = formatMessage(p.errorToMessage(pr.parseError))
             throw new RuntimeException(msg)
-        }
-    }
-
-    def parseTerm[T](source : Source) : Term = {
-        parseSMTLIB2(SMTLIB2Parser[Term], source)
-    }
-
-    def parseSMTLIB2[T](parser : Source => Try[Term], source : Source) : Term = {
-        parser(source) match {
-            case Success(term) =>
-                term
-            case Failure(e) =>
-                throw e
         }
     }
 
