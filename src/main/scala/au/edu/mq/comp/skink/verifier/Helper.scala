@@ -46,11 +46,9 @@ object Helper {
     def intValue(s : String, desc : String = "") : (String, String) = {
         val l = convertFromBase(s, 10)
         val comment =
-            if (desc == "") {
-                val h = l.toHexString
-                val s = longToSigned(l, h.length / 2)
-                s"0x$h $s"
-            } else
+            if (desc == "")
+                s"hex: ${l.toHexString}"
+            else
                 desc
         (s, comment)
     }
@@ -86,7 +84,7 @@ object Helper {
         val expsign = if (exp < 0) -1 else 1
 
         // If raw exponent is 0 (smallest posisible) then mantissa prefix is 0, else 1
-        val pre = if (exp == 0) 0 else 1
+        val pre = if (exp == -eadjust) 0 else 1
 
         // Signficand is shifted to fractional size and add prefix
         val mant = pre + convertFromBase(s, 2) / pow(2, s.length)
@@ -94,15 +92,13 @@ object Helper {
         // The actual value of the number
         val sign = if (p == "0") 1 else -1
         val num = sign * mant * pow(2, expsign * exp)
-        val value = num.formatted("%a")
+        val value = f"$num%a"
 
         // Describe the number in stadnard double notation
         val comment =
-            if (desc == "") {
-                val n = s"$p$e$s"
-                val l = convertFromBase(n, 2)
-                longToRealString(l, n.length / 8)
-            } else
+            if (desc == "")
+                f"dec: $num, hex: $num%a"
+            else
                 desc
 
         (value, comment)
@@ -122,14 +118,17 @@ object Helper {
      */
     def termToCValueString(term : Term) : (String, String) =
         term match {
-            case ConstantTerm(DecLit(integralPart, fractionalPart)) =>
-                (integralPart + "." + fractionalPart, "DecLiteral")
+            case ConstantTerm(BinLit(s)) =>
+                intValue(convertFromBase(s, 2).toString)
             case ConstantTerm(DecBVLit(BVvalue(s), _)) =>
                 intValue(s)
             case ConstantTerm(HexaLit(s)) =>
                 intValue(convertFromBase(s, 16).toString)
             case ConstantTerm(NumLit(i)) =>
                 intValue(i.toString)
+
+            case NegTerm(ConstantTerm(DecBVLit(BVvalue(s), _))) =>
+                intValue(s"-$s")
             case NegTerm(ConstantTerm(NumLit(i))) =>
                 intValue(s"-$i")
 
@@ -138,26 +137,41 @@ object Helper {
             case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) =>
                 ("0", "false")
 
-            case ConstantTerm(FPPlusInfinity(e, s)) =>
-                fpValue("1", ones(e), zeros(s), e + s, "+Infinity")
-            case ConstantTerm(FPMinusInfinity(e, s)) =>
-                fpValue("0", ones(e), zeros(s), e + s, "-Infinity")
-            case ConstantTerm(FPBVPlusZero(e, s)) =>
-                fpValue("1", zeros(e), zeros(s), e + s, "+Zero")
-            case ConstantTerm(FPBVMinusZero(e, s)) =>
-                fpValue("0", zeros(e), zeros(s), e + s, "-Zero")
-            case ConstantTerm(FPBVNaN(e, s)) =>
-                fpValue("1", ones(e), ones(s), e + s, "NaN")
+            case ConstantTerm(DecLit(a, b)) =>
+                val num = s"$a.$b"
+                (num, f"dec: $num, hex: ${num.toDouble}%a")
+            case NegTerm(ConstantTerm(DecLit(a, b))) =>
+                val num = s"-$a.$b"
+                (num, f"dec: $num, hex: ${num.toDouble}%a")
+
+            case ConstantTerm(FPPlusInfinity(_, _)) =>
+                ("1.0 / 0.0", "+Infinity")
+            case ConstantTerm(FPMinusInfinity(_, _)) =>
+                ("-(1.0 / 0.0)", "-Infinity")
+            case ConstantTerm(FPBVPlusZero(_, _)) =>
+                ("0.0", "+Zero")
+            case ConstantTerm(FPBVMinusZero(_, _)) =>
+                ("-0.0", "-Zero")
+            case ConstantTerm(FPBVNaN(_, _)) =>
+                ("0.0 / 0.0", "NaN")
+
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
                 fpValue(p, e, s, p.length + e.length + s.length)
+
             case RealDivTerm(ConstantTerm(NumLit(a)), List(ConstantTerm(NumLit(b)))) =>
-                (s"$a / $b", s"${a.toDouble / b.toDouble}")
+                (s"${a.toDouble} / ${b.toDouble}", f"${a.toDouble / b.toDouble}%f")
             case NegTerm(t : RealDivTerm) =>
                 val (s, c) = termToCValueString(t)
-                (s"-(s)", s"-$c")
+                (s"-($s)", s"-$c")
 
-            case ConstantTerm(RoundingModeLit(mode)) =>
-                (mode.toString, "")
+            case ConstantTerm(RoundingModeLit(RNE())) =>
+                ("FE_TONEAREST", "RNE")
+            case ConstantTerm(RoundingModeLit(RTN())) =>
+                ("FE_DOWNWARD", "RTN")
+            case ConstantTerm(RoundingModeLit(RTP())) =>
+                ("FE_UPWARD", "RTP")
+            case ConstantTerm(RoundingModeLit(RTZ())) =>
+                ("FE_TOWARDZERO", "RTZ")
 
             case ConstArrayTerm(_, elem) =>
                 val (s, c) = termToCValueString(elem)

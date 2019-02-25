@@ -195,8 +195,8 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         }
 
     lazy val solverTimeOut = opt[Duration]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers in seconds (default : 10s)",
-        default = Some(Duration(10, "second")))(solverTimeOutConverter)
+        descr = "Timeout for SMT solvers in seconds (default : 30s)",
+        default = Some(Duration(30, "second")))(solverTimeOutConverter)
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
         descr = "Verify the target code (default: false)",
