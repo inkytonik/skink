@@ -122,8 +122,8 @@ object Helper {
      */
     def termToCValueString(term : Term) : (String, String) =
         term match {
-            case ConstantTerm(DecLit(s)) =>
-                intValue(s)
+            case ConstantTerm(DecLit(integralPart, fractionalPart)) =>
+                (integralPart + "." + fractionalPart, "DecLiteral")
             case ConstantTerm(DecBVLit(BVvalue(s), _)) =>
                 intValue(s)
             case ConstantTerm(HexaLit(s)) =>
