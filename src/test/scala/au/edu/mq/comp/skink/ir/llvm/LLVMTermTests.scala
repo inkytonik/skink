@@ -955,6 +955,40 @@ class LLVMTermTests extends Tests {
         }
     }
 
+    val fmins = Vector("fmin", "fminf", "fminl")
+
+    for ((tipe, exp, sig) <- floatTypes) {
+        for (fmin <- fmins) {
+            insnTermTest(
+                s"%x = call $tipe @$fmin ($tipe %y, $tipe %z)",
+                "(= %x@0 (fp.min %y@0 %z@0))",
+                "(= %x@0 (ite (<= %y@0 %z@0) %y@0 %z@0))"
+            )
+        }
+        insnTermTest(
+            s"%x = call $tipe @llvm.minnum.f${exp + sig} ($tipe %y, $tipe %z)",
+            "(= %x@0 (fp.min %y@0 %z@0))",
+            "(= %x@0 (ite (<= %y@0 %z@0) %y@0 %z@0))"
+        )
+    }
+
+    val fmaxs = Vector("fmax", "fmaxf", "fmaxl")
+
+    for ((tipe, exp, sig) <- floatTypes) {
+        for (fmax <- fmaxs) {
+            insnTermTest(
+                s"%x = call $tipe @$fmax ($tipe %y, $tipe %z)",
+                "(= %x@0 (fp.max %y@0 %z@0))",
+                "(= %x@0 (ite (>= %y@0 %z@0) %y@0 %z@0))"
+            )
+        }
+        insnTermTest(
+            s"%x = call $tipe @llvm.maxnum.f${exp + sig} ($tipe %y, $tipe %z)",
+            "(= %x@0 (fp.max %y@0 %z@0))",
+            "(= %x@0 (ite (>= %y@0 %z@0) %y@0 %z@0))"
+        )
+    }
+
     for (bits <- intSizes) {
         val i = s"%x = call i$bits* @malloc (i32 42)"
         test(s"$i (math)") {

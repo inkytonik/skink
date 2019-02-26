@@ -130,6 +130,18 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 }
             }
 
+            case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1), arg2, RealT(bits2)) =>
+                val aterm1 = vtermR(arg1)
+                val aterm2 = vtermR(arg2)
+                name match {
+                    case FMax() =>
+                        ntermR(to, bits) === (aterm1 >= aterm2).ite(aterm1, aterm2)
+                    case FMin() =>
+                        ntermR(to, bits) === (aterm1 <= aterm2).ite(aterm1, aterm2)
+                    case _ =>
+                        sys.error(s"insnTerm: unsupported call to library function $name (two reals arg, real return)")
+                }
+
             case insn =>
                 super.insnTerm(metaInsn)
 

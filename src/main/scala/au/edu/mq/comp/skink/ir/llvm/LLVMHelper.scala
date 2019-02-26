@@ -138,7 +138,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object FMax {
         def unapply(name : String) : Boolean =
-            List("fmax", "fmaxf", "fmaxl") contains name
+            (List("fmax", "fmaxf", "fmaxl") contains name) ||
+                name.startsWith("llvm.maxnum.")
     }
 
     /**
@@ -146,7 +147,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object FMin {
         def unapply(name : String) : Boolean =
-            List("fmin", "fminf", "fminl") contains name
+            (List("fmin", "fminf", "fminl") contains name) ||
+                name.startsWith("llvm.minnum.")
     }
 
     /**
