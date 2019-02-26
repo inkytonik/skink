@@ -925,18 +925,18 @@ class LLVMTermTests extends Tests {
 
     // Library calls
 
-    val abss =
-        Vector(
-            ("float", "f32"),
-            ("double", "f64"),
-            ("x86_fp80", "f80"),
-            ("fp128", "f128"),
-            ("ppc_fp128", "ppcf128")
-        )
+    val fabss = Vector("fabs", "fabsf", "fabsl")
 
-    for ((tipe, abs) <- abss) {
+    for ((tipe, exp, sig) <- floatTypes) {
+        for (fabs <- fabss) {
+            insnTermTest(
+                s"%x = call $tipe @$fabs ($tipe %y)",
+                "(= %x@0 (fp.abs %y@0))",
+                "(= %x@0 (abs %y@0))"
+            )
+        }
         insnTermTest(
-            s"%x = call $tipe @llvm.fabs.$abs ($tipe %y)",
+            s"%x = call $tipe @llvm.fabs.f${exp + sig} ($tipe %y)",
             "(= %x@0 (fp.abs %y@0))",
             "(= %x@0 (abs %y@0))"
         )

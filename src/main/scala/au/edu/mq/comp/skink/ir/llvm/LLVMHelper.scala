@@ -98,7 +98,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object FAbs {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.fabs.")
+            (List("fabs", "fabsf", "fabsl") contains name) ||
+                name.startsWith("llvm.fabs.")
     }
 
     /**
