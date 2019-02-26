@@ -1,4 +1,4 @@
-image: bitbucketpipelines/scala-sbt:scala-2.12
+image: inkytonik/docker-skink
 
 pipelines:
   default:
