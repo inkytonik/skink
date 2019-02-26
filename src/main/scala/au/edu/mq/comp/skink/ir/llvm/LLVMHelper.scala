@@ -73,7 +73,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object Ceil {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.ceil.")
+            (List("ceil", "ceilf", "ceill") contains name) ||
+                name.startsWith("llvm.ceil.")
     }
 
     /**
@@ -131,7 +132,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object Floor {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.floor.")
+            (List("floor", "floorf", "floorl") contains name) ||
+                name.startsWith("llvm.floor.")
     }
 
     /**
@@ -463,7 +465,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object RInt {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.rint.")
+            (List("rint", "rintf", "rintl") contains name) ||
+                name.startsWith("llvm.rint.")
     }
 
     /**
@@ -504,7 +507,8 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object Trunc {
         def unapply(name : String) : Boolean =
-            name.startsWith("llvm.trunc.")
+            (List("trunc", "truncf", "truncl") contains name) ||
+                name.startsWith("llvm.trunc.")
     }
 
     /**
