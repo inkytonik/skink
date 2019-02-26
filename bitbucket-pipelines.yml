@@ -8,6 +8,8 @@ pipelines:
             - ivy2
         script:
           - git submodule update --init
-          - cd fshell-w2t; wget https://codeload.github.com/eliben/pycparser/zip/master -O pycparser-master.zip
-          - cd fshell-w2t; unzip pycparser-master.zip
+          - cd fshell-w2t
+          - wget https://codeload.github.com/eliben/pycparser/zip/master -O pycparser-master.zip
+          - unzip pycparser-master.zip
+          - cd ..
           - sbt test
