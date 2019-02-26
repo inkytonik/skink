@@ -112,7 +112,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         if (nonInlinedCallNames.isEmpty)
             None
         else
-            Some(s"""calls to the following functions were not inlined: ${nonInlinedCallNames.mkString(", ")}""")
+            Some(s"""don't know how to handle calls to the following functions: ${nonInlinedCallNames.mkString(", ")}""")
 
     }
 
