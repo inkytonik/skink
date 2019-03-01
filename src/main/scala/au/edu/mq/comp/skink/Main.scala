@@ -51,6 +51,9 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     import scala.concurrent.duration.Duration
     import scala.reflect.runtime.universe.TypeTag
 
+    def argStrings(s : List[(String, List[String])]) : List[String] =
+        s.map(_._2).flatten.map(_.toLowerCase)
+
     version(s"${BuildInfo.name} ${BuildInfo.version}")
 
     lazy val architecture = opt[Int]("architecture", short = 'a',
@@ -73,10 +76,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
             val argType = ArgType.LIST
 
             def parse(s : List[(String, List[String])]) : Either[String, Option[Frontend]] =
-                s match {
-                    case List((_, List("C"))) =>
+                argStrings(s) match {
+                    case List("c") =>
                         Right(Some(new CFrontend(config)))
-                    case List((_, List("LLVM"))) =>
+                    case List("llvm") =>
                         Right(Some(new LLVMFrontend(config)))
                     case _ =>
                         if (s.isEmpty)
@@ -109,10 +112,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
             val argType = ArgType.LIST
 
             def parse(s : List[(String, List[String])]) : Either[String, Option[NumberMode]] =
-                s match {
-                    case List((_, List("bit"))) =>
+                argStrings(s) match {
+                    case List("bit") =>
                         Right(Some(Bit()))
-                    case List((_, List("math"))) =>
+                    case List("math") =>
                         Right(Some(Math()))
                     case _ =>
                         if (s.isEmpty)
@@ -145,15 +148,14 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
             val argType = ArgType.LIST
 
             def parse(s : List[(String, List[String])]) : Either[String, Option[List[Solver]]] = {
-                val allArgs = s.map(_._2).flatten
-                val solvers = allArgs.map {
-                    case "Boolector"    => Some(Boolector())
-                    case "CVC4"         => Some(CVC4())
-                    case "MathSat"      => Some(MathSat())
-                    case "SMTInterpol"  => Some(SMTInterpol())
-                    case "Yices"        => Some(Yices())
-                    case "YicesNonIncr" => Some(YicesNonIncr())
-                    case "Z3"           => Some(Z3())
+                val solvers = argStrings(s).map {
+                    case "boolector"    => Some(Boolector())
+                    case "cvc4"         => Some(CVC4())
+                    case "mathsat"      => Some(MathSat())
+                    case "smtinterpol"  => Some(SMTInterpol())
+                    case "yices"        => Some(Yices())
+                    case "yicesnonincr" => Some(YicesNonIncr())
+                    case "z3"           => Some(Z3())
                     case _              => None
                 }
                 if (solvers.isEmpty)
