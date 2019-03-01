@@ -196,8 +196,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         term
     }
 
-    // Booleans
-
     // Integer numbers
 
     def varTermI(id : String, index : Int, bits : Int) : TypedTerm[IntTerm, Term] =
