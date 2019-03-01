@@ -483,7 +483,7 @@ class LLVMHelper(config : SkinkConfig) {
      */
     object SignBit {
         def unapply(name : String) : Boolean =
-            List("signbit", "__signbit", "__signbitf") contains name
+            List("signbit", "__signbit", "__signbitf", "__signbitl") contains name
     }
 
     /*
