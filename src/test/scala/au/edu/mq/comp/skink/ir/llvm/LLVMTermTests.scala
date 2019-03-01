@@ -58,6 +58,8 @@ class LLVMTermTests extends Tests {
 
     // Test parameters
 
+    val noMetadata = Metadata(Vector())
+
     val intSizes = Vector(8, 16, 32, 64)
 
     val floatTypes =
@@ -248,25 +250,20 @@ class LLVMTermTests extends Tests {
             ("fsub", "fp.sub", "-")
         )
 
-    val fpargx = mkFloatArg("%x@0")
-    val fpargy = mkFloatArg("%y@0")
-
     for ((tipe, exp, sig) <- floatTypes) {
         for ((lop, sopb, sopm) <- floatBinaryOps) {
             insnTermTest(
                 s"%z = $lop $tipe %x, %y",
-                s"(= %z@0 ((_ to_fp $exp $sig) @_fprmode@0 ($sopb @_fprmode@0 $fpargx $fpargy)))",
+                s"(= %z@0 ($sopb @_fprmode@0 %x@0 %y@0))",
                 s"(= %z@0 ($sopm %x@0 %y@0))"
             )
 
             val arg1 = 1.5
             val arg2 = 3.5
-            val fpbvarg1 = mkFloatArg(s"((_ to_fp $exp $sig) RNE $arg1)")
-            val fpbvarg2 = mkFloatArg(s"((_ to_fp $exp $sig) RNE $arg2)")
             valueTermTestR(
                 s"$lop ($tipe $arg1, $tipe $arg2)",
                 exp, sig,
-                s"((_ to_fp $exp $sig) @_fprmode@0 ($sopb @_fprmode@0 $fpbvarg1 $fpbvarg2)))",
+                s"($sopb @_fprmode@0 ((_ to_fp $exp $sig) RNE $arg1) ((_ to_fp $exp $sig) RNE $arg2))",
                 s"($sopm $arg1 $arg2)"
             )
         }
@@ -291,13 +288,16 @@ class LLVMTermTests extends Tests {
         for ((lop, sopb, sopm) <- integerConds) {
             insnTermTest(
                 s"%z = icmp $lop i$bits %x, %y",
-                s"(= %z@0 ($sopb %x@0 %y@0)))",
-                s"(= %z@0 ($sopm %x@0 %y@0)))"
+                s"(= %z@0 ($sopb %x@0 %y@0))",
+                s"(= %z@0 ($sopm %x@0 %y@0))"
             )
+
+            val arg1 = 1
+            val arg2 = 2
             valueTermTestB(
-                s"icmp $lop (i$bits 1, i$bits 2)",
-                s"($sopb (_ bv1 $bits) (_ bv2 $bits))",
-                s"($sopm 1 2)"
+                s"icmp $lop (i$bits $arg1, i$bits $arg2)",
+                s"($sopb (_ bv$arg1 $bits) (_ bv$arg2 $bits))",
+                s"($sopm $arg1 $arg2)"
             )
         }
         insnTermTest(s"%z = icmp ne i$bits %x, %y", "(= %z@0 (not (= %x@0 %y@0)))")
@@ -307,50 +307,71 @@ class LLVMTermTests extends Tests {
 
     val floatConds =
         Vector(
-            ("oeq", "fp.eq", "="),
-            ("ogt", "fp.gt", ">"),
-            ("oge", "fp.geq", ">="),
-            ("olt", "fp.lt", "<"),
-            ("ole", "fp.leq", "<=")
-        // FIXME: add unordered in bit mode only
+            ("oeq", "fp.eq", "=", false),
+            ("ogt", "fp.gt", ">", false),
+            ("oge", "fp.geq", ">=", false),
+            ("olt", "fp.lt", "<", false),
+            ("ole", "fp.leq", "<=", false),
+            ("ueq", "fp.eq", "=", true),
+            ("ugt", "fp.gt", "=", true),
+            ("uge", "fp.geq", "=", true),
+            ("ult", "fp.lt", "=", true),
+            ("ule", "fp.leq", "=", true)
         )
 
     for ((tipe, exp, sig) <- floatTypes) {
-        for ((lop, sopb, sopm) <- floatConds) {
-            insnTermTest(
-                s"%z = fcmp $lop $tipe %x, %y",
-                s"(= %z@0 (and (not (or (fp.isNaN $fpargx) (fp.isNaN $fpargy))) ($sopb $fpargx $fpargy))))",
-                s"(= %z@0 ($sopm %x@0 %y@0)))"
-            )
+        for ((lop, sopb, sopm, unordered) <- floatConds) {
+            val i = s"%z = fcmp $lop $tipe %x, %y"
+            if (unordered)
+                hasBitInsnTerm(
+                    i,
+                    s"(= %z@0 (or (fp.isNaN %x@0) ($sopb %x@0 %y@0) (fp.isNaN %y@0)))"
+                )
+            else
+                insnTermTest(
+                    i,
+                    s"(= %z@0 ($sopb %x@0 %y@0))",
+                    s"(= %z@0 ($sopm %x@0 %y@0))"
+                )
 
-            val j = s"fcmp $lop ($tipe 1.5, $tipe 3.5)"
-            // val fplitarg1 = mkFloatArg(s"((_ to_fp $exp $sig) RNE 1.5)")
-            // val fplitarg2 = mkFloatArg(s"((_ to_fp $exp $sig) RNE 3.5)")
-            // test(s"$j (bit)") {
-            //     hasBitValueTermB(j, s"((_ to_fp $exp $sig) @_fprmode@0 ($sopb @_fprmode@0 $fplitarg1 $fplitarg2)))")
-            // }
-            test(s"$j (math)") {
-                hasMathValueTermB(j, s"($sopm 1.5 3.5)")
-            }
+            val arg1 = 1.5
+            val arg2 = 3.5
+            val j = s"fcmp $lop ($tipe $arg1, $tipe $arg2)"
+            if (unordered)
+                hasBitValueTermB(
+                    j,
+                    s"(or (fp.isNaN ((_ to_fp $exp $sig) RNE $arg1)) ($sopb ((_ to_fp $exp $sig) RNE $arg1) ((_ to_fp $exp $sig) RNE $arg2)) (fp.isNaN ((_ to_fp $exp $sig) RNE $arg2)))"
+                )
+            else
+                valueTermTestB(
+                    j,
+                    s"($sopb ((_ to_fp $exp $sig) RNE $arg1) ((_ to_fp $exp $sig) RNE $arg2))",
+                    s"($sopm $arg1 $arg2)"
+                )
         }
-        val i = s"%z = fcmp one $tipe %x, %y"
-        // test(s"$i (bit)") {
-        //     hasBitInsnTerm(i, "(= %z@0 (not (= %x@0 %y@0)))")
-        // }
-        test(s"$i (math)") {
-            hasMathInsnTerm(i, "(= %z@0 (not (= %x@0 %y@0)))")
-        }
+
+        insnTermTest(
+            s"%z = fcmp one $tipe %x, %y",
+            "(= %z@0 (and (not (fp.isNaN %x@0)) (not (fp.eq %x@0 %y@0)) (not (fp.isNaN %y@0))))",
+            "(= %z@0 (not (= %x@0 %y@0)))"
+        )
+        hasBitInsnTerm(
+            s"%z = fcmp une $tipe %x, %y",
+            "(= %z@0 (or (fp.isNaN %x@0) (not (fp.eq %x@0 %y@0)) (fp.isNaN %y@0)))",
+        )
 
         insnTermTest(s"%z = fcmp true $tipe %x, %y", "(= %z@0 true)")
         insnTermTest(s"%z = fcmp false $tipe %x, %y", "(= %z@0 false)")
 
-        val l = s"%z = fcmp ord $tipe %x, %y"
-        // test(s"$l (bit)") {
-        //     hasBitInsnTerm(l, "(= %z@0 true)")
-        // }
-        test(s"$l (math)") {
-            hasMathInsnTerm(l, "(= %z@0 true)")
-        }
+        insnTermTest(
+            s"%z = fcmp ord $tipe %x, %y",
+            "(= %z@0 (and (not (fp.isNaN %x@0)) (not (fp.isNaN %y@0)))))",
+            "(= %z@0 true)"
+        )
+        hasBitInsnTerm(
+            s"%z = fcmp uno $tipe %x, %y",
+            "(= %z@0 (or (fp.isNaN %x@0) (fp.isNaN %y@0)))",
+        )
     }
 
     // Conversions
@@ -1129,8 +1150,6 @@ class LLVMTermTests extends Tests {
 
     // Checkers
 
-    val noMetadata = Metadata(Vector())
-
     def hasBitInsnTerm(insn : String, term : String) {
         bitTermBuilder.insnTerm(MetaInstruction(insn"$insn", noMetadata)).termDef should beSameTermAs(term"$term")
     }
@@ -1229,9 +1248,6 @@ class LLVMTermTests extends Tests {
         } else
             fail(s"parse error: ${pr.parseError.msg}")
     }
-
-    def mkFloatArg(v : String) =
-        s"((_ to_fp 11 53) @_fprmode@0 $v)"
 
     def pow2(num : Int) : Int =
         math.pow(2, num).toInt
