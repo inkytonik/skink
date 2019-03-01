@@ -125,7 +125,7 @@ trait LLVMTermBuilder extends Core {
         val insn = metaInsn.instruction
         insn match {
 
-            // Boolean
+            // Binary Boolean
 
             case Binary(Binding(to), op, BoolT(), left, right) =>
                 val lterm = vtermB(left)
@@ -140,7 +140,7 @@ trait LLVMTermBuilder extends Core {
                     }
                 ntermB(to) === exp
 
-            // Integer
+            // Binary integer
 
             case Binary(_, _, _, Const(UndefC()), _) =>
                 True()
@@ -563,11 +563,6 @@ trait LLVMTermBuilder extends Core {
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
-                case (IntT(toSize), IntT(_)) if toSize == numBits(fromType) =>
-                    val toBits = numBits(toType)
-                    ntermI(to, toBits) === vtermI(from, toBits)
-                case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
-                    ntermR(to, toBits) === vtermR(from, toBits)
 
                 case (BoolT(), IntT(_)) =>
                     val fromBits = numBits(fromType)
