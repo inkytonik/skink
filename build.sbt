@@ -21,8 +21,7 @@ val compilerOptions =
         "-feature",
         "-unchecked",
         "-Xcheckinit",
-        "-Xlint:-stars-align,_",
-        "-Yrangepos"
+        "-Xlint:-stars-align,_"
     )
 
 scalacOptions := "-Xfatal-warnings" +: compilerOptions
