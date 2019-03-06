@@ -26,9 +26,9 @@ fi
 
 function run() {
   java -Xmx1400m -Xss16m \
-  -cp ./:$JAR \
-  au.edu.mq.comp.skink.Main \
-  $*
+    -cp ./:$JAR \
+    au.edu.mq.comp.skink.Main \
+    $*
 }
 
 if test "$1" == "--version"
