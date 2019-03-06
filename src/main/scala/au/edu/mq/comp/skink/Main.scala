@@ -210,14 +210,14 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
 
 }
 
-trait Driver extends CompilerBase[IR, SkinkConfig] {
+trait Driver extends CompilerBase[IR, IR, SkinkConfig] {
 
-    import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Skink.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.Source
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-    // import org.rogach.scallop.exceptions.ScallopException
+
+    val name = "c"
 
     val logger = getLogger(this.getClass)
 
@@ -229,9 +229,10 @@ trait Driver extends CompilerBase[IR, SkinkConfig] {
     override def createConfig(args : Seq[String]) : SkinkConfig =
         new SkinkConfig(args)
 
-    override def processfile(filename : String, config : SkinkConfig) {
+    override def compileFile(filename : String, config : SkinkConfig,
+        encoding : String = "UTF-8") {
         logger.info(s"processfile: $filename")
-        super.processfile(filename, config)
+        super.compileFile(filename, config)
     }
 
     /**

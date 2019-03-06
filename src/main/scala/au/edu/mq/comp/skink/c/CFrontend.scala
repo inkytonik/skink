@@ -31,8 +31,8 @@ class CFrontend(config : SkinkConfig) extends Frontend {
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-    import org.bitbucket.inkytonik.kiama.util.{FileSource, Message, Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.Messaging.{error, Messages}
 
     val logger = getLogger(this.getClass)
     val programLogger = getLogger(this.getClass, ".program")
@@ -48,7 +48,7 @@ class CFrontend(config : SkinkConfig) extends Frontend {
             case None =>
                 val msg = "C frontend requires a file source"
                 logger.info(s"buildIR: $msg")
-                Right(Vector(Message(msg, msg)))
+                Right(error(msg, msg))
         }
     }
 

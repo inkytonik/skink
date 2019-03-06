@@ -82,7 +82,7 @@ object LLVMInterpolators extends Interpolators {
         if (pr.hasValue)
             p.value(pr).asInstanceOf[T]
         else {
-            val msg = formatMessage(p.errorToMessage(pr.parseError))
+            val msg = messaging.formatMessage(p.errorToMessage(pr.parseError))
             throw new RuntimeException(msg)
         }
     }

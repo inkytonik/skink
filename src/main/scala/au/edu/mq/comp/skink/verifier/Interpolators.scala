@@ -21,11 +21,12 @@
 
 package au.edu.mq.comp.skink.verifier
 
-import org.bitbucket.inkytonik.kiama.util.{Messaging, PositionStore}
+class Interpolators {
 
-class Interpolators extends Messaging with PositionStore {
+    import org.bitbucket.inkytonik.kiama.util.{Messaging, Positions, StringSource, Source}
 
-    import org.bitbucket.inkytonik.kiama.util.{StringSource, Source}
+    val positions = new Positions
+    val messaging = new Messaging(positions)
 
     def interpolate[T](sc : StringContext, parser : Source => T)(args : Seq[Any]) : T = {
         val strings = sc.parts.iterator

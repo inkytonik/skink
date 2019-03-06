@@ -42,11 +42,11 @@ shellPrompt := {
 
 libraryDependencies ++=
     Seq (
-        "org.bitbucket.franck44.automat" %% "automat" % "1.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.franck44.automat" %% "automat" % "1.2.2-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.3.0-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.3.0-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.3.0-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.3.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
         "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.2.2-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.5" % "test",

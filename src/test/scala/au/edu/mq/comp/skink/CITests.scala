@@ -121,7 +121,7 @@ class CITests extends FunSuiteLike with Matchers {
                 fail(message)
             case Right(config) =>
                 try {
-                    Main.processfile(filename, config)
+                    Main.compileFile(filename, config)
                 } catch {
                     case e : Exception =>
                         info("failed with an exception ")
