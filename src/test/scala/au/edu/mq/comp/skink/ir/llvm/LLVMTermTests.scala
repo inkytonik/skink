@@ -357,7 +357,7 @@ class LLVMTermTests extends Tests {
         )
         hasBitInsnTerm(
             s"%z = fcmp une $tipe %x, %y",
-            "(= %z@0 (or (fp.isNaN %x@0) (not (fp.eq %x@0 %y@0)) (fp.isNaN %y@0)))",
+            "(= %z@0 (or (fp.isNaN %x@0) (not (fp.eq %x@0 %y@0)) (fp.isNaN %y@0)))"
         )
 
         insnTermTest(s"%z = fcmp true $tipe %x, %y", "(= %z@0 true)")
@@ -370,7 +370,7 @@ class LLVMTermTests extends Tests {
         )
         hasBitInsnTerm(
             s"%z = fcmp uno $tipe %x, %y",
-            "(= %z@0 (or (fp.isNaN %x@0) (fp.isNaN %y@0)))",
+            "(= %z@0 (or (fp.isNaN %x@0) (fp.isNaN %y@0)))"
         )
     }
 
