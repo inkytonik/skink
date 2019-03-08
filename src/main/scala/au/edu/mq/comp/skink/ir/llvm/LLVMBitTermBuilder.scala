@@ -371,7 +371,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : URem => lterm % rterm
             case _ : XOr  => lterm xor rterm
             case _ =>
-                opError[BVTerm]("bitvector integer", left, op, right)
+                opError2[BVTerm]("bitvector integer binary", left, op, right)
         }
     }
 
@@ -390,7 +390,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case SLT() => lterm slt rterm
             case SLE() => lterm sle rterm
             case _ =>
-                opError[BoolTerm]("bitvector integer comparison", left, cond, right)
+                opError2[BoolTerm]("bitvector integer comparison", left, cond, right)
         }
     }
 
@@ -596,7 +596,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : FMul => lterm * rterm
             case _ : FSub => lterm - rterm
             case _ =>
-                opError[FPBVTerm]("bitvector float", left, op, right)
+                opError2[FPBVTerm]("bitvector float binary", left, op, right)
         }
     }
 
@@ -623,7 +623,16 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case FUNO()   => unordered
             case FTrue()  => True()
             case _ =>
-                opError[BoolTerm]("bitvector real comparison", left, cond, right)
+                opError2[BoolTerm]("bitvector float comparison", left, cond, right)
+        }
+    }
+
+    def fpUnary(op : UnOp, arg : Value, bits : Int) : TypedTerm[FPBVTerm, Term] = {
+        val aterm = vtermR(arg, bits)
+        op match {
+            case _ : FNeg => -aterm
+            case _ =>
+                opError1[FPBVTerm]("bitvector float unary", op, arg)
         }
     }
 

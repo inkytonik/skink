@@ -250,6 +250,11 @@ class LLVMTermTests extends Tests {
             ("fsub", "fp.sub", "-")
         )
 
+    val floatUnaryOps =
+        Vector(
+            ("fneg", "fp.neg", "-")
+        )
+
     for ((tipe, exp, sig) <- floatTypes) {
         for ((lop, sopb, sopm) <- floatBinaryOps) {
             insnTermTest(
@@ -265,6 +270,14 @@ class LLVMTermTests extends Tests {
                 exp, sig,
                 s"($sopb @_fprmode@0 ((_ to_fp $exp $sig) RNE $arg1) ((_ to_fp $exp $sig) RNE $arg2))",
                 s"($sopm $arg1 $arg2)"
+            )
+        }
+
+        for ((lop, sopb, sopm) <- floatUnaryOps) {
+            insnTermTest(
+                s"%z = $lop $tipe %x",
+                s"(= %z@0 ($sopb %x@0))",
+                s"(= %z@0 ($sopm %x@0))"
             )
         }
     }

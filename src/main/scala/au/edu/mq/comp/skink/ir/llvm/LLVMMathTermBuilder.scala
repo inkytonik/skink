@@ -227,12 +227,12 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) =>
                         powerOfTwo((i + 1).toInt) match {
                             case -1 =>
-                                opError[IntTerm]("math integer", left, op, right)
+                                opError2[IntTerm]("math integer", left, op, right)
                             case _ =>
                                 lterm % (i + 1).toInt
                         }
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : AShR | _ : LShR =>
                 // FIXME: LShrR version is not right for negative numbers?
@@ -240,7 +240,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) =>
                         lterm / Math.pow(2, i.toDouble).toInt
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : Mul => lterm * rterm
             case _ : Or =>
@@ -248,14 +248,14 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) if i == 1 =>
                         (lterm % 2 === 0).ite(lterm + 1, lterm)
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : ShL =>
                 right match {
                     case Const(IntC(i)) =>
                         lterm * Math.pow(2, i.toDouble).toInt
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : SDiv => lterm / rterm
             case _ : SRem => lterm % rterm
@@ -267,10 +267,10 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) if i == -1 =>
                         lterm * -1 - 1
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ =>
-                opError[IntTerm]("math integer", left, op, right)
+                opError2[IntTerm]("math integer binary", left, op, right)
         }
     }
 
@@ -285,7 +285,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case SLT() | ULT() => lterm < rterm
             case SLE() | ULE() => lterm <= rterm
             case _ =>
-                opError[BoolTerm]("math integer comparison", left, cond, right)
+                opError2[BoolTerm]("math integer comparison", left, cond, right)
         }
     }
 
@@ -313,7 +313,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : FMul => lterm * rterm
             case _ : FSub => lterm - rterm
             case _ =>
-                opError[RealTerm]("float", left, op, right)
+                opError2[RealTerm]("real binary", left, op, right)
         }
     }
 
@@ -331,7 +331,16 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case FORD()   => True()
             case FTrue()  => True()
             case _ =>
-                opError[BoolTerm]("real comparison", left, cond, right)
+                opError2[BoolTerm]("real comparison", left, cond, right)
+        }
+    }
+
+    def fpUnary(op : UnOp, arg : Value, bits : Int) : TypedTerm[RealTerm, Term] = {
+        val aterm = vtermR(arg)
+        op match {
+            case _ : FNeg => -aterm
+            case _ =>
+                opError1[RealTerm]("real unary", op, arg)
         }
     }
 
