@@ -56,10 +56,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.configurations.SMTInit
-    import org.bitbucket.franck44.scalasmt.typedterms.Commands
-    import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, Value}
-    import org.bitbucket.franck44.scalasmt.interpreters.Resources
-    import org.bitbucket.franck44.scalasmt.interpreters.SolverCompose
+    import org.bitbucket.franck44.scalasmt.typedterms.{Commands, TypedTerm, Value}
+    import org.bitbucket.franck44.scalasmt.interpreters.{Resources, SolverCompose}
 
     case class ValMap(m : Map[QualifiedId, Value])
 
