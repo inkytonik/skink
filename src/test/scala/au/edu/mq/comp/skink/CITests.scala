@@ -29,7 +29,7 @@ class CITests extends FunSuiteLike with Matchers {
     import org.rogach.scallop.throwError
     import scala.sys.process._
 
-    val testPath = "src/test/resources/CITests"
+    val testPath = "src/test/resources/citests"
 
     mkTests(testPath, List(Bit(), Math()), List(0, 2))
     mkTests(testPath + "/bit", List(Bit()), List(0, 2))
@@ -62,7 +62,11 @@ class CITests extends FunSuiteLike with Matchers {
     }
 
     def testFiles(path : String) : Array[File] = {
-        new File(path).listFiles
+        val file = new File(path)
+        if (file.exists())
+            file.listFiles
+        else
+            sys.error(s"testFiles: path '$path' does not exist")
     }
 
     def falseTest(file : File, filename : String, mode : NumberMode, optLevel : Int) {
@@ -117,7 +121,7 @@ class CITests extends FunSuiteLike with Matchers {
                 fail(message)
             case Right(config) =>
                 try {
-                    Main.processfile(filename, config)
+                    Main.compileFile(filename, config)
                 } catch {
                     case e : Exception =>
                         info("failed with an exception ")

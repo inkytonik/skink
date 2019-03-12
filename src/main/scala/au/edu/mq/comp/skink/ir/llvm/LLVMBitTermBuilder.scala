@@ -202,8 +202,6 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                     case FEGetRound() =>
                         val bits = numBits(tipe)
                         ntermI(to, bits) === fegetround(bits)
-                    case NondetFunctionName(UnsignedType(bits)) =>
-                        iCompare(UGE(), Named(to), Const(ZeroC()), bits)
                     case NondetFunctionName(_) =>
                         True()
                     case _ =>
@@ -242,14 +240,10 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                         ntermI(to, bits) === aterm1.toSBV(bits)(ctermRM(RNA()))
                     case RInt() =>
                         ntermR(to, bits) === aterm1.roundToI
-                    case RInt() =>
-                        ntermR(to, bits) === aterm1.roundToI
                     case Round() =>
                         ntermR(to, bits) === aterm1.roundToI(ctermRM(RNA()))
                     case SignBit() =>
-                        val (p, e, s) = fpbitTerms(to, bits1)
-                        (aterm1 === FPBVs(p, e, s)) &
-                            (ntermI(to, bits) === (p zext (bits - 1)))
+                        ntermI(to, bits) === aterm1.isNegative.ite(ctermI(IntC(1), bits), ctermI(IntC(0), bits))
                     case TruncName() =>
                         ntermR(to, bits) === aterm1.roundToI(ctermRM(RTZ()))
                     case _ =>
@@ -377,7 +371,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : URem => lterm % rterm
             case _ : XOr  => lterm xor rterm
             case _ =>
-                opError[BVTerm]("bitvector integer", left, op, right)
+                opError2[BVTerm]("bitvector integer binary", left, op, right)
         }
     }
 
@@ -396,7 +390,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case SLT() => lterm slt rterm
             case SLE() => lterm sle rterm
             case _ =>
-                opError[BoolTerm]("bitvector integer comparison", left, cond, right)
+                opError2[BoolTerm]("bitvector integer comparison", left, cond, right)
         }
     }
 
@@ -594,32 +588,30 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
         }
 
     def fpBinary(op : BinOp, left : Value, right : Value, bits : Int) : TypedTerm[FPBVTerm, Term] = {
-        val lterm = fpbvcast(vtermR(left, bits), 64)
-        val rterm = fpbvcast(vtermR(right, bits), 64)
-        val exp =
-            op match {
-                case _ : FAdd => lterm + rterm
-                case _ : FDiv => lterm / rterm
-                case _ : FMul => lterm * rterm
-                case _ : FSub => lterm - rterm
-                case _ =>
-                    opError[FPBVTerm]("float", left, op, right)
-            }
-        fpbvcast(exp, bits)
+        val lterm = vtermR(left, bits)
+        val rterm = vtermR(right, bits)
+        op match {
+            case _ : FAdd => lterm + rterm
+            case _ : FDiv => lterm / rterm
+            case _ : FMul => lterm * rterm
+            case _ : FSub => lterm - rterm
+            case _ =>
+                opError2[FPBVTerm]("bitvector float binary", left, op, right)
+        }
     }
 
     def fpCompare(cond : FCond, left : Value, right : Value, bits : Int) : TypedTerm[BoolTerm, Term] = {
-        val lterm = fpbvcast(vtermR(left, bits), 64)
-        val rterm = fpbvcast(vtermR(right, bits), 64)
+        val lterm = vtermR(left, bits)
+        val rterm = vtermR(right, bits)
+        val ordered = !lterm.isNaN & !rterm.isNaN
         val unordered = lterm.isNaN | rterm.isNaN
-        val ordered = !unordered
         cond match {
             case FFalse() => False()
-            case FOEQ()   => ordered & lterm.fpeq(rterm)
-            case FOGT()   => ordered & lterm > rterm
-            case FOGE()   => ordered & lterm >= rterm
-            case FOLT()   => ordered & lterm < rterm
-            case FOLE()   => ordered & lterm <= rterm
+            case FOEQ()   => lterm.fpeq(rterm)
+            case FOGT()   => lterm > rterm
+            case FOGE()   => lterm >= rterm
+            case FOLT()   => lterm < rterm
+            case FOLE()   => lterm <= rterm
             case FONE()   => ordered & !(lterm.fpeq(rterm))
             case FORD()   => ordered
             case FUEQ()   => unordered | lterm.fpeq(rterm)
@@ -631,7 +623,16 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
             case FUNO()   => unordered
             case FTrue()  => True()
             case _ =>
-                opError[BoolTerm]("bitvector real comparison", left, cond, right)
+                opError2[BoolTerm]("bitvector float comparison", left, cond, right)
+        }
+    }
+
+    def fpUnary(op : UnOp, arg : Value, bits : Int) : TypedTerm[FPBVTerm, Term] = {
+        val aterm = vtermR(arg, bits)
+        op match {
+            case _ : FNeg => -aterm
+            case _ =>
+                opError1[FPBVTerm]("bitvector float unary", op, arg)
         }
     }
 
@@ -1036,10 +1037,16 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
 
     override def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         (toType, fromType) match {
+            case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
+                val toBits = numBits(toType)
+                ntermI(to, toBits) === vtermI(from, toBits)
+
+            case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
+                ntermR(to, toBits) === vtermR(from, toBits)
+
             case (RealT(bits), IntT(_)) if bits == numBits(fromType) =>
                 val (exp, sig) = fpexpsig(bits)
                 ntermR(to, bits) === vtermI(from, bits).signedToFPBV(exp, sig)
-
             case (IntT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
                 val (exp, sig) = fpexpsig(fromBits)
                 ntermI(to, fromBits).signedToFPBV(exp, sig) === vtermR(from, fromBits)

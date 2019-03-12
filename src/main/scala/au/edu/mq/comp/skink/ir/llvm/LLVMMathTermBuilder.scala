@@ -62,9 +62,6 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
 
             // Conversion
 
-            case Convert(Binding(to), op, fromType @ IntT(_), from, toType @ IntT(_)) =>
-                equality(to, toType, from, fromType)
-
             case Convert(Binding(to), _, fromType, from, toType) =>
                 equality(to, toType, from, fromType)
 
@@ -133,6 +130,18 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 }
             }
 
+            case LibFunctionCall2(Binding(to), RealT(bits), name, arg1, RealT(bits1), arg2, RealT(bits2)) =>
+                val aterm1 = vtermR(arg1)
+                val aterm2 = vtermR(arg2)
+                name match {
+                    case FMax() =>
+                        ntermR(to, bits) === (aterm1 >= aterm2).ite(aterm1, aterm2)
+                    case FMin() =>
+                        ntermR(to, bits) === (aterm1 <= aterm2).ite(aterm1, aterm2)
+                    case _ =>
+                        sys.error(s"insnTerm: unsupported call to library function $name (two reals arg, real return)")
+                }
+
             case insn =>
                 super.insnTerm(metaInsn)
 
@@ -187,19 +196,17 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
         term
     }
 
-    // Booleans
-
     // Integer numbers
 
     def varTermI(id : String, index : Int, bits : Int) : TypedTerm[IntTerm, Term] =
         new VarTerm(termid(id), IntSort(), Some(index))
 
-    def ctermI(constantValue : ConstantValue, bits : Int) : TypedTerm[IntTerm, Term] =
+    def ctermI(constantValue : ConstantValue, bits : Int = 0) : TypedTerm[IntTerm, Term] =
         constantValue match {
             case BinaryC(op, ltype : IntT, left, rtype, right) if ltype == rtype =>
-                iBinary(op, Const(left), Const(right), bits)
+                iBinary(op, Const(left), Const(right))
             case IntC(i) =>
-                i.toInt
+                Ints(i)
             case FalseC() | NullC() | ZeroC() =>
                 0
             case TrueC() =>
@@ -210,7 +217,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 sys.error(s"ctermI: unexpected constant value $constantValue")
         }
 
-    def iBinary(op : BinOp, left : Value, right : Value, bits : Int) : TypedTerm[IntTerm, Term] = {
+    def iBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[IntTerm, Term] = {
         val lterm = vtermI(left)
         val rterm = vtermI(right)
         op match {
@@ -220,12 +227,12 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) =>
                         powerOfTwo((i + 1).toInt) match {
                             case -1 =>
-                                opError[IntTerm]("math integer", left, op, right)
+                                opError2[IntTerm]("math integer", left, op, right)
                             case _ =>
                                 lterm % (i + 1).toInt
                         }
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : AShR | _ : LShR =>
                 // FIXME: LShrR version is not right for negative numbers?
@@ -233,23 +240,22 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) =>
                         lterm / Math.pow(2, i.toDouble).toInt
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : Mul => lterm * rterm
             case _ : Or =>
-                // FIXME: correct for negative lterm?
                 right match {
                     case Const(IntC(i)) if i == 1 =>
                         (lterm % 2 === 0).ite(lterm + 1, lterm)
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : ShL =>
                 right match {
                     case Const(IntC(i)) =>
                         lterm * Math.pow(2, i.toDouble).toInt
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ : SDiv => lterm / rterm
             case _ : SRem => lterm % rterm
@@ -261,14 +267,14 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                     case Const(IntC(i)) if i == -1 =>
                         lterm * -1 - 1
                     case _ =>
-                        opError[IntTerm]("math integer", left, op, right)
+                        opError2[IntTerm]("math integer", left, op, right)
                 }
             case _ =>
-                opError[IntTerm]("math integer", left, op, right)
+                opError2[IntTerm]("math integer binary", left, op, right)
         }
     }
 
-    def iCompare(cond : ICond, left : Value, right : Value, bits : Int) : TypedTerm[BoolTerm, Term] = {
+    def iCompare(cond : ICond, left : Value, right : Value, bits : Int = 0) : TypedTerm[BoolTerm, Term] = {
         val lterm = vtermI(left)
         val rterm = vtermI(right)
         cond match {
@@ -279,7 +285,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case SLT() | ULT() => lterm < rterm
             case SLE() | ULE() => lterm <= rterm
             case _ =>
-                opError[BoolTerm]("math integer comparison", left, cond, right)
+                opError2[BoolTerm]("math integer comparison", left, cond, right)
         }
     }
 
@@ -307,7 +313,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case _ : FMul => lterm * rterm
             case _ : FSub => lterm - rterm
             case _ =>
-                opError[RealTerm]("float", left, op, right)
+                opError2[RealTerm]("real binary", left, op, right)
         }
     }
 
@@ -325,7 +331,16 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
             case FORD()   => True()
             case FTrue()  => True()
             case _ =>
-                opError[BoolTerm]("real comparison", left, cond, right)
+                opError2[BoolTerm]("real comparison", left, cond, right)
+        }
+    }
+
+    def fpUnary(op : UnOp, arg : Value, bits : Int) : TypedTerm[RealTerm, Term] = {
+        val aterm = vtermR(arg)
+        op match {
+            case _ : FNeg => -aterm
+            case _ =>
+                opError1[RealTerm]("real unary", op, arg)
         }
     }
 

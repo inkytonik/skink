@@ -30,8 +30,8 @@ trait Frontend {
 
     import au.edu.mq.comp.skink.ir.IR
     import com.typesafe.scalalogging.Logger
-    import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
-    import org.bitbucket.inkytonik.kiama.util.{FileSource, Message, Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.Messaging.{error, Messages}
     import scala.sys.process._
 
     /**
@@ -75,7 +75,7 @@ trait Frontend {
         } else {
             val msg = s"buildIRFromFile: $program not present on PATH"
             logger.info(msg)
-            Vector(Message(msg, msg))
+            error(msg, msg)
         }
     }
 
@@ -117,7 +117,7 @@ trait Frontend {
      */
     def fail(msg : String) : Either[IR, Messages] = {
         logger.info(msg)
-        Right(Vector(Message(msg, msg)))
+        Right(error(msg, msg))
     }
 
     /**

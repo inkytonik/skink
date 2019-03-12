@@ -98,7 +98,7 @@ trait LLVMTermBuilder extends Core {
                 case Switch(IntegerT(bits), value, _, cases) if choice == cases.length =>
                     combineTerms(cases.map { case Case(_, v, _) => !(vtermI(value, bits) === vtermI(v, bits)) })
 
-                case Switch(IntegerT(bits), value, _, cases) if choice < cases.length =>
+                case Switch(IntegerT(bits), value, _, cases) if choice >= 0 && choice < cases.length =>
                     vtermI(value, bits) === vtermI(cases(choice).value, bits)
 
                 case _ : Ret | RetVoid() | Unreachable() if choice == 0 =>
@@ -125,7 +125,7 @@ trait LLVMTermBuilder extends Core {
         val insn = metaInsn.instruction
         insn match {
 
-            // Boolean
+            // Binary Boolean
 
             case Binary(Binding(to), op, BoolT(), left, right) =>
                 val lterm = vtermB(left)
@@ -136,11 +136,11 @@ trait LLVMTermBuilder extends Core {
                         case _ : Or  => lterm | rterm
                         case _ : XOr => lterm xor rterm
                         case _ =>
-                            opError[BoolTerm]("Boolean", left, op, right)
+                            opError2[BoolTerm]("Boolean", left, op, right)
                     }
                 ntermB(to) === exp
 
-            // Integer
+            // Binary integer
 
             case Binary(_, _, _, Const(UndefC()), _) =>
                 True()
@@ -152,13 +152,18 @@ trait LLVMTermBuilder extends Core {
                 val bits = numBits(tipe)
                 ntermI(to, bits) === iBinary(op, left, right, bits)
 
-            // Real
+            // Binary real
 
             case Binary(Binding(to), FAdd(_), RealT(bits), left, Const(FloatC("0"))) =>
                 ntermR(to, bits) === vtermR(left, bits)
 
             case Binary(Binding(to), op, RealT(bits), left, right) =>
                 ntermR(to, bits) === fpBinary(op, left, right, bits)
+
+            // Unary real
+
+            case Unary(Binding(to), op, RealT(bits), arg) =>
+                ntermR(to, bits) === fpUnary(op, arg, bits)
 
             // Comparison
 
@@ -176,7 +181,7 @@ trait LLVMTermBuilder extends Core {
                         case EQ() => lterm === rterm
                         case NE() => !(lterm === rterm)
                         case _ =>
-                            opError[BoolTerm]("Boolean comparison", left, cond, right)
+                            opError2[BoolTerm]("Boolean comparison", left, cond, right)
                     }
                 ntermB(to) === exp
 
@@ -407,7 +412,7 @@ trait LLVMTermBuilder extends Core {
             vtermI(value, bits)
 
     /**
-     * Return a term to express an integer operation.
+     * Return a term to express an integer binary operation.
      */
     def iBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[IntTermType, Term]
 
@@ -498,9 +503,14 @@ trait LLVMTermBuilder extends Core {
     def fphexconst(f : String, srcbits : Int = 0, tgtbits : Int = 0) : TypedTerm[RealTermType, Term]
 
     /**
-     * Return a term to express a floating-point bitvector operation.
+     * Return a term to express a floating-point bitvector binary operation.
      */
     def fpBinary(op : BinOp, left : Value, right : Value, bits : Int = 0) : TypedTerm[RealTermType, Term]
+
+    /**
+     * Return a term to express a floating-point bitvector operation.
+     */
+    def fpUnary(op : UnOp, arg : Value, bits : Int = 0) : TypedTerm[RealTermType, Term]
 
     /**
      * Return a term to express a floating-point comparison.
@@ -563,11 +573,6 @@ trait LLVMTermBuilder extends Core {
             (toType, fromType) match {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
-                case (IntT(toSize), IntT(_)) if toSize == numBits(fromType) =>
-                    val toBits = numBits(toType)
-                    ntermI(to, toBits) === vtermI(from, toBits)
-                case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
-                    ntermR(to, toBits) === vtermR(from, toBits)
 
                 case (BoolT(), IntT(_)) =>
                     val fromBits = numBits(fromType)
@@ -579,7 +584,7 @@ trait LLVMTermBuilder extends Core {
                 case (BoolT(), RealT(fromBits)) =>
                     ntermB(to) === !(vtermR(from, fromBits) === ctermR(ZeroC(), fromBits))
                 case (RealT(toBits), BoolT()) =>
-                    ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0                    "), toBits), ctermR(FloatC("0.0"), toBits))
+                    ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0"), toBits), ctermR(FloatC("0.0"), toBits))
 
                 case (RealT(toBits), IntT(_)) if toBits == numBits(fromType) =>
                     ntermR(to, toBits) === vtermR(from, toBits)
@@ -593,10 +598,17 @@ trait LLVMTermBuilder extends Core {
     // Utilities
 
     /*
-     * Throw an error that `op` applied to `left` and `right` cannot be handled.
+     * Throw an error that unary `op` applied to `arg` cannot be handled.
      * Prefix is prepended to the message.
      */
-    def opError[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
+    def opError1[T](prefix : String, op : ASTNode, arg : Value) : TypedTerm[T, Term] =
+        sys.error(s"$prefix op ${show(op)} ${show(arg)} not handled")
+
+    /*
+     * Throw an error that binary `op` applied to `left` and `right`
+     * cannot be handled. Prefix is prepended to the message.
+     */
+    def opError2[T](prefix : String, left : Value, op : ASTNode, right : Value) : TypedTerm[T, Term] =
         sys.error(s"$prefix op ${show(op)} ${show(left)} ${show(right)} not handled")
 
     /**

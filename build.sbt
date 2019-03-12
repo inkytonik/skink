@@ -15,30 +15,18 @@ buildInfoPackage := "au.edu.mq.comp.skink"
 
 scalaVersion := "2.12.8"
 
-scalacOptions := {
-
-    // Turn on all lint warnings, except:
-    //  - stars-align: incorrectly reports problems if pattern matching of
-    //    unapplySeq extractor doesn't match sequence directly
-
-    val lintOption =
-        if (scalaVersion.value.startsWith ("2.10"))
-            "-Xlint"
-        else
-            "-Xlint:-stars-align,_"
-
+val compilerOptions =
     Seq (
         "-deprecation",
         "-feature",
-        "-sourcepath", baseDirectory.value.getAbsolutePath,
         "-unchecked",
-        "-Xfatal-warnings",
         "-Xcheckinit",
-        "-Yrangepos",
-        lintOption
+        "-Xlint:-stars-align,_"
     )
 
-}
+scalacOptions := "-Xfatal-warnings" +: compilerOptions
+
+scalacOptions in (Compile, console) := compilerOptions
 
 // Interactive settings
 
@@ -54,11 +42,11 @@ shellPrompt := {
 
 libraryDependencies ++=
     Seq (
-        "org.bitbucket.franck44.automat" %% "automat" % "1.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT",
-        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.2.1-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.franck44.automat" %% "automat" % "1.2.2-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.3.0-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama" % "2.3.0-SNAPSHOT" % "test" classifier ("tests"),
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.3.0-SNAPSHOT",
+        "org.bitbucket.inkytonik.kiama" %% "kiama-extras" % "2.3.0-SNAPSHOT" % "test" classifier ("tests"),
         "org.bitbucket.inkytonik.scalallvm" %% "scalallvm" % "0.2.0-SNAPSHOT",
         "org.bitbucket.franck44.scalasmt" %% "scalasmt" % "2.2.2-SNAPSHOT",
         "org.scalatest" %% "scalatest" % "3.0.5" % "test",

@@ -103,11 +103,15 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             case _ =>
                                 (Success((Sat(), count, Map())))
                         }
+
                     case (Success(UnSat()), count) =>
                         Success((UnSat(), count, Map()))
 
-                    case (Success(UnKnown()), _) | (Failure(_), _) =>
-                        Failure(new Exception(s"Solver ${solver.name} did not provide an answer"))
+                    case (Success(UnKnown()), _) =>
+                        Failure(new Exception(s"Solver ${solver.name} did not provide an answer (UNKNOWN)"))
+
+                    case (Failure(e), _) =>
+                        Failure(new Exception(s"Solver ${solver.name} failed: ${e.getMessage}"))
                 }
         }
 
@@ -219,7 +223,7 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                             for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
                                 val term = values(x).t
                                 val (value, note) = termToCValueString(term)
-                                logger.debug(s"value: $x = ${show(term)} $value $note")
+                                logger.debug(s"value: $x = ${show(term)} $note")
                             }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))

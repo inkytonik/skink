@@ -10,19 +10,25 @@ export PATH=./bin/:$PATH
 export LD_LIBRARY_PATH=./lib/:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=./include/:$C_INCLUDE_PATH
 
-DEVJAR=/skink/target/scala-2.12/skink-assembly-3.0-SNAPSHOT.jar
-if test -f $DEVJAR
+DEVJAR1=/skink/target/scala-2.12/skink-assembly-3.0-SNAPSHOT.jar
+DEVJAR2=./target/scala-2.12/skink-assembly-3.0-SNAPSHOT.jar
+if test -f $DEVJAR1
 then
-    JAR=$DEVJAR
+    JAR=$DEVJAR1
 else
+  if test -f $DEVJAR2
+  then
+    JAR=$DEVJAR2
+  else
     JAR=skink.jar
+  fi
 fi
 
 function run() {
   java -Xmx1400m -Xss16m \
-  -cp ./:$JAR \
-  au.edu.mq.comp.skink.Main \
-  $*
+    -cp ./:$JAR \
+    au.edu.mq.comp.skink.Main \
+    $*
 }
 
 if test "$1" == "--version"
