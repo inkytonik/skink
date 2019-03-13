@@ -21,6 +21,7 @@
 
 package au.edu.mq.comp.skink
 
+import au.edu.mq.comp.skink.wasm.{EMCCWASMFrontend, WasmFrontend}
 import org.bitbucket.inkytonik.kiama.util.Config
 
 sealed abstract class NumberMode extends Product
@@ -80,6 +81,10 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
                         Right(Some(new CFrontend(config)))
                     case List("llvm") =>
                         Right(Some(new LLVMFrontend(config)))
+                    case List("wasm") =>
+                        Right(Some(new WasmFrontend(config)))
+                    case List("emccwasm") =>
+                        Right(Some(new EMCCWASMFrontend(config)))
                     case _ =>
                         if (s.isEmpty)
                             Right(None)
