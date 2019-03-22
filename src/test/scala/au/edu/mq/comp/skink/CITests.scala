@@ -25,9 +25,14 @@ import org.scalatest.{FunSuiteLike, Matchers}
 
 class CITests extends FunSuiteLike with Matchers {
 
+    import au.edu.mq.comp.skink.verifier.Helper.{
+        checkFalseWitness,
+        checkTrueWitness
+    }
     import java.io.File
+    import org.bitbucket.inkytonik.kiama.util.Filenames.cwd
+    import org.bitbucket.inkytonik.kiama.util.FileSource
     import org.rogach.scallop.throwError
-    import scala.sys.process._
 
     val testPath = "src/test/resources/citests"
 
@@ -61,7 +66,7 @@ class CITests extends FunSuiteLike with Matchers {
         }
     }
 
-    def testFiles(path : String) : Array[File] = {
+    def testFiles(path : String) : Seq[File] = {
         val file = new File(path)
         if (file.exists())
             file.listFiles
@@ -70,42 +75,32 @@ class CITests extends FunSuiteLike with Matchers {
     }
 
     def falseTest(file : File, filename : String, mode : NumberMode, optLevel : Int) {
-        val verout = runVerifier(filename, mode, optLevel)
+        val (verout, config) = runVerifier(filename, mode, optLevel)
         verout shouldBe "FALSE\n"
 
-        val (valout, valerr) =
-            runCmd(
-                Array(
-                    "./test-gen.sh", "-m32", "--propertyfile", "../properties/unreach-call.prp",
-                    "--graphml-witness", "../witness.graphml", filename
-                ),
-                "fshell-w2t"
-            )
+        val witSource = FileSource(s"${cwd()}/witness.graphml")
+        val (valout, valerr) = checkFalseWitness(witSource, filename, config)
         valout shouldBe s"${file.getName()}: OK\nFALSE\n"
         valerr shouldBe ""
     }
 
     def trueTest(file : File, filename : String, mode : NumberMode, optLevel : Int) {
-        val verout = runVerifier(filename, mode, optLevel)
+        val (verout, config) = runVerifier(filename, mode, optLevel)
         verout shouldBe "TRUE\n"
 
-        val (valout, valerr) =
-            runCmd(
-                Array(
-                    "./scripts/check-true-witness.sh", "witness.graphml", filename
-                )
-            )
+        val witSource = FileSource(s"${cwd()}/witness.graphml")
+        val (valout, valerr) = checkTrueWitness(witSource, filename, config)
         valout shouldBe ""
         valerr shouldBe ""
     }
 
     /**
      * Run Skink on filename using a number mode and optimisation level. Return
-     * standard output.
+     * standard output and the configuration that was used.
      */
-    def runVerifier(filename : String, mode : NumberMode, optLevel : Int) : String = {
+    def runVerifier(filename : String, mode : NumberMode, optLevel : Int) : (String, SkinkConfig) = {
         val args =
-            Array(
+            Seq(
                 "-c", "-v", s"-O${optLevel}", "-n", mode.productPrefix.toLowerCase(),
                 "-w", "witness.graphml", filename
             )
@@ -113,37 +108,17 @@ class CITests extends FunSuiteLike with Matchers {
         // Set Scallop so that errors don't just exit the process
         val saveThrowError = throwError.value
         throwError.value = true
-        val errOrConfig = Main.createAndInitConfig("--Koutput" +: "string" +: args)
+        val config = Main.createConfig("--Koutput" +: "string" +: args)
         throwError.value = saveThrowError
 
-        errOrConfig match {
-            case Left(message) =>
-                fail(message)
-            case Right(config) =>
-                try {
-                    Main.compileFile(filename, config)
-                } catch {
-                    case e : Exception =>
-                        info("failed with an exception ")
-                        throw (e)
-                }
-                config.stringEmitter.result
+        try {
+            config.driver.compileFile(filename, config)
+        } catch {
+            case e : Exception =>
+                info("failed with an exception ")
+                throw (e)
         }
-    }
-
-    /**
-     * Run a command, returning whatever is written to standard output and stadnard error.
-     */
-    def runCmd(cmd : Array[String], cwd : String = ".") : (String, String) = {
-        val process = Process(cmd, new File(cwd))
-        val stdoutBuilder = new StringBuilder
-        val stderrBuilder = new StringBuilder
-        val processLoggger = ProcessLogger(
-            line => stdoutBuilder.append(s"$line\n"),
-            line => stderrBuilder.append(s"$line\n")
-        )
-        process ! processLoggger
-        (stdoutBuilder.result(), stderrBuilder.result())
+        (config.stringEmitter.result, config)
     }
 
 }

@@ -28,36 +28,44 @@ import au.edu.mq.comp.skink.{Frontend, SkinkConfig}
  */
 class LLVMFrontend(config : SkinkConfig) extends Frontend {
 
+    import au.edu.mq.comp.skink.verifier.Helper.fail
     import au.edu.mq.comp.skink.ir.IR
-    import au.edu.mq.comp.skink.Skink.getLogger
-    import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
+    import au.edu.mq.comp.skink.ir.llvm.LLVMHelper
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import org.bitbucket.inkytonik.kiama.util.{Positions, Source}
+    import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.scalallvm.assembly.Assembly
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout}
 
-    val logger = getLogger(this.getClass)
-    val programLogger = getLogger(this.getClass, ".program")
+    val logger = getLogger(this.getClass, config)
+    val programLogger = getLogger(this.getClass, config, ".program")
 
-    val name = "LLVM"
+    val name = "Skink"
 
-    def buildIR(source : Source, positions : Positions) : Either[IR, Messages] = {
+    val helper = new LLVMHelper(config)
+
+    def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
+        logger.clear(origSource)
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {
-            logger.info("buildIR: LLVM program build succeeded")
+            logger.info(origSource, "buildIR: LLVM program build succeeded")
             val program = p.value(pr).asInstanceOf[Program]
-            val ir = new LLVMIR(program, config)
-            programLogger.debug("* Program from source\n")
-            programLogger.debug(ir.show)
-            programLogger.debug("\n* AST from source\n\n")
-            programLogger.debug(layout(any(program)))
-            programLogger.debug("\n\n")
+            val ir = new LLVMIR(origSource, source, program, config)
+            programLogger.debug(origSource, "* Program from source\n")
+            programLogger.debug(origSource, ir.format.layout)
+            programLogger.debug(origSource, "\n* AST from source\n\n")
+            programLogger.debug(origSource, layout(any(program)))
+            programLogger.debug(origSource, "\n\n")
+            if (config.server()) {
+                config.driver.publishProduct(origSource, "program LLVM", "ll", ir.format, false)
+                helper.publishLLVMCFG(logger, origSource, source, "program LLVM CFG")
+            }
             Left(ir)
         } else {
             val message = p.errorToMessage(pr.parseError)
-            logger.info(s"buildFromSource: LLVM program build failed: $message")
-            Right(Vector(message))
+            fail(logger, source, s"buildFromSource: LLVM program build failed: $message", config)
         }
     }
 

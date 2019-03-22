@@ -1,7 +1,7 @@
 /*
  * This file is part of Skink.
  *
- * Copyright (C) 2015-2019
+ * Copyright (C) 2019
  * Programming Languages and Verification Research Group
  * Macquarie University
  *
@@ -22,31 +22,68 @@
 package au.edu.mq.comp.skink
 
 import au.edu.mq.comp.skink.ir.IR
+import au.edu.mq.comp.skink.verifier.Helper.uriToName
 import org.bitbucket.inkytonik.kiama.util.CompilerBase
 
-trait Driver extends CompilerBase[IR, IR, SkinkConfig] {
+object Main {
 
-    import au.edu.mq.comp.skink.Skink.getLogger
+    def main(args : Array[String]) {
+        createConfig(args).driver.main(args)
+    }
+
+    def createConfig(args : Seq[String]) : SkinkConfig = {
+        lazy val config : SkinkConfig =
+            new SkinkConfig(args) {
+                lazy val driver = new Driver(config)
+            }
+        config.verify
+        config
+    }
+
+}
+
+class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
+
+    self =>
+
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
     import org.bitbucket.inkytonik.kiama.util.Source
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
 
-    val name = "c"
+    val name = "skink"
 
-    val logger = getLogger(this.getClass)
+    val logger = getLogger(this.getClass, config)
 
     override def main(args : Array[String]) {
-        logger.info(s"""main: ${args.mkString(" ")}""")
         super.main(args)
     }
 
     override def createConfig(args : Seq[String]) : SkinkConfig =
-        new SkinkConfig(args)
+        config
 
-    override def compileFile(filename : String, config : SkinkConfig,
-        encoding : String = "UTF-8") {
-        logger.info(s"processfile: $filename")
-        super.compileFile(filename, config)
+    override def compileString(uri : String, input : String, config : SkinkConfig) {
+        val fullConfig =
+            if (config.server()) {
+                val fullArgs = config.args ++
+                    Seq(
+                        "-v", "-w", "-", "-c", "-q",
+                        "-e", settingStr("solver"),
+                        "-f", settingStr("frontend"),
+                        "-n", settingStr("numericMode"),
+                        s"""-O${settingInt("optLevel")}""",
+                        "--fshellw2tpath", settingStr("fshellw2tpath"),
+                        "--checktruewitnesspath", settingStr("checktruewitnesspath")
+                    )
+                val fullConfig =
+                    new SkinkConfig(fullArgs) {
+                        val driver = self
+                    }
+                fullConfig.verify()
+                fullConfig
+            } else
+                config
+        super.compileString(uriToName(uri), input, fullConfig)
     }
 
     /**
@@ -54,9 +91,10 @@ trait Driver extends CompilerBase[IR, IR, SkinkConfig] {
      * frontend.
      */
     override def makeast(source : Source, config : SkinkConfig) : Either[IR, Messages] = {
+        logger.clear(source)
         val frontend = config.frontend()
-        logger.info(s"makeast: building IR using ${frontend.name} frontend")
-        frontend.buildIR(source, positions)
+        logger.info(source, s"makeast: building IR using ${frontend.name} frontend")
+        frontend.buildIR(source, source, positions)
     }
 
     /**
@@ -69,19 +107,19 @@ trait Driver extends CompilerBase[IR, IR, SkinkConfig] {
         for (function <- ir.functions) {
 
             if (config.verifyTarget()) {
-                if (function.name == "main") {
-                    logger.info(s"processIR: processing ${function.name}")
-                    val verifier = new Verifier(ir, config)
-                    verifier.verify(this, function)
+                if (function.name == config.functionName()) {
+                    logger.info(source, s"processIR: processing ${function.name}")
+                    val verifier = new Verifier(source, ir, config)
+                    verifier.verify(function)
                 } else {
-                    logger.info(s"processIR: skipping ${function.name}")
+                    logger.info(source, s"processIR: skipping ${function.name}")
                 }
             }
 
         }
 
         if (config.execute()) {
-            logger.info("processIR: running program")
+            logger.info(source, "processIR: running program")
 
             val (output, code) = ir.execute()
             if (!config.quiet()) {
@@ -94,8 +132,6 @@ trait Driver extends CompilerBase[IR, IR, SkinkConfig] {
     }
 
     def format(ir : IR) : Document =
-        new Document(ir.show, Nil)
+        ir.format
 
 }
-
-object Main extends Driver

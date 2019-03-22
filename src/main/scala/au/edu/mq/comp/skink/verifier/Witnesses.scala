@@ -22,17 +22,23 @@
 package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
+import org.bitbucket.inkytonik.kiama.util.Source
 
 /**
  * Common support for SV-COMP witness generation.
  */
-abstract class Witnesses(config : SkinkConfig) {
+abstract class Witnesses(origSource : Source, source : Source, config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
-    import org.bitbucket.inkytonik.kiama.util.FileEmitter
+    import au.edu.mq.comp.skink.verifier.Helper.{checkTrueWitness, uriToName}
+    import java.security.MessageDigest
+    import org.bitbucket.inkytonik.kiama.util.{FileEmitter, StringSource}
+    import org.bitbucket.inkytonik.kiama.util.Messaging.{info, error, Messages, noMessages}
 
-    val logger = getLogger(this.getClass)
+    val logger = getLogger(this.getClass, config)
+
+    val filename = uriToName(origSource.name)
 
     abstract class Witness {
         def typeString : String
@@ -48,20 +54,11 @@ abstract class Witnesses(config : SkinkConfig) {
     }
 
     /**
-     * Return the SHA-1 digest of a filename.
+     * Return the SHA-1 digest of a source.
      */
-    def digestOfFile(filename : String) : String = {
-        import java.io.File
-        import java.io.FileInputStream
-        import java.security.MessageDigest
-
-        val file = new File(filename)
-        val buffer = Array.ofDim[Byte](file.length().toInt)
-        val fis = new FileInputStream(file)
-        fis.read(buffer)
-        fis.close()
+    def digestOfSource(source : Source) : String = {
         val md = MessageDigest.getInstance("SHA-1")
-        md.update(buffer)
+        md.update(source.content.getBytes)
         javax.xml.bind.DatatypeConverter.printHexBinary(md.digest()).toLowerCase()
     }
 
@@ -100,8 +97,8 @@ abstract class Witnesses(config : SkinkConfig) {
            |  <data key="sourcecodelang">C</data>
            |  <data key="producer"      >skink</data>
            |  <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
-           |  <data key="programfile"   >${config.filenames.getOrElse(List[String]("unknown")).head}</data>
-           |  <data key="programhash"   >${config.filenames.map(_.head).map(digestOfFile(_)).getOrElse("0000000000000000000000000000000000000000")}</data>
+           |  <data key="programfile"   >${filename}</data>
+           |  <data key="programhash"   >${digestOfSource(source)}</data>
            |  <data key="memorymodel"   >simple</data>
            |  <data key="architecture"  >${config.architecture()}bit</data>
            |
@@ -140,7 +137,7 @@ abstract class Witnesses(config : SkinkConfig) {
      * Currently outputs a dummy witness with a "true" invariant to avoid an error
      * when no correctness witness at all is produced.
      */
-    def printCorrectnessWitness(function : IRFunction) {
+    def printCorrectnessWitness(function : IRFunction) : Messages = {
         val nodesAndEdges =
             Seq(
                 mkNode(
@@ -154,13 +151,32 @@ abstract class Witnesses(config : SkinkConfig) {
                         mkData(Some("main"), "invariant.scope")
                 )
             )
-        outputWitness(CorrectnessWitness(nodesAndEdges))
+        val witness = CorrectnessWitness(nodesAndEdges)
+        outputWitness(witness)
+
+        if (config.server()) {
+            val witSource = StringSource(makeWitnessXML(witness))
+            val (out, err) = checkTrueWitness(witSource, filename, config)
+            config.driver.publishProductStr(
+                origSource,
+                "result|witnesscheck",
+                "txt",
+                out,
+                false
+            )
+            val expected = ""
+            if (out == expected)
+                info(function, s"correctness witness has been validated")
+            else
+                error(function, s"correctness witness could not be validated")
+        } else
+            noMessages
     }
 
     /**
      * Generate and print a violation witness for the given function.
      */
-    def printViolationWitness(function : IRFunction, failTrace : FailureTrace)
+    def printViolationWitness(function : IRFunction, failTrace : FailureTrace) : Messages
 
     /**
      * Actually output a witness text to the appropriate destination.
@@ -168,14 +184,18 @@ abstract class Witnesses(config : SkinkConfig) {
     def outputWitness(witness : Witness) {
         val xml = makeWitnessXML(witness)
         if (config.witnessFile() == "-") {
-            logger.info("outputWitness: writing witness to standard output")
-            config.output().emit(xml)
+            if (!config.quiet()) {
+                logger.info(source, "outputWitness: writing witness to standard output")
+                config.output().emit(xml)
+            }
         } else {
-            logger.info(s"outputWitness: writing witness to ${config.witnessFile()}")
+            logger.info(source, s"outputWitness: writing witness to ${config.witnessFile()}")
             val emitter = new FileEmitter(config.witnessFile())
             emitter.emit(xml)
             emitter.close()
         }
+        if (config.server())
+            config.driver.publishProductStr(origSource, "result|witness", "xml", xml, false)
     }
 
 }

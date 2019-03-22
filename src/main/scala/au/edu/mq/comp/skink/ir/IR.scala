@@ -26,6 +26,19 @@ package au.edu.mq.comp.skink.ir
  */
 trait IR {
 
+    import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
+    import org.bitbucket.inkytonik.kiama.util.Source
+
+    /**
+     * The original source from which this IR came.
+     */
+    def origSource : Source
+
+    /**
+     * The source from which this IR directly came.
+     */
+    def source : Source
+
     /**
      * Execute this IR instance, returning the output produced and the exit
      * code where zero means a normal exit.
@@ -40,7 +53,7 @@ trait IR {
     /**
      * Return a pretty-printed version of this IR instance.
      */
-    def show : String
+    def format : Document
 
     /**
      * Sort IR ids into a useful order of display to the user.

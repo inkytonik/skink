@@ -32,12 +32,18 @@ trait IRFunction {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
+    import org.bitbucket.inkytonik.kiama.util.Position
     import scala.util.Try
 
     /**
      * The IR-level name of this function.
      */
     def name : String
+
+    /**
+     * The source code position of this function, if known.
+     */
+    def position : Option[Position]
 
     /**
      * Return `None` if this function actually is amenable to verification.
@@ -114,6 +120,6 @@ trait IRFunction {
      * The order reflects the order in which the trace performs these calls. A
      * value returned or `None` indicates that the value is unknown.
      */
-    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall]
+    def traceToVerifierCalls(failTrace : FailureTrace) : List[VerifierCall]
 
 }

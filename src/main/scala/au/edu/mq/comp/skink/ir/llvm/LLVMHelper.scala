@@ -26,7 +26,11 @@ import org.scalallvm.assembly.AssemblySyntax._
 
 class LLVMHelper(config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.{Bit, Math}
+    import au.edu.mq.comp.skink.{Bit, Logger, Math}
+    import au.edu.mq.comp.skink.verifier.Helper.{checkFor, fail, runPipeline}
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Source}
+    import org.bitbucket.inkytonik.kiama.util.Filenames.makeTempFilename
+    import org.bitbucket.inkytonik.kiama.util.IO.deleteFile
 
     // Property helpers
 
@@ -416,7 +420,7 @@ class LLVMHelper(config : SkinkConfig) {
      * Matcher for nondet function names. Successful matches return the
      * identifier of the type that is returned by the matched function.
      */
-    object NondetFunctionName {
+    object NondetFunction {
         def unapply(name : String) : Option[String] = {
             val NondetName = "__VERIFIER_nondet_(.+)$".r
             name match {
@@ -568,6 +572,32 @@ class LLVMHelper(config : SkinkConfig) {
             name.startsWith("__VERIFIER")
     }
 
+    /**
+     * Matcher for SV-COMP verifier error function names.
+     */
+    object VerifierError {
+        def unapply(name : String) : Boolean =
+            name == "__VERIFIER_error"
+    }
+
+    /**
+     * Predicate for detecting error calls.
+     */
+    def isNotErrorCall(insn : MetaInstruction) : Boolean =
+        insn match {
+            case MetaInstruction(
+                Call(
+                    _, _, _, _, _,
+                    LibFunction(VerifierError()),
+                    _, _
+                    ),
+                _
+                ) =>
+                false
+            case _ =>
+                true
+        }
+
     // Useful math functions
 
     /**
@@ -583,6 +613,44 @@ class LLVMHelper(config : SkinkConfig) {
     def powerOfTwo(x : Int) : Int = {
         val pd = log2(x.toDouble)
         if (pd == scala.math.round(pd)) pd.toInt else -1
+    }
+
+    // Monto products
+
+    def publishLLVMCFG(logger : Logger, origSource : Source, source : Source, name : String) {
+        val opt = "opt"
+        val dot = "dot"
+        val programs = Vector(opt, dot)
+
+        programs.flatMap(checkFor(logger, origSource, _)) match {
+            case Vector() =>
+                source.useAsFile(
+                    llFilename => {
+                        val bcFilename = makeTempFilename(".bc")
+                        val dotFilename = "cfg.main.dot"
+                        val svgFilename = makeTempFilename(".svg")
+                        runPipeline(
+                            logger,
+                            origSource,
+                            Seq(
+                                opt, "-disable-opt", "-dot-cfg", "-cfg-func-name=main",
+                                llFilename, "-o", bcFilename
+                            ),
+                            Seq(
+                                dot, "-Tsvg", dotFilename, "-o", svgFilename
+                            )
+                        )
+                        val svg = FileSource(svgFilename, "ISO-8859-1").content
+                        config.driver.publishProductStr(origSource, name, "svg", svg)
+                        deleteFile(bcFilename)
+                        deleteFile(dotFilename)
+                        deleteFile(svgFilename)
+                    }
+                )
+            case msgs =>
+                val formattedMsgs = config.driver.messaging.formatMessages(msgs)
+                fail(logger, origSource, s"publishLLVMCFG: ${formattedMsgs}", config)
+        }
     }
 
 }

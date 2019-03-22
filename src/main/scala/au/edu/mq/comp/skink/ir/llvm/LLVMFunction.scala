@@ -25,6 +25,7 @@ import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.{IRFunction, Trace}
 import org.scalallvm.assembly.AssemblySyntax.{Block, FunctionDefinition, Program}
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import org.bitbucket.inkytonik.kiama.util.Source
 
 /**
  * A block trace is a sequence of blocks that comprise an error trace.
@@ -34,31 +35,32 @@ case class BlockTrace(blocks : Seq[Block], trace : Trace)
 /**
  * Representation of an LLVM IR function from the given program.
  */
-class LLVMFunction(val program : Program, val function : FunctionDefinition,
+class LLVMFunction(origSource : Source, source : Source,
+    val program : Program, val function : FunctionDefinition,
     config : SkinkConfig) extends Attribution with IRFunction {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import au.edu.mq.comp.skink.{Bit, Math}
-    import au.edu.mq.comp.skink.ir.{FailureTrace, NonDetCall}
-    import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.ir.{ErrorCall, FailureTrace, NonDetCall, VerifierCall}
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{ASTNode => _, _}
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
     import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
-    import org.bitbucket.inkytonik.kiama.util.{Position, Source}
+    import org.bitbucket.inkytonik.kiama.util.{Position, Source, StringSource}
     import org.scalallvm.assembly.AssemblySyntax.{True => _, _}
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.{any, layout, show}
+    import org.scalallvm.assembly.PrettyPrinter._
     import org.scalallvm.assembly.Analyser
     import scala.collection.mutable.ListBuffer
     import scala.util.{Failure, Success, Try}
 
-    val logger = getLogger(this.getClass)
-    val programLogger = getLogger(this.getClass, ".program")
-    val checkPostLogger = getLogger(this.getClass, ".checkpost")
+    val logger = getLogger(this.getClass, config)
+    val programLogger = getLogger(this.getClass, config, ".program")
+    val checkPostLogger = getLogger(this.getClass, config, ".checkpost")
 
-    // A helper for this module and the term builders
+    // A helper for this module andf the term builders
     val helper = new LLVMHelper(config)
     import helper._
 
@@ -79,6 +81,9 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
     lazy val name : String =
         nameToString(function.global)
 
+    lazy val position : Option[Position] =
+        Analyser.position(program)(function)
+
     lazy val nfa : NFA[String, Int] =
         buildNFA(makeVerifiable)
 
@@ -96,7 +101,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                 case Call(_, _, _, _, _, Function(Named(Global(LibFunctionName()))), _, _) =>
                     None
                 case Call(_, _, _, _, _, Function(Named(Global(s))), _, _) =>
-                    logger.info(s"isVerifiable: non-inlined call ${show(insn)}")
+                    logger.info(origSource, s"isVerifiable: non-inlined call ${show(insn)}")
                     Some(s)
                 case _ =>
                     None
@@ -116,13 +121,13 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
     }
 
-    def getTermBuilder(program : Program, funAnalyser : Analyser,
+    def getTermBuilder(source : Source, program : Program, funAnalyser : Analyser,
         namer : LLVMNamer, helper : LLVMHelper, config : SkinkConfig) : LLVMTermBuilder =
         config.numberMode() match {
             case Bit() =>
-                new LLVMBitTermBuilder(program, funAnalyser, namer, helper, config)
+                new LLVMBitTermBuilder(origSource, source, program, funAnalyser, namer, helper, config)
             case Math() =>
-                new LLVMMathTermBuilder(program, funAnalyser, namer, helper, config)
+                new LLVMMathTermBuilder(origSource, source, program, funAnalyser, namer, helper, config)
         }
 
     def traceToTerms(trace : Trace) : Seq[(TypedTerm[BoolTerm, Term], Boolean)] = {
@@ -134,11 +139,11 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree, helper)
-        val termBuilder = getTermBuilder(program, funAnalyser, namer, helper, config)
+        val termBuilder = getTermBuilder(source, program, funAnalyser, namer, helper, config)
 
-        // The term for the effects of program initialisation
+        // The terms for the effects of initialisation and top-level items
         val initTerm = termBuilder.initTerm(program)
-        val itemsTerm = termBuilder.itemsTerm(program)
+        val itemTerms = termBuilder.itemTerms(program)
 
         // If blocks occur more than once in the block trace they will be
         // shared. We need each instance to be treated separately so we use
@@ -157,13 +162,15 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                     false
             }
 
-        // Return the terms and flags corresponding to the traced blocks.
-        trace.choices.size match {
+        val tracename = treeBlockTrace.blocks.map {
+            case block =>
+                s"block ${blockName(block)}"
+        }.mkString("|")
+
+        // The terms and flags corresponding to the traced blocks.
+        val result = trace.choices.size match {
             case 0 =>
                 sys.error("traceToTerms: unexpected empty trace")
-            case 1 =>
-                val terms = termBuilder.blockTerms(treeBlockTrace.blocks(0), None, trace.choices(0))
-                Seq((termBuilder.combineTerms(terms), true))
             case n =>
                 val blocks = treeBlockTrace.blocks
                 trace.choices.zipWithIndex.map {
@@ -176,16 +183,120 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                                 None
                             else
                                 Some(blocks(count - 1))
-                        val blockTerm = termBuilder.combineTerms(termBuilder.blockTerms(block, optPrevBlock, choice))
+                        val blockTerms = termBuilder.blockTerms(block, optPrevBlock, choice)
+                        val blockTerm = termBuilder.combineTerms(blockTerms)
+                        val itemsTerm = termBuilder.combineTerms(itemTerms)
                         val term =
                             if (count == 0)
                                 termBuilder.combineTerms(Seq(initTerm, itemsTerm, blockTerm))
                             else
                                 blockTerm
                         val flag = (count == n - 1) || hasMultipleSuccessors(block)
+
+                        if (config.server()) {
+                            val inittermpp =
+                                if (count == 0) {
+                                    value(s"* initialisation") <@>
+                                        line <>
+                                        initTerm.show
+                                } else
+                                    emptyDoc
+
+                            val itemtermspp =
+                                if (count == 0) {
+                                    val numitems = program.items.length
+                                    (0 until numitems).map(
+                                        index => {
+                                            program.items(index) match {
+                                                case _ : FunctionDefinition =>
+                                                    emptyDoc
+                                                case item =>
+                                                    line <> line <>
+                                                        value(s"* item") <@>
+                                                        toLinkedDoc(origSource, program, item) <@>
+                                                        itemTerms(index).show
+                                            }
+                                        }
+                                    )
+                                } else
+                                    Vector(emptyDoc)
+
+                            val numphis = block.optMetaPhiInstructions.length
+                            val phitermspp =
+                                (0 until numphis).map(
+                                    index => {
+                                        val phi = block.optMetaPhiInstructions(index)
+                                        value(s"* phi") <@>
+                                            line <>
+                                            toLinkedDoc(origSource, program, phi) <@>
+                                            line <>
+                                            blockTerms(index).show
+                                    }
+                                )
+
+                            val numinsns = block.optMetaInstructions.length
+                            val insntermspp =
+                                (0 until numinsns).map(
+                                    index => {
+                                        val insn = block.optMetaInstructions(index)
+                                        config.driver.logMessage(s"${Analyser.position(program)(insn)}")
+                                        value(s"* insn") <@>
+                                            line <>
+                                            toLinkedDoc(origSource, program, insn) <@>
+                                            line <>
+                                            blockTerms(index + numphis).show
+                                    }
+                                )
+
+                            val termtermpp =
+                                value(s"* terminator (choice $choice)") <@>
+                                    line <>
+                                    toLinkedDoc(origSource, program, block.metaTerminatorInstruction) <@>
+                                    line <>
+                                    blockTerms.last.show
+
+                            val alltermspp =
+                                (if (count == 0)
+                                    hcat(inittermpp +: itemtermspp) <@>
+                                    line
+                                else
+                                    line) <>
+                                    "* block" <+> blockName(block) <@>
+                                    line <>
+                                    vsep((phitermspp ++ insntermspp) :+ termtermpp, line) <>
+                                    line
+
+                            val allname = s"traces|${tracename}|trace ${trace.iteration}|terms"
+                            config.driver.publishProduct(origSource, allname, "ll", pretty(alltermspp), true)
+                        }
+
                         (term, flag)
                 }
         }
+
+        if (config.server()) {
+            val tracepp = pretty(vcat(
+                (0 until trace.choices.length).map(
+                    step => {
+                        val block = treeBlockTrace.blocks(step)
+                        val choice = trace.choices(step)
+                        "* Block" <+> value(step) <@>
+                            toLinkedDoc(origSource, program, block) <@>
+                            "then by choice" <+> value(choice) <+> "to" <> line
+                    }
+                ).toVector
+            ))
+
+            config.driver.publishProduct(
+                origSource,
+                s"traces|${tracename}|trace ${trace.iteration}|LLVM",
+                "ll",
+                tracepp,
+                false
+            )
+        }
+
+        result
     }
 
     // Helper methods
@@ -198,7 +309,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         import org.bitbucket.franck44.automat.edge.LabDiEdge
         import org.bitbucket.franck44.automat.edge.Implicits._
 
-        logger.info(s"buildNFA: $name")
+        logger.info(origSource, s"buildNFA: $name")
 
         val blocks = function.functionBody.blocks
 
@@ -251,16 +362,37 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
      * Prepare the IR of a function for verification by transforming it
      * and return the new IR form.
      */
-    lazy val makeVerifiable : FunctionDefinition =
-        fixErrorCalls(function)
+    lazy val makeVerifiable : FunctionDefinition = {
+        val verifiable = fixErrorCalls(function)
+
+        if (config.server()) {
+            val index = program.items.indexWhere {
+                case fd : FunctionDefinition if nameToString(fd.global) == name =>
+                    true
+                case _ =>
+                    false
+            }
+            if (index == -1)
+                sys.error(s"makeVerifiable: can't find function ${name}")
+
+            val verifiableProgram = Program(program.items.patch(index, Vector(verifiable), 1))
+            val document = formatLinked(origSource, verifiableProgram, verifiableProgram)
+            config.driver.publishProduct(origSource, "verifiable LLVM", "ll", document, false)
+            publishLLVMCFG(logger, origSource, StringSource(document.layout), "verifiable LLVM CFG")
+        }
+
+        verifiable
+    }
 
     /**
      * Replace blocks that contain a call to the __VERIFIER_error
-     * function after an assertion has failed to a branch to a
-     * __error block. In detail, look for a block of this form
+     * function to a branch to an __error block. These blocks are
+     * then identifiable by name as error locations.
+     *
+     * In detail, look for a block of this form
      *
      * ; <label>:14
-     *   <insns1>
+     *   <insns1>   -- not containing an error call
      *   call void (...) @__VERIFIER_error() #4
      *   <insns2>
      *   <terminator>
@@ -278,6 +410,9 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
      *   <insns2>
      *   <terminator>
      *
+     * <insns2> could contain an error call too, but we don't split that one
+     * since the first error call won't return.
+     *
      * The metadata from the call is transferred to the new branch so it can
      * recovered later during reporting.
      *
@@ -285,7 +420,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
      */
     def fixErrorCalls(function : FunctionDefinition) : FunctionDefinition = {
 
-        logger.info(s"fixErrorCalls: $name")
+        logger.info(origSource, s"fixErrorCalls: $name")
 
         val errorBlocks = new ListBuffer[Block]()
 
@@ -297,21 +432,6 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
                     s"__error.$num"
                 case NoLabel() =>
                     s"__error.nolabel"
-            }
-
-        def isNotErrorCall(insn : MetaInstruction) : Boolean =
-            insn match {
-                case MetaInstruction(
-                    Call(
-                        _, _, _, _, _,
-                        LibFunction("__VERIFIER_error"),
-                        _, _
-                        ),
-                    _
-                    ) =>
-                    false
-                case _ =>
-                    true
             }
 
         def replaceErrorCalls(block : Block) : Block = {
@@ -341,11 +461,11 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Return the new function
         val ret = function.copy(functionBody = functionBodyWithErrorBlock)
-        programLogger.debug(s"* Function $name after fixErrorCalls:\n")
-        programLogger.debug(show(ret))
-        programLogger.debug(s"\n* AST of function $name after fixErrorCalls:\n\n")
-        programLogger.debug(layout(any(ret)))
-        programLogger.debug("\n\n")
+        programLogger.debug(origSource, s"* Function $name after fixErrorCalls:\n")
+        programLogger.debug(origSource, show(ret))
+        programLogger.debug(origSource, s"\n* AST of function $name after fixErrorCalls:\n\n")
+        programLogger.debug(origSource, layout(any(ret)))
+        programLogger.debug(origSource, "\n\n")
         ret
 
     }
@@ -354,7 +474,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         source.optLineContents(line).getOrElse("").trim
 
     def getCodeLine(node : ASTNode, metadata : Metadata) : (Option[Int], Option[String]) =
-        funAnalyser.instructionPosition(program, node, metadata) match {
+        Analyser.position(program)(node) match {
             case Some(Position(termLine, _, termSource)) =>
                 val termCode = getSourceLineText(termSource, termLine)
                 (Some(termLine), Some(termCode))
@@ -407,7 +527,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, blockTree, helper)
-        val termBuilder = getTermBuilder(program, funAnalyser, namer, helper, config)
+        val termBuilder = getTermBuilder(source, program, funAnalyser, namer, helper, config)
 
         // Make a single term for this block and choice
         val optPrevBlock = if (index == 0) None else Some(blocks(index - 1))
@@ -428,7 +548,7 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         attr {
             case trace =>
                 val entryBlock = makeVerifiable.functionBody.blocks(0)
-                val (finalBlock, blocks) =
+                val (_, blocks) =
                     trace.choices.foldLeft((Option(entryBlock), Vector[Block]())) {
                         case ((Some(block), blocks), choice) =>
                             (nextBlock(block, choice), blocks :+ block)
@@ -506,11 +626,11 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         object Comm extends Commands
         import Comm.isSat
 
-        programLogger.info(s"pre-condition is")
+        programLogger.info(origSource, s"pre-condition is")
 
         //  Index the variables in pre with index 0
         val indexedPre = pre indexedBy { case _ => 0 }
-        programLogger.info(s"indexed pre-condition is ${indexedPre.show}")
+        programLogger.info(origSource, s"indexed pre-condition is ${indexedPre.show}")
 
         //  index the variables in post with index
         val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
@@ -528,19 +648,19 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
             case Success(UnSat()) => Success(true)
 
             case Success(UnKnown()) =>
-                checkPostLogger.error(s"Solver returned UnKnown for check-sat")
+                checkPostLogger.error(origSource, s"Solver returned UnKnown for check-sat")
                 sys.error(s"Solver returned UnKnown for check-sat")
 
             case Failure(f) =>
-                checkPostLogger.error(s"Solver failed to determine sat-status in checkpost $f")
+                checkPostLogger.error(origSource, s"Solver failed to determine sat-status in checkpost $f")
                 sys.error(s"Solver failed to determine sat-status in checkpost $f")
         }
     }
 
     /**
-     * Return the values that are returned by `__VERIFIER_nondet_T` functions.
+     * Return the calls to verifier functions that are made by a trace.
      */
-    def traceToNonDetValues(failTrace : FailureTrace) : List[NonDetCall] = {
+    def traceToVerifierCalls(failTrace : FailureTrace) : List[VerifierCall] = {
         val blockTrace = traceToBlockTrace(failTrace.trace)
         val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree, helper)
@@ -548,18 +668,32 @@ class LLVMFunction(val program : Program, val function : FunctionDefinition,
         def getIndexedVarName(to : Name) : String =
             makeIndexedVarName(show(to), namer.indexOf(to, to))
 
-        collectl {
-            case MetaInstruction(call @ LibFunctionCall0(binding, _, NondetFunctionName(tipe)), metadata) =>
-                val value = binding match {
-                    case Binding(to) =>
-                        failTrace.values.get(getIndexedVarName(to))
-                    case NoBinding() =>
-                        None
-                }
-                val (optCode, optLine) = getCodeLine(call, metadata)
-                NonDetCall(tipe, value, optLine, optCode)
-        }(blockTrace.blocks)
+        def offsetStartFromCall(source : Source, call : MetaInstruction) : Option[Int] = {
+            val posn = Analyser.position(program)(call)
+            source.positionToOffset(posn.getOrElse(Position(1, 1, source)))
+        }
 
+        collectl {
+            case call : MetaInstruction if !isNotErrorCall(call) =>
+                new ErrorCall {
+                    override val (optLine, optCode) = getCodeLine(call, call.metadata)
+                    override val optOffsetStart = offsetStartFromCall(origSource, call)
+                    override val optOffsetFinish = optOffsetStart
+                }
+
+            case call @ MetaInstruction(LibFunctionCall0(binding, _, NondetFunction(tipe)), metadata) =>
+                new NonDetCall(tipe) {
+                    override val optValue = binding match {
+                        case Binding(to) =>
+                            failTrace.values.get(getIndexedVarName(to))
+                        case NoBinding() =>
+                            None
+                    }
+                    override val (optLine, optCode) = getCodeLine(call, metadata)
+                    override val optOffsetStart = offsetStartFromCall(origSource, call)
+                    override val optOffsetFinish = optOffsetStart
+                }
+        }(blockTrace.blocks)
     }
 
 }

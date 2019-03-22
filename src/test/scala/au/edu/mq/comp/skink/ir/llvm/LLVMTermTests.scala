@@ -35,7 +35,7 @@ class LLVMTermTests extends Tests {
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
     import org.bitbucket.inkytonik.kiama.relation.Tree
-    import org.bitbucket.inkytonik.kiama.util.{Positions, StringSource}
+    import org.bitbucket.inkytonik.kiama.util.{Positions, Source, StringSource}
     import org.scalallvm.assembly.AssemblySyntax._
     import org.scalallvm.assembly.{Analyser, Assembly}
     import org.scalatest.matchers.{Matcher, MatchResult}
@@ -49,12 +49,13 @@ class LLVMTermTests extends Tests {
     val namer = new DummyNamer
     val helper = new LLVMHelper(config)
 
-    val (program, func) = parseProgram("define i32 @main() { ret i32 0 }", config)
+    val source = StringSource("define i32 @main() { ret i32 0 }")
+    val (program, func) = parseProgram(source, config)
     val funtree = new Tree[ASTNode, FunctionDefinition](func.function)
     val funanalyser = new Analyser(funtree)
 
-    val bitTermBuilder = new LLVMBitTermBuilder(program, funanalyser, namer, helper, config)
-    val mathTermBuilder = new LLVMMathTermBuilder(program, funanalyser, namer, helper, config)
+    val bitTermBuilder = new LLVMBitTermBuilder(source, source, program, funanalyser, namer, helper, config)
+    val mathTermBuilder = new LLVMMathTermBuilder(source, source, program, funanalyser, namer, helper, config)
 
     // Test parameters
 
@@ -989,6 +990,13 @@ class LLVMTermTests extends Tests {
         }
     }
 
+    val errors = Vector("__VERIFIER_error")
+
+    for (error <- errors) {
+        insnTermTest(s"call void @$error ()", "true")
+        insnTermTest(s"call void bitcast (void (...)* @$error to void ()*)()", "true")
+    }
+
     val fmins = Vector("fmin", "fminf", "fminl")
 
     for ((tipe, exp, sig) <- floatTypes) {
@@ -1219,41 +1227,37 @@ class LLVMTermTests extends Tests {
         mathTermBuilder.itemTerm(item"$item").termDef should beSameTermAs(term"$term")
     }
 
-    def hasTraceTerms(program : String, trace : Trace, terms : Seq[String], args : Array[String]) = {
+    def hasTraceTerms(program : String, trace : Trace, terms : Seq[String], args : Seq[String]) = {
         val prog = prog"$program"
         prog.items match {
             case Vector(funcdef : FunctionDefinition) =>
-                Main.createAndInitConfig(args) match {
-                    case Left(message) =>
-                        fail(s"hasTraceTerms: $message")
-                    case Right(config) =>
-                        val ts = terms.map(t => term"$t")
-                        val function = new LLVMFunction(prog, funcdef, config)
-                        function.traceToTerms(trace).map(_._1.termDef) should beSameTermsAs(ts)
-                }
+                val source = StringSource(program)
+                val config = Main.createConfig(args)
+                val ts = terms.map(t => term"$t")
+                val function = new LLVMFunction(source, source, prog, funcdef, config)
+                function.traceToTerms(trace).map(_._1.termDef) should beSameTermsAs(ts)
             case _ =>
                 fail(s"hasTraceTerms: expected a single function")
         }
     }
 
     def hasBitTraceTerms(program : String, choices : Seq[Int], terms : Seq[String]) =
-        hasTraceTerms(program, Trace(choices), terms, Array("-n", "bit"))
+        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "bit"))
 
     def hasMathTraceTerms(program : String, choices : Seq[Int], terms : Seq[String]) =
-        hasTraceTerms(program, Trace(choices), terms, Array("-n", "math"))
+        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "math"))
 
     // Utilities
 
-    def parseProgram(prog : String, config : SkinkConfig) : (Program, LLVMFunction) = {
+    def parseProgram(source : Source, config : SkinkConfig) : (Program, LLVMFunction) = {
         val positions = new Positions
-        val source = new StringSource(prog)
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {
             val prog = p.value(pr).asInstanceOf[Program]
             val funs = prog.items.collect {
                 case func : FunctionDefinition =>
-                    new LLVMFunction(prog, func, config)
+                    new LLVMFunction(source, source, prog, func, config)
             }
             if (funs.length != 1)
                 fail(s"parseProgram: expected exactly one function, got ${funs.length}")

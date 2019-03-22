@@ -23,47 +23,92 @@ package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.IR
+import org.bitbucket.inkytonik.kiama.util.Source
 
 /**
  * The main verifier which wraps the trace refinement process with
  * output that is suitable for the SV-COMP.
  */
-class Verifier(ir : IR, config : SkinkConfig) {
+class Verifier(source : Source, ir : IR, config : SkinkConfig) {
 
-    import au.edu.mq.comp.skink.Driver
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction}
-    import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
+    import org.bitbucket.inkytonik.kiama.util.Position
     import scala.util.{Failure, Success}
 
-    val logger = getLogger(this.getClass)
+    val logger = getLogger(this.getClass, config)
 
     /**
      * Verify a function and output the result in SV-COMP format.
      */
-    def verify(driver : Driver, function : IRFunction) {
+    def verify(function : IRFunction) {
 
-        logger.info(s"verify: ${function.name}")
+        import org.bitbucket.inkytonik.kiama.util.Messaging.{check, error, warning}
 
-        val witnesses = new NonDetWitnesses(config)
+        logger.clear(source)
+        logger.info(source, s"verify: ${function.name}")
+
+        val witnesses = new NonDetWitnesses(source, source, function, config)
+
+        config.driver.positions.setAllPositions(
+            function,
+            function.position.getOrElse(Position(1, 1, source))
+        )
+
+        abstract class Result
+        case object Correct extends Result
+        case object Incorrect extends Result
+        case object Unknown extends Result
+
+        val expectedResult : Result =
+            if (source.name.contains("_true-unreach-call"))
+                Correct
+            else if ((source.name.contains("_false-unreach-call")))
+                Incorrect
+            else
+                Unknown
 
         def reportCorrect() {
-            logger.info(s"verify: ${function.name} is correct")
+            logger.info(source, s"verify: ${function.name} is correct")
             if (!config.quiet())
                 config.output().emitln("TRUE")
-            witnesses.printCorrectnessWitness(function)
+            val witMessages = witnesses.printCorrectnessWitness(function)
+            if (config.server())
+                config.driver.report(
+                    source,
+                    witMessages ++
+                        check(expectedResult) {
+                            case expected if expected == Incorrect =>
+                                warning(function, "Skink says program is correct but it is expected to be incorrect")
+                        },
+                    config
+                )
         }
 
         def reportIncorrect(failureTrace : FailureTrace) {
-            logger.info(s"verify: ${function.name} is incorrect")
+            logger.info(source, s"verify: ${function.name} is incorrect")
             if (!config.quiet())
                 config.output().emitln("FALSE")
-            witnesses.printViolationWitness(function, failureTrace)
+            val witMessages = witnesses.printViolationWitness(function, failureTrace)
+            if (config.server())
+                config.driver.report(
+                    source,
+                    error(function, s"function ${function.name} is incorrect") ++
+                        witMessages ++
+                        check(expectedResult) {
+                            case expected if expected == Correct =>
+                                warning(function, "Skink says program is incorrect but it is expected to be correct")
+                        },
+                    config
+                )
         }
 
         def reportUnknown(reasons : String) {
-            logger.info(s"verify: correctness of ${function.name} is unknown")
+            logger.info(source, s"verify: correctness of ${function.name} is unknown")
             if (!config.quiet())
                 config.output().emitln(s"UNKNOWN\n$reasons")
+            if (config.server())
+                config.driver.report(source, warning(function, "Skink cannot tell if this program is correct"), config)
         }
 
         /**
@@ -81,28 +126,28 @@ class Verifier(ir : IR, config : SkinkConfig) {
             }
 
             val configDesc = config.args.mkString(" ")
-            logger.info(s"verify: configuration args: $configDesc")
+            logger.info(source, s"verify: configuration args: $configDesc")
 
-            val refiner = new TraceRefinement(ir, config)
+            val refiner = new TraceRefinement(source, ir, config)
 
             try {
                 refiner.traceRefinement(function) match {
                     case Success(None) =>
-                        logger.info("verify: CORRECT")
+                        logger.info(source, "verify: CORRECT")
                         reportCorrect()
                         return
                     case Success(Some(witnessTrace)) =>
-                        logger.info("verify: INCORRECT")
+                        logger.info(source, "verify: INCORRECT")
                         reportIncorrect(witnessTrace)
                         return
                     case Failure(e) =>
                         val reason = e.getMessage
-                        logger.info(s"verify: UNKNOWN $reason")
+                        logger.info(source, s"verify: UNKNOWN $reason")
                         addReason(configDesc, reason)
                 }
             } catch {
                 case e : java.lang.Exception =>
-                    logger.debug(s"""$e\n${e.getStackTrace().mkString("\n at ")}""")
+                    logger.debug(source, s"""$e\n${e.getStackTrace().mkString("\n at ")}""")
                     addReason(configDesc, e.getMessage())
             }
 
@@ -113,7 +158,7 @@ class Verifier(ir : IR, config : SkinkConfig) {
             // Detect if the function is not in a form for verification and abort
             function.isVerifiable() match {
                 case Some(reason) =>
-                    logger.info(s"verify: ${function.name} is not verifiable, aborting")
+                    logger.info(source, s"verify: ${function.name} is not verifiable, aborting")
                     sys.error(s"${function.name} is not verifiable, $reason")
                 case _ =>
                     // Function is ok, go for verification

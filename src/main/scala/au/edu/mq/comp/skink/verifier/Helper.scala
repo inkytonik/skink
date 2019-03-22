@@ -26,11 +26,23 @@ package au.edu.mq.comp.skink.verifier
  */
 object Helper {
 
+    import au.edu.mq.comp.skink.{Logger, SkinkConfig}
+    import au.edu.mq.comp.skink.ir.IR
+    import java.io.File
     import java.lang.Double.longBitsToDouble
     import java.lang.Float.intBitsToFloat
     import java.math.BigInteger
+    import org.bitbucket.inkytonik.kiama.util.Filenames.makeTempFilename
+    import org.bitbucket.inkytonik.kiama.util.IO.deleteFile
+    import org.bitbucket.inkytonik.kiama.util.Messaging.{error, Messages}
+    import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
+    import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.util.DotConverter
+    import org.bitbucket.franck44.dot.DOTPrettyPrinter
+    import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import scala.math.pow
+    import scala.sys.process._
 
     def convertFromBase(s : String, base : Int) : Long =
         new BigInteger(s, base).longValue()
@@ -185,5 +197,168 @@ object Helper {
             case term =>
                 sys.error(s"termToCValueString: unexpected value term $term")
         }
+
+    /**
+     * Turn a (possible) URI into a user-level name.
+     */
+    def uriToName(uri : String) : String =
+        if (uri startsWith "file://") uri.drop(7) else uri
+
+    /**
+     * Run a command, returning whatever is written to standard output and standard error.
+     */
+    def runCmd(cmd : Seq[String], cwd : String = ".") : (String, String) = {
+        val process = Process(cmd, new File(cwd))
+        val stdoutBuilder = new StringBuilder
+        val stderrBuilder = new StringBuilder
+        val processLoggger = ProcessLogger(
+            line => stdoutBuilder.append(s"$line\n"),
+            line => stderrBuilder.append(s"$line\n")
+        )
+        process ! processLoggger
+        (stdoutBuilder.result(), stderrBuilder.result())
+    }
+
+    /**
+     * Check a false witness by running fshell-w2t. The source and file name give
+     * the witness text and the input file name, respectively.
+     *
+     * two filenames are the
+     * witness file and the file to which the witness applies. The two return values
+     * are the captured standard output and error.
+     */
+    def checkFalseWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) =
+        witSource.useAsFile(
+            witFile =>
+                runCmd(
+                    Seq(
+                        "./test-gen.sh", "-m32", "--propertyfile", "../properties/unreach-call.prp",
+                        "--graphml-witness", witFile, inFile
+                    ),
+                    config.fshellw2tPath()
+                )
+        )
+
+    /**
+     * Check a true witness by running check-true-witness.sh. The two filenames are the
+     * witness file and the file to which the witness applies. The two return values
+     * are the captured standard output and error.
+     */
+    def checkTrueWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) =
+        witSource.useAsFile(
+            witFile =>
+                runCmd(
+                    Seq(
+                        "./check-true-witness.sh", witFile, inFile
+                    ),
+                    config.checkTrueWitnessPath()
+                )
+        )
+
+    /**
+     * Check for the existence of a prorgam on the user's PATH. If it's
+     * there, log its full path, and if it has a "--version" option, run
+     * it and log that too. If the program is not on the path, log that.
+     * The success or failure is also returned as a sequence of messages
+     * describing the problem (if any).
+     */
+    def checkFor(logger : Logger, source : Source, program : String) : Messages = {
+        val which = new java.io.ByteArrayOutputStream
+        val processlogger = ProcessLogger(_ => (), _ => ())
+        if ((s"which $program" #> which).!(processlogger) == 0) {
+            logger.info(source, s"buildIRFromFile: $program is $which")
+            val version = new java.io.ByteArrayOutputStream
+            if ((s"$program --version" #> version).!(processlogger) == 0)
+                logger.info(source, s"buildIRFromFile: $program version is $version")
+            Vector()
+        } else {
+            val msg = s"buildIRFromFile: $program not present on PATH"
+            logger.info(source, msg)
+            error(msg, msg)
+        }
+    }
+
+    /**
+     * Run a pipeline of commands, return status and output. The commands
+     * are assumed to exist, so `checkFor` should be used to check first.
+     */
+    def runPipeline(logger : Logger, source : Source, command : Seq[String],
+        rest : Seq[String]*) : (Int, String) = {
+        val outputBuilder = new StringBuilder
+        for (stage <- command +: rest) {
+            logger.info(source, s"runPipline: $stage\n")
+        }
+        val process = rest.foldLeft(Process(command))(_ #&& _)
+        val processLoggger = ProcessLogger(
+            line => outputBuilder.append(s"$line\n"),
+            line => outputBuilder.append(s"$line\n")
+        )
+        val status = process ! processLoggger
+        val output = outputBuilder.result()
+        logger.info(source, output)
+        (status, output)
+    }
+
+    /**
+     * Fail the frontend by logging and returning the given message.
+     */
+    def fail(logger : Logger, source : Source, msg : String, config : SkinkConfig) : Either[IR, Messages] = {
+        logger.info(source, msg)
+        config.driver.positions.setAllPositions(msg, Position(1, 1, source))
+        Right(error(msg, msg))
+    }
+
+    /**
+     * Utility method to convert an automta into DOT format.
+     */
+    def toDot[S, L](nfa : NFA[S, L], title : String) : String =
+        DOTPrettyPrinter.show(
+            DotConverter.toDot(
+                nfa.copy(name = title),
+                (b : S) => {
+                    val label = Attribute("label", StringLit(b.toString))
+                    val style =
+                        Attribute("shape", if (nfa.getInit.contains(b))
+                            Ident("circle")
+                        else if (nfa.accepting.contains(b))
+                            Ident("doublecircle")
+                        else
+                            Ident("oval"))
+                    List(label, style)
+                },
+                (b : S) => '"' + b.toString + '"',
+                (i : L) => i.toString
+            )
+        )
+
+    // Monto products
+
+    def publishDot(logger : Logger, origSource : Source, source : Source, name : String, config : SkinkConfig) {
+        val dot = "dot"
+        val programs = Vector(dot)
+
+        programs.flatMap(checkFor(logger, origSource, _)) match {
+            case Vector() =>
+                source.useAsFile(
+                    dotFilename => {
+                        val svgFilename = makeTempFilename(".svg")
+                        runPipeline(
+                            logger,
+                            origSource,
+                            Seq(
+                                dot, "-Tsvg", dotFilename, "-o", svgFilename
+                            )
+                        )
+                        val svg = FileSource(svgFilename, "ISO-8859-1").content
+                        config.driver.publishProductStr(origSource, name, "svg", svg)
+                        deleteFile(dotFilename)
+                        deleteFile(svgFilename)
+                    }
+                )
+            case msgs =>
+                val formattedMsgs = config.driver.messaging.formatMessages(msgs)
+                fail(logger, origSource, s"publishDot: ${formattedMsgs}", config)
+        }
+    }
 
 }

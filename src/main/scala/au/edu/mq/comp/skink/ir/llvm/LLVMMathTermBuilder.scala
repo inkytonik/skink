@@ -30,16 +30,19 @@ import org.bitbucket.franck44.scalasmt.theories.{
     RealArithmetics
 }
 import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
+import org.bitbucket.inkytonik.kiama.util.Source
 import org.scalallvm.assembly.Analyser
 import org.scalallvm.assembly.AssemblySyntax.Program
 
-case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
-    namer : LLVMNamer, helper : LLVMHelper, config : SkinkConfig)
+case class LLVMMathTermBuilder(origSource : Source, source : Source,
+    program : Program, funAnalyser : Analyser, namer : LLVMNamer,
+    helper : LLVMHelper, config : SkinkConfig)
+
     extends LLVMTermBuilder
     with ArrayExInt with ArrayExReal with ArrayExOperators
     with IntegerArithmetics with RealArithmetics with QuantifiedTerm {
 
-    import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import helper._
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{IntSort, RealSort, SSymbol, Term}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
@@ -50,7 +53,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
-    val logger = getLogger(this.getClass)
+    val logger = getLogger(this.getClass, config)
 
     // Integers and reals are mathematical numbers
     type IntTermType = IntTerm
@@ -104,9 +107,9 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
 
             case LibFunctionCall0(Binding(to), tipe, name) =>
                 name match {
-                    case NondetFunctionName(UnsignedType(_)) =>
+                    case NondetFunction(UnsignedType(_)) =>
                         iCompare(SGE(), Named(to), Const(ZeroC()))
-                    case NondetFunctionName(_) =>
+                    case NondetFunction(_) =>
                         True()
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (zero args, ${show(tipe)} return)")
@@ -146,7 +149,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 super.insnTerm(metaInsn)
 
         }
-        logger.debug(s"insnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
+        logger.debug(origSource, s"insnTerm: ${longshow(insn)} -> ${showTerm(term.termDef)}")
         term
     }
 
@@ -192,7 +195,7 @@ case class LLVMMathTermBuilder(program : Program, funAnalyser : Analyser,
                 True()
         }
         if (term != True())
-            logger.info(s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
+            logger.info(origSource, s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
         term
     }
 

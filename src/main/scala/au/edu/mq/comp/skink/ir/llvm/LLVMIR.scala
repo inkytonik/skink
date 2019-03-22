@@ -23,31 +23,34 @@ package au.edu.mq.comp.skink.ir.llvm
 
 import au.edu.mq.comp.skink.SkinkConfig
 import au.edu.mq.comp.skink.ir.IR
+import org.bitbucket.inkytonik.kiama.util.Source
 import org.scalallvm.assembly.AssemblySyntax.Program
 
 /**
  * Representation of LLVM IR.
  */
-class LLVMIR(ir : Program, config : SkinkConfig) extends IR {
+class LLVMIR(val origSource : Source, val source : Source, program : Program,
+    config : SkinkConfig) extends IR {
 
     import au.edu.mq.comp.skink.ir.IRFunction
-    import org.scalallvm.assembly.AssemblyPrettyPrinter
     import org.scalallvm.assembly.AssemblySyntax.FunctionDefinition
     import org.scalallvm.assembly.Executor
+    import org.scalallvm.assembly.PrettyPrinter.formatLinked
+    import org.bitbucket.inkytonik.kiama.output.PrettyPrinterTypes.Document
 
     // Implementation of IR interface
 
     def execute() : (String, Int) =
-        Executor.execute(ir, config.lli())
+        Executor.execute(program, config.lli())
 
     def functions : Vector[IRFunction] =
-        ir.items.collect {
+        program.items.collect {
             case fd : FunctionDefinition =>
-                new LLVMFunction(ir, fd, config)
+                new LLVMFunction(origSource, source, program, fd, config)
         }
 
-    def show : String =
-        AssemblyPrettyPrinter.show(ir, 5)
+    def format : Document =
+        formatLinked(origSource, program, program)
 
     def sortIds(ids : Vector[String])(implicit ordering : Ordering[String]) : Vector[String] =
         ids.sorted

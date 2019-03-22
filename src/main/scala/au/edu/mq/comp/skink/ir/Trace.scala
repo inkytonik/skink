@@ -24,19 +24,15 @@ package au.edu.mq.comp.skink.ir
 import org.bitbucket.franck44.scalasmt.typedterms.Value
 
 /**
- * A trace is given by a sequence of choices. The blocks visited by a trace
- * are implied by the choices to be the start block of the function, followed
- * by successor blocks given by the choices. E.g., if a block has two possible
- * paths to successor blocks, the index will be 0 or 1, indicating which of
- * the possible paths was taken in the trace.
+ * A trace is given by a sequence of choices and the number of the iteration
+ * in which it occurred. The blocks visited by a trace are implied by the
+ * choices to be the start block of the function, followed by successor
+ * blocks given by the choices. E.g., if a block has two possible paths
+ * to successor blocks, the index will be 0 or 1, indicating which of
+ * the possible paths was taken in the trace. The iteration count
+ * defaults to zero.
  */
-case class Trace(choices : Seq[Int]) {
-
-    /**
-     * Pretty print the sequence
-     */
-    def show = s"[${choices.size}] " + choices.mkString(" ")
-}
+case class Trace(choices : Seq[Int], iteration : Int = 0)
 
 /**
  * A feasible trace that leads to a program failure. `values` maps ids
@@ -45,15 +41,27 @@ case class Trace(choices : Seq[Int]) {
 case class FailureTrace(trace : Trace, values : Map[String, Value])
 
 /**
- * A description of a call to a `nondet` function in the execution of
- * a trace for use in witness generation. Included are the type of
- * the call (e.g., "int", "uint" or "float"), an optional value that
- * was returned by the call, optional source code for the call, and
- * an optional line number at which the call occurs.
+ * A call to a __VERIFIER function. Possibly included are a value that
+ * was returned by the call, source code, line number, and start and
+ * finish offsets.
  */
-case class NonDetCall(
-    tipe : String,
-    optValue : Option[Value],
-    optCode : Option[String],
-    optLine : Option[Int]
-)
+sealed abstract class VerifierCall {
+    def optValue : Option[Value] = None
+    def optCode : Option[String] = None
+    def optLine : Option[Int] = None
+    def optOffsetStart : Option[Int] = None
+    def optOffsetFinish : Option[Int] = None
+}
+
+/**
+ * A description of a call to an `error` function in the execution of
+ * a trace.
+ */
+case class ErrorCall() extends VerifierCall
+
+/**
+ * A description of a call to a `nondet` function in the execution of
+ * a trace. Included is the type of the call (e.g., "int", "uint" or
+ * "float").
+ */
+case class NonDetCall(tipe : String) extends VerifierCall

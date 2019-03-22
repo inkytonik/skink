@@ -23,11 +23,12 @@ package au.edu.mq.comp.skink.verifier
 
 import au.edu.mq.comp.skink.ir.IR
 import au.edu.mq.comp.skink.SkinkConfig
+import org.bitbucket.inkytonik.kiama.util.Source
 
 /**
  * Implementation of the trace refinement process.
  */
-class TraceRefinement(ir : IR, config : SkinkConfig) {
+class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.lang.Lang
@@ -44,8 +45,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     }
     import au.edu.mq.comp.skink.{Bit, Math, NumberMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
-    import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
-    import au.edu.mq.comp.skink.verifier.Helper.termToCValueString
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
+    import au.edu.mq.comp.skink.verifier.Helper.{publishDot, termToCValueString, toDot}
+    import org.bitbucket.inkytonik.kiama.util.StringSource
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
@@ -67,8 +69,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
     object resources extends Resources
     import resources._
 
-    val logger = getLogger(this.getClass)
-    val cfgLogger = getLogger(this.getClass, ".cfg")
+    val logger = getLogger(this.getClass, config)
+    val cfgLogger = getLogger(this.getClass, config, ".cfg")
 
     /**
      * Run the given solvers in parallel to see if the given terms are satisifiable. If so,
@@ -120,6 +122,9 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
      */
     def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
 
+        logger.clear(source)
+        cfgLogger.clear(source)
+
         val functionLang = Lang(function.nfa)
 
         val models = List(SMTProduceModels(true))
@@ -160,8 +165,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         if (solverNames.isEmpty)
             sys.error("traceRefinement: unexpectedly got an empty solvers list")
 
-        logger.info(s"solvers: ${solverNames.mkString(" ")}")
-        logger.info(s"number mode: ${config.numberMode()}")
+        logger.info(source, s"solvers: ${solverNames.mkString(" ")}")
+        logger.info(source, s"number mode: ${config.numberMode()}")
 
         // Create solver objects (does not create the solver instances)
         val solvers = solverNames.map(getSolver(config.numberMode()))
@@ -169,19 +174,27 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
         // Combine the solvers together in parallel
         val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
 
-        cfgLogger.debug(toDot(function.nfa, s"${function.name} initial"))
+        val initialNFADot = toDot(function.nfa, s"${function.name} initial")
+        cfgLogger.debug(source, initialNFADot)
+        if (config.server())
+            publishDot(cfgLogger, source, StringSource(initialNFADot), s"refinements|initial automaton", config)
 
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
 
-            logger.info(s"${function.name} iteration $iteration")
-            cfgLogger.debug(toDot(toDetNFA(function.nfa - r)._1, s"${function.name} iteration $iteration"))
+            val refinedNFA = function.nfa - r
+            val refinedNFADot = toDot(toDetNFA(refinedNFA)._1, s"${function.name} iteration $iteration")
+
+            logger.info(source, s"${function.name} iteration $iteration")
+            cfgLogger.debug(source, refinedNFADot)
+            if (config.server())
+                publishDot(logger, source, StringSource(refinedNFADot), s"refinements|iteration $iteration|automaton", config)
 
             (functionLang \ Lang(r)).getAcceptedTrace match {
 
                 // No accepting trace in the language, so there are no failure traces.
                 case None =>
-                    logger.info(s"${function.name} has no failure traces")
+                    logger.info(source, s"${function.name} has no failure traces")
                     Success(None)
 
                 // Found a potential failure trace given by the choices. We
@@ -189,8 +202,8 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                 // If not, refine and try again.
                 case Some(choices) =>
 
-                    logger.info(s"${function.name} has a failure trace")
-                    logger.debug(s"failure trace is: ${choices.mkString(", ")}")
+                    logger.info(source, s"${function.name} has a failure trace")
+                    logger.debug(source, s"failure trace is: ${choices.mkString(", ")}")
 
                     /*
                      * Get the SMTlib terms that describe the meaning of the operations
@@ -198,14 +211,14 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                      * sanitise it to "true", otherwise join the components using
                      * conjunction.
                      */
-                    val trace = Trace(choices)
+                    val trace = Trace(choices :+ 0, iteration)
                     val traceTerms = function.traceToTerms(trace)
 
                     for (i <- 0 until traceTerms.length) {
                         val (term, flag) = traceTerms(i)
-                        logger.debug(s"trace effect $i: ${show(term.termDef)}")
-                        logger.debug(s"trace flag $i: $flag")
-                        logger.debug(s"trace vars $i: ${term.typeDefs.map(show(_))}")
+                        logger.debug(source, s"trace effect $i: ${show(term.termDef)}")
+                        logger.debug(source, s"trace flag $i: $flag")
+                        logger.debug(source, s"trace vars $i: ${term.typeDefs.map(show(_))}")
                     }
 
                     // Check satisfiability and if Sat, get model values
@@ -217,11 +230,11 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // Yes, feasible. We've found a way in which the program
                         // can file. Build the failure trace and return.
                         case Success((Sat(), _, values)) =>
-                            logger.info(s"failure trace is feasible, program is incorrect")
+                            logger.info(source, s"failure trace is feasible, program is incorrect")
                             for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
                                 val term = values(x).t
                                 val (value, note) = termToCValueString(term)
-                                logger.debug(s"value: $x = ${show(term)} $note")
+                                logger.debug(source, s"value: $x = ${show(term)} $note")
                             }
                             val failTrace = FailureTrace(trace, values)
                             Success(Some(failTrace))
@@ -231,9 +244,10 @@ class TraceRefinement(ir : IR, config : SkinkConfig) {
                         // again after removing the infeasible trace (and perhaps
                         // other traces that fail for related reasons).
                         case Success((UnSat(), count, _)) =>
-                            logger.info(s"the failure trace is not feasible")
+                            logger.info(source, s"the failure trace is not feasible")
                             if (iteration < config.maxIterations()) {
-                                import interpolant.InterpolantAuto.buildInterpolantAuto
+                                val interpolantAuto = new interpolant.InterpolantAuto(source, config)
+                                import interpolantAuto.buildInterpolantAuto
                                 val usedChoices = choices.take(count)
                                 val usedTerms = traceTerms.take(count).map(_._1)
                                 refineRec(

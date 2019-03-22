@@ -23,20 +23,26 @@ package au.edu.mq.comp.skink.verifier
 
 package interpolant
 
-import au.edu.mq.comp.skink.Skink.getLogger
 import au.edu.mq.comp.skink.ir.IRFunction
 import au.edu.mq.comp.skink.ir.Trace
+import au.edu.mq.comp.skink.LoggerFactory.getLogger
+import au.edu.mq.comp.skink.SkinkConfig
+import au.edu.mq.comp.skink.verifier.Helper.{publishDot, toDot}
 import org.bitbucket.franck44.scalasmt.interpreters.Resources
 import org.bitbucket.franck44.scalasmt.typedterms.{Commands, TypedTerm}
 import org.bitbucket.franck44.scalasmt.theories.{BoolTerm, Core}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
 import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
+import org.bitbucket.inkytonik.kiama.util.{Source, StringSource}
 
 trait AddBackEdges extends Core with Resources {
 
     import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import scala.util.{Failure, Success}
+
+    def source : Source
+    def config : SkinkConfig
 
     private def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] = xl match {
         case l if (l.size < 2) => Nil
@@ -55,23 +61,23 @@ trait AddBackEdges extends Core with Resources {
      * @note
      */
     def computeSafeBackEdges(function : IRFunction, choices : Seq[Int], preds : Seq[TypedTerm[BoolTerm, Term]]) = {
-        val itpLogger = getLogger(this.getClass, ".itp")
-        itpLogger.info(s"Annotations: ${preds.map(_.termDef).map(showTerm(_))}")
+        val itpLogger = getLogger(this.getClass, config, ".itp")
+        itpLogger.info(source, s"Annotations: ${preds.map(_.termDef).map(showTerm(_))}")
 
         //  add the first and last trivial interpolants
         val completeItp = True() +: preds :+ False()
 
         //  Collect partition of indices according to block equivalence
         val indexPartition : Seq[Seq[Int]] = function.traceToRepetitions(Trace(choices))
-        itpLogger.info(s"Partitions $indexPartition");
-        itpLogger.info(s"Non-singleton partitions ${indexPartition.filter(_.size > 1)}");
+        itpLogger.info(source, s"Partitions $indexPartition");
+        itpLogger.info(source, s"Non-singleton partitions ${indexPartition.filter(_.size > 1)}");
 
         //  Compute candidate backEdges from the indexPartition
         //  for each partition with more than 2 elements, build the candidate min, max
         val candidatePairs =
             indexPartition.filter(_.size > 1).map(_.toList).map(generatePairs(_)).flatten.flatten
 
-        itpLogger.info(s"candidate pairs $candidatePairs")
+        itpLogger.info(source, s"candidate pairs $candidatePairs")
 
         /**
          * Check if backedges can be added to the linear automaton
@@ -87,9 +93,9 @@ trait AddBackEdges extends Core with Resources {
                 x1 = completeItp(j).unIndexed;
                 x2 = completeItp(i + 1).unIndexed;
                 u = {
-                    itpLogger.info(s"Checking backedge from $j to ${i + 1}")
-                    itpLogger.info(s"Predicate at ${i + 1} is ${showTerm(x2.termDef)}")
-                    itpLogger.info(s"Predicate at $j is ${showTerm(x1.termDef)}")
+                    itpLogger.info(source, s"Checking backedge from $j to ${i + 1}")
+                    itpLogger.info(source, s"Predicate at ${i + 1} is ${showTerm(x2.termDef)}")
+                    itpLogger.info(source, s"Predicate at $j is ${showTerm(x1.termDef)}")
                 };
                 //  if computing interpolants is successful and checkPost inclusion
                 //  is true add them to list
@@ -104,7 +110,7 @@ trait AddBackEdges extends Core with Resources {
                         )
                 };
                 uu = {
-                    itpLogger.info(s"Result of checkPost $res")
+                    itpLogger.info(source, s"Result of checkPost $res")
                     res match {
                         case Success(_) =>
                         case Failure(_) => sys.error(s"Result of checkPost $res")
@@ -112,7 +118,7 @@ trait AddBackEdges extends Core with Resources {
                 };
                 if (res == Success(true))
             ) yield {
-                itpLogger.info(s"new backedge found from $j to ${i + 1} with choice $i")
+                itpLogger.info(source, s"new backedge found from $j to ${i + 1} with choice $i")
                 (j ~> (i + 1))(choices(i))
             }
 
@@ -120,7 +126,7 @@ trait AddBackEdges extends Core with Resources {
     }
 }
 
-case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTerm, Term]], fromEnd : Boolean) extends AddBackEdges with Commands {
+case class Interpolant(source : Source, function : IRFunction, traceTerms : Seq[TypedTerm[BoolTerm, Term]], fromEnd : Boolean, config : SkinkConfig) extends AddBackEdges with Commands {
 
     require(traceTerms.size >= 2, s"At least 1 terms are needed to compute interpolants")
 
@@ -130,7 +136,7 @@ case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTer
     import scala.util.{Failure, Success}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.UnSat
 
-    val itpLogger = getLogger(this.getClass, ".itp")
+    val itpLogger = getLogger(this.getClass, config, ".itp")
 
     lazy val predicateAnnotations = {
 
@@ -139,7 +145,7 @@ case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTer
 
         //  depending on order we want use for the predicates we reverse namedTerms or not
         val orderedTerms = if (fromEnd) namedTerms.reverse else namedTerms
-        itpLogger.info(s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
+        itpLogger.info(source, s"ordered trace [$fromEnd] terms are: ${orderedTerms.map(_.termDef).map(showTerm(_)).mkString("\n")}")
 
         /**
          * the following returns n - 1 interpolants for n terms
@@ -152,7 +158,7 @@ case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTer
                     //  should be UnSat()
                     case Success(UnSat()) =>
                         assert(orderedTerms.size >= 2)
-                        itpLogger.info(s"Solver returned UnSat as expected")
+                        itpLogger.info(source, s"Solver returned UnSat as expected")
 
                         //  now get interpolants
                         getInterpolants(orderedTerms.head, orderedTerms.tail.head, orderedTerms.drop(2) : _*) match {
@@ -165,29 +171,30 @@ case class Interpolant(function : IRFunction, traceTerms : Seq[TypedTerm[BoolTer
 
                     //  if not UnSat, log the result and exit
                     case Success(other) =>
-                        itpLogger.error(s"Solver did not return UnSat while computing interpolants: $other")
+                        itpLogger.error(source, s"Solver did not return UnSat while computing interpolants: $other")
                         sys.error(s"Computation of interpolant automaton failed. Solver returned $other")
 
                     case Failure(f) =>
-                        itpLogger.error(s"Solver failed to determine sat-status in InterpolantAuto $f")
+                        itpLogger.error(source, s"Solver failed to determine sat-status in InterpolantAuto $f")
                         sys.error(s"Solver failed to determine sat-status in InterpolantAuto $f")
                 }
         }
     }
 }
 
-object InterpolantAuto extends AddBackEdges {
+class InterpolantAuto(val source : Source, val config : SkinkConfig) extends AddBackEdges {
 
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
+    import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
-    import au.edu.mq.comp.skink.Skink.{getLogger, toDot}
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
 
-    val logger = getLogger(this.getClass)
-    val itpLogger = getLogger(this.getClass, ".itp")
-    val itpAutoLogger = getLogger(this.getClass, ".dot")
+    val logger = getLogger(this.getClass, config)
+    val itpLogger = getLogger(this.getClass, config, ".itp")
+    val itpAutoLogger = getLogger(this.getClass, config, ".dot")
 
     /**
      * Make a linear interpolant automaton for the given trace choices.
@@ -215,7 +222,10 @@ object InterpolantAuto extends AddBackEdges {
 
         // first build a linear automaton for the trace
         val linearAuto = buildAutoForTrace(choices)
-        itpLogger.info(s"Linear Interpolant automaton built")
+        val linearAutoDot = toDot(linearAuto, s"${function.name} iteration $iteration linear automaton")
+        itpLogger.info(source, s"Linear Interpolant automaton built")
+        if (config.server())
+            publishDot(logger, source, StringSource(linearAutoDot), s"refinements|iteration $iteration|linear automaton", config)
 
         // if there is only one choice then we only have one step and
         // can't compute interpolants, so use the linear auto
@@ -224,27 +234,28 @@ object InterpolantAuto extends AddBackEdges {
         }
 
         //  try to compute predicates for the infeasible trace
-        val predicates = Interpolant(function, traceTerms, fromEnd).predicateAnnotations
+        val predicates = Interpolant(source, function, traceTerms, fromEnd, config).predicateAnnotations
 
         predicates match {
 
             //  predicates (or interpolants) could be computed
             case Success(xitp) =>
 
-                itpLogger.info(s"Predicates are: ${xitp.map(_.termDef).map(showTerm(_)).mkString("\n")}")
+                itpLogger.info(source, s"Predicates are: ${xitp.map(_.termDef).map(showTerm(_)).mkString("\n")}")
                 //  compute back edges
                 val newBackEdges = computeSafeBackEdges(function, choices, xitp)
 
                 val itpAuto = linearAuto.copy(transitions = linearAuto.transitions ++ newBackEdges)
+                val itpAutoDot = toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]")
+                itpAutoLogger.info(source, itpAutoDot)
+                if (config.server())
+                    publishDot(logger, source, StringSource(itpAutoDot), s"refinements|iteration $iteration|interpolant automaton", config)
 
-                //  dump the automaton if logger is enabled
-                import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
-                itpAutoLogger.info(toDot(toDetNFA(itpAuto)._1, s"itp $iteration [" + fromEnd + "]"))
                 itpAuto
 
             //  computation of predicates failed
             case Failure(f) =>
-                itpLogger.warn(s"Solver could not compute interpolants $f")
+                itpLogger.warn(source, s"Solver could not compute interpolants $f")
                 linearAuto
         }
     }

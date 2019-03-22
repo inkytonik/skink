@@ -40,7 +40,7 @@ case class Yices() extends Solver
 case class YicesNonIncr() extends Solver
 case class Z3() extends Solver
 
-class SkinkConfig(args : Seq[String]) extends Config(args) {
+abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
 
@@ -59,9 +59,15 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Architecture specified by bits (default: 32)",
         default = Some(32))
 
+    lazy val checkTrueWitnessPath = opt[String]("checktruewitnesspath", noshort = true,
+        descr = "Path to the check-true-witness.sh correctness witness validator directory (default: ./scripts)",
+        default = Some("./scripts"))
+
     lazy val cleanup = opt[Boolean]("cleanup", short = 'c',
         descr = "Clean up any generated files (default: false)",
         default = Some(false))
+
+    def driver : Driver
 
     lazy val execute = opt[Boolean]("execute", short = 'x',
         descr = "Execute the target code (default: false)",
@@ -94,6 +100,14 @@ class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val frontend = opt[Frontend]("frontend", short = 'f',
         descr = frontendUsageMessage,
         default = Some(new CFrontend(config)))(frontendConverter)
+
+    lazy val fshellw2tPath = opt[String]("fshellw2tpath", noshort = true,
+        descr = "Path to the fshell-w2t violation witness validator directory (default: ./fshell-w2t)",
+        default = Some("./fshell-w2t"))
+
+    lazy val functionName = opt[String]("functionname", short = 'F',
+        descr = "The name of the function to verify (default: main)",
+        default = Some("main"))
 
     lazy val lli = opt[String]("lli", noshort = true,
         descr = "Program to use to execute target code (default: lli)",

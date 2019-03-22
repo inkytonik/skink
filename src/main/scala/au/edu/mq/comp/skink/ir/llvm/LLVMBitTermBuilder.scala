@@ -30,17 +30,20 @@ import org.bitbucket.franck44.scalasmt.theories.{
 }
 import org.bitbucket.franck44.scalasmt.typedterms.QuantifiedTerm
 import org.bitbucket.inkytonik.kiama.attribution.Attribution
+import org.bitbucket.inkytonik.kiama.util.Source
 import org.scalallvm.assembly.Analyser
 import org.scalallvm.assembly.AssemblySyntax.Program
 
-case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
-    namer : LLVMNamer, helper : LLVMHelper, config : SkinkConfig)
+case class LLVMBitTermBuilder(origSource : Source, source : Source,
+    program : Program, funAnalyser : Analyser, namer : LLVMNamer,
+    helper : LLVMHelper, config : SkinkConfig)
+
     extends Attribution with LLVMTermBuilder
     with ArrayExBV with ArrayExOperators
     with BitVectors with FPBitVectors
     with QuantifiedTerm {
 
-    import au.edu.mq.comp.skink.Skink.getLogger
+    import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import au.edu.mq.comp.skink.verifier.Helper.fpexpsig
     import helper.{Trunc => TruncName, _}
     import java.nio.ByteBuffer
@@ -68,7 +71,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax.{False => FFalse, True => FTrue, _}
 
-    val logger = getLogger(this.getClass)
+    val logger = getLogger(this.getClass, config)
 
     // Integers and reals are bit-vectors
     type IntTermType = BVTerm
@@ -202,7 +205,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                     case FEGetRound() =>
                         val bits = numBits(tipe)
                         ntermI(to, bits) === fegetround(bits)
-                    case NondetFunctionName(_) =>
+                    case NondetFunction(_) =>
                         True()
                     case _ =>
                         sys.error(s"insnTerm: unsupported call to library function $name (zero args, ${show(tipe)} return)")
@@ -310,7 +313,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                 super.insnTerm(metaInsn)
 
         }
-        logger.debug(s"insnTerm: ${longshow(insn)} -> ${term.show}")
+        logger.debug(origSource, s"insnTerm: ${longshow(insn)} -> ${term.show}")
         term
     }
 
@@ -326,7 +329,7 @@ case class LLVMBitTermBuilder(program : Program, funAnalyser : Analyser,
                 True()
         }
         if (term != True())
-            logger.info(s"itemTerm:${longshow(item)}-> ${term.show}")
+            logger.info(origSource, s"itemTerm:${longshow(item)}-> ${term.show}")
         term
     }
 

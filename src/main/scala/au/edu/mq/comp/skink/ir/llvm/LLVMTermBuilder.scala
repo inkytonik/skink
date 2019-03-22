@@ -28,19 +28,20 @@ import org.bitbucket.franck44.scalasmt.theories.Core
  */
 trait LLVMTermBuilder extends Core {
 
-    import au.edu.mq.comp.skink.SkinkConfig
-    import com.typesafe.scalalogging.Logger
+    import au.edu.mq.comp.skink.{Logger, SkinkConfig}
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.{BoolSort, Term}
+    import org.bitbucket.inkytonik.kiama.util.Source
     import org.scalallvm.assembly.Analyser
-    import org.scalallvm.assembly.AssemblyPrettyPrinter.show
     import org.scalallvm.assembly.AssemblySyntax._
+    import org.scalallvm.assembly.PrettyPrinter._
 
     // The term builder's context
-
+    val origSource : Source
     val logger : Logger
 
+    val source : Source
     val program : Program
     val funAnalyser : Analyser
 
@@ -68,12 +69,11 @@ trait LLVMTermBuilder extends Core {
      * (if there is one), and exit from this block using a particular choice.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(s"blockTerms: block ${funAnalyser.blockName(block)}")
+        logger.info(origSource, s"blockTerms: block ${funAnalyser.blockName(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
-        val allEffects = phiEffects ++ effects :+ exitEffect
-        allEffects.filter(_ != True())
+        phiEffects ++ effects :+ exitEffect
     }
 
     /*
@@ -107,7 +107,7 @@ trait LLVMTermBuilder extends Core {
                 case insn =>
                     sys.error(s"exitTerm: can't handle choice $choice of ${longshow(insn)}")
             }
-        logger.debug(s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.show}")
+        logger.debug(origSource, s"exitTerm: choice $choice of ${longshow(insn)} -> ${term.show}")
         term
     }
 
@@ -225,6 +225,9 @@ trait LLVMTermBuilder extends Core {
                         sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
                 }
 
+            case Call(_, _, _, _, _, LibFunction(VerifierError()), _, _) =>
+                True()
+
             // Default
 
             case insn =>
@@ -236,10 +239,10 @@ trait LLVMTermBuilder extends Core {
     /**
      *  Return terms that express the semantics of the all top-level items in the given program.
      */
-    def itemsTerm(program : Program) : TypedTerm[BoolTerm, Term] = {
-        val term = combineTerms(program.items.map(itemTerm))
-        logger.info(s"itemsTerm: ${term.show}")
-        term
+    def itemTerms(program : Program) : Seq[TypedTerm[BoolTerm, Term]] = {
+        val terms = program.items.map(itemTerm)
+        logger.info(origSource, s"itemsTerm: ${terms.map(_.show)}")
+        terms
     }
 
     /**
@@ -275,7 +278,7 @@ trait LLVMTermBuilder extends Core {
                     // No previous block so phi insns don't make sense...
                     sys.error(s"phiInsnTerm: found ${longshow(insn)} but have no previous block")
             }
-        logger.debug(s"phiInsnTerm: ${longshow(insn)} -> ${term.show}")
+        logger.debug(origSource, s"phiInsnTerm: ${longshow(insn)} -> ${term.show}")
         term
     }
 
