@@ -62,6 +62,19 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
     override def createConfig(args : Seq[String]) : SkinkConfig =
         config
 
+    def verifiedFunction(fileuri : String) : String = {
+        val verifiedFunctions = settingArray("verifiedFunctions")
+        for (i <- 0 until verifiedFunctions.size()) {
+            val entry = verifiedFunctions.get(i).getAsJsonObject
+            val uri = entry.get("uri")
+            val name = entry.get("name")
+            if ((uri != null) && (name != null) && (uri.getAsString == fileuri)) {
+                return name.getAsString
+            }
+        }
+        "main"
+    }
+
     override def compileString(uri : String, input : String, config : SkinkConfig) {
         val fullConfig =
             if (config.server()) {
@@ -70,6 +83,7 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
                         "-v", "-w", "-", "-c", "-q",
                         "-e", settingStr("solver"),
                         "-f", settingStr("frontend"),
+                        "-F", verifiedFunction(uri),
                         "-n", settingStr("numericMode"),
                         s"""-O${settingInt("optLevel")}""",
                         "--fshellw2tpath", settingStr("fshellw2tpath"),
