@@ -86,8 +86,8 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
                         "-F", verifiedFunction(uri),
                         "-n", settingStr("numericMode"),
                         s"""-O${settingInt("optLevel")}""",
-                        "--fshellw2tpath", settingStr("fshellw2tpath"),
-                        "--checktruewitnesspath", settingStr("checktruewitnesspath")
+                        "--fshellw2tpath", settingStr("fshellw2tPath"),
+                        "--checktruewitnesspath", settingStr("checkTrueWitnessPath")
                     )
                 val fullConfig =
                     new SkinkConfig(fullArgs) {
