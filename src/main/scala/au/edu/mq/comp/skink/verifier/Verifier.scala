@@ -79,7 +79,7 @@ class Verifier(source : Source, ir : IR, config : SkinkConfig) {
                     witMessages ++
                         check(expectedResult) {
                             case expected if expected == Incorrect =>
-                                warning(function, "Skink says program is correct but it is expected to be incorrect")
+                                warning(function, s"Skink says ${function.name} is correct but it is expected to be incorrect")
                         },
                     config
                 )
@@ -97,7 +97,7 @@ class Verifier(source : Source, ir : IR, config : SkinkConfig) {
                         witMessages ++
                         check(expectedResult) {
                             case expected if expected == Correct =>
-                                warning(function, "Skink says program is incorrect but it is expected to be correct")
+                                warning(function, s"Skink says ${function.name} is incorrect but it is expected to be correct")
                         },
                     config
                 )
@@ -108,7 +108,7 @@ class Verifier(source : Source, ir : IR, config : SkinkConfig) {
             if (!config.quiet())
                 config.output().emitln(s"UNKNOWN\n$reasons")
             if (config.server())
-                config.driver.report(source, warning(function, "Skink cannot tell if this program is correct"), config)
+                config.driver.report(source, warning(function, s"Skink cannot tell if this ${function.name} is correct"), config)
         }
 
         /**
