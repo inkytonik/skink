@@ -10,6 +10,23 @@ fi
 witness=$1
 program=$2
 
+sha1sumPath=`which sha1sum`
+if test "x$sha1sumPath" == "x"
+then
+    echo "check-true-witness: can't find sha1sum on PATH"
+    exit 1
+fi
+if test ! -f $sha1sumPath
+then
+    echo "check-true-witness: sha1sum executable $sha1sumPath is not a file"
+    exit 1
+fi
+if test ! -x $sha1sumPath
+then
+    echo "check-true-witness: sha1sum executable $sha1sumPath is not executable"
+    exit 1
+fi
+
 sha1=`sha1sum $program | cut -d ' ' -f 1`
 
 diff $witness - <<END
