@@ -144,9 +144,9 @@ class NonDetWitnesses(origSource : Source, source : Source, function : IRFunctio
             val expected = s"${dropDirectory(filename)}: OK\nFALSE\n"
             val validationMessages =
                 if (out == expected)
-                    info(function, s"violation witness has been validated by fshell-w2t")
+                    info(function, s"violation witness for ${function.name} has been validated by fshell-w2t")
                 else
-                    error(function, s"violation witness could not be validated by fshell-w2t")
+                    error(function, s"violation witness for ${function.name} could not be validated by fshell-w2t")
 
             lastCallMessages ++ validationMessages
         } else

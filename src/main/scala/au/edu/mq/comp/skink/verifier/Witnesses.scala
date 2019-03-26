@@ -166,9 +166,9 @@ abstract class Witnesses(origSource : Source, source : Source, config : SkinkCon
             )
             val expected = ""
             if (out == expected)
-                info(function, s"correctness witness has been validated")
+                info(function, s"correctness witness for ${function.name} has been validated")
             else
-                error(function, s"correctness witness could not be validated")
+                error(function, s"correctness witness for ${function.name} could not be validated")
         } else
             noMessages
     }
