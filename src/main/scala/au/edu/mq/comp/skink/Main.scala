@@ -75,19 +75,22 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
         "main"
     }
 
+    def settingStrTrim(setting : String) : String =
+        settingStr(setting).trim()
+
     override def compileString(uri : String, input : String, config : SkinkConfig) {
         val fullConfig =
             if (config.server()) {
                 val fullArgs = config.args ++
                     Seq(
                         "-v", "-w", "-", "-c", "-q",
-                        "-e", settingStr("solver"),
-                        "-f", settingStr("frontend"),
+                        "-e", settingStrTrim("solver"),
+                        "-f", settingStrTrim("frontend"),
                         "-F", verifiedFunction(uri),
-                        "-n", settingStr("numericMode"),
+                        "-n", settingStrTrim("numericMode"),
                         s"""-O${settingInt("optLevel")}""",
-                        "--fshellw2tpath", settingStr("fshellw2tPath"),
-                        "--checktruewitnesspath", settingStr("checkTrueWitnessPath")
+                        "--fshellw2tpath", settingStrTrim("fshellw2tPath"),
+                        "--checktruewitnesspath", settingStrTrim("checkTrueWitnessPath")
                     )
                 val fullConfig =
                     new SkinkConfig(fullArgs) {
