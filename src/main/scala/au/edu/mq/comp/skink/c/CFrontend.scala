@@ -113,9 +113,6 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
         }
 
-        logger.clear(origSource)
-        programLogger.clear(origSource)
-
         programLogger.debug(origSource, "* Program from source\n")
         programLogger.debug(origSource, source.content)
         buildIRFromFile(origSource.name, positions)

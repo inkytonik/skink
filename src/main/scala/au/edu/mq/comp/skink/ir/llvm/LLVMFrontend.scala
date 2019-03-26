@@ -46,7 +46,6 @@ class LLVMFrontend(config : SkinkConfig) extends Frontend {
     val helper = new LLVMHelper(config)
 
     def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
-        logger.clear(origSource)
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {

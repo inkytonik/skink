@@ -45,7 +45,6 @@ class Verifier(source : Source, ir : IR, config : SkinkConfig) {
 
         import org.bitbucket.inkytonik.kiama.util.Messaging.{check, error, warning}
 
-        logger.clear(source)
         logger.info(source, s"verify: ${function.name}")
 
         val witnesses = new NonDetWitnesses(source, source, function, config)

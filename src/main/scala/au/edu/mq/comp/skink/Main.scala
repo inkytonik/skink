@@ -105,7 +105,6 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
      * frontend.
      */
     override def makeast(source : Source, config : SkinkConfig) : Either[IR, Messages] = {
-        logger.clear(source)
         val frontend = config.frontend()
         logger.info(source, s"makeast: building IR using ${frontend.name} frontend")
         frontend.buildIR(source, source, positions)

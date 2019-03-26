@@ -122,9 +122,6 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
      */
     def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
 
-        logger.clear(source)
-        cfgLogger.clear(source)
-
         val functionLang = Lang(function.nfa)
 
         val models = List(SMTProduceModels(true))

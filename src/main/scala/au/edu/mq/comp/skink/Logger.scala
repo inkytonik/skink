@@ -69,11 +69,6 @@ class Logger(clazz : Class[_], config : SkinkConfig, suffix : String = "") {
             config.driver.publishProductStr(source, name, "txt", s"$msg\n", true)
     }
 
-    def clear(source : Source) {
-        if (config.server())
-            publishLog(source, name)
-    }
-
     def logfile(source : Source, title : String, filename : String) {
         debug(source, s"\n* $title\n\n")
         debug(source, FileSource(filename).content)
