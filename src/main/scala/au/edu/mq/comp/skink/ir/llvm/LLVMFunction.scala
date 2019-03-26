@@ -239,7 +239,6 @@ class LLVMFunction(origSource : Source, source : Source,
                                 (0 until numinsns).map(
                                     index => {
                                         val insn = block.optMetaInstructions(index)
-                                        config.driver.logMessage(s"${Analyser.position(program)(insn)}")
                                         value(s"* insn") <@>
                                             line <>
                                             toLinkedDoc(origSource, program, insn) <@>
