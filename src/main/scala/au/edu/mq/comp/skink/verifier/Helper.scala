@@ -27,7 +27,6 @@ package au.edu.mq.comp.skink.verifier
 object Helper {
 
     import au.edu.mq.comp.skink.{Logger, SkinkConfig}
-    import au.edu.mq.comp.skink.ir.IR
     import java.io.File
     import java.lang.Double.longBitsToDouble
     import java.lang.Float.intBitsToFloat
