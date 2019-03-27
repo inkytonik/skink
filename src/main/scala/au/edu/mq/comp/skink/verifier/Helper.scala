@@ -284,7 +284,7 @@ object Helper {
         rest : Seq[String]*) : (Int, String) = {
         val outputBuilder = new StringBuilder
         for (stage <- command +: rest) {
-            logger.info(source, s"runPipline: $stage\n")
+            logger.info(source, s"runPipeline: $stage\n")
         }
         val process = rest.foldLeft(Process(command))(_ #&& _)
         val processLoggger = ProcessLogger(
