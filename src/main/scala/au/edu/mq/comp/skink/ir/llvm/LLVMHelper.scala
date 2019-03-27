@@ -622,7 +622,7 @@ class LLVMHelper(config : SkinkConfig) {
         val dot = "dot"
         val programs = Vector(opt, dot)
 
-        programs.flatMap(checkFor(logger, origSource, _)) match {
+        programs.flatMap(checkFor(logger, origSource, _, config)) match {
             case Vector() =>
                 source.useAsFile(
                     llFilename => {

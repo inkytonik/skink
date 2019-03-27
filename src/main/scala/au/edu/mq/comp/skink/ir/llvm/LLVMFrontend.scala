@@ -64,7 +64,7 @@ class LLVMFrontend(config : SkinkConfig) extends Frontend {
             Left(ir)
         } else {
             val message = p.errorToMessage(pr.parseError)
-            fail(logger, source, s"buildFromSource: LLVM program build failed: $message", config)
+            Right(fail(logger, source, s"buildFromSource: LLVM program build failed: $message", config))
         }
     }
 

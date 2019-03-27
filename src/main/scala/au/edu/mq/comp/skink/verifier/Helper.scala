@@ -262,7 +262,7 @@ object Helper {
      * The success or failure is also returned as a sequence of messages
      * describing the problem (if any).
      */
-    def checkFor(logger : Logger, source : Source, program : String) : Messages = {
+    def checkFor(logger : Logger, source : Source, program : String, config : SkinkConfig) : Messages = {
         val which = new java.io.ByteArrayOutputStream
         val processlogger = ProcessLogger(_ => (), _ => ())
         if ((s"which $program" #> which).!(processlogger) == 0) {
@@ -273,8 +273,7 @@ object Helper {
             Vector()
         } else {
             val msg = s"buildIRFromFile: $program not present on PATH"
-            logger.info(source, msg)
-            error(msg, msg)
+            fail(logger, source, msg, config)
         }
     }
 
@@ -302,10 +301,10 @@ object Helper {
     /**
      * Fail the frontend by logging and returning the given message.
      */
-    def fail(logger : Logger, source : Source, msg : String, config : SkinkConfig) : Either[IR, Messages] = {
+    def fail(logger : Logger, source : Source, msg : String, config : SkinkConfig) : Messages = {
         logger.info(source, msg)
         config.driver.positions.setAllPositions(msg, Position(1, 1, source))
-        Right(error(msg, msg))
+        error(msg, msg)
     }
 
     /**
@@ -337,7 +336,7 @@ object Helper {
         val dot = "dot"
         val programs = Vector(dot)
 
-        programs.flatMap(checkFor(logger, origSource, _)) match {
+        programs.flatMap(checkFor(logger, origSource, _, config)) match {
             case Vector() =>
                 source.useAsFile(
                     dotFilename => {

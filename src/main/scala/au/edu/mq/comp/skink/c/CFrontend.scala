@@ -100,11 +100,11 @@ class CFrontend(config : SkinkConfig) extends Frontend {
                 } else {
                     logger.info(origSource, "buildIRFromFile: preparing LLVM code failed\n")
                     logger.info(origSource, output)
-                    fail(logger, origSource, s"buildIRFromFile: preparing LLVM code failed with code $res", config)
+                    Right(fail(logger, origSource, s"buildIRFromFile: preparing LLVM code failed with code $res", config))
                 }
             }
 
-            programs.flatMap(checkFor(logger, origSource, _)) match {
+            programs.flatMap(checkFor(logger, origSource, _, config)) match {
                 case Vector() =>
                     run()
                 case msgs =>
