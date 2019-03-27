@@ -32,7 +32,7 @@ object Helper {
     import java.lang.Float.intBitsToFloat
     import java.math.BigInteger
     import org.bitbucket.inkytonik.kiama.util.Filenames.makeTempFilename
-    import org.bitbucket.inkytonik.kiama.util.IO.deleteFile
+    import org.bitbucket.inkytonik.kiama.util.IO.{createFile, deleteFile}
     import org.bitbucket.inkytonik.kiama.util.Messaging.{error, Messages}
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Position, Source}
     import org.bitbucket.franck44.automat.auto.NFA
@@ -226,17 +226,23 @@ object Helper {
      * witness file and the file to which the witness applies. The two return values
      * are the captured standard output and error.
      */
-    def checkFalseWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) =
-        witSource.useAsFile(
+    def checkFalseWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) = {
+        val property = s"CHECK(init(${config.functionName()}()), LTL(G ! call(__VERIFIER_error())))"
+        val propFile = makeTempFilename(".prp")
+        createFile(propFile, property)
+        val result = witSource.useAsFile(
             witFile =>
                 runCmd(
                     Seq(
-                        "./test-gen.sh", "-m32", "--propertyfile", "../properties/unreach-call.prp",
+                        "./test-gen.sh", "-m32", "--propertyfile", propFile,
                         "--graphml-witness", witFile, inFile
                     ),
                     config.fshellw2tPath()
                 )
         )
+        deleteFile(propFile)
+        result
+    }
 
     /**
      * Check a true witness by running check-true-witness.sh. The two filenames are the
@@ -248,7 +254,7 @@ object Helper {
             witFile =>
                 runCmd(
                     Seq(
-                        "./check-true-witness.sh", witFile, inFile
+                        "./check-true-witness.sh", witFile, inFile, config.functionName()
                     ),
                     config.checkTrueWitnessPath()
                 )

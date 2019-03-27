@@ -52,15 +52,16 @@ class SimpleLoopCorrectTests extends FunSuite with Matchers {
         config.frontend().buildIR(source, source, config.driver.positions) match {
 
             case Left(prog) =>
-                val fun = prog.functions.find(_.name == "main")
+                val fun = prog.functions.find(_.name == config.functionName())
                 fun match {
-                    case Some(main) =>
-                        logger.info(source, s"verifying ${main.name}")
+                    case Some(function) =>
+                        logger.info(source, s"verifying ${function.name}")
                         val refiner = new TraceRefinement(source, prog, config)
-                        refiner.traceRefinement(main) shouldBe Success(None)
+                        refiner.traceRefinement(function) shouldBe Success(None)
                     case None =>
-                        logger.error(source, s"no main found")
-                        fail("no main found")
+                        val msg = s"can't find function ${config.functionName()}"
+                        logger.error(source, msg)
+                        fail(msg)
                 }
 
             case Right(messages) =>

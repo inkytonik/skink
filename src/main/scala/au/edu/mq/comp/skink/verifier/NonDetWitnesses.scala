@@ -80,7 +80,7 @@ class NonDetWitnesses(origSource : Source, source : Source, function : IRFunctio
                             val data =
                                 mkData(Some(s"\\result == $value;"), "assumption") +
                                     mkData(Some(note), "assumption.note") +
-                                    mkData(Some("main"), "assumption.scope") +
+                                    mkData(Some(functionName), "assumption.scope") +
                                     mkData(Some(nondet), "assumption.resultfunction") +
                                     mkData(call.optCode, "edge.src") +
                                     mkData(call.optLine, "startline")

@@ -39,6 +39,7 @@ abstract class Witnesses(origSource : Source, source : Source, config : SkinkCon
     val logger = getLogger(this.getClass, config)
 
     val filename = uriToName(origSource.name)
+    val functionName = config.functionName()
 
     abstract class Witness {
         def typeString : String
@@ -96,7 +97,7 @@ abstract class Witnesses(origSource : Source, source : Source, config : SkinkCon
            |  <data key="witness-type"  >${witness.typeString}</data>
            |  <data key="sourcecodelang">C</data>
            |  <data key="producer"      >skink</data>
-           |  <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
+           |  <data key="specification" >CHECK( init(${functionName}()), LTL(G ! call(__VERIFIER_error())) )</data>
            |  <data key="programfile"   >${filename}</data>
            |  <data key="programhash"   >${digestOfSource(source)}</data>
            |  <data key="memorymodel"   >simple</data>
@@ -148,7 +149,7 @@ abstract class Witnesses(origSource : Source, source : Source, config : SkinkCon
                 mkNode(
                     1,
                     mkData(Some("1"), "invariant") +
-                        mkData(Some("main"), "invariant.scope")
+                        mkData(Some(functionName), "invariant.scope")
                 )
             )
         val witness = CorrectnessWitness(nodesAndEdges)

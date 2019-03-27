@@ -626,14 +626,15 @@ class LLVMHelper(config : SkinkConfig) {
             case Vector() =>
                 source.useAsFile(
                     llFilename => {
+                        val functionName = config.functionName()
                         val bcFilename = makeTempFilename(".bc")
-                        val dotFilename = "cfg.main.dot"
+                        val dotFilename = s"cfg.${functionName}.dot"
                         val svgFilename = makeTempFilename(".svg")
                         runPipeline(
                             logger,
                             origSource,
                             Seq(
-                                opt, "-disable-opt", "-dot-cfg", "-cfg-func-name=main",
+                                opt, "-disable-opt", "-dot-cfg", s"-cfg-func-name=${functionName}",
                                 llFilename, "-o", bcFilename
                             ),
                             Seq(

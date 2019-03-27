@@ -1,14 +1,15 @@
 #!/bin/bash
 # Check that a true witness file is as expected.
 
-if test $# -ne 2
+if test $# -ne 3
 then
-    echo "usage: check-true-witness.sh property witness.graphml file.c"
+    echo "usage: check-true-witness.sh property witness.graphml file.c function"
     exit 1
 fi
 
 witness=$1
 program=$2
+function=$3
 
 sha1sumPath=`which sha1sum`
 if test "x$sha1sumPath" == "x"
@@ -59,7 +60,7 @@ diff $witness - <<END
   <data key="witness-type"  >correctness_witness</data>
   <data key="sourcecodelang">C</data>
   <data key="producer"      >skink</data>
-  <data key="specification" >CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )</data>
+  <data key="specification" >CHECK( init($function()), LTL(G ! call(__VERIFIER_error())) )</data>
   <data key="programfile"   >$program</data>
   <data key="programhash"   >$sha1</data>
   <data key="memorymodel"   >simple</data>
@@ -74,7 +75,7 @@ diff $witness - <<END
 
 <node id="N1">
   <data key="invariant">1</data>
-  <data key="invariant.scope">main</data>
+  <data key="invariant.scope">$function</data>
 </node>
 
 </graph>
