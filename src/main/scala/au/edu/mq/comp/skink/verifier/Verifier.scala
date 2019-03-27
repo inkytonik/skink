@@ -107,7 +107,7 @@ class Verifier(source : Source, ir : IR, config : SkinkConfig) {
             if (!config.quiet())
                 config.output().emitln(s"UNKNOWN\n$reasons")
             if (config.server())
-                config.driver.report(source, warning(function, s"Skink cannot tell if this ${function.name} is correct"), config)
+                config.driver.report(source, warning(function, s"Skink cannot tell if this ${function.name} is correct\n$reasons"), config)
         }
 
         /**
