@@ -1,15 +1,16 @@
 #!/bin/bash
 # Check that a true witness file is as expected.
 
-if test $# -ne 3
+if test $# -ne 4
 then
-    echo "usage: check-true-witness.sh property witness.graphml file.c function"
+    echo "usage: check-true-witness.sh property witness.graphml bits file.c function"
     exit 1
 fi
 
 witness=$1
-program=$2
-function=$3
+bits=$2
+program=$3
+function=$4
 
 sha1sumPath=`which sha1sum`
 if test "x$sha1sumPath" == "x"
@@ -64,7 +65,7 @@ diff $witness - <<END
   <data key="programfile"   >$program</data>
   <data key="programhash"   >$sha1</data>
   <data key="memorymodel"   >simple</data>
-  <data key="architecture"  >32bit</data>
+  <data key="architecture"  >${bits}bit</data>
 
 <node id="N0">
   <data key="entry">true</data>

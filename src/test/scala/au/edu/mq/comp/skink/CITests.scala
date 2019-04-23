@@ -36,33 +36,35 @@ class CITests extends FunSuiteLike with Matchers {
 
     val testPath = "src/test/resources/citests"
 
-    mkTests(testPath, List(Bit(), Math()), List(0, 2))
-    mkTests(testPath + "/bit", List(Bit()), List(0, 2))
-    mkTests(testPath + "/bit/O2", List(Bit()), List(2))
-    mkTests(testPath + "/O2", List(Bit(), Math()), List(2))
+    mkFileTests(testPath, List("C"), List(Bit(), Math()), List(0, 2), List("main"))
+    mkFileTests(testPath + "/bit", List("C"), List(Bit()), List(0, 2), List("main"))
+    mkFileTests(testPath + "/bit/O2", List("C"), List(Bit()), List(2), List("main"))
+    mkFileTests(testPath + "/O2", List("C"), List(Bit(), Math()), List(2), List("main"))
 
     // Utilities
 
-    def mkTests(path : String, modes : List[NumberMode], optLevels : List[Int]) {
+    def mkFileTests(path : String, frontends : List[String], modes : List[NumberMode],
+        optLevels : List[Int], functions : List[String]) {
+
+        def mkFileTest(
+            tester : (String, NumberMode, Int, String, String, File) => Unit,
+            path : String, filename : String, file : File
+        ) {
+            for (frontend <- frontends)
+                for (mode <- modes)
+                    for (optLevel <- optLevels)
+                        for (function <- functions)
+                            test(s"-f $frontend -n $mode -O${optLevel} -F $function $filename") {
+                                tester(frontend, mode, optLevel, function, filename, file)
+                            }
+        }
+
         for (file <- testFiles(path)) {
             val filename = file.getAbsolutePath()
-            if (filename.endsWith("_false-unreach-call.c")) {
-                for (mode <- modes) {
-                    for (optLevel <- optLevels) {
-                        test(s"$mode -O${optLevel} $filename") {
-                            falseTest(file, filename, mode, optLevel)
-                        }
-                    }
-                }
-            } else if (filename.endsWith("_true-unreach-call.c")) {
-                for (mode <- modes) {
-                    for (optLevel <- optLevels) {
-                        test(s"$mode -O${optLevel} $filename") {
-                            trueTest(file, filename, mode, optLevel)
-                        }
-                    }
-                }
-            }
+            if (filename.endsWith("_false-unreach-call.c"))
+                mkFileTest(falseTest, path, filename, file)
+            else if (filename.endsWith("_true-unreach-call.c"))
+                mkFileTest(trueTest, path, filename, file)
         }
     }
 
@@ -74,8 +76,9 @@ class CITests extends FunSuiteLike with Matchers {
             sys.error(s"testFiles: path '$path' does not exist")
     }
 
-    def falseTest(file : File, filename : String, mode : NumberMode, optLevel : Int) {
-        val (verout, config) = runVerifier(filename, mode, optLevel)
+    def falseTest(frontend : String, mode : NumberMode, optLevel : Int,
+        function : String, filename : String, file : File) {
+        val (verout, config) = runVerifier(frontend, mode, optLevel, function, filename)
         verout shouldBe "FALSE\n"
 
         val witSource = FileSource(s"${cwd()}/witness.graphml")
@@ -84,8 +87,9 @@ class CITests extends FunSuiteLike with Matchers {
         valerr shouldBe ""
     }
 
-    def trueTest(file : File, filename : String, mode : NumberMode, optLevel : Int) {
-        val (verout, config) = runVerifier(filename, mode, optLevel)
+    def trueTest(frontend : String, mode : NumberMode, optLevel : Int,
+        function : String, filename : String, file : File) {
+        val (verout, config) = runVerifier(frontend, mode, optLevel, function, filename)
         verout shouldBe "TRUE\n"
 
         val witSource = FileSource(s"${cwd()}/witness.graphml")
@@ -95,14 +99,20 @@ class CITests extends FunSuiteLike with Matchers {
     }
 
     /**
-     * Run Skink on filename using a number mode and optimisation level. Return
-     * standard output and the configuration that was used.
+     * Run Skink on filename using a given frontend, number mode, optimisation level
+     * and function name. Return standard output and the configuration that was used.
      */
-    def runVerifier(filename : String, mode : NumberMode, optLevel : Int) : (String, SkinkConfig) = {
+    def runVerifier(frontend : String, mode : NumberMode, optLevel : Int,
+        function : String, filename : String) : (String, SkinkConfig) = {
         val args =
             Seq(
-                "-c", "-v", s"-O${optLevel}", "-n", mode.productPrefix.toLowerCase(),
-                "-w", "witness.graphml", filename
+                "-c", "-v",
+                "-f", frontend,
+                s"-O${optLevel}",
+                "-n", mode.toString,
+                "-F", function,
+                "-w", "witness.graphml",
+                filename
             )
 
         // Set Scallop so that errors don't just exit the process

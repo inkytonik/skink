@@ -25,10 +25,10 @@ import org.bitbucket.inkytonik.kiama.util.Config
 
 sealed abstract class NumberMode extends Product
 case class Bit() extends NumberMode {
-    override def toString = "-n bit"
+    override def toString = "bit"
 }
 case class Math() extends NumberMode {
-    override def toString = "-n math"
+    override def toString = "math"
 }
 
 sealed abstract class Solver

@@ -219,12 +219,9 @@ object Helper {
     }
 
     /**
-     * Check a false witness by running fshell-w2t. The source and file name give
-     * the witness text and the input file name, respectively.
-     *
-     * two filenames are the
-     * witness file and the file to which the witness applies. The two return values
-     * are the captured standard output and error.
+     * Check a false witness by running fshell-w2t. The two inputs are the
+     * source of the witness and the name of the file that was verified. The two return
+     * values are the captured standard output and error.
      */
     def checkFalseWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) = {
         val property = s"CHECK(init(${config.functionName()}()), LTL(G ! call(__VERIFIER_error())))"
@@ -234,7 +231,9 @@ object Helper {
             witFile =>
                 runCmd(
                     Seq(
-                        "./test-gen.sh", "-m32", "--propertyfile", propFile,
+                        "./test-gen.sh",
+                        s"-m${config.architecture()}",
+                        "--propertyfile", propFile,
                         "--graphml-witness", witFile, inFile
                     ),
                     config.fshellw2tPath()
@@ -245,16 +244,20 @@ object Helper {
     }
 
     /**
-     * Check a true witness by running check-true-witness.sh. The two filenames are the
-     * witness file and the file to which the witness applies. The two return values
-     * are the captured standard output and error.
+     * Check a true witness by running check-true-witness.sh. The two inputs are the
+     * source of the witness and the name of the file that was verified. The two return
+     * values are the captured standard output and error.
      */
     def checkTrueWitness(witSource : Source, inFile : String, config : SkinkConfig) : (String, String) =
         witSource.useAsFile(
             witFile =>
                 runCmd(
                     Seq(
-                        "./check-true-witness.sh", witFile, inFile, config.functionName()
+                        "./check-true-witness.sh",
+                        witFile,
+                        config.architecture().toString(),
+                        inFile,
+                        config.functionName()
                     ),
                     config.checkTrueWitnessPath()
                 )
