@@ -13,3 +13,4 @@ witness_checks
 .tag*
 *.dot
 .ctags
+*.bin
