@@ -359,11 +359,37 @@ trait LLVMTermBuilder extends Core {
         varTermI(show(name), indexOf(node, name), bits)
 
     /**
+     * Return a term that expresses a suffixed name when referenced from node.
+     */
+    def ntermSuffixAtI(node : ASTNode, suffix : String, name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        varTermI(show(name) + suffix, indexOf(node, name), bits)
+
+    /**
+     * Return a term that expresses a suffixed name when referenced before node.
+     */
+    def prevNtermSuffixAtI(node : ASTNode, suffix : String, name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        varTermI(show(name) + suffix, indexOf(node, name) - 1, bits)
+
+    /**
      * Return a term that expresses an LLVM name when referenced
      * from the name node.
      */
     def ntermI(name : Name, bits : Int = 0) : TypedTerm[IntTermType, Term] =
         ntermAtI(name, name, bits)
+
+    /**
+     * Return a term that expresses a suffixed LLVM name when referenced
+     * from the name node.
+     */
+    def ntermSuffixI(name : Name, suffix : String, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        ntermSuffixAtI(name, suffix, name, bits)
+
+    /**
+     * Return a term that expresses a suffixed LLVM name when referenced
+     * before the name node.
+     */
+    def prevNtermSuffixI(name : Name, suffix : String, bits : Int = 0) : TypedTerm[IntTermType, Term] =
+        prevNtermSuffixAtI(name, suffix, name, bits)
 
     /**
      * Return an integer term that expresses a value when referenced from node.

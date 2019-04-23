@@ -663,7 +663,7 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
      * represented by a plain bit vector (e.g., floating-point value).
      */
     def bitsTerm(name : Name, bits : Int) : TypedTerm[BVTerm, Term] =
-        ntermI(suffixName(name, "$b"), bits)
+        ntermSuffixI(name, "$b", bits)
 
     /*
      * Make terms representing variables to hold the three pieces of
@@ -674,9 +674,9 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
         val (exp, sig) = fpexpsig(bits)
         val chunkName = getChunkName(name)
         (
-            ntermI(suffixName(chunkName, "$p"), 1),
-            ntermI(suffixName(chunkName, "$e"), exp),
-            ntermI(suffixName(chunkName, "$s"), sig - 1)
+            ntermSuffixI(chunkName, "$p", 1),
+            ntermSuffixI(chunkName, "$e", exp),
+            ntermSuffixI(chunkName, "$s", sig - 1)
         )
     }
 
@@ -685,7 +685,14 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
      * a memory address.
      */
     def offsetTerm(name : Name) : TypedTerm[BVTerm, Term] =
-        ntermI(suffixName(name, "$o"), architecture)
+        ntermSuffixI(name, "$o", architecture)
+
+    /*
+     * Make a term representing the previous offset of a variable that holds
+     * a memory address.
+     */
+    def prevOffsetTerm(name : Name) : TypedTerm[BVTerm, Term] =
+        prevNtermSuffixI(name, "$o", architecture)
 
     /*
      * Map from address variable names to the variable names of the
@@ -905,6 +912,8 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
         val bytes = numBytes(tipe)
         val bits = bytes * 8
         val base = offsetTerm(to)
+        val prevBase = prevOffsetTerm(to)
+        val toBitsTerm = bitsTerm(to, bits)
         val fromBytes =
             from match {
                 case Const(ZeroC()) | Const(NullC()) =>
@@ -919,7 +928,7 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
                     (0 until bytes).map {
                         case i =>
                             val start = (bytes - i - 1) * 8
-                            bitsTerm(to, bytes * 8).extract(start + 7, start)
+                            toBitsTerm.extract(start + 7, start)
                     }
             }
         val chunk =
@@ -934,12 +943,14 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
             case ArrayT(_, IntT(_)) | ArrayT(_, RealT(_)) =>
                 chunkTerm(to) === chunk
             case IntT(_) | PointerT(_, _) =>
-                vtermI(from, bits) === bitsTerm(to, bits) &
+                base === prevBase &
+                    vtermI(from, bits) === toBitsTerm &
                     chunkTerm(to) === chunk
             case RealT(_) =>
                 val (p, e, s) = fpbitTerms(to, bits)
-                vtermR(from, bits) === FPBVs(p, e, s) &
-                    bitsTerm(to, bits) === p.concat(e.concat(s)) &
+                base === prevBase &
+                    vtermR(from, bits) === FPBVs(p, e, s) &
+                    toBitsTerm === p.concat(e.concat(s)) &
                     chunkTerm(to) === chunk
             case _ =>
                 sys.error(s"store: unsupported type ${show(tipe)}")
@@ -1060,17 +1071,4 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
             case _ =>
                 super.equality(to, toType, from, fromType)
         }
-
-    // Utilities
-
-    /*
-     * Derive a new name from an existing one by adding a suffix.
-     */
-    def suffixName(to : Name, suffix : String) : Name = {
-        to match {
-            case Local(s)  => Local(s + suffix)
-            case Global(s) => Global(s + suffix)
-        }
-    }
-
 }
