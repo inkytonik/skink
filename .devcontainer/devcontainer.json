@@ -2,7 +2,6 @@
     "name": "Skink",
     "image": "inkytonik/docker-skink:latest",
     "runArgs": [
-        "-v", "${env:HOME}${env:USERPROFILE}/.ssh:/root/.ssh",
         "-v", "${env:HOME}/skink:/skink"
     ],
     "extensions": [
