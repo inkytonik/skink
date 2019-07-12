@@ -40,7 +40,7 @@ else
   IWTNFILE=$file.graphml
   WTNFILE=witness.graphml
 
-  run --verify --witness-file $WTNFILE $file
+  run --verify --output-witness --witness-file $WTNFILE $file
 
   if test -e $WTNFILE
   then

@@ -184,16 +184,18 @@ abstract class Witnesses(origSource : Source, source : Source, config : SkinkCon
      */
     def outputWitness(witness : Witness) {
         val xml = makeWitnessXML(witness)
-        if (config.witnessFile() == "-") {
-            if (!config.quiet()) {
-                logger.info(source, "outputWitness: writing witness to standard output")
-                config.output().emit(xml)
+        if (config.outputWitness()) {
+            if (config.witnessFile() == "-") {
+                if (!config.quiet()) {
+                    logger.info(source, "outputWitness: writing witness to standard output")
+                    config.output().emit(xml)
+                }
+            } else {
+                logger.info(source, s"outputWitness: writing witness to ${config.witnessFile()}")
+                val emitter = new FileEmitter(config.witnessFile())
+                emitter.emit(xml)
+                emitter.close()
             }
-        } else {
-            logger.info(source, s"outputWitness: writing witness to ${config.witnessFile()}")
-            val emitter = new FileEmitter(config.witnessFile())
-            emitter.emit(xml)
-            emitter.close()
         }
         if (config.server())
             config.driver.publishProductStr(origSource, "result|witness", "xml", xml, false)

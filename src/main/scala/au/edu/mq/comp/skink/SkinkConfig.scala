@@ -149,6 +149,10 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Optimisation level for source compilation (default: 2)",
         default = Some(2))
 
+    lazy val outputWitness = opt[Boolean]("output-witness", short = 'W',
+        descr = "Output a witness for the vefification result (default: false)",
+        default = Some(false))
+
     lazy val quiet = opt[Boolean]("quiet", short = 'q',
         descr = "Don't print output (default: false)",
         default = Some(false))

@@ -121,6 +121,7 @@ class CITests extends FunSuiteLike with Matchers {
                 s"-O${optLevel}",
                 "-n", mode.toString,
                 "-F", function,
+                "-W",
                 "-w", witnessFileName,
                 filename
             )
