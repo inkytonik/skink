@@ -30,8 +30,9 @@ class CITests extends FunSuiteLike with Matchers {
         checkTrueWitness
     }
     import java.io.File
-    import org.bitbucket.inkytonik.kiama.util.Filenames.cwd
+    import org.bitbucket.inkytonik.kiama.util.Filenames.makeTempFilename
     import org.bitbucket.inkytonik.kiama.util.FileSource
+    import org.bitbucket.inkytonik.kiama.util.IO.deleteFile
     import org.rogach.scallop.throwError
 
     val testPath = "src/test/resources/citests"
@@ -78,32 +79,41 @@ class CITests extends FunSuiteLike with Matchers {
 
     def falseTest(frontend : String, mode : NumberMode, optLevel : Int,
         function : String, filename : String, file : File) {
-        val (verout, config) = runVerifier(frontend, mode, optLevel, function, filename)
+        val (verout, witness, config) = runVerifier(frontend, mode, optLevel, function, filename)
         verout shouldBe "FALSE\n"
 
-        val witSource = FileSource(s"${cwd()}/witness.graphml")
+        val witSource = FileSource(witness)
         val (valout, valerr) = checkFalseWitness(witSource, filename, config)
         valout shouldBe s"${file.getName()}: OK\nFALSE\n"
         valerr shouldBe ""
+
+        if (config.cleanup())
+            deleteFile(witness)
     }
 
     def trueTest(frontend : String, mode : NumberMode, optLevel : Int,
         function : String, filename : String, file : File) {
-        val (verout, config) = runVerifier(frontend, mode, optLevel, function, filename)
+        val (verout, witness, config) = runVerifier(frontend, mode, optLevel, function, filename)
         verout shouldBe "TRUE\n"
 
-        val witSource = FileSource(s"${cwd()}/witness.graphml")
+        val witSource = FileSource(witness)
         val (valout, valerr) = checkTrueWitness(witSource, filename, config)
         valout shouldBe ""
         valerr shouldBe ""
+
+        if (config.cleanup())
+            deleteFile(witness)
     }
 
     /**
      * Run Skink on filename using a given frontend, number mode, optimisation level
-     * and function name. Return standard output and the configuration that was used.
+     * and function name. Return standard output, witness file name and the configuration
+     * that was used.
      */
     def runVerifier(frontend : String, mode : NumberMode, optLevel : Int,
-        function : String, filename : String) : (String, SkinkConfig) = {
+        function : String, filename : String) : (String, String, SkinkConfig) = {
+
+        val witnessFileName = makeTempFilename("xml")
         val args =
             Seq(
                 "-c", "-v",
@@ -111,7 +121,7 @@ class CITests extends FunSuiteLike with Matchers {
                 s"-O${optLevel}",
                 "-n", mode.toString,
                 "-F", function,
-                "-w", "witness.graphml",
+                "-w", witnessFileName,
                 filename
             )
 
@@ -128,7 +138,7 @@ class CITests extends FunSuiteLike with Matchers {
                 info("failed with an exception ")
                 throw (e)
         }
-        (config.stringEmitter.result, config)
+        (config.stringEmitter.result, witnessFileName, config)
     }
 
 }
