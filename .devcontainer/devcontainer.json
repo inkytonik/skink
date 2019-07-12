@@ -4,6 +4,7 @@
     "runArgs": [
         "-v", "${env:HOME}/skink:/skink"
     ],
+    "shutdownAction": "none",
     "extensions": [
         "vscode.git",
         "inkytonik.skink",
