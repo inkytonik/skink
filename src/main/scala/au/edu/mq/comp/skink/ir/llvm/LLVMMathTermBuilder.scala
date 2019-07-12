@@ -70,10 +70,8 @@ case class LLVMMathTermBuilder(origSource : Source, source : Source,
 
             // Memory
 
-            case Malloc(Binding(to), _, clear) =>
-                // FIXME: do we need this? do mallocs occur in these array programs?
-                // can't do much with the
-                !(ntermI(to, config.architecture()) === 0) // FIXME: use clear
+            case Malloc(Binding(to), _, false) =>
+                !(ntermI(to, config.architecture()) === 0)
 
             // We ignore getelementptr insns that have an "array element" as the target.
             // The element properties are accessed when the target is used in another insn.

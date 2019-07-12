@@ -650,13 +650,14 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
         allocate(to, Const(IntC(numBits(tipe))), false)
 
     /*
-     * Return a term that expresses allocation of memory. `to` will
-     * be defined to be the starting address of a new memory chunk unrelated to
-     * any previously allocated, so we just get a new offset of zero for this
-     * chunk. Size is unused for now.
+     * Return a term that expresses allocation of memory. `to` will be defined
+     * to be the starting address of a new memory chunk unrelated to any previously
+     * allocated, so we just get a new offset of zero for this chunk. We assume
+     * that allocation can't fail, so allocation can't yield zero.
      */
     def allocate(to : Name, size : Value, clear : Boolean) : TypedTerm[BoolTerm, Term] =
-        offsetTerm(to) === 0.withUBits(32) // FIXME: use clear
+        offsetTerm(to) === 0.withUBits(32) &
+            !(ntermI(to, architecture) === 0.withBits(architecture))
 
     /*
      * Make a term representing the actual bits of a variable that is not
