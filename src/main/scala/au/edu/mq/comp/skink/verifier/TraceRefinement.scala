@@ -33,16 +33,6 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.automat.auto.NFA
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
-    import au.edu.mq.comp.skink.{
-        Boolector,
-        CVC4,
-        MathSat,
-        Solver,
-        SMTInterpol,
-        Yices,
-        YicesNonIncr,
-        Z3
-    }
     import au.edu.mq.comp.skink.{Bit, Math, NumberMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.LoggerFactory.getLogger
@@ -127,27 +117,25 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         val models = List(SMTProduceModels(true))
         val modelsAndInterpolants = SMTProduceInterpolants(true) :: models
 
-        def getSolver(numberMode : NumberMode)(solver : Solver) : SMTSolver =
-            (solver, numberMode) match {
-                case (Boolector(), Bit()) =>
+        def getSolver(numberMode : NumberMode)(solverName : String) : SMTSolver =
+            (solverName, numberMode) match {
+                case ("boolector", Bit()) =>
                     new SMTSolver("Boolector", new SMTInit(QF_ABV, models))
-                case (CVC4(), Bit()) =>
+                case ("cvc4", Bit()) =>
                     new SMTSolver("CVC4", new SMTInit(QF_ABV, models))
-                case (CVC4(), Math()) =>
+                case ("cvc4", Math()) =>
                     new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, models))
-                case (MathSat(), Bit()) =>
+                case ("mathsat", Bit()) =>
                     new SMTSolver("MathSat", new SMTInit(QF_AFPBV, models))
-                case (MathSat(), Math()) =>
+                case ("mathsat", Math()) =>
                     new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, models))
-                case (SMTInterpol(), Math()) =>
+                case ("smtinterpol", Math()) =>
                     new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsAndInterpolants))
-                case (Yices(), Math()) =>
+                case ("yices", Math()) =>
                     new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, models))
-                case (YicesNonIncr(), Math()) =>
-                    new SMTSolver("Yices-nonIncr", new SMTInit(QF_NIRA, models))
-                case (Z3(), Bit()) =>
+                case ("z3", Bit()) =>
                     new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsAndInterpolants))
-                case (Z3(), Math()) =>
+                case ("z3", Math()) =>
                     new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsAndInterpolants))
                 case (solver, mode) =>
                     sys.error(s"solver $solver with number mode $mode is not supported")
@@ -158,12 +146,12 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         // the last mode is repeated for the remainder. If there are more modes than solvers, then
         // the excess modes are ignored.
 
-        val solverNames = config.solvers()
+        logger.info(source, s"solvers: ${config.solvers()}")
+        logger.info(source, s"number mode: ${config.numberMode()}")
+
+        val solverNames = config.solvers().split(',').toList
         if (solverNames.isEmpty)
             sys.error("traceRefinement: unexpectedly got an empty solvers list")
-
-        logger.info(source, s"solvers: ${solverNames.mkString(" ")}")
-        logger.info(source, s"number mode: ${config.numberMode()}")
 
         // Create solver objects (does not create the solver instances)
         val solvers = solverNames.map(getSolver(config.numberMode()))

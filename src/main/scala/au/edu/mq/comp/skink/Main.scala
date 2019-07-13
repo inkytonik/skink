@@ -84,7 +84,7 @@ class Driver(config : SkinkConfig) extends CompilerBase[IR, IR, SkinkConfig] {
                 val fullArgs = config.args ++
                     Seq(
                         "-v", "-w", "-", "-c", "-q",
-                        "-e", settingStrTrim("solver"),
+                        "-e", settingStrTrim("solvers"),
                         "-f", settingStrTrim("frontend"),
                         "-F", verifiedFunction(uri),
                         "-n", settingStrTrim("numericMode"),

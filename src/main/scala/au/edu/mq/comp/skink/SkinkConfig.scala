@@ -31,15 +31,6 @@ case class Math() extends NumberMode {
     override def toString = "math"
 }
 
-sealed abstract class Solver
-case class Boolector() extends Solver
-case class CVC4() extends Solver
-case class MathSat() extends Solver
-case class SMTInterpol() extends Solver
-case class Yices() extends Solver
-case class YicesNonIncr() extends Solver
-case class Z3() extends Solver
-
 abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     config =>
@@ -157,39 +148,9 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Don't print output (default: false)",
         default = Some(false))
 
-    val solversUsageMessage = "Available SMT solvers: Boolector, CVC4, MathSat (default), SMTInterpol, Yices, Yices-nonIncr, Z3"
-
-    val solversConverter =
-        new ValueConverter[List[Solver]] {
-
-            val argType = ArgType.LIST
-
-            def parse(s : List[(String, List[String])]) : Either[String, Option[List[Solver]]] = {
-                val solvers = argStrings(s).map {
-                    case "boolector"    => Some(Boolector())
-                    case "cvc4"         => Some(CVC4())
-                    case "mathsat"      => Some(MathSat())
-                    case "smtinterpol"  => Some(SMTInterpol())
-                    case "yices"        => Some(Yices())
-                    case "yicesnonincr" => Some(YicesNonIncr())
-                    case "z3"           => Some(Z3())
-                    case _              => None
-                }
-                if (solvers.isEmpty)
-                    Right(None)
-                else if (solvers.contains(None))
-                    Left(solversUsageMessage)
-                else
-                    Right(Some(solvers.map(_.get)))
-            }
-
-            val tag = implicitly[TypeTag[List[Solver]]]
-
-        }
-
-    lazy val solvers = opt[List[Solver]]("solver", short = 'e',
-        descr = solversUsageMessage,
-        default = Some(List(MathSat())))(solversConverter)
+    lazy val solvers = opt[String]("solvers", short = 'e',
+        descr = "Comma-separated list of solvers to use (from boolector, cvc4, mathsat, smtinterpol, yices, z3 (default: mathsat,z3)",
+        default = Some("mathsat,z3"))
 
     val solverTimeOutConverter =
         new ValueConverter[Duration] {
