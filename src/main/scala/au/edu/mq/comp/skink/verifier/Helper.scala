@@ -175,13 +175,16 @@ object Helper {
                 val (s, c) = termToCValueString(t)
                 (s"-($s)", s"-$c")
 
-            case ConstantTerm(RoundingModeLit(RNE())) =>
+            case ConstantTerm(RoundingModeLit(RNE() | RNEven())) =>
                 ("FE_TONEAREST", "RNE")
-            case ConstantTerm(RoundingModeLit(RTN())) =>
+            // It's not clear what the C standard requires here...
+            // case ConstantTerm(RoundingModeLit(RNA() | RNAway())) =>
+            //     ("FIXME", "RNA")
+            case ConstantTerm(RoundingModeLit(RTN() | RTNeg())) =>
                 ("FE_DOWNWARD", "RTN")
-            case ConstantTerm(RoundingModeLit(RTP())) =>
+            case ConstantTerm(RoundingModeLit(RTP() | RTPos())) =>
                 ("FE_UPWARD", "RTP")
-            case ConstantTerm(RoundingModeLit(RTZ())) =>
+            case ConstantTerm(RoundingModeLit(RTZ() | RTZero())) =>
                 ("FE_TOWARDZERO", "RTZ")
 
             case ConstArrayTerm(_, elem) =>
@@ -196,6 +199,11 @@ object Helper {
             case term =>
                 sys.error(s"termToCValueString: unexpected value term $term")
         }
+
+    // Skink cannot tell if main is correct
+
+    // config: --server --debug -v -w - -c -q -e mathsat,z3 -f C -F main -n bit -O2 --fshellw2tpath /skink/fshell-w2t --checktruewitnesspath /skink/scripts
+    // termToCValueString: unexpected value term ConstantTerm(RoundingModeLit(RNEven()))
 
     /**
      * Turn a (possible) URI into a user-level name.
