@@ -29,10 +29,10 @@ FSHELLW2T_VIOLATION_OUTPUT_PATH=/skink/results-violation-fshell-witness2test
 rm -rf $FSHELLW2T_VIOLATION_OUTPUT_PATH
 mkdir $FSHELLW2T_VIOLATION_OUTPUT_PATH
 
-BENCHEXEC=/usr/local/bin/benchexec
+BENCHEXEC=/usr/bin/benchexec
 BENCHEXEC_ARGS="--no-container"
 MERGEBENCHMARKSETS=/usr/src/benchexec/contrib/mergeBenchmarkSets.py
-TABLEGENERATOR=/usr/local/bin/table-generator
+TABLEGENERATOR=/usr/bin/table-generator
 TABLEGENERATOR_ARGS='-q'
 
 # Massage the witness validation specifications:
