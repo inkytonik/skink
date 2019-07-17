@@ -13,8 +13,8 @@ mkdir $VERIFIER_OUTPUT_PATH
 
 ORIG_CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-violation-witnesses.xml
 ORIG_CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/cpa-seq-validate-correctness-witnesses.xml
-CPA_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-seq-violation-witnesses.xml
-CPA_CORRECTNESS_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-cpa-seq-correctness-witnesses.xml
+CPA_VIOLATION_WITNESS_SPEC=/tmp/skinktest-cpa-seq-violation-witnesses.xml
+CPA_CORRECTNESS_WITNESS_SPEC=/tmp/skinktest-cpa-seq-correctness-witnesses.xml
 CPA_VIOLATION_OUTPUT_PATH=/skink/results-violation-cpa-seq
 CPA_CORRECTNESS_OUTPUT_PATH=/skink/results-correctness-cpa-seq
 PATH_TO_CPACHECKER=/usr/local/bin/CPAchecker
@@ -23,7 +23,7 @@ rm -rf $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
 mkdir $CPA_VIOLATION_OUTPUT_PATH $CPA_CORRECTNESS_OUTPUT_PATH
 
 ORIG_FSHELLW2T_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/fshell-witness2test-validate-violation-witnesses.xml
-FSHELLW2T_VIOLATION_WITNESS_SPEC=/sv-comp/benchmark-defs/skinktest-fshell-witness2test-validate-violation-witnesses.xml
+FSHELLW2T_VIOLATION_WITNESS_SPEC=/tmp/skinktest-fshell-witness2test-validate-violation-witnesses.xml
 FSHELLW2T_VIOLATION_OUTPUT_PATH=/skink/results-violation-fshell-witness2test
 
 rm -rf $FSHELLW2T_VIOLATION_OUTPUT_PATH
