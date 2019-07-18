@@ -2,6 +2,7 @@
     "name": "Skink",
     "image": "inkytonik/docker-skink:latest",
     "runArgs": [
+        "-v", "/sys/fs/cgroup:/sys/fs/cgroup:rw",
         "-v", "${env:HOME}/skink:/skink"
     ],
     "shutdownAction": "none",
