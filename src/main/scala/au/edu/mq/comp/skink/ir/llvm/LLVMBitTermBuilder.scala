@@ -656,8 +656,7 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
      * that allocation can't fail, so allocation can't yield zero.
      */
     def allocate(to : Name, size : Value, clear : Boolean) : TypedTerm[BoolTerm, Term] =
-        offsetTerm(to) === 0.withUBits(32) &
-            !(ntermI(to, architecture) === 0.withBits(architecture))
+        offsetTerm(to) === 0.withUBits(32)
 
     /*
      * Make a term representing the actual bits of a variable that is not
@@ -1052,17 +1051,17 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
 
     override def equality(to : Name, toType : Type, from : Value, fromType : Type) : TypedTerm[BoolTerm, Term] =
         (toType, fromType) match {
-            case (IntT(toSize), IntT(fromSize)) if toSize == fromSize =>
+            case (IntegerT(toSize), IntegerT(fromSize)) if toSize == fromSize =>
                 val toBits = numBits(toType)
                 ntermI(to, toBits) === vtermI(from, toBits)
 
             case (RealT(toBits), RealT(fromBits)) if toBits == fromBits =>
                 ntermR(to, toBits) === vtermR(from, toBits)
 
-            case (RealT(bits), IntT(_)) if bits == numBits(fromType) =>
+            case (RealT(bits), IntegerT(_)) if bits == numBits(fromType) =>
                 val (exp, sig) = fpexpsig(bits)
                 ntermR(to, bits) === vtermI(from, bits).signedToFPBV(exp, sig)
-            case (IntT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
+            case (IntegerT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
                 val (exp, sig) = fpexpsig(fromBits)
                 ntermI(to, fromBits).signedToFPBV(exp, sig) === vtermR(from, fromBits)
 

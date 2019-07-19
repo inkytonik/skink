@@ -603,10 +603,10 @@ trait LLVMTermBuilder extends Core {
                 case (BoolT(), BoolT()) =>
                     ntermB(to) === vtermB(from)
 
-                case (BoolT(), IntT(_)) =>
+                case (BoolT(), IntegerT(_)) =>
                     val fromBits = numBits(fromType)
                     ntermB(to) === !(vtermI(from, fromBits) === ctermI(ZeroC(), fromBits))
-                case (IntT(toSize), BoolT()) =>
+                case (IntegerT(toSize), BoolT()) =>
                     val toBits = numBits(toType)
                     ntermI(to, toBits) === vintToIntTerm(from, toBits)
 
@@ -615,9 +615,9 @@ trait LLVMTermBuilder extends Core {
                 case (RealT(toBits), BoolT()) =>
                     ntermR(to, toBits) === vtermB(from).ite(ctermR(FloatC("1.0"), toBits), ctermR(FloatC("0.0"), toBits))
 
-                case (RealT(toBits), IntT(_)) if toBits == numBits(fromType) =>
+                case (RealT(toBits), IntegerT(_)) if toBits == numBits(fromType) =>
                     ntermR(to, toBits) === vtermR(from, toBits)
-                case (IntT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
+                case (IntegerT(_), RealT(fromBits)) if numBits(toType) == fromBits =>
                     ntermR(to, fromBits) === vtermR(from, fromBits)
 
                 case _ =>
