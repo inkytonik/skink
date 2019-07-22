@@ -225,7 +225,7 @@ trait LLVMTermBuilder extends Core {
                         sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
                 }
 
-            case Call(_, _, _, _, _, LibFunction(VerifierError()), _, _) =>
+            case ErrorCall() =>
                 True()
 
             // Default

@@ -91,6 +91,20 @@ class LLVMHelper(config : SkinkConfig) {
     }
 
     /**
+     * Matcher for error function calls.
+     */
+    object ErrorCall {
+        def unapply(insn : Instruction) : Boolean = {
+            insn match {
+                case Call(_, _, _, _, _, LibFunction(VerifierError()), _, _) =>
+                    true
+                case _ =>
+                    false
+            }
+        }
+    }
+
+    /**
      * Matcher for exit function names.
      */
     object Exit {
@@ -371,7 +385,7 @@ class LLVMHelper(config : SkinkConfig) {
      * optional binding, the argument value, and whether or not this
      * function clears its memory.
      */
-    object Malloc {
+    object MallocCall {
         def unapply(insn : Instruction) : Option[(OptBinding, Value, Boolean)] = {
             insn match {
                 case Call(to, _, _, _, _, Function(Named(Global(MemoryAlloc()))), Vector(ValueArg(_, _, arg)), _) =>

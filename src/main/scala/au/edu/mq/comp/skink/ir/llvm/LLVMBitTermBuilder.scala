@@ -177,7 +177,7 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
 
             // Memory
 
-            case Malloc(Binding(to), size, clear) =>
+            case MallocCall(Binding(to), size, clear) =>
                 allocate(to, size, clear)
 
             case Load(Binding(to), _, PointerT(_, _), _, from, _) =>
