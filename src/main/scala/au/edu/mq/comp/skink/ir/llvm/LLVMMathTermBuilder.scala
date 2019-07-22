@@ -70,7 +70,7 @@ case class LLVMMathTermBuilder(origSource : Source, source : Source,
 
             // Memory
 
-            case Malloc(Binding(to), _, false) =>
+            case MallocCall(Binding(to), _, false) =>
                 !(ntermI(to, config.architecture()) === 0)
 
             // We ignore getelementptr insns that have an "array element" as the target.
