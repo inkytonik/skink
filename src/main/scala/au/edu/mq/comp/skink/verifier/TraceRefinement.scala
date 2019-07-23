@@ -131,6 +131,8 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, models))
                 case ("smtinterpol", Math()) =>
                     new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsAndInterpolants))
+                case ("yices", Bit()) =>
+                    new SMTSolver("Yices", new SMTInit(QF_ABV, models))
                 case ("yices", Math()) =>
                     new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, models))
                 case ("z3", Bit()) =>
