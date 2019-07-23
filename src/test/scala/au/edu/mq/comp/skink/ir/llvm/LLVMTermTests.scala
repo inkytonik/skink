@@ -21,41 +21,26 @@
 
 package au.edu.mq.comp.skink.ir.llvm
 
-import org.bitbucket.inkytonik.kiama.util.Tests
-
 /**
  * Tests of term construction in both bit and math mode.
  */
-class LLVMTermTests extends Tests {
+class LLVMTermTests extends LLVMTests {
 
-    import au.edu.mq.comp.skink.{Main, SkinkConfig}
+    import au.edu.mq.comp.skink.Main
     import au.edu.mq.comp.skink.verifier.SMTLIB2Interpolators._
     import au.edu.mq.comp.skink.ir.llvm.LLVMInterpolators._
     import au.edu.mq.comp.skink.ir.Trace
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
-    import org.bitbucket.inkytonik.kiama.relation.Tree
-    import org.bitbucket.inkytonik.kiama.util.{Positions, Source, StringSource}
+    import org.bitbucket.inkytonik.kiama.util.{StringSource}
     import org.scalallvm.assembly.AssemblySyntax._
-    import org.scalallvm.assembly.{Analyser, Assembly}
     import org.scalatest.matchers.{Matcher, MatchResult}
 
-    // Dummy setup to give insn and value-level term tests some context
-    // Can't be used to test indexing, traces, etc.
+    val ProgramSetup(source, program, _, analyser, namer, helper, config) =
+        setupProgram("define i32 @main() { ret i32 0 }")
 
-    val config = Main.createConfig(Seq())
-    config.verify()
-
-    val namer = new DummyNamer
-    val helper = new LLVMHelper(config)
-
-    val source = StringSource("define i32 @main() { ret i32 0 }")
-    val (program, func) = parseProgram(source, config)
-    val funtree = new Tree[ASTNode, FunctionDefinition](func.function)
-    val funanalyser = new Analyser(funtree)
-
-    val bitTermBuilder = new LLVMBitTermBuilder(source, source, program, funanalyser, namer, helper, config)
-    val mathTermBuilder = new LLVMMathTermBuilder(source, source, program, funanalyser, namer, helper, config)
+    val bitTermBuilder = new LLVMBitTermBuilder(source, source, program, analyser, namer, helper, config)
+    val mathTermBuilder = new LLVMMathTermBuilder(source, source, program, analyser, namer, helper, config)
 
     // Test parameters
 
@@ -1118,7 +1103,7 @@ class LLVMTermTests extends Tests {
     def phiInsnTermTest(insn : String, optPrevBlock : Option[Block], bitTerm : String, mathTerm : String) {
         val pred =
             optPrevBlock match {
-                case Some(block) => s"from %${funanalyser.blockName(block)}"
+                case Some(block) => s"from %${analyser.blockName(block)}"
                 case None        => "none"
             }
         test(s"$insn ($pred) (bit)") {
@@ -1242,29 +1227,12 @@ class LLVMTermTests extends Tests {
     }
 
     def hasBitTraceTerms(program : String, choices : Seq[Int], terms : Seq[String]) =
-        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "bit"))
+        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "bit", "-s"))
 
     def hasMathTraceTerms(program : String, choices : Seq[Int], terms : Seq[String]) =
-        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "math"))
+        hasTraceTerms(program, Trace(choices), terms, Seq("-n", "math", "-s"))
 
     // Utilities
-
-    def parseProgram(source : Source, config : SkinkConfig) : (Program, LLVMFunction) = {
-        val positions = new Positions
-        val p = new Assembly(source, positions)
-        val pr = p.pProgram(0)
-        if (pr.hasValue) {
-            val prog = p.value(pr).asInstanceOf[Program]
-            val funs = prog.items.collect {
-                case func : FunctionDefinition =>
-                    new LLVMFunction(source, source, prog, func, config)
-            }
-            if (funs.length != 1)
-                fail(s"parseProgram: expected exactly one function, got ${funs.length}")
-            (prog, funs(0))
-        } else
-            fail(s"parse error: ${pr.parseError.msg}")
-    }
 
     def pow2(num : Int) : Int =
         math.pow(2, num).toInt

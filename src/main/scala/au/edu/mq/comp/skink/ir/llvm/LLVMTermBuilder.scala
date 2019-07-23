@@ -262,7 +262,7 @@ trait LLVMTermBuilder extends Core {
                 case Some(prevBlock) =>
                     val prevLabel = Label(Local(funAnalyser.blockName(prevBlock)))
                     insn match {
-                        case insn @ Phi(Binding(to), tipe, preds) =>
+                        case insn @ PhiInstruction(Binding(to), tipe, preds) =>
                             // Bound phi result, find value
                             preds.find(_.label == prevLabel) match {
                                 case Some(pred) =>
@@ -270,7 +270,7 @@ trait LLVMTermBuilder extends Core {
                                 case None =>
                                     sys.error(s"phiInsnTerm: can't find ${show(prevLabel)} in ${longshow(insn)}")
                             }
-                        case Phi(NoBinding(), _, _) =>
+                        case PhiInstruction(NoBinding(), _, _) =>
                             // No effect since result of phi is not bound
                             True()
                     }

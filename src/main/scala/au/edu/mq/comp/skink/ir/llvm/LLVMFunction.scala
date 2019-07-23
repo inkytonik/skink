@@ -48,7 +48,7 @@ class LLVMFunction(origSource : Source, source : Source,
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
     import org.bitbucket.franck44.scalasmt.typedterms.TypedTerm
     import org.bitbucket.inkytonik.kiama.relation.{EnsureTree, Tree}
-    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collectl
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.{collectl, collects}
     import org.bitbucket.inkytonik.kiama.util.{Position, Source, StringSource}
     import org.scalallvm.assembly.AssemblySyntax.{True => _, _}
     import org.scalallvm.assembly.PrettyPrinter._
@@ -135,7 +135,12 @@ class LLVMFunction(origSource : Source, source : Source,
         // Make the block trace that corresponds to this trace and set it
         // up so we can do context-dependent computations on it.
         val blockTrace = traceToBlockTrace(trace)
-        val traceTree = new Tree[Product, BlockTrace](blockTrace, EnsureTree)
+        val slicedTrace =
+            if (config.noSlice())
+                blockTrace
+            else
+                sliceTrace(blockTrace)
+        val traceTree = new Tree[Product, BlockTrace](slicedTrace, EnsureTree)
 
         // Get a function-specifc namer and term builder
         val namer = new LLVMFunctionNamer(funAnalyser, funTree, traceTree, helper)
@@ -693,6 +698,179 @@ class LLVMFunction(origSource : Source, source : Source,
                     override val optOffsetFinish = optOffsetStart
                 }
         }(blockTrace.blocks)
+    }
+
+    /**
+     * Slice a trace so that we only include instructions that contribute needed values.
+     * We keep the same choices, just dropping instructions from the blocks if possible.
+     */
+    def sliceTrace(blockTrace : BlockTrace) : BlockTrace = {
+
+        import scala.collection.mutable.{Set => MSet}
+
+        // Build sets of addresses that reference into the same memory chunk
+        // We conservatively assume that references into the same chunk could
+        // influence other, rather than try to analyse offsets
+
+        val chunkSets = MSet[MSet[Name]]()
+
+        // FIXME: improve on linear search???
+
+        def aliasesOf(addr : Name) : Option[MSet[Name]] =
+            chunkSets.find(_.contains(addr))
+
+        def addAlias(addr : Name, base : Name) {
+            aliasesOf(base) match {
+                case None =>
+                    chunkSets.add(MSet(base, addr))
+                case Some(set) =>
+                    set.add(addr)
+            }
+        }
+
+        blockTrace.blocks.map {
+            case block =>
+                block.optMetaInstructions.map {
+                    case MetaInstruction(GetElementPtr(Binding(addr), _, _, _, Named(base), _), _) =>
+                        addAlias(addr, base)
+                    case _ => // Do nothing
+                }
+        }
+
+        // Used and defined names in different nodes, usually (meta)-instructions
+
+        def usedNames(node : ASTNode) : Set[Name] =
+            collects {
+                case Named(name) =>
+                    name
+            }(node)
+
+        def definedNames(node : ASTNode) : Set[Name] =
+            node match {
+                case Store(_, _, _, _, Named(dest), _) =>
+                    aliasesOf(dest) match {
+                        case None =>
+                            Set(dest)
+                        case Some(chunkSet) =>
+                            chunkSet.toSet
+                    }
+                case _ : Store =>
+                    sys.error(s"definedNames: ${show(node)} not supported")
+                case _ =>
+                    collects {
+                        case Binding(name) =>
+                            name
+                    }(node)
+            }
+
+        // A node is in the slice if it's an assumption call or defines something
+        // that is required later
+
+        def inSlice(node : ASTNode, req : Set[Name]) : Boolean =
+            node match {
+                case LibFunctionCall1(_, _, Assume(), _, _) =>
+                    true
+                case _ =>
+                    !req.intersect(definedNames(node)).isEmpty
+            }
+
+        // If a node is in the slice, includes the names it uses in the required names for earlier
+
+        def sliceNode(node : ASTNode, req : Set[Name]) : Option[Set[Name]] =
+            if (inSlice(node, req))
+                Some(req ++ usedNames(node))
+            else
+                None
+
+        // Backwards pass through instruction or phi list, propagating required names back
+        // and accumulating the instructions that are to be in the slice
+
+        def sliceInsns(insns : Vector[MetaInstruction], req : Set[Name]) : (Vector[MetaInstruction], Set[Name]) =
+            insns.foldRight((Vector[MetaInstruction](), req)) {
+                case (insn, (insns, req)) =>
+                    sliceNode(insn.instruction, req) match {
+                        case Some(newReq) =>
+                            (insn +: insns, newReq)
+                        case None =>
+                            (insns, req)
+                    }
+            }
+
+        def findPhiPredecessor(predecessors : Vector[PhiPredecessor], optPrevBlock : Option[Block]) : Option[PhiPredecessor] =
+            optPrevBlock match {
+                case Some(prevBlock) =>
+                    val prevLabel = Label(Local(blockName(prevBlock)))
+                    predecessors.find(prevLabel == _.label)
+                case None =>
+                    None
+            }
+
+        def slicePhi(phi : PhiInstruction, optPrevBlock : Option[Block], req : Set[Name]) : Option[Set[Name]] =
+            if (inSlice(phi, req))
+                findPhiPredecessor(phi.phiPredecessors, optPrevBlock) match {
+                    case Some(predecessor) =>
+                        Some(req ++ usedNames(predecessor))
+                    case None =>
+                        None
+                }
+            else
+                None
+
+        def slicePhis(phis : Vector[MetaPhiInstruction], optPrevBlock : Option[Block], req : Set[Name]) : (Vector[MetaPhiInstruction], Set[Name]) =
+            phis.foldRight((Vector[MetaPhiInstruction](), req)) {
+                case (phi, (phis, req)) =>
+                    slicePhi(phi.phiInstruction, optPrevBlock, req) match {
+                        case Some(newReq) =>
+                            (phi +: phis, newReq)
+                        case None =>
+                            (phis, req)
+                    }
+            }
+
+        // Backwards pass from terminating instruction (always included), through the
+        // normal instructions to the phis.
+
+        def sliceBlock(block : Block, optPrevBlock : Option[Block], req : Set[Name]) : (Block, Set[Name]) =
+            block match {
+                case Block(label, phis, landingPads, insns, terminator) =>
+                    val (newInsns, beforeInsnsReq) =
+                        sliceInsns(
+                            insns,
+                            req ++ usedNames(terminator.terminatorInstruction)
+                        )
+                    val (newPhis, beforePhisReq) =
+                        slicePhis(
+                            phis,
+                            optPrevBlock,
+                            beforeInsnsReq
+                        )
+                    val newBlock =
+                        Block(
+                            label,
+                            newPhis,
+                            landingPads, // FIXME: omitted for now
+                            newInsns,
+                            terminator
+                        )
+                    (newBlock, beforePhisReq)
+            }
+
+        // Backwards pass through blocks, passing in previous block (if any) to
+        // help resolve phis
+
+        val (sliceBlocks, _) =
+            blockTrace.blocks.zipWithIndex.foldRight((Vector[Block](), Set[Name]())) {
+                case ((block, count), (blocks, req)) =>
+                    val optPrevBlock =
+                        if (count == 0)
+                            None
+                        else
+                            Some(blockTrace.blocks(count - 1))
+                    val (slicedBlock, newReq) = sliceBlock(block, optPrevBlock, req)
+                    (slicedBlock +: blocks, newReq)
+            }
+
+        BlockTrace(sliceBlocks, blockTrace.trace)
     }
 
 }

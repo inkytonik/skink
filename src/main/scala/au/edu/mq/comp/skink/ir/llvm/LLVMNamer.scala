@@ -135,9 +135,9 @@ class LLVMFunctionNamer(funanalyser : Analyser, funtree : Tree[ASTNode, Function
      * The enclosing phi instruction of a node in a block, if there is one
      * and the node is in a phi predecessor specification.
      */
-    val enclosingPhi : Product => Option[Phi] =
+    val enclosingPhi : Product => Option[PhiInstruction] =
         downOpt {
-            case nametree.parent.pair(_ : PhiPredecessor, phi : Phi) =>
+            case nametree.parent.pair(_ : PhiPredecessor, phi : PhiInstruction) =>
                 phi
         }
 
