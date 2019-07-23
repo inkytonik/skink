@@ -147,6 +147,8 @@ object Helper {
                 ("1", "true")
             case QIdTerm(SimpleQId(SymbolId(SSymbol("false")))) =>
                 ("0", "false")
+            case QIdTerm(SimpleQId(SymbolId(SSymbol(id)))) =>
+                ("0", id)
 
             case ConstantTerm(DecLit(a, b)) =>
                 val num = s"$a.$b"
