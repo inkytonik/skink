@@ -38,6 +38,8 @@ shellPrompt := {
             " " + scalaVersion.value + "> "
 }
 
+cancelable in Global := true
+
 // Dependencies
 
 libraryDependencies ++=
