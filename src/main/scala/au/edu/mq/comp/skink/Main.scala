@@ -27,6 +27,8 @@ import org.bitbucket.inkytonik.kiama.util.CompilerBase
 
 object Main {
 
+    import org.rogach.scallop.exceptions.ScallopException
+
     def main(args : Array[String]) {
         createConfig(args).driver.main(args)
     }
@@ -36,7 +38,13 @@ object Main {
             new SkinkConfig(args) {
                 lazy val driver = new Driver(config)
             }
-        config.verify
+        try {
+            config.verify
+        } catch {
+            case e : ScallopException =>
+                System.err.println(s"skink: ${e.message}, use --help for option list")
+                sys.exit(1)
+        }
         config
     }
 
