@@ -108,7 +108,7 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = "Maximum number of refinement iterations (default: 40)",
         default = Some(40))
 
-    lazy val noSlice = opt[Boolean]("slice", short = 's',
+    lazy val noSlice = opt[Boolean]("noslice", short = 's',
         descr = "Don't slice candidate traces (default: false)",
         default = Some(false))
 
