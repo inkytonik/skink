@@ -46,23 +46,31 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     version(s"${BuildInfo.name} ${BuildInfo.version}")
 
+    val architectureDefault = 32
+
     lazy val architecture = opt[Int]("architecture", short = 'a',
-        descr = "Architecture specified by bits (default: 32)",
-        default = Some(32))
+        descr = s"Architecture specified by bits (default: $architectureDefault)",
+        default = Some(architectureDefault))
+
+    val checkTrueWitnessPathDefwault = "./scripts"
 
     lazy val checkTrueWitnessPath = opt[String]("checktruewitnesspath", noshort = true,
-        descr = "Path to the check-true-witness.sh correctness witness validator directory (default: ./scripts)",
-        default = Some("./scripts"))
+        descr = s"Path to the check-true-witness.sh correctness witness validator directory (default: $checkTrueWitnessPathDefwault)",
+        default = Some(checkTrueWitnessPathDefwault))
+
+    val cleanupDefault = false
 
     lazy val cleanup = opt[Boolean]("cleanup", short = 'c',
-        descr = "Clean up any generated files (default: false)",
-        default = Some(false))
+        descr = s"Clean up any generated files (default: $cleanupDefault)",
+        default = Some(cleanupDefault))
 
     def driver : Driver
 
+    lazy val executeDefault = false
+
     lazy val execute = opt[Boolean]("execute", short = 'x',
-        descr = "Execute the target code (default: false)",
-        default = Some(false))
+        descr = s"Execute the target code (default: $executeDefault)",
+        default = Some(executeDefault))
 
     val frontendUsageMessage = "A single frontend from C (default), LLVM"
 
@@ -92,25 +100,35 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = frontendUsageMessage,
         default = Some(new CFrontend(config)))(frontendConverter)
 
+    val fshellw2tPathDefault = "./fshell-w2t"
+
     lazy val fshellw2tPath = opt[String]("fshellw2tpath", noshort = true,
-        descr = "Path to the fshell-w2t violation witness validator directory (default: ./fshell-w2t)",
-        default = Some("./fshell-w2t"))
+        descr = s"Path to the fshell-w2t violation witness validator directory (default: $fshellw2tPathDefault)",
+        default = Some(fshellw2tPathDefault))
+
+    val functionNameDefault = "main"
 
     lazy val functionName = opt[String]("functionname", short = 'F',
-        descr = "The name of the function to verify (default: main)",
-        default = Some("main"))
+        descr = s"The name of the function to verify (default: $functionNameDefault)",
+        default = Some(functionNameDefault))
+
+    val lliDefault = "lli"
 
     lazy val lli = opt[String]("lli", noshort = true,
-        descr = "Program to use to execute target code (default: lli)",
-        default = Some("lli"))
+        descr = s"Program to use to execute target code (default: $lliDefault)",
+        default = Some(lliDefault))
+
+    val maxIterationsDefault = 40
 
     lazy val maxIterations = opt[Int]("max", short = 'm',
-        descr = "Maximum number of refinement iterations (default: 40)",
-        default = Some(40))
+        descr = s"Maximum number of refinement iterations (default: $maxIterationsDefault)",
+        default = Some(maxIterationsDefault))
+
+    val noSliceDefault = false
 
     lazy val noSlice = opt[Boolean]("noslice", short = 's',
-        descr = "Don't slice candidate traces (default: false)",
-        default = Some(false))
+        descr = s"Don't slice candidate traces (default: $noSliceDefault)",
+        default = Some(noSliceDefault))
 
     val numberModeUsageMessage = "A single number mode from bit (default), math"
 
@@ -140,21 +158,29 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = numberModeUsageMessage,
         default = Some(Bit()))(numberModeConverter)
 
+    val optLevelDefault = 2
+
     lazy val optLevel = opt[Int]("optlevel", short = 'O',
-        descr = "Optimisation level for source compilation (default: 2)",
-        default = Some(2))
+        descr = s"Optimisation level for source compilation (default: $optLevelDefault)",
+        default = Some(optLevelDefault))
+
+    val outputWitnessDefault = false
 
     lazy val outputWitness = opt[Boolean]("output-witness", short = 'W',
-        descr = "Output a witness for the vefification result (default: false)",
-        default = Some(false))
+        descr = s"Output a witness for the vefification result (default: $outputWitnessDefault)",
+        default = Some(outputWitnessDefault))
+
+    val quietDefault = false
 
     lazy val quiet = opt[Boolean]("quiet", short = 'q',
-        descr = "Don't print output (default: false)",
-        default = Some(false))
+        descr = s"Don't print output (default: $quietDefault)",
+        default = Some(quietDefault))
+
+    val solversDefault = "mathsat,z3"
 
     lazy val solvers = opt[String]("solvers", short = 'e',
-        descr = "Comma-separated list of solvers to use (from boolector, cvc4, mathsat, smtinterpol, yices, z3 (default: mathsat,z3)",
-        default = Some("mathsat,z3"))
+        descr = s"Comma-separated solver names (boolector, cvc4, mathsat, smtinterpol, yices, z3, z3-fpbv) (default: $solversDefault)",
+        default = Some(solversDefault))
 
     val solverTimeOutConverter =
         new ValueConverter[Duration] {
@@ -178,16 +204,22 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
         }
 
+    val solverTimeOutDefault = 30
+
     lazy val solverTimeOut = opt[Duration]("timeout", short = 'o',
-        descr = "Timeout for SMT solvers in seconds (default : 30s)",
-        default = Some(Duration(30, "second")))(solverTimeOutConverter)
+        descr = s"Timeout for SMT solvers in seconds (default : $solverTimeOutDefault)",
+        default = Some(Duration(solverTimeOutDefault, "second")))(solverTimeOutConverter)
+
+    val verifyDefault = false
 
     lazy val verifyTarget = opt[Boolean]("verify", short = 'v',
-        descr = "Verify the target code (default: false)",
-        default = Some(false))
+        descr = s"Verify the target code (default: $verifyDefault)",
+        default = Some(verifyDefault))
+
+    val witnessFileDefault = "witness.graphml"
 
     lazy val witnessFile = opt[String]("witness-file", short = 'w',
-        descr = "File into which witness is written (- means standard output, default: witness.graphml)",
-        default = Some("witness.graphml"))
+        descr = s"File into which witness is written (- means standard output, default: $witnessFileDefault)",
+        default = Some(witnessFileDefault))
 
 }
