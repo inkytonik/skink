@@ -732,7 +732,7 @@ class LLVMTermTests extends LLVMTests {
                }""",
             Seq(0, 0, 0),
             Vector(
-                "(= @_fprmode@0 RNE)",
+                "true",
                 "(and (= %x@1 (_ bv0 32)) (= %y@1 (_ bv1 32)))",
                 "(and (= %x@2 %y@1) (= %y@2 %x@1))"
             ),

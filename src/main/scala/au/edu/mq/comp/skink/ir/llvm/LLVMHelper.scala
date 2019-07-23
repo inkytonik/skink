@@ -455,8 +455,7 @@ class LLVMHelper(config : SkinkConfig) {
     }
 
     /**
-     * Matcher for LLVM real (floating-point) types. Just standard float and double for now.
-     * Returns the bit size of the type.
+     * Matcher for LLVM real (floating-point) types. Returns the bit size of the type.
      */
     object RealT {
         def unapply(tipe : Type) : Option[Int] =

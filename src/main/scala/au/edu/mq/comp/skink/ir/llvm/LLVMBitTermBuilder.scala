@@ -66,6 +66,7 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
     }
     import org.bitbucket.franck44.scalasmt.theories.{ArrayTerm, BoolTerm, BVTerm, FPBVTerm, RMFPBVTerm}
     import org.bitbucket.franck44.scalasmt.typedterms.{TypedTerm, VarTerm}
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collects
     import namer.{indexOf, termid}
     import org.scalallvm.assembly.Analyser.unescape
     import org.scalallvm.assembly.AssemblyPrettyPrinter.show
@@ -317,8 +318,20 @@ case class LLVMBitTermBuilder(origSource : Source, source : Source,
         term
     }
 
+    def hasFloatingPoint(program : Program) : Boolean = {
+        val allTypes =
+            collects {
+                case tipe : Type =>
+                    tipe
+            }(program)
+        allTypes.map(RealT.unapply).exists(_.isDefined)
+    }
+
     override def initTerm(program : Program) : TypedTerm[BoolTerm, Term] =
-        varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
+        if (hasFloatingPoint(program))
+            varTermRM(show(fprmodeName), 0) === ctermRM(RNE())
+        else
+            True()
 
     override def itemTerm(item : Item) : TypedTerm[BoolTerm, Term] = {
         val term = item match {
