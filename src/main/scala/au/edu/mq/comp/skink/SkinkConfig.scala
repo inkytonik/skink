@@ -176,7 +176,7 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = s"Don't print output (default: $quietDefault)",
         default = Some(quietDefault))
 
-    val solversDefault = "mathsat,z3"
+    val solversDefault = "boolector,cvc4,mathsat,yices,z3"
 
     lazy val solvers = opt[String]("solvers", short = 'e',
         descr = s"Comma-separated solver names (boolector, cvc4, mathsat, smtinterpol, yices, z3, z3-fpbv) (default: $solversDefault)",
