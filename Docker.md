@@ -1,4 +1,8 @@
-Instructions for using Docker to get a test VM for running Skink in a BenchExec setup.
+Instructions for using Docker to get a test VM for running Skink including with a BenchExec setup.
+
+Note that the fshell-w2t witness validator used by the Skink tests and Benchexec doesn't run properly on recent Mac OS X versions, since they can't compile 32-bit applications any more.
+Thus to do full validation on the Mac you need to use the Docker image.
+Running Skink itself locally on a Mac is still fine if you have the SMT solvers installed.
 
 #### Install Docker
 
@@ -116,3 +120,13 @@ Skink as follows:
     ./skink.sh src/test/resources/citests/math/array-sequence_true-unreach-call.c
 
 and you will see logging information, etc.
+
+#### Developing in Visual Studio Code development container mode
+
+Skink is also set up to allow development on a host machine with the Docker image running in a container.
+In this mode you can edit as per usual, but terminals and the Skink extension will run in the container, thereby simplifying setup since you don't necessarily need to have the SMT solvers used by Skink installed on your host.
+
+You will need at least the "Remote - Containers" VS code extension installed.
+It's also part of the "Remote Development" extension pack.
+
+You can open in dev container mode by opening a Skink working directory in VS Code, then the editor should prompt you to optionally open the folder in dev container mode. If this doesn't happen look for commands that start with "Remote-Containers".
