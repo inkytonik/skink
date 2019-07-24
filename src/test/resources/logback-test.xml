@@ -75,7 +75,7 @@
         </encoder>
     </appender>
 
-    <root level="OFF">
+    <root level="ON">
         <appender-ref ref="SKINKFILE"/>
     </root>
 
@@ -100,7 +100,7 @@
 
     <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.ir.llvm" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.ir.llvm" level="ON"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
@@ -130,7 +130,7 @@
         <appender-ref ref="SKINKFILE"/>
     </logger>
 
-    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="INHERITED" additivity="false">
+    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="ON" additivity="false">
         <appender-ref ref="SMT2FILE"/>
     </logger>
 
