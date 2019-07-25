@@ -2,7 +2,7 @@
 
     <contextName>Skink</contextName>
 
-    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{100} - %msg%n"/>
+    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{0} - %msg%n"/>
     <property name="RAWNL_PATTERN" value="%msg%n"/>
     <property name="RAW_PATTERN" value="%msg"/>
 
@@ -103,7 +103,7 @@
     <logger name="logs|au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
         <appender-ref ref="LLVMFILE"/>
     </logger>
-    <logger name="xxclass au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
+    <logger name="class au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
         <appender-ref ref="SCALASMTFILE"/>
     </logger>
     <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
