@@ -200,7 +200,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         logger.info(source, s"""solvers enabled: ${solvers.map(_.name).mkString(", ")}""")
 
         // Combine the solvers together in parallel
-        val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
+        val strategy = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
 
         val initialNFADot = toDot(function.nfa, s"${function.name} initial")
         cfgLogger.debug(source, initialNFADot)
@@ -255,7 +255,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                     logger.info(source, s"$count choices of ${choices.length} used for UnSat prefix")
                     logger.info(source, "trying Newton method for refinement")
-                    val newton = new Newton(source, config, repetitions)
+                    val newton = new Newton(source, config, strategy, repetitions)
 
                     newton.auto(linearAuto, function, usedChoices, usedTerms, optCore, iteration) match {
                         case Some(auto) =>
@@ -264,7 +264,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                         case None =>
                             logger.info(source, "Newton method failed, trying Craig interpolants")
-                            val craig = new Craig(source, config, repetitions)
+                            val craig = new Craig(source, config, strategy, repetitions)
                             craig.auto(linearAuto, function, usedChoices, usedTerms, iteration) match {
                                 case Some(auto) =>
                                     logger.info(source, "Craig method succeeded")
@@ -318,7 +318,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     }
 
                     // Check satisfiability and if Sat, get model values
-                    val result = runSolvers(parallelSolvers, traceTerms)
+                    val result = runSolvers(strategy, traceTerms)
 
                     // Check to see if the trace is feasible.
                     result match {

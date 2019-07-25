@@ -34,7 +34,7 @@ trait BackEdges extends Core with Resources {
     import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.automat.edge.LabDiEdge
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
-    import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
+    import org.bitbucket.franck44.scalasmt.interpreters.SolverCompose
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.{show => showTerm}
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax.Term
     import org.bitbucket.franck44.scalasmt.theories.BoolTerm
@@ -45,6 +45,7 @@ trait BackEdges extends Core with Resources {
     def source : Source
     def config : SkinkConfig
     def repetitions : Seq[Seq[Int]]
+    def strategy : SolverCompose.Parallel
 
     def logger : Logger
     def autoLogger : Logger
@@ -123,7 +124,7 @@ trait BackEdges extends Core with Resources {
 
             //  if computing interpolants is successful and checkPost inclusion
             //  is true add them to list
-            res = using(new SMTSolver("Z3")) {
+            res = using(strategy) {
                 implicit solver =>
                     function.checkPost(
                         x1,

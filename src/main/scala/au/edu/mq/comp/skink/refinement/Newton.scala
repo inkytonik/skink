@@ -22,6 +22,7 @@
 package au.edu.mq.comp.skink.refinement
 
 import au.edu.mq.comp.skink.SkinkConfig
+import org.bitbucket.franck44.scalasmt.interpreters.SolverCompose
 import org.bitbucket.franck44.scalasmt.typedterms.Commands
 import org.bitbucket.inkytonik.kiama.util.Source
 
@@ -32,6 +33,7 @@ import org.bitbucket.inkytonik.kiama.util.Source
 class Newton(
     val source : Source,
     val config : SkinkConfig,
+    val strategy : SolverCompose.Parallel,
     val repetitions : Seq[Seq[Int]]
 ) extends BackEdges with Commands {
 
