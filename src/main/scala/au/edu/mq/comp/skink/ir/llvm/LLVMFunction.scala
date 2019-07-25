@@ -58,7 +58,6 @@ class LLVMFunction(origSource : Source, source : Source,
 
     val logger = getLogger(this.getClass, config)
     val programLogger = getLogger(this.getClass, config, ".program")
-    val checkPostLogger = getLogger(this.getClass, config, ".checkpost")
 
     // A helper for this module andf the term builders
     val helper = new LLVMHelper(config)
@@ -630,34 +629,43 @@ class LLVMFunction(origSource : Source, source : Source,
         object Comm extends Commands
         import Comm.isSat
 
-        programLogger.info(origSource, s"pre-condition is")
+        logger.debug(origSource, s"checkPost: pre-condition is ${pre.show}")
 
         //  Index the variables in pre with index 0
         val indexedPre = pre indexedBy { case _ => 0 }
-        programLogger.info(origSource, s"indexed pre-condition is ${indexedPre.show}")
+        logger.debug(origSource, s"checkPost: indexed pre-condition is ${indexedPre.show}")
 
         //  index the variables in post with index
         val (blockEffect, lastIndex) = traceBlockEffect(trace, index, choice)
+        logger.debug(origSource, s"checkPost: blockEffect is ${blockEffect.show}")
+        logger.debug(origSource, s"checkPost: lastIndex = $lastIndex")
+
         //  this renaming should be OK if we do not have quantified
         //  variables and all the vars in the term are free vars
         val indexedPost = post indexedBy {
             case SSymbol(x) => lastIndex.getOrElse(x, 0)
         }
+        logger.debug(origSource, s"checkPost: indexed post-condition is ${indexedPost.show}")
+
         //  instantiate a solver and check SAT
         isSat(indexedPre & blockEffect & !indexedPost) match {
-            //  if Sat, checkPost is false
-            case Success(Sat())   => Success(false)
+            // if Sat, checkPost is false
+            case Success(Sat()) =>
+                Success(false)
 
-            //  if unSat checkPost is true
-            case Success(UnSat()) => Success(true)
+            // if unSat checkPost is true
+            case Success(UnSat()) =>
+                Success(true)
 
             case Success(UnKnown()) =>
-                checkPostLogger.error(origSource, s"Solver returned UnKnown for check-sat")
-                sys.error(s"Solver returned UnKnown for check-sat")
+                val msg = "checkPost: solver returned UnKnown for check-sat"
+                logger.error(origSource, msg)
+                sys.error(msg)
 
             case Failure(f) =>
-                checkPostLogger.error(origSource, s"Solver failed to determine sat-status in checkpost $f")
-                sys.error(s"Solver failed to determine sat-status in checkpost $f")
+                val msg = s"checkPost: solver failed to determine sat-status: $f"
+                logger.error(origSource, msg)
+                sys.error(msg)
         }
     }
 
