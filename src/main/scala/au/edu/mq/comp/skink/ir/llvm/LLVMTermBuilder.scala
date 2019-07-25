@@ -69,7 +69,7 @@ trait LLVMTermBuilder extends Core {
      * (if there is one), and exit from this block using a particular choice.
      */
     def blockTerms(block : Block, optPrevBlock : Option[Block], choice : Int) : Vector[TypedTerm[BoolTerm, Term]] = {
-        logger.info(origSource, s"blockTerms: block ${funAnalyser.blockName(block)}")
+        logger.debug(origSource, s"blockTerms: block ${funAnalyser.blockName(block)}")
         val phiEffects = block.optMetaPhiInstructions.map(i => phiInsnTerm(i, optPrevBlock))
         val effects = block.optMetaInstructions.map(insnTerm)
         val exitEffect = exitTerm(block.metaTerminatorInstruction, choice)
@@ -241,7 +241,7 @@ trait LLVMTermBuilder extends Core {
      */
     def itemTerms(program : Program) : Seq[TypedTerm[BoolTerm, Term]] = {
         val terms = program.items.map(itemTerm)
-        logger.info(origSource, s"itemsTerm: ${terms.map(_.show)}")
+        logger.debug(origSource, s"itemsTerm: ${terms.map(_.show)}")
         terms
     }
 

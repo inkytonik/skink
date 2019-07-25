@@ -193,7 +193,7 @@ case class LLVMMathTermBuilder(origSource : Source, source : Source,
                 True()
         }
         if (term != True())
-            logger.info(origSource, s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
+            logger.debug(origSource, s"itemTerm:${longshow(item)}-> ${showTerm(term.termDef)}")
         term
     }
 

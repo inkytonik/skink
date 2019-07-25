@@ -2,8 +2,9 @@
 
     <contextName>Skink</contextName>
 
-    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{0} - %msg%n"/>
-    <property name="RAW_PATTERN" value="%msg%n"/>
+    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{100} - %msg%n"/>
+    <property name="RAWNL_PATTERN" value="%msg%n"/>
+    <property name="RAW_PATTERN" value="%msg"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -23,7 +24,7 @@
         <file>logs/C.log</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -31,23 +32,15 @@
         <file>logs/LLVM.log</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
-    <appender name="ITPFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/interpolantAuto.log</file>
+    <appender name="REFINEAUTOFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/refineAuto.dot</file>
         <append>false</append>
         <encoder>
-            <pattern>${DEFAULT_PATTERN}</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="ITPAUTOFILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/interpolantAuto.dot</file>
-        <append>false</append>
-        <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -55,7 +48,7 @@
         <file>logs/CFG.dot</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg</pattern>
+            <pattern>${RAW_PATTERN}</pattern>
         </encoder>
     </appender>
 
@@ -67,70 +60,105 @@
         </encoder>
     </appender>
 
+    <appender name="SCALASMTFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/scalasmt.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="AUTOMATFILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/automat.log</file>
+        <append>false</append>
+        <encoder>
+            <pattern>${DEFAULT_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
     <appender name="SMT2FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/smt2.log</file>
         <append>false</append>
         <encoder>
-            <pattern>${RAW_PATTERN}</pattern>
+            <pattern>${RAWNL_PATTERN}</pattern>
         </encoder>
     </appender>
 
-    <root level="ON">
+    <root level="INHERITED">
         <appender-ref ref="SKINKFILE"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="DEBUG"/>
+    <logger name="au.edu.mq.comp.skink" level="INHERITED"/>
 
-    <logger name="au.edu.mq.comp.skink.c" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
+    <logger name="logs|au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
     </logger>
-    <logger name="au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
+    <logger name="logs|au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
         <appender-ref ref="CFILE"/>
     </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier" level="INHERITED"/>
+    <logger name="logs|au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
+        <appender-ref ref="LLVMFILE"/>
+    </logger>
+    <logger name="logs|au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
+        <appender-ref ref="LLVMFILE"/>
+    </logger>
+    <logger name="xxclass au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
+    <logger name="logs|au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
         <appender-ref ref="CFGFILE"/>
     </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement$resources$" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement$Cmds$" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="class au.edu.mq.comp.skink.verifier.TraceRefinement$Cmds$" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier.Verifier" level="INHERITED"/>
+    <logger name="au.edu.mq.comp.skink.refinement.Newton" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="class au.edu.mq.comp.skink.refinement.Newton" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="au.edu.mq.comp.skink.refinement.Craig" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="class au.edu.mq.comp.skink.refinement.Craig" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
 
-    <logger name="au.edu.mq.comp.skink.verifier.Witnesses" level="INHERITED"/>
+    <logger name="logs|au.edu.mq.comp.skink.refinement.Newton.dot" level="INHERITED" additivity="false">
+        <appender-ref ref="REFINEAUTOFILE"/>
+    </logger>
+    <logger name="logs|au.edu.mq.comp.skink.refinement.Craig.dot" level="INHERITED" additivity="false">
+        <appender-ref ref="REFINEAUTOFILE"/>
+    </logger>
 
-    <logger name="au.edu.mq.comp.skink.ir.llvm" level="ON"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
-        <appender-ref ref="LLVMFILE"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction" level="INHERITED"/>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
-        <appender-ref ref="LLVMFILE"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.checkpost" level="OFF" additivity="false">
-        <appender-ref ref="ITPFILE"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction.itp" level="OFF" additivity="false">
-        <appender-ref ref="ITPFILE"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant" level="OFF" additivity="false">
-        <appender-ref ref="ITPFILE"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.interpolant.InterpolantAuto$.dot" level="OFF" additivity="false">
-        <appender-ref ref="ITPAUTOFILE"/>
+    <logger name="org.bitbucket.franck44.automat" level="INHERITED" additivity="false">
+        <appender-ref ref="AUTOMATFILE"/>
     </logger>
 
     <logger name="org.bitbucket.franck44.expect" level="INHERITED" additivity="false">
         <appender-ref ref="EXPECTFILE"/>
     </logger>
 
-    <logger name="org.bitbucket.franck44.scalasmt.typedterms" level="INHERITED" additivity="false">
-        <appender-ref ref="SKINKFILE"/>
+    <logger name="org.bitbucket.franck44.scalasmt" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
+    <logger name="smt2" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
     </logger>
 
-    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="ON" additivity="false">
+    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="INHERITED" additivity="false">
         <appender-ref ref="SMT2FILE"/>
     </logger>
 
