@@ -147,32 +147,32 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         val models = List(SMTProduceModels(true))
         val modelsUnsatCore = SMTProduceUnsatCores(true) :: models
 
-        def getSolver(numberMode : NumberMode)(solverName : String) : SMTSolver =
+        def getSolver(numberMode : NumberMode)(solverName : String) : Option[SMTSolver] =
             (solverName, numberMode) match {
                 case ("boolector", Bit()) =>
-                    new SMTSolver("Boolector", new SMTInit(QF_ABV, models))
+                    Some(new SMTSolver("Boolector", new SMTInit(QF_ABV, models)))
                 case ("cvc4", Bit()) =>
-                    new SMTSolver("CVC4", new SMTInit(QF_ABV, modelsUnsatCore))
+                    Some(new SMTSolver("CVC4", new SMTInit(QF_ABV, modelsUnsatCore)))
                 case ("cvc4", Math()) =>
-                    new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
+                    Some(new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
                 case ("mathsat", Bit()) =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, modelsUnsatCore))
+                    Some(new SMTSolver("MathSat", new SMTInit(QF_AFPBV, modelsUnsatCore)))
                 case ("mathsat", Math()) =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
+                    Some(new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
                 case ("smtinterpol", Math()) =>
-                    new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsUnsatCore))
+                    Some(new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsUnsatCore)))
                 case ("yices", Bit()) =>
-                    new SMTSolver("Yices", new SMTInit(QF_ABV, modelsUnsatCore))
+                    Some(new SMTSolver("Yices", new SMTInit(QF_ABV, modelsUnsatCore)))
                 case ("yices", Math()) =>
-                    new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
+                    Some(new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
                 case ("z3", Bit()) =>
-                    new SMTSolver("Z3", new SMTInit(QF_ABV, modelsUnsatCore))
+                    Some(new SMTSolver("Z3", new SMTInit(QF_ABV, modelsUnsatCore)))
                 case ("z3-fpbv", Bit()) =>
-                    new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsUnsatCore))
+                    Some(new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsUnsatCore)))
                 case ("z3", Math()) =>
-                    new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsUnsatCore))
-                case (solver, mode) =>
-                    sys.error(s"solver $solver with number mode $mode is not supported")
+                    Some(new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsUnsatCore)))
+                case _ =>
+                    None
             }
 
         // Combine the solvers with the number modes. If there are the same number of solvers and
@@ -180,7 +180,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         // the last mode is repeated for the remainder. If there are more modes than solvers, then
         // the excess modes are ignored.
 
-        logger.info(source, s"solvers: ${config.solvers()}")
+        logger.info(source, s"solvers requested: ${config.solvers()}")
         logger.info(source, s"number mode: ${config.numberMode()}")
 
         val solverNames = config.solvers().split(',').toList
@@ -188,7 +188,16 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
             sys.error("traceRefinement: unexpectedly got an empty solvers list")
 
         // Create solver objects (does not create the solver instances)
-        val solvers = solverNames.map(getSolver(config.numberMode()))
+        val solvers = solverNames.map(getSolver(config.numberMode())).flatten
+
+        // If none of the solver x mode combinations is supported, we can't do anything
+        if (solvers.isEmpty) {
+            val msg = s"solvers not supported: ${config.solvers()} in ${config.numberMode()} mode"
+            logger.error(source, msg)
+            sys.error(msg)
+        }
+
+        logger.info(source, s"""solvers enabled: ${solvers.map(_.name).mkString(", ")}""")
 
         // Combine the solvers together in parallel
         val parallelSolvers = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
