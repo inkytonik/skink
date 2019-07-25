@@ -368,6 +368,9 @@ class LLVMFunction(origSource : Source, source : Source,
     lazy val makeVerifiable : FunctionDefinition = {
         val verifiable = fixErrorCalls(function)
 
+        programLogger.debug(origSource, "* Verifiable program\n")
+        programLogger.debug(origSource, show(verifiable))
+
         if (config.server()) {
             val index = program.items.indexWhere {
                 case fd : FunctionDefinition if nameToString(fd.global) == name =>
