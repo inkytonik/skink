@@ -50,27 +50,54 @@ class Newton(
         function : IRFunction,
         choices : Seq[Int],
         terms : Seq[TypedTerm[BoolTerm, Term]],
-        core : Set[Int],
+        optCore : Option[Set[Int]],
         iteration : Int
     ) : Option[NFA[Int, Int]] = {
 
         logger.info(source, "trying to compute Newton predicates")
-        logger.debug(source, "starting from terms:")
-        for ((term, index) <- terms.zipWithIndex) {
-            logger.debug(source, s"$index: ${showTerm(term.termDef)}")
+
+        optCore match {
+            case None =>
+                logger.info(source, "no unsat cores, stopping Newton")
+                None
+
+            case Some(core) =>
+                logger.debug(source, s"""unsat core is terms: ${core.toSeq.sorted.mkString(" ")}""")
+
+                logger.debug(source, "starting from terms:")
+                for ((term, index) <- terms.zipWithIndex) {
+                    logger.debug(source, s"$index: ${showTerm(term.termDef)}")
+                }
+
+                val coreTerms =
+                    terms.zipWithIndex.map {
+                        case (term, index) =>
+                            if (core contains index)
+                                term
+                            else
+                                True()
+                    }
+
+                val lastPost : TypedTerm[BoolTerm, Term] =
+                    False()
+
+                val emptyIndTerms : Vector[TypedTerm[BoolTerm, Term]] =
+                    Vector()
+
+                val (_, indTerms) =
+                    coreTerms.foldRight((lastPost, emptyIndTerms)) {
+                        case (term, (post, terms)) =>
+                            val pre = term.imply(post)
+                            (pre, pre +: terms)
+                    }
+
+                logger.debug(source, "inductive terms:")
+                for ((term, index) <- indTerms.zipWithIndex) {
+                    logger.debug(source, s"$index: ${showTerm(term.termDef)}")
+                }
+
+                addBackEdges(linearAuto, function, choices, indTerms, iteration)
         }
-        logger.debug(source, s"""unsat core is terms: ${core.toSeq.sorted.mkString(" ")}""")
-
-        val coreTerms =
-            terms.zipWithIndex.map {
-                case (term, index) =>
-                    if (core contains index)
-                        term
-                    else
-                        True()
-            }
-
-        addBackEdges(linearAuto, function, choices, coreTerms, iteration)
 
     }
 

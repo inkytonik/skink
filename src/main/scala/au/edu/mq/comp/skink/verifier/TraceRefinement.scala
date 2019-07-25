@@ -254,7 +254,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     logger.info(source, s"$count choices of ${choices.length} used for UnSat prefix")
                     logger.info(source, "trying Newton method for refinement")
                     val newton = new Newton(source, config)
-                    newton.auto(linearAuto, function, usedChoices, usedTerms, optCore.get, iteration) match {
+                    newton.auto(linearAuto, function, usedChoices, usedTerms, optCore, iteration) match {
                         case Some(auto) =>
                             logger.info(source, "Newton method succeeded")
                             auto
