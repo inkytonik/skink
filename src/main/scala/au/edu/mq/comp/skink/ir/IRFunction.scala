@@ -77,10 +77,9 @@ trait IRFunction {
 
     /**
      * Given a trace, return one list element for each block in that trace
-     * (in no defined order). The set for a block contains the indices in the
-     * trace at which that block appears. E.g., `List(Set(0),Set(1,3),Set(2))`
-     * means that one block occurs only at position 0, one at position 2 and
-     * a third block occurs at positions 1 and 3.
+     * that is repeated (in no defined order). The entry for a block contains
+     * the indices in the trace at which that block appears. E.g., `List(Set(1,3))`
+     * means that a block occurs at both positions 1 and 3.
      *
      * When comparing blocks it is the effect of that block at that point of the
      * trace that matters, not just the identity of the block.

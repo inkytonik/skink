@@ -44,6 +44,8 @@ trait BackEdges extends Core with Resources {
 
     def source : Source
     def config : SkinkConfig
+    def repetitions : Seq[Seq[Int]]
+
     def logger : Logger
     def autoLogger : Logger
 
@@ -96,16 +98,9 @@ trait BackEdges extends Core with Resources {
         //  add the first and last trivial interpolants
         val completeItp = True() +: preds :+ False()
 
-        //  Collect partition of indices according to block equivalence
-        val indexPartition : Seq[Seq[Int]] = function.traceToRepetitions(Trace(choices))
-        logger.debug(source, s"partitions $indexPartition");
-        logger.debug(source, s"non-singleton partitions ${indexPartition.filter(_.size > 1)}");
-
         //  Compute candidate backEdges from the indexPartition
         //  for each partition with more than 2 elements, build the candidate min, max
-        val candidatePairs =
-            indexPartition.filter(_.size > 1).map(_.toList).map(generatePairs(_)).flatten.flatten
-
+        val candidatePairs = repetitions.map(generatePairs(_)).flatten
         logger.debug(source, s"candidate pairs $candidatePairs")
 
         /**
@@ -153,12 +148,16 @@ trait BackEdges extends Core with Resources {
 
     }
 
-    def generatePairs(xl : Seq[Int]) : List[List[(Int, Int)]] =
+    /**
+     * Given a sequence of repeated block locations, generate all of the possible
+     * pair combinations.
+     */
+    def generatePairs(xl : Seq[Int]) : Seq[(Int, Int)] =
         xl match {
             case l if l.size < 2 =>
-                Nil
-            case a :: xa =>
-                xa.map((a, _)) :: generatePairs(xa)
+                Seq()
+            case a +: xa =>
+                xa.map((a, _)) ++ generatePairs(xa)
         }
 
 }

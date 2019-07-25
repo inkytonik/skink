@@ -244,8 +244,11 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     publishDot(logger, source, StringSource(linearAutoDot), s"refinements|iteration $iteration|linear automaton", config)
                 }
 
-                if (choices.length == 1) {
-                    logger.info(source, "only one choice in trace, return linear automaton")
+                val repetitions = function.traceToRepetitions(Trace(choices))
+                logger.debug(source, s"repetitions $repetitions");
+
+                if (repetitions.isEmpty) {
+                    logger.info(source, "no repetitions in trace, return linear automaton")
                     linearAuto
                 } else {
                     val usedChoices = choices.take(count)
@@ -253,7 +256,9 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                     logger.info(source, s"$count choices of ${choices.length} used for UnSat prefix")
                     logger.info(source, "trying Newton method for refinement")
-                    val newton = new Newton(source, config)
+                    val newton = new Newton(source, config, repetitions)
+                    logger.debug(source, s"repetitions $repetitions")
+
                     newton.auto(linearAuto, function, usedChoices, usedTerms, optCore, iteration) match {
                         case Some(auto) =>
                             logger.info(source, "Newton method succeeded")
@@ -261,7 +266,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                         case None =>
                             logger.info(source, "Newton method failed, trying Craig interpolants")
-                            val craig = new Craig(source, config)
+                            val craig = new Craig(source, config, repetitions)
                             craig.auto(linearAuto, function, usedChoices, usedTerms, iteration) match {
                                 case Some(auto) =>
                                     logger.info(source, "Craig method succeeded")

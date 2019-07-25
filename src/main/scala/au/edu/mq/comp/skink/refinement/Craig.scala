@@ -30,7 +30,8 @@ import org.bitbucket.inkytonik.kiama.util.Source
  */
 class Craig(
     val source : Source,
-    val config : SkinkConfig
+    val config : SkinkConfig,
+    val repetitions : Seq[Seq[Int]]
 ) extends BackEdges with Commands {
 
     import au.edu.mq.comp.skink.ir.IRFunction

@@ -510,12 +510,12 @@ class LLVMFunction(origSource : Source, source : Source,
             }
 
         // Combine steps with their indices, accumulate indices for same step,
-        // throw away steps, turn into Seq
+        // throw away steps, turn into Seq, only keep repetitions
         steps.zipWithIndex.foldLeft(Map[(Option[String], String), Vector[Int]]()) {
             case (m, (k, i)) =>
                 val s = m.getOrElse(k, Vector())
                 m.updated(k, s :+ i)
-        }.values.toIndexedSeq
+        }.values.toIndexedSeq.filter(_.size > 1)
 
     }
 
