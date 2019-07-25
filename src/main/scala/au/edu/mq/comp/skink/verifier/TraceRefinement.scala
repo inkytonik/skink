@@ -233,7 +233,6 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                 choices : Seq[Int],
                 traceTerms : Seq[(TypedTerm[BoolTerm, Term], Boolean)],
                 count : Int,
-                iteration : Int,
                 optCore : Option[Set[Int]]
             ) : NFA[Int, Int] = {
                 val linearAuto = makeLinearAuto(choices)
@@ -333,7 +332,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                         // Otherwise, remove as many traces as we can based on this one, continue.
                         case Success(UnSatSolverResult(count, optCore)) =>
-                            val refinement = refine(choices, traceTerms, count, iteration, optCore)
+                            val refinement = refine(choices, traceTerms, count, optCore)
                             refineRec(toDetNFA(r + refinement)._1, iteration + 1)
 
                         case status =>
