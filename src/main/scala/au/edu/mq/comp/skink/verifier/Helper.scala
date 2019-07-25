@@ -202,11 +202,6 @@ object Helper {
                 sys.error(s"termToCValueString: unexpected value term $term")
         }
 
-    // Skink cannot tell if main is correct
-
-    // config: --server --debug -v -w - -c -q -e mathsat,z3 -f C -F main -n bit -O2 --fshellw2tpath /skink/fshell-w2t --checktruewitnesspath /skink/scripts
-    // termToCValueString: unexpected value term ConstantTerm(RoundingModeLit(RNEven()))
-
     /**
      * Turn a (possible) URI into a user-level name.
      */
