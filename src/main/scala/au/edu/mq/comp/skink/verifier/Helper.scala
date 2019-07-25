@@ -173,6 +173,9 @@ object Helper {
 
             case RealDivTerm(ConstantTerm(NumLit(a)), List(ConstantTerm(NumLit(b)))) =>
                 (s"${a.toDouble} / ${b.toDouble}", f"${a.toDouble / b.toDouble}%f")
+            case RealDivTerm(NegTerm(ConstantTerm(NumLit(a))), List(ConstantTerm(NumLit(b)))) =>
+                (s"${-a.toDouble} / ${b.toDouble}", f"${-a.toDouble / b.toDouble}%f")
+
             case NegTerm(t : RealDivTerm) =>
                 val (s, c) = termToCValueString(t)
                 (s"-($s)", s"-$c")
