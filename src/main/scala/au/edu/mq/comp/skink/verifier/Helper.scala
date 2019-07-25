@@ -373,4 +373,16 @@ object Helper {
         }
     }
 
+    /*
+     * An ordering that first works on string length, then within
+     * each length on the value.
+     */
+    object LengthFirstStringOrdering extends Ordering[String] {
+        def compare(a : String, b : String) =
+            if (a.length == b.length)
+                a.compare(b)
+            else
+                a.length - b.length
+    }
+
 }

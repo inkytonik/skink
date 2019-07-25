@@ -36,11 +36,13 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     import au.edu.mq.comp.skink.{Bit, Math, NumberMode}
     import au.edu.mq.comp.skink.ir.{FailureTrace, IRFunction, Trace}
     import au.edu.mq.comp.skink.LoggerFactory.getLogger
-    import au.edu.mq.comp.skink.verifier.Helper.{publishDot, termToCValueString, toDot}
+    import au.edu.mq.comp.skink.refinement.{Craig, Newton}
+    import au.edu.mq.comp.skink.verifier.Helper.{LengthFirstStringOrdering, publishDot, termToCValueString, toDot}
     import org.bitbucket.inkytonik.kiama.util.StringSource
     import scala.annotation.tailrec
     import scala.util.{Failure, Success, Try}
 
+    import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
@@ -48,7 +50,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.scalasmt.configurations.SMTLogics._
     import org.bitbucket.franck44.scalasmt.configurations.SMTOptions._
     import org.bitbucket.franck44.scalasmt.configurations.SMTInit
-    import org.bitbucket.franck44.scalasmt.typedterms.{Commands, TypedTerm, Value}
+    import org.bitbucket.franck44.scalasmt.typedterms.{Commands, Named, TypedTerm, Value}
     import org.bitbucket.franck44.scalasmt.interpreters.{Resources, SolverCompose}
 
     case class ValMap(m : Map[QualifiedId, Value])
@@ -62,40 +64,68 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     val logger = getLogger(this.getClass, config)
     val cfgLogger = getLogger(this.getClass, config, ".cfg")
 
+    abstract class SolverResult
+    case class SatSolverResult(count : Int, map : Map[String, Value]) extends SolverResult
+    case class UnSatSolverResult(count : Int, core : Option[Set[Int]]) extends SolverResult
+
+    // The naming done by nameTerms must be undone by unnameNames.
+    // E.g., if a term gets named P4 then the unnaming should give 4.
+
+    def nameTerms(terms : Seq[(TypedTerm[BoolTerm, Term], Boolean)]) : Seq[(Named[BoolTerm, NamedTerm], Boolean)] =
+        for {
+            ((term, flag), index) <- terms.zipWithIndex
+        } yield (term.named(s"P$index"), flag)
+
+    def namesToIndices(names : Set[String]) : Set[Int] =
+        names.map(_.drop(1).toInt)
+
     /**
      * Run the given solvers in parallel to see if the given terms are satisifiable. If so,
      * return `Sat()`, a count and a map. Prefixes of the terms sequence are checked in
      * order of increasing length. If a prefix is found to be unsatisfiable, then the
      * process stops, since longer prefixes will also be unsatisfiable. The first solver
      * that succeeds provides the result. Unknown responses are ignored unless all solvers
-     * return that result. If the term is not satisfiable, return `UnSat()` and an empty map.
+     * return that result.
      *
-     * The map returned relates ids from the terms to their values. The count returned
-     * says how many prefix terms in the input sequence were used to determine the result.
+     * The solver result gives:
+     * - a count that says how many prefix terms in the input sequence were used to determine
+     * the result
+     * - if Sat: a map that relates ids from the terms to their values
+     * - if UnSat: a list of the indexes of the terms that comprise the unsat core, if one
+     * is available
      */
     def runSolvers(
         strategy : SolverCompose.Parallel,
         terms : Seq[(TypedTerm[BoolTerm, Term], Boolean)]
-    ) : Try[(SatResponses, Int, Map[String, Value])] =
+    ) : Try[SolverResult] =
         using(strategy) {
             implicit solver =>
-                isSatWithAssertWhileSat(Some(config.solverTimeOut()))(0, true, terms : _*) match {
+                val namedTerms = nameTerms(terms)
+                isSatWithAssertWhileSat(Some(config.solverTimeOut()))(0, true, namedTerms : _*) match {
                     case (Success(Sat()), count) =>
-                        getDeclCmd() match {
-                            case Success(xs) =>
-                                val map = xs.map {
-                                    x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
-                                }.collect {
-                                    case (s, Success(v)) =>
-                                        (s, v)
-                                }.toMap
-                                (Success((Sat(), count, map)))
-                            case _ =>
-                                (Success((Sat(), count, Map())))
-                        }
+                        val map =
+                            getDeclCmd() match {
+                                case Success(xs) =>
+                                    xs.map {
+                                        x => (show(x.id), getValue(TypedTerm(Set(x), QIdTerm(SimpleQId(x.id)))))
+                                    }.collect {
+                                        case (s, Success(v)) =>
+                                            (s, v)
+                                    }.toMap
+                                case _ =>
+                                    Map[String, Value]()
+                            }
+                        Success(SatSolverResult(count, map))
 
                     case (Success(UnSat()), count) =>
-                        Success((UnSat(), count, Map()))
+                        val core =
+                            getUnsatCore() match {
+                                case Success(names) =>
+                                    Some(namesToIndices(names))
+                                case Failure(f) =>
+                                    None
+                            }
+                        Success(UnSatSolverResult(count, core))
 
                     case (Success(UnKnown()), _) =>
                         Failure(new Exception(s"Solver ${solver.name} did not provide an answer (UNKNOWN)"))
@@ -115,32 +145,32 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         val functionLang = Lang(function.nfa)
 
         val models = List(SMTProduceModels(true))
-        val modelsAndInterpolants = SMTProduceInterpolants(true) :: models
+        val modelsUnsatCore = SMTProduceUnsatCores(true) :: models
 
         def getSolver(numberMode : NumberMode)(solverName : String) : SMTSolver =
             (solverName, numberMode) match {
                 case ("boolector", Bit()) =>
                     new SMTSolver("Boolector", new SMTInit(QF_ABV, models))
                 case ("cvc4", Bit()) =>
-                    new SMTSolver("CVC4", new SMTInit(QF_ABV, models))
+                    new SMTSolver("CVC4", new SMTInit(QF_ABV, modelsUnsatCore))
                 case ("cvc4", Math()) =>
-                    new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, models))
+                    new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
                 case ("mathsat", Bit()) =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, models))
+                    new SMTSolver("MathSat", new SMTInit(QF_AFPBV, modelsUnsatCore))
                 case ("mathsat", Math()) =>
-                    new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, models))
+                    new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
                 case ("smtinterpol", Math()) =>
-                    new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsAndInterpolants))
+                    new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsUnsatCore))
                 case ("yices", Bit()) =>
-                    new SMTSolver("Yices", new SMTInit(QF_ABV, models))
+                    new SMTSolver("Yices", new SMTInit(QF_ABV, modelsUnsatCore))
                 case ("yices", Math()) =>
-                    new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, models))
+                    new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, modelsUnsatCore))
                 case ("z3", Bit()) =>
-                    new SMTSolver("Z3", new SMTInit(QF_ABV, modelsAndInterpolants))
+                    new SMTSolver("Z3", new SMTInit(QF_ABV, modelsUnsatCore))
                 case ("z3-fpbv", Bit()) =>
-                    new SMTSolver("Z3", new SMTInit(QF_FPBV, models))
+                    new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsUnsatCore))
                 case ("z3", Math()) =>
-                    new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsAndInterpolants))
+                    new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsUnsatCore))
                 case (solver, mode) =>
                     sys.error(s"solver $solver with number mode $mode is not supported")
             }
@@ -170,6 +200,71 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
         @tailrec
         def refineRec(r : NFA[Int, Int], iteration : Int) : Try[Option[FailureTrace]] = {
+
+            /**
+             * Given a trace that can fail and the values of variables on that trace,
+             * succeed with the failure trace.
+             */
+            def succeed(trace : Trace, values : Map[String, Value]) : Try[Option[FailureTrace]] = {
+                logger.info(source, s"failure trace is feasible, program is incorrect")
+                for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
+                    val term = values(x).t
+                    val (value, note) = termToCValueString(term)
+                    logger.debug(source, s"value: $x = ${show(term)} $note")
+                }
+                Success(Some(FailureTrace(trace, values)))
+            }
+
+            /**
+             * Refine by computing an automaton to add to the existing refinement.
+             * We try the Newton approach, then Craig interpolants from solvers,
+             * then fall back to the simple linear automaton.
+             */
+            def refine(
+                choices : Seq[Int],
+                traceTerms : Seq[(TypedTerm[BoolTerm, Term], Boolean)],
+                count : Int,
+                iteration : Int,
+                optCore : Option[Set[Int]]
+            ) : NFA[Int, Int] = {
+                val linearAuto = makeLinearAuto(choices)
+
+                logger.info(source, s"linear automaton built")
+                if (config.server()) {
+                    val linearAutoDot = toDot(linearAuto, s"${function.name} iteration $iteration linear automaton")
+                    publishDot(logger, source, StringSource(linearAutoDot), s"refinements|iteration $iteration|linear automaton", config)
+                }
+
+                if (choices.length == 1) {
+                    logger.info(source, "only one choice in trace, return linear automaton")
+                    linearAuto
+                } else {
+                    val usedChoices = choices.take(count)
+                    val usedTerms = traceTerms.take(count).map(_._1)
+
+                    logger.info(source, s"$count choices of ${choices.length} used for UnSat prefix")
+                    logger.info(source, "trying Newton method for refinement")
+                    val newton = new Newton(source, config)
+                    newton.auto(linearAuto, function, usedChoices, usedTerms, optCore.get, iteration) match {
+                        case Some(auto) =>
+                            logger.info(source, "Newton method succeeded")
+                            auto
+
+                        case None =>
+                            logger.info(source, "Newton method failed, trying Craig interpolants")
+                            val craig = new Craig(source, config)
+                            craig.auto(linearAuto, function, usedChoices, usedTerms, iteration) match {
+                                case Some(auto) =>
+                                    logger.info(source, "Craig method succeeded")
+                                    auto
+
+                                case None =>
+                                    logger.info(source, "Craig method failed, falling back to linear automaton")
+                                    linearAuto
+                            }
+                    }
+                }
+            }
 
             val refinedNFA = function.nfa - r
             val refinedNFADot = toDot(toDetNFA(refinedNFA)._1, s"${function.name} iteration $iteration")
@@ -215,63 +310,38 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
                     // Check to see if the trace is feasible.
                     result match {
+                        // Yes, feasible, program is incorrect.
+                        case Success(SatSolverResult(_, values)) =>
+                            succeed(trace, values)
 
-                        // Yes, feasible. We've found a way in which the program
-                        // can file. Build the failure trace and return.
-                        case Success((Sat(), _, values)) =>
-                            logger.info(source, s"failure trace is feasible, program is incorrect")
-                            for (x <- ir.sortIds(values.keys.toVector)(LengthFirstStringOrdering)) {
-                                val term = values(x).t
-                                val (value, note) = termToCValueString(term)
-                                logger.debug(source, s"value: $x = ${show(term)} $note")
-                            }
-                            val failTrace = FailureTrace(trace, values)
-                            Success(Some(failTrace))
+                        // No, infeasible. If we've exhausted the iteration count, fail.
+                        case Success(_) if iteration >= config.maxIterations() =>
+                            Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
 
-                        // No, infeasible. That trace can't occur in a program
-                        // execution. If we've got iterations to spare, try
-                        // again after removing the infeasible trace (and perhaps
-                        // other traces that fail for related reasons).
-                        case Success((UnSat(), count, _)) =>
-                            logger.info(source, s"the failure trace is not feasible")
-                            if (iteration < config.maxIterations()) {
-                                val interpolantAuto = new interpolant.InterpolantAuto(source, config)
-                                import interpolantAuto.buildInterpolantAuto
-                                val usedChoices = choices.take(count)
-                                val usedTerms = traceTerms.take(count).map(_._1)
-                                refineRec(
-                                    toDetNFA(r +
-                                        (
-                                            buildInterpolantAuto(function, usedChoices, usedTerms, iteration)
-                                        // +
-                                        // buildInterpolantAuto(function, choices, iteration, fromEnd = true)
-                                        ))._1,
-                                    iteration + 1
-                                )
-                            } else {
-                                Failure(new Exception(s"maximum number of iterations ${config.maxIterations()} reached"))
-                            }
+                        // Otherwise, remove as many traces as we can based on this one, continue.
+                        case Success(UnSatSolverResult(count, optCore)) =>
+                            val refinement = refine(choices, traceTerms, count, iteration, optCore)
+                            refineRec(toDetNFA(r + refinement)._1, iteration + 1)
 
                         case status =>
                             Failure(new Exception(s"strange solver status: $status"))
                     }
             }
+
         }
 
         // Start the refinement algorithm with no "ruled out" traces.
         refineRec(NFA[Int, Int](Set(), Set(), Set()), 0)
     }
 
-    /*
-     * An ordering that first works on string length, then within
-     * each length on the value.
+    /**
+     * Make a linear automaton for the given trace choices.
      */
-    object LengthFirstStringOrdering extends Ordering[String] {
-        def compare(a : String, b : String) =
-            if (a.length == b.length)
-                a.compare(b)
-            else
-                a.length - b.length
+    def makeLinearAuto(choices : Seq[Int]) : NFA[Int, Int] = {
+        val transitions =
+            for (i <- 0 until choices.length)
+                yield (i ~> (i + 1))(choices(i))
+        NFA(Set(0), transitions.toSet, Set(choices.length), Set(choices.length))
     }
 
 }
