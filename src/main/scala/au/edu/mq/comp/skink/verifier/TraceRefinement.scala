@@ -31,6 +31,7 @@ import org.bitbucket.inkytonik.kiama.util.Source
 class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
     import org.bitbucket.franck44.automat.auto.NFA
+    import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.automat.lang.Lang
     import org.bitbucket.franck44.automat.util.Determiniser.toDetNFA
     import au.edu.mq.comp.skink.{Bit, Math, NumberMode}
@@ -38,11 +39,6 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     import au.edu.mq.comp.skink.LoggerFactory.getLogger
     import au.edu.mq.comp.skink.refinement.{Craig, Newton}
     import au.edu.mq.comp.skink.verifier.Helper.{LengthFirstStringOrdering, publishDot, termToCValueString, toDot}
-    import org.bitbucket.inkytonik.kiama.util.StringSource
-    import scala.annotation.tailrec
-    import scala.util.{Failure, Success, Try}
-
-    import org.bitbucket.franck44.automat.edge.Implicits._
     import org.bitbucket.franck44.scalasmt.interpreters.SMTSolver
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
@@ -52,6 +48,10 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
     import org.bitbucket.franck44.scalasmt.configurations.SMTInit
     import org.bitbucket.franck44.scalasmt.typedterms.{Commands, Named, TypedTerm, Value}
     import org.bitbucket.franck44.scalasmt.interpreters.{Resources, SolverCompose}
+    import org.bitbucket.inkytonik.kiama.rewriting.Rewriter.collects
+    import org.bitbucket.inkytonik.kiama.util.StringSource
+    import scala.annotation.tailrec
+    import scala.util.{Failure, Success, Try}
 
     case class ValMap(m : Map[QualifiedId, Value])
 
@@ -78,6 +78,45 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
     def namesToIndices(names : Set[String]) : Set[Int] =
         names.map(_.drop(1).toInt)
+
+    def getSolver(numberMode : NumberMode)(solverName : String) : Option[SMTSolver] = {
+        val models = List(SMTProduceModels(true))
+        val modelsUnsatCore = SMTProduceUnsatCores(true) :: models
+        (solverName, numberMode) match {
+            case ("boolector", Bit()) =>
+                Some(new SMTSolver("Boolector", new SMTInit(QF_ABV, models)))
+            case ("cvc4", Bit()) =>
+                Some(new SMTSolver("CVC4", new SMTInit(QF_ABV, modelsUnsatCore)))
+            case ("cvc4", Math()) =>
+                Some(new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
+            case ("mathsat", Bit()) =>
+                Some(new SMTSolver("MathSat", new SMTInit(QF_AFPBV, models)))
+            case ("mathsat-fp", Bit()) =>
+                Some(new SMTSolver("MathSatFP", new SMTInit(QF_FPBV, models)))
+            case ("mathsat", Math()) =>
+                Some(new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
+            case ("smtinterpol", Math()) =>
+                Some(new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsUnsatCore)))
+            case ("yices", Bit()) =>
+                Some(new SMTSolver("Yices", new SMTInit(QF_ABV, modelsUnsatCore)))
+            case ("yices", Math()) =>
+                Some(new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
+            case ("z3", Bit()) =>
+                Some(new SMTSolver("Z3", new SMTInit(QF_ABV, modelsUnsatCore)))
+            case ("z3-fpbv", Bit()) =>
+                Some(new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsUnsatCore)))
+            case ("z3", Math()) =>
+                Some(new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsUnsatCore)))
+            case _ =>
+                None
+        }
+    }
+
+    /**
+     * Given a sequence of sovlers, compose them in parallel.
+     */
+    def parallel(solvers : List[SMTSolver]) : SolverCompose.Parallel =
+        SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
 
     /**
      * Run the given solvers in parallel to see if the given terms are satisifiable. If so,
@@ -136,61 +175,26 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
         }
 
     /**
-     * Implement the refinement loop for the given function, optionally
-     * returning a failure trace that is feasible and demonstrates how the
-     * program is incorrect.
+     * Convert a comma-seprated string of solver names to a list of solvers.
      */
-    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
+    def solverNamesToSolvers(names : String) : List[SMTSolver] = {
+        val namesList = names.split(',').toList
+        if (namesList.isEmpty)
+            sys.error("traceRefinement: unexpectedly got an empty solvers list")
+        namesList.map(getSolver(config.numberMode())).flatten
+    }
 
-        val functionLang = Lang(function.nfa)
-
-        val models = List(SMTProduceModels(true))
-        val modelsUnsatCore = SMTProduceUnsatCores(true) :: models
-
-        def getSolver(numberMode : NumberMode)(solverName : String) : Option[SMTSolver] =
-            (solverName, numberMode) match {
-                case ("boolector", Bit()) =>
-                    Some(new SMTSolver("Boolector", new SMTInit(QF_ABV, models)))
-                case ("cvc4", Bit()) =>
-                    Some(new SMTSolver("CVC4", new SMTInit(QF_ABV, modelsUnsatCore)))
-                case ("cvc4", Math()) =>
-                    Some(new SMTSolver("CVC4", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
-                case ("mathsat", Bit()) =>
-                    Some(new SMTSolver("MathSat", new SMTInit(QF_AFPBV, models)))
-                case ("mathsat", Math()) =>
-                    Some(new SMTSolver("MathSat", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
-                case ("smtinterpol", Math()) =>
-                    Some(new SMTSolver("SMTInterpol", new SMTInit(QF_AUFLIA, modelsUnsatCore)))
-                case ("yices", Bit()) =>
-                    Some(new SMTSolver("Yices", new SMTInit(QF_ABV, modelsUnsatCore)))
-                case ("yices", Math()) =>
-                    Some(new SMTSolver("Yices", new SMTInit(QF_AUFLIRA, modelsUnsatCore)))
-                case ("z3", Bit()) =>
-                    Some(new SMTSolver("Z3", new SMTInit(QF_ABV, modelsUnsatCore)))
-                case ("z3-fpbv", Bit()) =>
-                    Some(new SMTSolver("Z3", new SMTInit(QF_FPBV, modelsUnsatCore)))
-                case ("z3", Math()) =>
-                    Some(new SMTSolver("Z3", new SMTInit(AUFNIRA, modelsUnsatCore)))
-                case _ =>
-                    None
-            }
-
-        // Combine the solvers with the number modes. If there are the same number of solvers and
-        // modes, then they are paired in order. If there are more solvers than modes, then
-        // the last mode is repeated for the remainder. If there are more modes than solvers, then
-        // the excess modes are ignored.
-
+    /**
+     * Make the solver strategy to use for this refinement process. We look at
+     * the ones that the user has requested and remove ones that don't support
+     * the number mode.
+     */
+    def makeStrategy : SolverCompose.Parallel = {
         logger.info(source, s"solvers requested: ${config.solvers()}")
         logger.info(source, s"number mode: ${config.numberMode()}")
 
-        val solverNames = config.solvers().split(',').toList
-        if (solverNames.isEmpty)
-            sys.error("traceRefinement: unexpectedly got an empty solvers list")
+        val solvers = solverNamesToSolvers(config.solvers())
 
-        // Create solver objects (does not create the solver instances)
-        val solvers = solverNames.map(getSolver(config.numberMode())).flatten
-
-        // If none of the solver x mode combinations is supported, we can't do anything
         if (solvers.isEmpty) {
             val msg = s"solvers not supported: ${config.solvers()} in ${config.numberMode()} mode"
             logger.error(source, msg)
@@ -199,8 +203,71 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
 
         logger.info(source, s"""solvers enabled: ${solvers.map(_.name).mkString(", ")}""")
 
-        // Combine the solvers together in parallel
-        val strategy = SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
+        SolverCompose.Parallel(solvers, Some(config.solverTimeOut()))
+    }
+
+    /**
+     * Given a sequence of terms to check, try to guess a good solver to use.
+     * Currently the guess is based solely on the SMT2 sorts that are used in
+     * the terms. If we cna't guess anything, return strategy as the default.
+     */
+    def guessStrategy(
+        defaultStrategy : SolverCompose.Parallel,
+        terms : Seq[(TypedTerm[BoolTerm, Term], Boolean)]
+    ) : SolverCompose.Parallel = {
+        logger.info(source, "guessing solvers")
+
+        val termSorts =
+            collects {
+                case sort : Sort =>
+                    sort
+            }(terms)
+
+        val floatSorts = Set[Sort](BoolSort(), FPFloat16(), FPFloat32(), FPFloat64(), FPFloat128(), RoundingModeSort())
+
+        if (termSorts.diff(floatSorts).isEmpty) {
+            // FIXME: remove this extra option here??
+            getSolver(config.numberMode())("mathsat-fp") match {
+                case Some(solver) =>
+                    logger.info(source, "only floating-point sorts, so using mathsat-fp")
+                    parallel(List(solver))
+                case None =>
+                    logger.info(source, "only float sorts, but can't get mathsat-fp, so using default solvers")
+                    defaultStrategy
+            }
+        } else {
+            logger.info(source, "no guesses apply, so using default solvers")
+            defaultStrategy
+        }
+    }
+
+    /**
+     * If the user has specified solvers on the cmd line (as embodied in strategy) we
+     * use them. If the user didn't say which solvers to use, we try to guess which
+     * solver would be good for these terms. If we have a guess, we try it. Otherwise,
+     * we fall back on the default set of solvers (also as embodied in strategy).
+     */
+    def guessAndRunSolvers(
+        strategy : SolverCompose.Parallel,
+        terms : Seq[(TypedTerm[BoolTerm, Term], Boolean)]
+    ) : Try[SolverResult] =
+        if (config.solvers.supplied) {
+            logger.info(source, "running with user-requested solver(s)")
+            runSolvers(strategy, terms)
+        } else {
+            runSolvers(guessStrategy(strategy, terms), terms)
+        }
+
+    /**
+     * Implement the refinement loop for the given function, optionally
+     * returning a failure trace that is feasible and demonstrates how the
+     * program is incorrect.
+     */
+    def traceRefinement(function : IRFunction) : Try[Option[FailureTrace]] = {
+
+        val functionLang = Lang(function.nfa)
+
+        val strategy = makeStrategy
 
         val initialNFADot = toDot(function.nfa, s"${function.name} initial")
         cfgLogger.debug(source, initialNFADot)
@@ -318,7 +385,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     }
 
                     // Check satisfiability and if Sat, get model values
-                    val result = runSolvers(strategy, traceTerms)
+                    val result = guessAndRunSolvers(strategy, traceTerms)
 
                     // Check to see if the trace is feasible.
                     result match {
