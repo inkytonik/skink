@@ -366,9 +366,9 @@ class LLVMFunction(origSource : Source, source : Source,
      * and return the new IR form.
      */
     lazy val makeVerifiable : FunctionDefinition = {
-        val verifiable = fixErrorCalls(function)
+        val verifiable = simplifyAssumes(fixErrorCalls(function))
 
-        programLogger.debug(origSource, "* Verifiable program\n")
+        programLogger.debug(origSource, "* Verifiable function\n")
         programLogger.debug(origSource, show(verifiable))
 
         if (config.server()) {
@@ -474,6 +474,57 @@ class LLVMFunction(origSource : Source, source : Source,
         programLogger.debug(origSource, "\n\n")
         ret
 
+    }
+
+    /**
+     * Find assume calls of this form:
+     *   %5 = zext i1 %4 to i32
+     *   tail call void @__VERIFIER_assume(i32 %5)
+     * and replace with
+     *   tail call void @__VERIFIER_assume(i1 %4)
+     *
+     * This can help later because the resulting term encoding doesn't need
+     * anything other than booleans.
+     */
+    def simplifyAssumes(function : FunctionDefinition) : FunctionDefinition = {
+
+        def replaceAssumesInInsns(optInsns : Vector[MetaInstruction]) : Vector[MetaInstruction] = {
+            val (newInsns, _) =
+                optInsns.zipWithIndex.foldLeft((Vector[MetaInstruction](), false)) {
+                    case ((insns, false), (insn @ MetaInstruction(Convert(Binding(to), ZExt(), BoolT(), from, IntegerT(size)), _), index)) =>
+                        if (optInsns.length > index + 1)
+                            optInsns(index + 1) match {
+                                case MetaInstruction(Call(bind, tail, conv, pattrs1, tipe, called @ LibFunction(Assume()),
+                                    Vector(ValueArg(IntegerT(size1), pattrs2, arg1)), fattr), metadata) if (size == size1) && (arg1 == Named(to)) =>
+                                    val newInsn = MetaInstruction(Call(bind, tail, conv, pattrs1, tipe, called, Vector(ValueArg(IntT(1), pattrs2, from)), fattr), metadata)
+                                    (insns :+ newInsn, true)
+                                case _ =>
+                                    (insns :+ insn, false)
+                            }
+                        else
+                            (insns :+ insn, false)
+                    case ((insns, false), (insn, _)) =>
+                        (insns :+ insn, false)
+                    case ((insns, true), _) =>
+                        (insns, false)
+                }
+            newInsns
+        }
+
+        def replaceAssumesInBlock(block : Block) : Block =
+            block.copy(optMetaInstructions = replaceAssumesInInsns(block.optMetaInstructions))
+
+        val functionBodyWithProcessedBlocks =
+            FunctionBody(function.functionBody.blocks.map(replaceAssumesInBlock))
+
+        // Return the new function
+        val ret = function.copy(functionBody = functionBodyWithProcessedBlocks)
+        programLogger.debug(origSource, s"* Function $name after simplifyAssumes:\n")
+        programLogger.debug(origSource, show(ret))
+        programLogger.debug(origSource, s"\n* AST of function $name after simplifyAssumes:\n\n")
+        programLogger.debug(origSource, layout(any(ret)))
+        programLogger.debug(origSource, "\n\n")
+        ret
     }
 
     def getSourceLineText(source : Source, line : Int) : String =
