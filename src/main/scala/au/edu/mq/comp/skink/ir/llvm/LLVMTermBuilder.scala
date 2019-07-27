@@ -214,16 +214,8 @@ trait LLVMTermBuilder extends Core {
 
             // Call
 
-            case Call(_, _, _, _, _, LibFunction(Assume()), Vector(ValueArg(tipe, Vector(), arg)), _) =>
-                tipe match {
-                    case BoolT() =>
-                        vtermB(arg)
-                    case IntT(_) =>
-                        val bits = numBits(tipe)
-                        !(vtermI(arg, bits) === ctermI(ZeroC(), bits))
-                    case _ =>
-                        sys.error(s"insnTerm: unexpected type ${show(tipe)} in assume call")
-                }
+            case LibFunctionCall1(_, tipe, Assume(), arg1, argType1 : IntT) =>
+                assume(arg1, argType1)
 
             case ErrorCall() =>
                 True()
