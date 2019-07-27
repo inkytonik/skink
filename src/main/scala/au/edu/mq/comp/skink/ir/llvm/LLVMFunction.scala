@@ -825,12 +825,14 @@ class LLVMFunction(origSource : Source, source : Source,
                     }(node)
             }
 
-        // A node is in the slice if it's an assumption call or defines something
-        // that is required later
+        // A node is in the slice if it's a special verifier function call
+        // or defines something that is required later
 
         def inSlice(node : ASTNode, req : Set[Name]) : Boolean =
             node match {
-                case LibFunctionCall1(_, _, Assume(), _, _) =>
+                case LibFunctionCall0(_, _, VerifierFunction()) =>
+                    true
+                case LibFunctionCall1(_, _, VerifierFunction(), _, _) =>
                     true
                 case _ =>
                     !req.intersect(definedNames(node)).isEmpty
