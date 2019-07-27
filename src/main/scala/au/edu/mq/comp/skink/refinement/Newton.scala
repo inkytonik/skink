@@ -90,7 +90,7 @@ class Newton(
                 val (_, indTerms) =
                     coreTerms.foldRight((lastPost, emptyIndTerms)) {
                         case (term, (post, terms)) =>
-                            val pre = term.imply(post)
+                            val pre = wp(term, post)
                             (pre, pre +: terms)
                     }
 
@@ -103,5 +103,11 @@ class Newton(
         }
 
     }
+
+    def wp(term : TypedTerm[BoolTerm, Term], post : TypedTerm[BoolTerm, Term]) : TypedTerm[BoolTerm, Term] =
+        if (term == True())
+            post
+        else
+            term.imply(post)
 
 }
