@@ -82,12 +82,13 @@ test in assembly := {}
 
 mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
 
-assemblyMergeStrategy in assembly ~=
-  (old =>
-    {
-      case "logback-test.xml" => MergeStrategy.discard
-      case x                  => old(x)
-    })
+assemblyMergeStrategy in assembly := {
+    case "logback-test.xml" => MergeStrategy.discard
+    case "application.conf" => new IncludeFromSkink()
+    case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
+}
 
 // ScalariForm
 
