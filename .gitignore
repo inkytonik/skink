@@ -4,7 +4,7 @@ target
 *.log
 .vagrant/**
 sv-benchmarks/**
-results-*/**
+results
 output/**
 smtinterpol.jar
 .DS_Store
