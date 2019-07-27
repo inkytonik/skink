@@ -63,12 +63,12 @@ result_xml=`echo $VERIFIER_OUTPUT_PATH/*.xml.bz2`
 # Run fshell-witness2test to validate the violation witnesses
 cd /usr/local/bin
 $BENCHEXEC $BENCHEXEC_ARGS -o $FSHELLW2T_VIOLATION_OUTPUT_PATH $FSHELLW2T_VIOLATION_WITNESS_SPEC $*
-fshell_witness2test_violation_xml=`echo $FSHELLW2T_VIOLATION_OUTPUT_PATH/*.xml.bz2`
+fshell_witness2test_violation_xml=`echo $FSHELLW2T_VIOLATION_OUTPUT_PATH/*reachsafety*.xml.bz2`
 
 # Run CPAchecker to validate the correctness witnesses
 cd $PATH_TO_CPACHECKER
 $BENCHEXEC $BENCHEXEC_ARGS -o $CPA_CORRECTNESS_OUTPUT_PATH $CPA_CORRECTNESS_WITNESS_SPEC $*
-cpa_correctness_xml=`echo $CPA_CORRECTNESS_OUTPUT_PATH/*.xml.bz2`
+cpa_correctness_xml=`echo $CPA_CORRECTNESS_OUTPUT_PATH/*reachsafety*.xml.bz2`
 
 # Merge verifier results and witness validation results
 python3 $MERGEBENCHMARKSETS $result_xml $fshell_witness2test_violation_xml $cpa_correctness_xml
