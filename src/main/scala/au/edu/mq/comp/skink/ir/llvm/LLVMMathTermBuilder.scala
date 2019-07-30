@@ -364,7 +364,7 @@ case class LLVMMathTermBuilder(origSource : Source, source : Source,
         arrayTermR(show(name), indexOf(node, name))
 
     /**
-     * Return an integer term that expresses the previous version of a name when
+     * Return a real array term that expresses the previous version of a name when
      * referenced from node.
      */
     def prevArrayTermAtR(node : Product, name : Name) : TypedTerm[ArrayTerm[RealTerm], Term] =
