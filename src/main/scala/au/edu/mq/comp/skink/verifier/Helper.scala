@@ -201,6 +201,9 @@ object Helper {
                 val (se, ce) = termToCValueString(elem)
                 (s"$sa[$si -> $se]", "")
 
+            case _ : LetTerm =>
+                ("LetTerm", "LetTerm")
+
             case term =>
                 sys.error(s"termToCValueString: unexpected value term $term")
         }
