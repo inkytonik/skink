@@ -232,7 +232,7 @@ class TraceRefinement(source : Source, ir : IR, config : SkinkConfig) {
                     logger.info(source, "only floating-point sorts, so using mathsat-fp")
                     parallel(List(solver))
                 case None =>
-                    logger.info(source, "only float sorts, but can't get mathsat-fp, so using default solvers")
+                    logger.info(source, "only floating-point sorts, but can't get mathsat-fp, so using default solvers")
                     defaultStrategy
             }
         } else {
