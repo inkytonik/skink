@@ -39,6 +39,7 @@ object Helper {
     import org.bitbucket.franck44.automat.util.DotConverter
     import org.bitbucket.franck44.dot.DOTPrettyPrinter
     import org.bitbucket.franck44.dot.DOTSyntax.{Attribute, Ident, StringLit}
+    import org.bitbucket.franck44.scalasmt.parser.SMTLIB2PrettyPrinter.show
     import org.bitbucket.franck44.scalasmt.parser.SMTLIB2Syntax._
     import scala.math.pow
     import scala.sys.process._
@@ -194,15 +195,23 @@ object Helper {
 
             case ConstArrayTerm(_, elem) =>
                 val (s, c) = termToCValueString(elem)
-                (s"[$s..]", "")
+                val desc = s"[$s..]"
+                (desc, desc)
             case StoreTerm(array, index, elem) =>
                 val (sa, ca) = termToCValueString(array)
                 val (si, ci) = termToCValueString(index)
                 val (se, ce) = termToCValueString(elem)
-                (s"$sa[$si -> $se]", "")
+                val desc = s"$sa[$si -> $se]"
+                (desc, desc)
 
-            case _ : LetTerm =>
-                ("LetTerm", "LetTerm")
+            case LetTerm(bindings, body) =>
+                val bs = bindings.map {
+                    case VarBinding(n, t) =>
+                        val (desc, _) = termToCValueString(t)
+                        s"${show(n)}=$desc"
+                }.mkString(" ")
+                val (s, c) = termToCValueString(body)
+                (s"let $bs in $s", s"let $bs in $c")
 
             case term =>
                 sys.error(s"termToCValueString: unexpected value term $term")
