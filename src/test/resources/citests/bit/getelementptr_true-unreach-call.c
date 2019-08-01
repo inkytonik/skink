@@ -17,6 +17,7 @@ struct ST {
     int X;
     double Y;
     struct RT Z;
+    int *P;
 };
 
 int main()
@@ -50,6 +51,16 @@ int main()
     s[i].Z.C = e1;
     char e2 = s[i].Z.C;
     if (e1 != e2) __VERIFIER_error();
+
+    int *f1 = &a1;
+    s[i].P = f1;
+    int *f2 = s[i].P;
+    if (f1 != f2) __VERIFIER_error();
+
+    int *g1 = (int *)0;
+    s[i].P = g1;
+    int *g2 = s[i].P;
+    if (g1 != g2) __VERIFIER_error();
 
     return 0;
 }
