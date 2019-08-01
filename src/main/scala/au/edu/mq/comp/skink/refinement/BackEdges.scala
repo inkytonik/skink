@@ -143,7 +143,7 @@ trait BackEdges extends Core with Resources {
             };
             if (res == Success(true))
         ) yield {
-            logger.debug(source, s"new backedge found from $j to ${i + 1} with choice $i")
+            logger.debug(source, s"new backedge found from $j to ${i + 1} with choice ${choices(i)}")
             (j ~> (i + 1))(choices(i))
         }
 
