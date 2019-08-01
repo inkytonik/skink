@@ -172,11 +172,10 @@ object Helper {
             case FPBVvalueTerm(ConstantTerm(BinLit(p)), ConstantTerm(BinLit(e)), ConstantTerm(BinLit(s))) =>
                 fpValue(p, e, s, p.length + e.length + s.length)
 
-            case RealDivTerm(ConstantTerm(NumLit(a)), List(ConstantTerm(NumLit(b)))) =>
-                (s"${a.toDouble} / ${b.toDouble}", f"${a.toDouble / b.toDouble}%f")
-            case RealDivTerm(NegTerm(ConstantTerm(NumLit(a))), List(ConstantTerm(NumLit(b)))) =>
-                (s"${-a.toDouble} / ${b.toDouble}", f"${-a.toDouble / b.toDouble}%f")
-
+            case RealDivTerm(n, List(d)) =>
+                val (num, _) = termToCValueString(n)
+                val (div, _) = termToCValueString(d)
+                (s"${num.toDouble} / ${div.toDouble}", f"${num.toDouble / div.toDouble}")
             case NegTerm(t : RealDivTerm) =>
                 val (s, c) = termToCValueString(t)
                 (s"-($s)", s"-$c")
