@@ -26,7 +26,7 @@ import au.edu.mq.comp.skink.{Frontend, SkinkConfig}
 /**
  * Frontend for LLVM.
  */
-class LLVMFrontend(config : SkinkConfig) extends Frontend {
+class LLVMFrontend(val config : SkinkConfig) extends Frontend {
 
     import au.edu.mq.comp.skink.verifier.Helper.fail
     import au.edu.mq.comp.skink.ir.IR
@@ -43,9 +43,11 @@ class LLVMFrontend(config : SkinkConfig) extends Frontend {
 
     val name = "Skink"
 
+    val programs = Vector()
+
     val helper = new LLVMHelper(config)
 
-    def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
+    def run(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
         val p = new Assembly(source, positions)
         val pr = p.pProgram(0)
         if (pr.hasValue) {

@@ -30,8 +30,14 @@ trait Frontend {
 
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.Logger
+    import au.edu.mq.comp.skink.verifier.Helper.checkFor
     import org.bitbucket.inkytonik.kiama.util.Messaging.Messages
     import org.bitbucket.inkytonik.kiama.util.{Positions, Source}
+
+    /**
+     * The configuration of this execution.
+     */
+    def config : SkinkConfig
 
     /**
      * The main logger to be used by this frontend.
@@ -50,11 +56,34 @@ trait Frontend {
     def name : String
 
     /**
+     * The names of external programs that this frontend uses. The runner
+     * will check that these programs exist and are executable before trying
+     * to build the IR.
+     */
+    def programs : Vector[String]
+
+    /**
      * Build IR from the given source or complain by returning
      * error messages explaining what went wrong. `origSource`
      * is the original source (e.g., C file if we are processing
-     * LLVM IR compiled from C).
+     * LLVM IR compiled from C). Checks for the executability of
+     * the required programs before callng `run` to do the real
+     * work.
      */
-    def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages]
+    def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
+        programLogger.debug(origSource, "* Program from source\n")
+        programLogger.debug(origSource, source.content)
+        programs.flatMap(checkFor(logger, origSource, _, config)) match {
+            case Vector() =>
+                run(origSource, source, positions)
+            case msgs =>
+                Right(msgs)
+        }
+    }
+
+    /**
+     * Actually build the IR.
+     */
+    def run(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages]
 
 }

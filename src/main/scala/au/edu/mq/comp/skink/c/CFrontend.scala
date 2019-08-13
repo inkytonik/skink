@@ -26,12 +26,12 @@ import au.edu.mq.comp.skink.{Frontend, SkinkConfig}
 /**
  * Frontend for C using clang to produce LLVM then LLVM frontend.
  */
-class CFrontend(config : SkinkConfig) extends Frontend {
+class CFrontend(val config : SkinkConfig) extends Frontend {
 
     import au.edu.mq.comp.skink.ir.IR
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
     import au.edu.mq.comp.skink.LoggerFactory.getLogger
-    import au.edu.mq.comp.skink.verifier.Helper.{checkFor, fail, runPipeline}
+    import au.edu.mq.comp.skink.verifier.Helper.{fail, runPipeline}
     import au.edu.mq.comp.skink.verifier.Helper.uriToName
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Positions, Source}
     import org.bitbucket.inkytonik.kiama.util.Filenames.makeTempFilename
@@ -43,79 +43,63 @@ class CFrontend(config : SkinkConfig) extends Frontend {
 
     val name = "Skink"
 
-    def buildIR(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
+    val clang = "clang"
+    val programs = Vector(clang)
 
-        def buildIRFromFile(filename : String, positions : Positions) : Either[IR, Messages] = {
+    def run(origSource : Source, source : Source, positions : Positions) : Either[IR, Messages] = {
 
-            // Setup filenames
-            val clangllfile = makeTempFilename(".ll")
-            val cfile = uriToName(filename)
+        // Setup filenames
+        val clangllfile = makeTempFilename(".ll")
+        val cfile = uriToName(origSource.name)
 
-            // Programs we may run
-            val clang = "clang"
-            val programs = Vector(clang)
+        // Programs we may run
 
-            // Clang command arguments
-            val clangargs = Seq(
-                "-c", "-S", "-emit-llvm",
-                // architecture
-                "-target", "i386-pc-linux-gnu", s"-m${config.architecture()}",
-                // optimisation
-                s"-O${config.optLevel()}",
-                // warnings
-                "-Wno-implicit-function-declaration", "-Wno-incompatible-library-redeclaration",
-                // functionality
-                "-fno-vectorize", "-fno-slp-vectorize",
-                // others
-                "-gline-tables-only", "-Xclang", "-disable-lifetime-markers",
-                "-Rpass=.*", "-Rpass-missed=.*", "-Rpass-analysis=.*",
-                // LLVM
-                "-mllvm", "-inline-threshold=15000",
-                // CPP definitions
-                "-Dassert=__VERIFIER_assert",
-                // output
-                "-o", clangllfile,
-                // language
-                "-x", "c",
-                // input
-                cfile
-            )
+        // Clang command arguments
+        val clangargs = Seq(
+            "-c", "-S", "-emit-llvm",
+            // architecture
+            "-target", "i386-pc-linux-gnu", s"-m${config.architecture()}",
+            // optimisation
+            s"-O${config.optLevel()}",
+            // warnings
+            "-Wno-implicit-function-declaration", "-Wno-incompatible-library-redeclaration",
+            // functionality
+            "-fno-vectorize", "-fno-slp-vectorize",
+            // others
+            "-gline-tables-only", "-Xclang", "-disable-lifetime-markers",
+            "-Rpass=.*", "-Rpass-missed=.*", "-Rpass-analysis=.*",
+            // LLVM
+            "-mllvm", "-inline-threshold=15000",
+            // CPP definitions
+            "-Dassert=__VERIFIER_assert",
+            // output
+            "-o", clangllfile,
+            // language
+            "-x", "c",
+            // input
+            cfile
+        )
 
-            def run() : Either[IR, Messages] = {
+        deleteFile(clangllfile)
+        val (res, output) = runPipeline(
+            logger,
+            source,
+            clang +: clangargs
+        )
+        if (res == 0) {
+            logger.logfile(source, "Clang output", clangllfile)
+            logger.info(source, s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
+            logger.info(source, s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
+            val llvmFrontend = new LLVMFrontend(config)
+            val llvm = llvmFrontend.buildIR(source, FileSource(clangllfile), positions)
+            if (config.cleanup())
                 deleteFile(clangllfile)
-                val (res, output) = runPipeline(
-                    logger,
-                    origSource,
-                    clang +: clangargs
-                )
-                if (res == 0) {
-                    logger.logfile(origSource, "Clang output", clangllfile)
-                    logger.info(origSource, s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
-                    logger.info(origSource, s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
-                    val llvmFrontend = new LLVMFrontend(config)
-                    val llvm = llvmFrontend.buildIR(origSource, FileSource(clangllfile), positions)
-                    if (config.cleanup())
-                        deleteFile(clangllfile)
-                    llvm
-                } else {
-                    logger.info(origSource, "buildIRFromFile: preparing LLVM code failed\n")
-                    logger.info(origSource, output)
-                    Right(fail(logger, origSource, s"buildIRFromFile: preparing LLVM code failed with code $res", config))
-                }
-            }
-
-            programs.flatMap(checkFor(logger, origSource, _, config)) match {
-                case Vector() =>
-                    run()
-                case msgs =>
-                    Right(msgs)
-            }
-
+            llvm
+        } else {
+            logger.info(source, "buildIRFromFile: preparing LLVM code failed\n")
+            logger.info(source, output)
+            Right(fail(logger, source, s"buildIRFromFile: preparing LLVM code failed with code $res", config))
         }
-
-        programLogger.debug(origSource, "* Program from source\n")
-        programLogger.debug(origSource, source.content)
-        buildIRFromFile(origSource.name, positions)
     }
 
 }
