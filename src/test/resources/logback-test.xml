@@ -123,6 +123,9 @@
         <appender-ref ref="SCALASMTFILE"/>
     </logger>
 
+    <logger name="au.edu.mq.comp.skink.refinement.CheckPost" level="INHERITED" additivity="false">
+        <appender-ref ref="SCALASMTFILE"/>
+    </logger>
     <logger name="au.edu.mq.comp.skink.refinement.Newton" level="INHERITED" additivity="false">
         <appender-ref ref="SCALASMTFILE"/>
     </logger>
