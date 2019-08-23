@@ -83,7 +83,7 @@ test in assembly := {}
 mainClass in assembly := Some ("au.edu.mq.comp.skink.Main")
 
 assemblyMergeStrategy in assembly := {
-    case "logback-test.xml" => MergeStrategy.discard
+    case "logback.xml" => new IncludeFromSkink()
     case "application.conf" => new IncludeFromSkink()
     case x =>
         val oldStrategy = (assemblyMergeStrategy in assembly).value
