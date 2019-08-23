@@ -1,0 +1,6 @@
+#! /bin/sh
+# Look for a stopped docker Skink container, start it and run a shell in it
+# Also works if the container is already running
+id=`docker ps --all | awk '($2 == "inkytonik/docker-skink"){print $1}'`
+docker start $id
+docker exec -it $id bash

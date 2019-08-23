@@ -1,4 +1,5 @@
 #! /bin/sh
+# Run a new docker container for Skink
 skinkdir=`pwd`
 image=inkytonik/docker-skink
-docker run -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v $skinkdir:/skink --rm -i -t $image
+docker run -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v $skinkdir:/skink -i -t $image

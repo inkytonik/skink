@@ -32,8 +32,11 @@ Eventually you should see a root shell prompt and you should be in your Skink wo
     Status: Downloaded newer image for inkytonik/docker-skink:latest
     root@8e4ebd316b54:/skink#
 
-When you exit the shell of the VM the Docker container should be removed automatically.
 Subsequent uses of `docker-run` should be much faster to start.
+
+When you exit the shell of the VM the Docker container will persist, so if you want to delete it you will need to do so manually.
+
+If the container still exists, you can use the `docker-start` script to start it (if it's not already running) and open a shell in it.
 
 #### Find the SV-COMP benchmarks
 
