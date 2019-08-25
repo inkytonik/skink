@@ -2,7 +2,7 @@
 
     <contextName>Skink</contextName>
 
-    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger{0} - %msg%n"/>
+    <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger - %msg%n"/>
     <property name="RAWNL_PATTERN" value="%msg%n"/>
     <property name="RAW_PATTERN" value="%msg"/>
 
@@ -12,92 +12,11 @@
         </encoder>
     </appender>
 
-    <root level="INHERITED">
+    <root level="OFF">
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="au.edu.mq.comp.skink" level="INHERITED"/>
-
-    <logger name="logs|au.edu.mq.comp.skink.c.CFrontend" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="logs|au.edu.mq.comp.skink.c.CFrontend.program" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="logs|au.edu.mq.comp.skink.pagai.PAGAIFrontend" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="logs|au.edu.mq.comp.skink.pagai.PAGAIFrontend.program" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="logs|au.edu.mq.comp.skink.ir.llvm.LLVMFrontend.program" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="logs|au.edu.mq.comp.skink.ir.llvm.LLVMFunction.program" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="class au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.ir.llvm.LLVMFunction$Comm$1$" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="logs|au.edu.mq.comp.skink.verifier.TraceRefinement.cfg" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement$resources$" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.verifier.TraceRefinement$Cmds$" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="class au.edu.mq.comp.skink.verifier.TraceRefinement$Cmds$" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="au.edu.mq.comp.skink.refinement.CheckPost" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.refinement.Newton" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="class au.edu.mq.comp.skink.refinement.Newton" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="au.edu.mq.comp.skink.refinement.Craig" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="class au.edu.mq.comp.skink.refinement.Craig" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="logs|au.edu.mq.comp.skink.refinement.Newton.dot" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="logs|au.edu.mq.comp.skink.refinement.Craig.dot" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="org.bitbucket.franck44.automat" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="org.bitbucket.franck44.expect" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="org.bitbucket.franck44.scalasmt" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="smt2" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="org.bitbucket.franck44.scalasmt.interpreters.SMTSolver.smt2" level="INHERITED" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
+    <logger name="au.edu.mq.comp.skink" level="OFF"/>
+    <logger name="logs|au.edu.mq.comp.skink" level="INFO"/>
 
 </configuration>
