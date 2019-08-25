@@ -21,13 +21,25 @@
 
 package au.edu.mq.comp.skink
 
+import com.typesafe.scalalogging.{Logger => ScalaLogger}
+import org.slf4j.{LoggerFactory => ScalaLoggerFactory}
+
 /**
  * Skink logger factory.
  */
 object LoggerFactory {
 
+    import ch.qos.logback.classic.Level
+    import org.slf4j.Logger.ROOT_LOGGER_NAME
+
     def getLogger(clazz : Class[_], config : SkinkConfig, suffix : String = "") =
         new Logger(clazz, config, suffix)
+
+    def setRootLevel(level : Level) {
+        val rootLogger = ScalaLogger(ScalaLoggerFactory.getLogger(ROOT_LOGGER_NAME))
+        val root = rootLogger.underlying.asInstanceOf[ch.qos.logback.classic.Logger]
+        root.setLevel(level)
+    }
 
 }
 
@@ -37,9 +49,7 @@ object LoggerFactory {
  */
 class Logger(clazz : Class[_], config : SkinkConfig, suffix : String = "") {
 
-    import com.typesafe.scalalogging.{Logger => ScalaLogger}
     import org.bitbucket.inkytonik.kiama.util.{FileSource, Source}
-    import org.slf4j.{LoggerFactory => ScalaLoggerFactory}
 
     val name = s"logs|${clazz.getName}${suffix}"
     val logger = ScalaLogger(ScalaLoggerFactory.getLogger(name))

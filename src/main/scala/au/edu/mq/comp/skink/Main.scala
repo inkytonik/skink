@@ -27,10 +27,13 @@ import org.bitbucket.inkytonik.kiama.util.CompilerBase
 
 object Main {
 
+    import au.edu.mq.comp.skink.LoggerFactory
     import org.rogach.scallop.exceptions.ScallopException
 
     def main(args : Array[String]) {
-        createConfig(args).driver.main(args)
+        val config = createConfig(args)
+        LoggerFactory.setRootLevel(config.logLevel())
+        config.driver.main(args)
     }
 
     def createConfig(args : Seq[String]) : SkinkConfig = {

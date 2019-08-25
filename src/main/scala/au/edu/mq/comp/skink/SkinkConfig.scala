@@ -37,6 +37,8 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     import au.edu.mq.comp.skink.c.CFrontend
     import au.edu.mq.comp.skink.ir.llvm.LLVMFrontend
+    import ch.qos.logback.classic.Level
+    import ch.qos.logback.classic.Level.{OFF, DEBUG, ERROR, INFO, TRACE, WARN}
     import org.rogach.scallop.{ArgType, ValueConverter}
     import scala.concurrent.duration.Duration
     import scala.reflect.runtime.universe.TypeTag
@@ -117,6 +119,42 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
     lazy val lli = opt[String]("lli", noshort = true,
         descr = s"Program to use to execute target code (default: $lliDefault)",
         default = Some(lliDefault))
+
+    val logLevelUsageMessage = "Root logging level off (default), error, warn, info, debug, trace"
+
+    val logLevelConverter =
+        new ValueConverter[Level] {
+
+            val argType = ArgType.LIST
+
+            def parse(s : List[(String, List[String])]) : Either[String, Option[Level]] =
+                argStrings(s) match {
+                    case List("off") =>
+                        Right(Some(OFF))
+                    case List("debug") =>
+                        Right(Some(DEBUG))
+                    case List("error") =>
+                        Right(Some(ERROR))
+                    case List("info") =>
+                        Right(Some(INFO))
+                    case List("trace") =>
+                        Right(Some(TRACE))
+                    case List("warn") =>
+                        Right(Some(WARN))
+                    case _ =>
+                        if (s.isEmpty)
+                            Right(None)
+                        else
+                            Left(s"expected: $logLevelUsageMessage")
+                }
+
+            val tag = implicitly[TypeTag[Level]]
+
+        }
+
+    lazy val logLevel = opt[Level]("log", short = 'l',
+        descr = logLevelUsageMessage,
+        default = Some(OFF))(logLevelConverter)
 
     val maxIterationsDefault = 40
 
