@@ -88,15 +88,15 @@ class CFrontend(val config : SkinkConfig) extends Frontend {
         )
         if (res == 0) {
             logger.logfile(source, "Clang output", clangllfile)
-            logger.info(source, s"\nbuildIRFromFile: preparing LLVM code succeeded\n")
-            logger.info(source, s"buildIRFromFile: running LLVM frontend on ${clangllfile}\n")
+            logger.info(source, s"buildIRFromFile: preparing LLVM code succeeded")
+            logger.info(source, s"buildIRFromFile: running LLVM frontend on ${clangllfile}")
             val llvmFrontend = new LLVMFrontend(config)
             val llvm = llvmFrontend.buildIR(source, FileSource(clangllfile), positions)
             if (config.cleanup())
                 deleteFile(clangllfile)
             llvm
         } else {
-            logger.info(source, "buildIRFromFile: preparing LLVM code failed\n")
+            logger.info(source, "buildIRFromFile: preparing LLVM code failed")
             logger.info(source, output)
             Right(fail(logger, source, s"buildIRFromFile: preparing LLVM code failed with code $res", config))
         }
