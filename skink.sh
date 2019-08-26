@@ -74,7 +74,16 @@ else
     fi
   fi
 
-  run --verify --output-witness --witness-file witness.graphml $*
+  file="${@: -1}"
+  IWTNFILE=$file.graphml
+  WTNFILE=witness.graphml
+
+  run --verify --output-witness --witness-file $WTNFILE $*
+
+  if test -e $WTNFILE
+  then
+    cp $WTNFILE $IWTNFILE
+  fi
 
   if test "$PROFOUT" != ""
   then
