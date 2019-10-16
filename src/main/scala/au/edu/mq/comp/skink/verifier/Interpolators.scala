@@ -50,16 +50,16 @@ object SMTLIB2Interpolators extends Interpolators {
 
     implicit class SMTLIB2InterpolatorHelper(val sc : StringContext) extends AnyVal {
 
-        def term[T](args : Any*) : Term =
+        def term(args : Any*) : Term =
             interpolate(sc, parseTerm)(args)
 
     }
 
-    def parseTerm[T](source : Source) : Term = {
+    def parseTerm(source : Source) : Term = {
         parseSMTLIB2(SMTLIB2Parser[Term], source)
     }
 
-    def parseSMTLIB2[T](parser : Source => Try[Term], source : Source) : Term = {
+    def parseSMTLIB2(parser : Source => Try[Term], source : Source) : Term = {
         parser(source) match {
             case Success(term) =>
                 term
