@@ -14,9 +14,10 @@ struct ST {
     int X;
     double Y;
     struct RT Z;
+    int *P;
 };
 
-int main() 
+int main()
 {
     struct ST s[4];
     int i = __VERIFIER_nondet_int();

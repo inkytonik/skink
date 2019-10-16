@@ -15,14 +15,15 @@ struct ST {
     int X;
     double Y;
     struct RT Z;
+    int *P;
 };
 
-int main() 
+int main()
 {
     struct ST s[4];
     int i = __VERIFIER_nondet_int();
     __VERIFIER_assume(i >= 0 && i < 4);
-    
+
     int d1 = __VERIFIER_nondet_int();
     s[i].Z.B[4][5] = d1;
     int d2 = s[i].Z.B[4][5];

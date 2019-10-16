@@ -16,6 +16,7 @@ struct ST {
     int X;
     double Y;
     struct RT Z;
+    int *P;
 };
 
 int main()
