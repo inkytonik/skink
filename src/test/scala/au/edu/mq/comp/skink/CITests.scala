@@ -38,6 +38,7 @@ class CITests extends FunSuiteLike with Matchers {
     val testPath = "src/test/resources/citests"
 
     mkFileTests(testPath, List("C"), List(Bit(), Math()), List(0, 2), List("main"))
+    mkFileTests(testPath + "/math", List("C"), List(Math()), List(0, 2), List("main"))
     mkFileTests(testPath + "/bit", List("C"), List(Bit()), List(0, 2), List("main"))
     mkFileTests(testPath + "/bit/O2", List("C"), List(Bit()), List(2), List("main"))
     mkFileTests(testPath + "/O2", List("C"), List(Bit(), Math()), List(2), List("main"))
