@@ -3,8 +3,6 @@
     <contextName>Skink</contextName>
 
     <property name="DEFAULT_PATTERN" value="%d{HH:mm:ss} %-5level %logger - %msg%n"/>
-    <property name="RAWNL_PATTERN" value="%msg%n"/>
-    <property name="RAW_PATTERN" value="%msg"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -15,8 +13,5 @@
     <root level="OFF">
         <appender-ref ref="STDOUT"/>
     </root>
-
-    <logger name="au.edu.mq.comp.skink" level="OFF"/>
-    <logger name="logs|au.edu.mq.comp.skink" level="INFO"/>
 
 </configuration>
