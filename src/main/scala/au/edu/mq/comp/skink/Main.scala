@@ -32,7 +32,8 @@ object Main {
 
     def main(args : Array[String]) {
         val config = createConfig(args)
-        LoggerFactory.setRootLevel(config.logLevel())
+        if (config.logLevel.isSupplied)
+            LoggerFactory.setRootLevel(config.logLevel())
         config.driver.main(args)
     }
 
