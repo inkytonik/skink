@@ -54,27 +54,27 @@ class Logger(clazz : Class[_], config : SkinkConfig, suffix : String = "") {
     val name = s"logs|${clazz.getName}${suffix}"
     val logger = ScalaLogger(ScalaLoggerFactory.getLogger(name))
 
-    def debug(source : Source, msg : String) {
+    def debug(source : Source, msg : => String) {
         logger.debug(msg)
         publishLog(source, msg)
     }
 
-    def error(source : Source, msg : String) {
+    def error(source : Source, msg : => String) {
         logger.error(msg)
         publishLog(source, msg)
     }
 
-    def info(source : Source, msg : String) {
+    def info(source : Source, msg : => String) {
         logger.info(msg)
         publishLog(source, msg)
     }
 
-    def warn(source : Source, msg : String) {
+    def warn(source : Source, msg : => String) {
         logger.warn(msg)
         publishLog(source, msg)
     }
 
-    def publishLog(source : Source, msg : String) {
+    def publishLog(source : Source, msg : => String) {
         if (config.server())
             config.driver.publishProductStr(source, name, "txt", s"$msg\n", true)
     }
