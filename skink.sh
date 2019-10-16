@@ -1,7 +1,7 @@
 #!/bin/bash
 # skink.sh
 
-# Pfofiling support requires installation of async-profiler:
+# Profiling support requires installation of async-profiler:
 # https://github.com/jvm-profiling-tools/async-profiler
 # You need to set the following variable to the location of the agent shared library.
 PROFILER=async-profiler-1.5-macos-x64/build/libasyncProfiler.so
