@@ -120,7 +120,7 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = s"Program to use to execute target code (default: $lliDefault)",
         default = Some(lliDefault))
 
-    val logLevelUsageMessage = "Root logging level off (default), error, warn, info, debug, trace"
+    val logLevelUsageMessage = "Root logging level off, error, warn, info, debug, trace"
 
     val logLevelConverter =
         new ValueConverter[Level] {
@@ -154,7 +154,7 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
 
     lazy val logLevel = opt[Level]("log", short = 'l',
         descr = logLevelUsageMessage,
-        default = Some(OFF))(logLevelConverter)
+        default = None)(logLevelConverter)
 
     val maxIterationsDefault = 40
 
@@ -214,8 +214,7 @@ abstract class SkinkConfig(args : Seq[String]) extends Config(args) {
         descr = s"Don't print output (default: $quietDefault)",
         default = Some(quietDefault))
 
-    // val solversDefault = "boolector,cvc4,mathsat,yices,z3"
-    val solversDefault = "z3"
+    val solversDefault = "z3,mathsat"
 
     lazy val solvers = opt[String]("solvers", short = 'e',
         descr = s"Comma-separated solver names (boolector, cvc4, mathsat, smtinterpol, yices, z3, z3-fpbv) (default: $solversDefault)",
