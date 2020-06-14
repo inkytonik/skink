@@ -1,5 +1,7 @@
 # Skink: A static verification tool
 
+![Test](https://github.com/inkytonik/skink/workflows/Test/badge.svg)
+
 Skink is an automatic verification tool.
 Currently it targets C programs and programs written in the [LLVM intermediate representation](http://llvm.org/docs/LangRef.html).
 The current form of verification it implements is *error function unreachability* as defined by the [International Software Verification Competition](https://sv-comp.sosy-lab.org) (SV-COMP).
